@@ -1,4 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+'use client'
+
+import { useState, useRef, useEffect, useCallback } from "react";
+import { signUp, signIn, signOut, getCurrentUser, createDeal, saveDeal, loadDeal } from "@/lib/deals";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BOATCLOSERS v4
@@ -2481,44 +2484,60 @@ Help with: HIN location, engine serial numbers, USCG vs state registration, earn
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AUTH SCREEN (Sign Up / Log In with Role Selection)
+// AUTH SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
 function AuthScreen({ onAuth }) {
-  const [mode, setMode] = useState("signup"); // signup | login
-  const [role, setRole] = useState(null); // buyer | seller
+  const [mode, setMode] = useState("signup");
+  const [role, setRole] = useState(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const canSubmit = mode==="login" ? (email && pw) : (role && name && email && pw);
 
-  const submit = () => {
-    if (!canSubmit) return;
+  const submit = async () => {
+    if (!canSubmit || loading) return;
     if (pw.length < 6) { setError("Password must be at least 6 characters."); return; }
-    onAuth({ name, email, role: role||"buyer", mode });
+    setLoading(true);
+    setError("");
+    try {
+      if (mode === "signup") {
+        const data = await signUp(email, pw, name, role);
+        onAuth({ name, email, role, mode, userId: data.user?.id });
+      } else {
+        const data = await signIn(email, pw);
+        const u = data.user;
+        onAuth({
+          name: u.user_metadata?.full_name || email,
+          email: u.email,
+          role: u.user_metadata?.role || "buyer",
+          mode,
+          userId: u.id
+        });
+      }
+    } catch (err) {
+      setError(err.message || "Something went wrong. Please try again.");
+    }
+    setLoading(false);
   };
 
   return (
     <div style={{ minHeight:"100vh", background:C.navy, display:"flex", flexDirection:"column" }}>
-      {/* Nav */}
       <div style={{ padding:"1.5rem 2rem", display:"flex", alignItems:"center", justifyContent:"center", borderBottom:"1px solid rgba(184,134,58,0.2)" }}>
         <div style={{ textAlign:"center" }}>
           <div style={{ ...S.logo, fontSize:22 }}>BOATCLOSERS</div>
           <div style={{ ...S.logoSub, color:"rgba(255,255,255,0.35)" }}>PRIVATE VESSEL TRANSACTIONS</div>
         </div>
       </div>
-
       <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:"2rem" }}>
         <div style={{ background:"#fff", borderRadius:10, padding:"2.5rem", width:"100%", maxWidth:420, border:`1px solid rgba(184,134,58,0.2)` }}>
-          {/* Mode toggle */}
           <div style={{ display:"flex", borderRadius:6, overflow:"hidden", border:`1px solid ${C.mist}`, marginBottom:24 }}>
             {[["signup","Create Account"],["login","Sign In"]].map(([m,l])=>(
-              <button key={m} onClick={()=>setMode(m)} style={{ flex:1, padding:"9px", fontSize:13, fontFamily:"sans-serif", fontWeight:600, cursor:"pointer", background:mode===m?C.navy:"transparent", color:mode===m?"#fff":C.slate, border:"none" }}>{l}</button>
+              <button key={m} onClick={()=>{ setMode(m); setError(""); }} style={{ flex:1, padding:"9px", fontSize:13, fontFamily:"sans-serif", fontWeight:600, cursor:"pointer", background:mode===m?C.navy:"transparent", color:mode===m?"#fff":C.slate, border:"none" }}>{l}</button>
             ))}
           </div>
-
-          {/* Role selection — only on signup */}
           {mode==="signup" && (
             <div style={{ marginBottom:20 }}>
               <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:600, color:C.navy, marginBottom:10 }}>I am the...</div>
@@ -2533,7 +2552,6 @@ function AuthScreen({ onAuth }) {
               </div>
             </div>
           )}
-
           {mode==="signup" && (
             <div style={{ marginBottom:14 }}>
               <label style={S.label}>Full Name</label>
@@ -2546,16 +2564,15 @@ function AuthScreen({ onAuth }) {
           </div>
           <div style={{ marginBottom:6 }}>
             <label style={S.label}>Password</label>
-            <input style={S.input} type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="Minimum 6 characters" />
+            <input style={S.input} type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="Minimum 6 characters" onKeyDown={e=>e.key==="Enter"&&submit()} />
           </div>
-          {error && <div style={{ fontSize:12, color:C.red, fontFamily:"sans-serif", marginBottom:10 }}>{error}</div>}
-          <button style={{...S.btnBrass, width:"100%", marginTop:16, fontSize:14, padding:"12px"}} disabled={!canSubmit} onClick={submit}>
-            {mode==="signup" ? "Create Account & Start Deal" : "Sign In"}
+          {error && <div style={{ fontSize:12, color:C.red, fontFamily:"sans-serif", marginBottom:10, marginTop:8 }}>{error}</div>}
+          <button style={{...S.btnBrass, width:"100%", marginTop:16, fontSize:14, padding:"12px", opacity:loading?0.6:1}} disabled={!canSubmit||loading} onClick={submit}>
+            {loading ? "Please wait..." : mode==="signup" ? "Create Account & Start Deal" : "Sign In"}
           </button>
-
           <div style={{ marginTop:16, textAlign:"center", fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
             {mode==="signup" ? "Already have an account? " : "New here? "}
-            <span style={{ color:C.teal, cursor:"pointer", fontWeight:600 }} onClick={()=>setMode(mode==="signup"?"login":"signup")}>
+            <span style={{ color:C.teal, cursor:"pointer", fontWeight:600 }} onClick={()=>{ setMode(mode==="signup"?"login":"signup"); setError(""); }}>
               {mode==="signup"?"Sign in":"Create account"}
             </span>
           </div>
@@ -2746,29 +2763,80 @@ const emptyDocs = {paid:false,signedDocs:{}};
 export default function BoatClosers() {
   const [screen, setScreen] = useState("landing");
   const [user, setUser] = useState(null);
+  const [dealId, setDealId] = useState(null);
   const [step, setStep] = useState(0);
-  const [maxStep, setMaxStep] = useState(0); // highest step naturally reached
+  const [maxStep, setMaxStep] = useState(0);
   const [vessel, setVessel] = useState(emptyVessel);
   const [parties, setParties] = useState(emptyParties);
   const [negotiate, setNegotiate] = useState(emptyNeg);
   const [ddData, setDdData] = useState(emptyDD);
   const [docsData, setDocsData] = useState(emptyDocs);
   const [aiOpen, setAiOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // When advancing forward naturally, update maxStep
-  const goToStep = (n) => {
-    setStep(n);
-    if (n > maxStep) setMaxStep(n);
+  // Check for existing session on load
+  useEffect(() => {
+    getCurrentUser().then(async (u) => {
+      if (u) {
+        const deal = await loadDeal(u.id);
+        if (deal) {
+          setUser({ name: u.user_metadata?.full_name || u.email, email: u.email, role: u.user_metadata?.role || "buyer", userId: u.id });
+          setDealId(deal.id);
+          setVessel(deal.vessel || emptyVessel);
+          setParties(deal.parties || emptyParties);
+          setNegotiate(deal.negotiate || emptyNeg);
+          setDdData(deal.dd_data || emptyDD);
+          setDocsData(deal.docs_data || emptyDocs);
+          setScreen("deal");
+        }
+      }
+    });
+  }, []);
+
+  // Auto-save to Supabase
+  const autoSave = useCallback(async (updates) => {
+    if (!dealId) return;
+    setSaving(true);
+    try { await saveDeal(dealId, updates); } catch (e) { console.error("Save error:", e); }
+    setSaving(false);
+  }, [dealId]);
+
+  const setVesselAndSave = (fn) => setVessel(prev => { const next = typeof fn==='function' ? fn(prev) : fn; autoSave({ vessel: next }); return next; });
+  const setPartiesAndSave = (fn) => setParties(prev => { const next = typeof fn==='function' ? fn(prev) : fn; autoSave({ parties: next }); return next; });
+  const setNegotiateAndSave = (fn) => setNegotiate(prev => { const next = typeof fn==='function' ? fn(prev) : fn; autoSave({ negotiate: next }); return next; });
+  const setDdDataAndSave = (fn) => setDdData(prev => { const next = typeof fn==='function' ? fn(prev) : fn; autoSave({ dd_data: next }); return next; });
+  const setDocsDataAndSave = (fn) => setDocsData(prev => { const next = typeof fn==='function' ? fn(prev) : fn; autoSave({ docs_data: next }); return next; });
+
+  const goToStep = (n) => { setStep(n); if (n > maxStep) setMaxStep(n); };
+
+  const handleAuth = async (authData) => {
+    setUser(authData);
+    setParties(p => ({ ...p, [authData.role]: { ...p[authData.role], name: authData.name, email: authData.email } }));
+    if (authData.userId) {
+      try {
+        const existing = await loadDeal(authData.userId);
+        if (existing) {
+          setDealId(existing.id);
+          setVessel(existing.vessel || emptyVessel);
+          setParties(existing.parties || emptyParties);
+          setNegotiate(existing.negotiate || emptyNeg);
+          setDdData(existing.dd_data || emptyDD);
+          setDocsData(existing.docs_data || emptyDocs);
+        } else {
+          const deal = await createDeal(authData.userId, authData.role, emptyVessel, { [authData.role]: { name: authData.name, email: authData.email } });
+          setDealId(deal.id);
+        }
+      } catch (e) { console.error("Deal setup error:", e); }
+    }
+    setScreen("deal");
   };
 
-  const handleAuth = (authData) => {
-    setUser(authData);
-    // Pre-fill their own side
-    setParties(p => ({
-      ...p,
-      [authData.role]: { ...p[authData.role], name: authData.name, email: authData.email }
-    }));
-    setScreen("deal");
+  const handleSignOut = async () => {
+    try { await signOut(); } catch (e) { console.error(e); }
+    setUser(null); setDealId(null); setStep(0); setMaxStep(0);
+    setVessel(emptyVessel); setParties(emptyParties); setNegotiate(emptyNeg);
+    setDdData(emptyDD); setDocsData(emptyDocs);
+    setScreen("landing");
   };
 
   if (screen==="landing") return <Landing onStart={()=>setScreen("auth")}/>;
@@ -2782,18 +2850,19 @@ export default function BoatClosers() {
           <div style={S.logoSub}>Private Vessel Transactions</div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          {saving && <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontFamily:"sans-serif" }}>Saving…</span>}
           {user && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1 }}>{user.role}</span>}
           {vessel.year && <span style={{ fontSize:11, color:C.brass, fontFamily:"sans-serif" }}>{vessel.year} {vessel.make} {vessel.model}</span>}
-          <button style={{...S.navPill||{}, fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif"}} onClick={()=>setScreen("landing")}>Sign Out</button>
+          <button style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }} onClick={handleSignOut}>Sign Out</button>
         </div>
       </nav>
       <ProgressBar step={step} setStep={setStep} maxStep={maxStep}/>
       <PreviewBanner step={step} maxStep={maxStep} setStep={setStep}/>
-      {step===0 && <StepVessel data={vessel} setData={setVessel} onNext={()=>goToStep(1)}/>}
-      {step===1 && <StepParties data={parties} setData={setParties} userRole={user?.role||"buyer"} onNext={()=>goToStep(2)} onBack={()=>setStep(0)}/>}
-      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiate} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
-      {step===3 && <StepDueDiligence data={ddData} setData={setDdData} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/>}
-      {step===4 && <StepDocuments data={docsData} setData={setDocsData} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
+      {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} onNext={()=>goToStep(1)}/>}
+      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={user?.role||"buyer"} onNext={()=>goToStep(2)} onBack={()=>setStep(0)}/>}
+      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
+      {step===3 && <StepDueDiligence data={ddData} setData={setDdDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/>}
+      {step===4 && <StepDocuments data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
       {step===5 && <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} onBack={()=>setStep(4)}/>}
       <AIAssistant open={aiOpen} setOpen={setAiOpen} step={step} vessel={vessel} parties={parties}/>
     </div>
