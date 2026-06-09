@@ -1,4 +1,3 @@
-'use client'
 import { useState, useRef, useEffect } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -350,30 +349,11 @@ function StepVessel({ data, setData, onNext }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function StepParties({ data, setData, userRole, onNext, onBack }) {
   const set = (side,k,v) => setData(d => ({...d,[side]:{...d[side],[k]:v}}));
-  // The initiator sees their own side highlighted; both sides editable
   const canContinue = userRole==="seller"
     ? (data.seller.name && data.seller.email)
     : (data.buyer.name && data.buyer.email);
 
-  const SideForm = ({ side, label }) => (
-    <div style={{ ...S.card, border: side===userRole ? `2px solid ${C.brass}` : `0.5px solid ${C.mist}`, position:"relative" }}>
-      {side===userRole && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.brass, color:C.navy }}>You</span>}
-      <h3 style={S.h3}>{label}</h3>
-      <Grid2>
-        <Field label={`${label} Full Legal Name *`}><input style={S.input} value={data[side].name} onChange={e=>set(side,"name",e.target.value)} /></Field>
-        <Field label="Email *"><input style={S.input} type="email" value={data[side].email} onChange={e=>set(side,"email",e.target.value)} /></Field>
-        <Field label="Phone"><input style={S.input} value={data[side].phone} onChange={e=>set(side,"phone",e.target.value)} /></Field>
-        <Field label="Address"><input style={S.input} value={data[side].address} onChange={e=>set(side,"address",e.target.value)} /></Field>
-        <Field label="City"><input style={S.input} value={data[side].city} onChange={e=>set(side,"city",e.target.value)} /></Field>
-        <Field label="State / Zip"><input style={S.input} value={data[side].stateZip} onChange={e=>set(side,"stateZip",e.target.value)} /></Field>
-      </Grid2>
-      {side!==userRole && (
-        <div style={{ marginTop:12, padding:"10px 12px", background:C.sandDark, borderRadius:5, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
-          The other party can fill in their own info after you invite them by email. You can also enter it on their behalf now.
-        </div>
-      )}
-    </div>
-  );
+  const sides = userRole==="seller" ? ["seller","buyer"] : ["buyer","seller"];
 
   return (
     <div style={S.page}>
@@ -385,8 +365,37 @@ function StepParties({ data, setData, userRole, onNext, onBack }) {
         </p>
       </div>
       <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-        {userRole==="seller" ? <><SideForm side="seller" label="Seller" /><SideForm side="buyer" label="Buyer" /></>
-          : <><SideForm side="buyer" label="Buyer" /><SideForm side="seller" label="Seller" /></>}
+        {sides.map(side => (
+          <div key={side} style={{ ...S.card, border: side===userRole ? `2px solid ${C.brass}` : `0.5px solid ${C.mist}`, position:"relative" }}>
+            {side===userRole && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.brass, color:C.navy }}>You</span>}
+            <h3 style={S.h3}>{side==="buyer" ? "Buyer" : "Seller"}</h3>
+            <Grid2>
+              <Field label={`${side==="buyer"?"Buyer":"Seller"} Full Legal Name *`}>
+                <input style={S.input} value={data[side].name} onChange={e=>set(side,"name",e.target.value)} />
+              </Field>
+              <Field label="Email *">
+                <input style={S.input} type="email" value={data[side].email} onChange={e=>set(side,"email",e.target.value)} />
+              </Field>
+              <Field label="Phone">
+                <input style={S.input} value={data[side].phone} onChange={e=>set(side,"phone",e.target.value)} />
+              </Field>
+              <Field label="Address">
+                <input style={S.input} value={data[side].address} onChange={e=>set(side,"address",e.target.value)} />
+              </Field>
+              <Field label="City">
+                <input style={S.input} value={data[side].city} onChange={e=>set(side,"city",e.target.value)} />
+              </Field>
+              <Field label="State / Zip">
+                <input style={S.input} value={data[side].stateZip} onChange={e=>set(side,"stateZip",e.target.value)} />
+              </Field>
+            </Grid2>
+            {side!==userRole && (
+              <div style={{ marginTop:12, padding:"10px 12px", background:C.sandDark, borderRadius:5, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
+                The other party can fill in their own info after you invite them by email. You can also enter it on their behalf now.
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* ── INVITE OTHER PARTY ── */}
