@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { signUp, signIn, signOut, getCurrentUser, createDeal, saveDeal, loadDeal } from "@/lib/deals";
+import { useState, useRef, useEffect } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BOATCLOSERS v4
@@ -2503,22 +2502,9 @@ function AuthScreen({ onAuth }) {
     setLoading(true);
     setError("");
     try {
-      if (mode === "signup") {
-        const data = await signUp(email, pw, name, role);
-        onAuth({ name, email, role, mode, userId: data.user?.id });
-      } else {
-        const data = await signIn(email, pw);
-        const u = data.user;
-        onAuth({
-          name: u.user_metadata?.full_name || email,
-          email: u.email,
-          role: u.user_metadata?.role || "buyer",
-          mode,
-          userId: u.id
-        });
-      }
+      onAuth({ name: name || email, email, role: role || "buyer", mode });
     } catch (err) {
-      setError(err.message || "Something went wrong. Please try again.");
+      setError("Something went wrong. Please try again.");
     }
     setLoading(false);
   };
@@ -2763,7 +2749,6 @@ const emptyDocs = {paid:false,signedDocs:{}};
 export default function BoatClosers() {
   const [screen, setScreen] = useState("landing");
   const [user, setUser] = useState(null);
-  const [dealId, setDealId] = useState(null);
   const [step, setStep] = useState(0);
   const [maxStep, setMaxStep] = useState(0);
   const [vessel, setVessel] = useState(emptyVessel);
@@ -2772,70 +2757,19 @@ export default function BoatClosers() {
   const [ddData, setDdData] = useState(emptyDD);
   const [docsData, setDocsData] = useState(emptyDocs);
   const [aiOpen, setAiOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  // Check for existing session on load
-  useEffect(() => {
-    getCurrentUser().then(async (u) => {
-      if (u) {
-        const deal = await loadDeal(u.id);
-        if (deal) {
-          setUser({ name: u.user_metadata?.full_name || u.email, email: u.email, role: u.user_metadata?.role || "buyer", userId: u.id });
-          setDealId(deal.id);
-          setVessel(deal.vessel || emptyVessel);
-          setParties(deal.parties || emptyParties);
-          setNegotiate(deal.negotiate || emptyNeg);
-          setDdData(deal.dd_data || emptyDD);
-          setDocsData(deal.docs_data || emptyDocs);
-          setScreen("deal");
-        }
-      }
-    });
-  }, []);
-
-  // Auto-save to Supabase
-  const autoSave = useCallback(async (updates) => {
-    if (!dealId) return;
-    setSaving(true);
-    try { await saveDeal(dealId, updates); } catch (e) { console.error("Save error:", e); }
-    setSaving(false);
-  }, [dealId]);
-
-  const setVesselAndSave = (fn) => setVessel(prev => { const next = typeof fn==='function' ? fn(prev) : fn; autoSave({ vessel: next }); return next; });
-  const setPartiesAndSave = (fn) => setParties(prev => { const next = typeof fn==='function' ? fn(prev) : fn; autoSave({ parties: next }); return next; });
-  const setNegotiateAndSave = (fn) => setNegotiate(prev => { const next = typeof fn==='function' ? fn(prev) : fn; autoSave({ negotiate: next }); return next; });
-  const setDdDataAndSave = (fn) => setDdData(prev => { const next = typeof fn==='function' ? fn(prev) : fn; autoSave({ dd_data: next }); return next; });
-  const setDocsDataAndSave = (fn) => setDocsData(prev => { const next = typeof fn==='function' ? fn(prev) : fn; autoSave({ docs_data: next }); return next; });
 
   const goToStep = (n) => { setStep(n); if (n > maxStep) setMaxStep(n); };
 
-  const handleAuth = async (authData) => {
+  const handleAuth = (authData) => {
     setUser(authData);
     setParties(p => ({ ...p, [authData.role]: { ...p[authData.role], name: authData.name, email: authData.email } }));
-    if (authData.userId) {
-      try {
-        const existing = await loadDeal(authData.userId);
-        if (existing) {
-          setDealId(existing.id);
-          setVessel(existing.vessel || emptyVessel);
-          setParties(existing.parties || emptyParties);
-          setNegotiate(existing.negotiate || emptyNeg);
-          setDdData(existing.dd_data || emptyDD);
-          setDocsData(existing.docs_data || emptyDocs);
-        } else {
-          const deal = await createDeal(authData.userId, authData.role, emptyVessel, { [authData.role]: { name: authData.name, email: authData.email } });
-          setDealId(deal.id);
-        }
-      } catch (e) { console.error("Deal setup error:", e); }
-    }
     setScreen("deal");
   };
 
-  const handleSignOut = async () => {
-    try { await signOut(); } catch (e) { console.error(e); }
-    setUser(null); setDealId(null); setStep(0); setMaxStep(0);
-    setVessel(emptyVessel); setParties(emptyParties); setNegotiate(emptyNeg);
-    setDdData(emptyDD); setDocsData(emptyDocs);
+  const handleSignOut = () => {
+    setUser(null); setStep(0); setMaxStep(0);
+    setVessel(emptyVessel); setParties(emptyParties);
+    setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
     setScreen("landing");
   };
 
@@ -2850,7 +2784,6 @@ export default function BoatClosers() {
           <div style={S.logoSub}>Private Vessel Transactions</div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          {saving && <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontFamily:"sans-serif" }}>Saving…</span>}
           {user && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1 }}>{user.role}</span>}
           {vessel.year && <span style={{ fontSize:11, color:C.brass, fontFamily:"sans-serif" }}>{vessel.year} {vessel.make} {vessel.model}</span>}
           <button style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }} onClick={handleSignOut}>Sign Out</button>
@@ -2858,11 +2791,11 @@ export default function BoatClosers() {
       </nav>
       <ProgressBar step={step} setStep={setStep} maxStep={maxStep}/>
       <PreviewBanner step={step} maxStep={maxStep} setStep={setStep}/>
-      {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} onNext={()=>goToStep(1)}/>}
-      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={user?.role||"buyer"} onNext={()=>goToStep(2)} onBack={()=>setStep(0)}/>}
-      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
-      {step===3 && <StepDueDiligence data={ddData} setData={setDdDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/>}
-      {step===4 && <StepDocuments data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
+      {step===0 && <StepVessel data={vessel} setData={setVessel} onNext={()=>goToStep(1)}/>}
+      {step===1 && <StepParties data={parties} setData={setParties} userRole={user?.role||"buyer"} onNext={()=>goToStep(2)} onBack={()=>setStep(0)}/>}
+      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiate} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
+      {step===3 && <StepDueDiligence data={ddData} setData={setDdData} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/>}
+      {step===4 && <StepDocuments data={docsData} setData={setDocsData} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
       {step===5 && <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} onBack={()=>setStep(4)}/>}
       <AIAssistant open={aiOpen} setOpen={setAiOpen} step={step} vessel={vessel} parties={parties}/>
     </div>
