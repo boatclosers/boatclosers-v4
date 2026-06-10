@@ -2502,9 +2502,30 @@ function AuthScreen({ onAuth }) {
     setLoading(true);
     setError("");
     try {
-      onAuth({ name: name || email, email, role: role || "buyer", mode });
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: mode === "signup" ? "signup" : "signin",
+          email, password: pw, fullName: name, role: role || "buyer"
+        })
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        setError(result.error || "Something went wrong. Please try again.");
+        setLoading(false);
+        return;
+      }
+      onAuth({
+        name: result.user.fullName || name || email,
+        email: result.user.email,
+        role: result.user.role || role || "buyer",
+        userId: result.user.id,
+        token: result.token,
+        mode
+      });
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      setError("Network error. Please try again.");
     }
     setLoading(false);
   };
@@ -2749,6 +2770,7 @@ const emptyDocs = {paid:false,signedDocs:{}};
 export default function BoatClosers() {
   const [screen, setScreen] = useState("landing");
   const [user, setUser] = useState(null);
+  const [dealId, setDealId] = useState(null);
   const [step, setStep] = useState(0);
   const [maxStep, setMaxStep] = useState(0);
   const [vessel, setVessel] = useState(emptyVessel);
@@ -2757,21 +2779,117 @@ export default function BoatClosers() {
   const [ddData, setDdData] = useState(emptyDD);
   const [docsData, setDocsData] = useState(emptyDocs);
   const [aiOpen, setAiOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [booting, setBooting] = useState(true);
 
-  const goToStep = (n) => { setStep(n); if (n > maxStep) setMaxStep(n); };
+  const saveTimer = useRef(null);
+  const latestState = useRef({});
+
+  // Keep a live ref to current state for debounced saving
+  useEffect(() => {
+    latestState.current = { vessel, parties, negotiate, ddData, docsData, step, maxStep };
+  }, [vessel, parties, negotiate, ddData, docsData, step, maxStep]);
+
+  // On first load, restore session from localStorage and load their deal
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("bc_session");
+      if (stored) {
+        const session = JSON.parse(stored);
+        if (session?.token && session?.userId) {
+          fetch("/api/deals", {
+            method: "GET",
+            headers: { "Authorization": "Bearer " + session.token }
+          })
+            .then(r => r.json())
+            .then(data => {
+              setUser({ name: session.name, email: session.email, role: session.role, userId: session.userId, token: session.token });
+              if (data?.deal) {
+                setDealId(data.deal.id);
+                setVessel(data.deal.vessel || emptyVessel);
+                setParties(data.deal.parties || emptyParties);
+                setNegotiate(data.deal.negotiate || emptyNeg);
+                setDdData(data.deal.dd_data || emptyDD);
+                setDocsData(data.deal.docs_data || emptyDocs);
+                if (typeof data.deal.step === "number") { setStep(data.deal.step); setMaxStep(data.deal.max_step || data.deal.step); }
+              }
+              setScreen("deal");
+              setBooting(false);
+            })
+            .catch(() => setBooting(false));
+          return;
+        }
+      }
+    } catch (e) {}
+    setBooting(false);
+  }, []);
+
+  // Debounced auto-save to the database (1.2s after last change)
+  const scheduleSave = () => {
+    if (!user?.token) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setSaving(true);
+    saveTimer.current = setTimeout(async () => {
+      const s = latestState.current;
+      try {
+        const res = await fetch("/api/deals", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + user.token },
+          body: JSON.stringify({
+            dealId,
+            vessel: s.vessel, parties: s.parties, negotiate: s.negotiate,
+            dd_data: s.ddData, docs_data: s.docsData, step: s.step, max_step: s.maxStep
+          })
+        });
+        const data = await res.json();
+        if (data?.deal?.id && !dealId) setDealId(data.deal.id);
+      } catch (e) {}
+      setSaving(false);
+    }, 1200);
+  };
+
+  // Wrap each setter so any change schedules a save
+  const withSave = (setter) => (fn) => { setter(fn); scheduleSave(); };
+  const setVesselAndSave = withSave(setVessel);
+  const setPartiesAndSave = withSave(setParties);
+  const setNegotiateAndSave = withSave(setNegotiate);
+  const setDdDataAndSave = withSave(setDdData);
+  const setDocsDataAndSave = withSave(setDocsData);
+
+  const goToStep = (n) => { setStep(n); if (n > maxStep) setMaxStep(n); scheduleSave(); };
 
   const handleAuth = (authData) => {
     setUser(authData);
     setParties(p => ({ ...p, [authData.role]: { ...p[authData.role], name: authData.name, email: authData.email } }));
+    try {
+      localStorage.setItem("bc_session", JSON.stringify({
+        token: authData.token, userId: authData.userId,
+        name: authData.name, email: authData.email, role: authData.role
+      }));
+    } catch (e) {}
     setScreen("deal");
+    // create/load the deal right away
+    setTimeout(() => scheduleSave(), 100);
   };
 
   const handleSignOut = () => {
-    setUser(null); setStep(0); setMaxStep(0);
+    try { localStorage.removeItem("bc_session"); } catch (e) {}
+    setUser(null); setDealId(null); setStep(0); setMaxStep(0);
     setVessel(emptyVessel); setParties(emptyParties);
     setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
     setScreen("landing");
   };
+
+  if (booting) {
+    return (
+      <div style={{ minHeight:"100vh", background:C.navy, display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <div style={{ textAlign:"center" }}>
+          <div style={{ ...S.logo, fontSize:22 }}>BOATCLOSERS</div>
+          <div style={{ ...S.logoSub, color:"rgba(255,255,255,0.35)" }}>Loading…</div>
+        </div>
+      </div>
+    );
+  }
 
   if (screen==="landing") return <Landing onStart={()=>setScreen("auth")}/>;
   if (screen==="auth") return <AuthScreen onAuth={handleAuth}/>;
@@ -2784,6 +2902,7 @@ export default function BoatClosers() {
           <div style={S.logoSub}>Private Vessel Transactions</div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          {saving && <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontFamily:"sans-serif" }}>Saving…</span>}
           {user && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1 }}>{user.role}</span>}
           {vessel.year && <span style={{ fontSize:11, color:C.brass, fontFamily:"sans-serif" }}>{vessel.year} {vessel.make} {vessel.model}</span>}
           <button style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }} onClick={handleSignOut}>Sign Out</button>
@@ -2791,11 +2910,11 @@ export default function BoatClosers() {
       </nav>
       <ProgressBar step={step} setStep={setStep} maxStep={maxStep}/>
       <PreviewBanner step={step} maxStep={maxStep} setStep={setStep}/>
-      {step===0 && <StepVessel data={vessel} setData={setVessel} onNext={()=>goToStep(1)}/>}
-      {step===1 && <StepParties data={parties} setData={setParties} userRole={user?.role||"buyer"} onNext={()=>goToStep(2)} onBack={()=>setStep(0)}/>}
-      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiate} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
-      {step===3 && <StepDueDiligence data={ddData} setData={setDdData} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/>}
-      {step===4 && <StepDocuments data={docsData} setData={setDocsData} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
+      {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} onNext={()=>goToStep(1)}/>}
+      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={user?.role||"buyer"} onNext={()=>goToStep(2)} onBack={()=>setStep(0)}/>}
+      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
+      {step===3 && <StepDueDiligence data={ddData} setData={setDdDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/>}
+      {step===4 && <StepDocuments data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
       {step===5 && <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} onBack={()=>setStep(4)}/>}
       <AIAssistant open={aiOpen} setOpen={setAiOpen} step={step} vessel={vessel} parties={parties}/>
     </div>
