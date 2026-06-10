@@ -3,58 +3,85 @@ import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = 'https://xoihnmkgncuocxiknvgs.supabase.co'
 
-export async function POST(req: Request) {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-
-  // Plain-English diagnostics
-  if (!key) {
-    return NextResponse.json({ error: 'DIAGNOSTIC: Service role key is missing from Vercel.' }, { status: 500 })
-  }
-  if (!key.startsWith('eyJ')) {
-    return NextResponse.json({ error: 'DIAGNOSTIC: Service role key looks wrong (does not start with eyJ).' }, { status: 500 })
-  }
-
-  const supabaseAdmin = createClient(SUPABASE_URL, key, {
+function admin() {
+  return createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || '', {
     auth: { autoRefreshToken: false, persistSession: false }
   })
+}
+
+async function getUserId(req: Request): Promise<string | null> {
+  const header = req.headers.get('authorization') || ''
+  const token = header.startsWith('Bearer ') ? header.slice(7) : ''
+  if (!token) return null
+  try {
+    const { data, error } = await admin().auth.getUser(token)
+    if (error || !data?.user) return null
+    return data.user.id
+  } catch {
+    return null
+  }
+}
+
+export async function GET(req: Request) {
+  const userId = await getUserId(req)
+  if (!userId) return NextResponse.json({ deal: null })
+  try {
+    const { data } = await admin()
+      .from('deals')
+      .select('*')
+      .eq('initiator_id', userId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+    return NextResponse.json({ deal: data && data.length ? data[0] : null })
+  } catch {
+    return NextResponse.json({ deal: null })
+  }
+}
+
+export async function POST(req: Request) {
+  const userId = await getUserId(req)
+  if (!userId) return NextResponse.json({ error: 'Could not verify your session.' }, { status: 401 })
 
   try {
-    const { action, email, password, fullName, role } = await req.json()
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 })
+    const body = await req.json()
+    const { dealId, vessel, parties, negotiate, dd_data, docs_data, step, max_step } = body
+
+    const payload: any = {
+      vessel: vessel || {},
+      parties: parties || {},
+      negotiate: negotiate || {},
+      dd_data: dd_data || {},
+      docs_data: docs_data || {},
+      step: typeof step === 'number' ? step : 0,
+      max_step: typeof max_step === 'number' ? max_step : 0
     }
 
-    if (action === 'signup') {
-      const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-        email, password, email_confirm: true,
-        user_metadata: { full_name: fullName || '', role: role || 'buyer' }
-      })
-      if (createErr) {
-        return NextResponse.json({ error: 'SIGNUP FAILED: ' + createErr.message }, { status: 400 })
-      }
-      const { data: session, error: signErr } = await supabaseAdmin.auth.signInWithPassword({ email, password })
-      if (signErr || !session?.session) {
-        return NextResponse.json({ error: 'SIGNIN AFTER SIGNUP FAILED: ' + (signErr?.message || 'no session') }, { status: 400 })
-      }
-      return NextResponse.json({
-        user: { id: created.user.id, email: created.user.email, fullName: fullName || '', role: role || 'buyer' },
-        token: session.session.access_token
-      })
+    if (dealId) {
+      const { data, error } = await admin()
+        .from('deals').update(payload).eq('id', dealId).eq('initiator_id', userId).select().single()
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+      return NextResponse.json({ deal: data })
     }
 
-    if (action === 'signin') {
-      const { data: session, error: signErr } = await supabaseAdmin.auth.signInWithPassword({ email, password })
-      if (signErr || !session?.session) {
-        return NextResponse.json({ error: 'SIGNIN FAILED: ' + (signErr?.message || 'no session') }, { status: 401 })
-      }
-      const u = session.user
-      return NextResponse.json({
-        user: { id: u.id, email: u.email, fullName: u.user_metadata?.full_name || '', role: u.user_metadata?.role || 'buyer' },
-        token: session.session.access_token
-      })
+    const { data: existing } = await admin()
+      .from('deals').select('id').eq('initiator_id', userId).eq('status', 'active')
+      .order('created_at', { ascending: false }).limit(1)
+
+    if (existing && existing.length) {
+      const { data, error } = await admin()
+        .from('deals').update(payload).eq('id', existing[0].id).select().single()
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+      return NextResponse.json({ deal: data })
     }
 
-    return NextResponse.json({ error: 'Unknown action.' }, { status: 400 })
+    const role = (parties && parties.seller && parties.seller.name) ? 'seller' : 'buyer'
+    const { data, error } = await admin()
+      .from('deals')
+      .insert({ initiator_id: userId, initiator_role: role, status: 'active', paid: false, ...payload })
+      .select().single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    return NextResponse.json({ deal: data })
   } catch (e: any) {
     return NextResponse.json({ error: 'SERVER ERROR: ' + (e?.message || 'unknown') }, { status: 500 })
   }
