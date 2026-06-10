@@ -1,67 +1,105 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
+// Verify the bearer token and return the authenticated user id, or null.
+async function getUserId(req: Request): Promise<string | null> {
+  const header = req.headers.get('authorization') || ''
+  const token = header.startsWith('Bearer ') ? header.slice(7) : ''
+  if (!token) return null
+  const { data, error } = await supabaseAdmin.auth.getUser(token)
+  if (error || !data?.user) return null
+  return data.user.id
+}
+
+// GET — load this user's active deal (most recent).
+export async function GET(req: Request) {
+  try {
+    const userId = await getUserId(req)
+    if (!userId) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 })
+
+    const { data, error } = await supabaseAdmin
+      .from('deals')
+      .select('*')
+      .eq('initiator_id', userId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (error) return NextResponse.json({ deal: null })
+    return NextResponse.json({ deal: data && data.length ? data[0] : null })
+  } catch (e) {
+    return NextResponse.json({ deal: null })
+  }
+}
+
+// POST — create or update this user's deal.
 export async function POST(req: Request) {
   try {
+    const userId = await getUserId(req)
+    if (!userId) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 })
+
     const body = await req.json()
-    const { action, email, password, fullName, role } = body
+    const { dealId, vessel, parties, negotiate, dd_data, docs_data, step, max_step } = body
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 })
+    const payload: any = {
+      vessel: vessel || {},
+      parties: parties || {},
+      negotiate: negotiate || {},
+      dd_data: dd_data || {},
+      docs_data: docs_data || {},
+      step: typeof step === 'number' ? step : 0,
+      max_step: typeof max_step === 'number' ? max_step : 0
     }
 
-    if (action === 'signup') {
-      // Create the user with email already confirmed so they can use the app immediately.
-      const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { full_name: fullName || '', role: role || 'buyer' }
-      })
+    if (dealId) {
+      // Update existing deal (only if it belongs to this user).
+      const { data, error } = await supabaseAdmin
+        .from('deals')
+        .update(payload)
+        .eq('id', dealId)
+        .eq('initiator_id', userId)
+        .select()
+        .single()
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+      return NextResponse.json({ deal: data })
+    } else {
+      // Look for an existing active deal first to avoid duplicates.
+      const { data: existing } = await supabaseAdmin
+        .from('deals')
+        .select('id')
+        .eq('initiator_id', userId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
 
-      if (createErr) {
-        const msg = /already/i.test(createErr.message)
-          ? 'An account with this email already exists. Try signing in.'
-          : createErr.message
-        return NextResponse.json({ error: msg }, { status: 400 })
+      if (existing && existing.length) {
+        const { data, error } = await supabaseAdmin
+          .from('deals')
+          .update(payload)
+          .eq('id', existing[0].id)
+          .select()
+          .single()
+        if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+        return NextResponse.json({ deal: data })
       }
 
-      // Immediately sign them in to get a session token.
-      const { data: session, error: signErr } = await supabaseAdmin.auth.signInWithPassword({ email, password })
-      if (signErr || !session?.session) {
-        return NextResponse.json({ error: 'Account created. Please sign in.' }, { status: 200 })
-      }
-
-      return NextResponse.json({
-        user: {
-          id: created.user.id,
-          email: created.user.email,
-          fullName: fullName || '',
-          role: role || 'buyer'
-        },
-        token: session.session.access_token
-      })
+      // Create a new deal.
+      const role = (parties && parties.seller && parties.seller.name) ? 'seller' : 'buyer'
+      const { data, error } = await supabaseAdmin
+        .from('deals')
+        .insert({
+          initiator_id: userId,
+          initiator_role: role,
+          status: 'active',
+          paid: false,
+          ...payload
+        })
+        .select()
+        .single()
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+      return NextResponse.json({ deal: data })
     }
-
-    if (action === 'signin') {
-      const { data: session, error: signErr } = await supabaseAdmin.auth.signInWithPassword({ email, password })
-      if (signErr || !session?.session) {
-        return NextResponse.json({ error: 'Incorrect email or password.' }, { status: 401 })
-      }
-      const u = session.user
-      return NextResponse.json({
-        user: {
-          id: u.id,
-          email: u.email,
-          fullName: u.user_metadata?.full_name || '',
-          role: u.user_metadata?.role || 'buyer'
-        },
-        token: session.session.access_token
-      })
-    }
-
-    return NextResponse.json({ error: 'Unknown action.' }, { status: 400 })
-  } catch (e: any) {
-    return NextResponse.json({ error: 'Server error. Please try again.' }, { status: 500 })
+  } catch (e) {
+    return NextResponse.json({ error: 'Server error.' }, { status: 500 })
   }
 }
