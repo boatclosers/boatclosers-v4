@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from "react";
-
+import { DOCUMENTS, fillDocument } from "../data/documents";
 // ─────────────────────────────────────────────────────────────────────────────
 // BOATCLOSERS v4
 // ─────────────────────────────────────────────────────────────────────────────
