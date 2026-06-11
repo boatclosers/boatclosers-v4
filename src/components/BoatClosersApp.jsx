@@ -2940,7 +2940,7 @@ export default function BoatClosers() {
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={user?.role||"buyer"} onNext={()=>goToStep(2)} onBack={()=>setStep(0)}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && <StepDueDiligence data={ddData} setData={setDdDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/>}
-      {step===4 && <StepDocuments data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
+      {step===4 && <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
       {step===5 && <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} onBack={()=>setStep(4)}/>}
       <AIAssistant open={aiOpen} setOpen={setAiOpen} step={step} vessel={vessel} parties={parties}/>
     </div>
