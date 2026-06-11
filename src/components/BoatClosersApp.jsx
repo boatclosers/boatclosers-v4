@@ -2860,16 +2860,42 @@ export default function BoatClosers() {
 
   const handleAuth = (authData) => {
     setUser(authData);
-    setParties(p => ({ ...p, [authData.role]: { ...p[authData.role], name: authData.name, email: authData.email } }));
     try {
       localStorage.setItem("bc_session", JSON.stringify({
         token: authData.token, userId: authData.userId,
         name: authData.name, email: authData.email, role: authData.role
       }));
     } catch (e) {}
-    setScreen("deal");
-    // create/load the deal right away
-    setTimeout(() => scheduleSave(), 100);
+    // Load their existing deal from the database FIRST, so we never
+    // overwrite saved work with a blank screen.
+    setBooting(true);
+    fetch("/api/deals", {
+      method: "GET",
+      headers: { "Authorization": "Bearer " + authData.token }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data?.deal) {
+          // Returning user — restore everything from the database.
+          setDealId(data.deal.id);
+          setVessel(data.deal.vessel || emptyVessel);
+          setParties(data.deal.parties || emptyParties);
+          setNegotiate(data.deal.negotiate || emptyNeg);
+          setDdData(data.deal.dd_data || emptyDD);
+          setDocsData(data.deal.docs_data || emptyDocs);
+          if (typeof data.deal.step === "number") { setStep(data.deal.step); setMaxStep(data.deal.max_step || data.deal.step); }
+        } else {
+          // Brand new user — start a fresh deal with their name pre-filled.
+          setParties(p => ({ ...p, [authData.role]: { ...p[authData.role], name: authData.name, email: authData.email } }));
+          setTimeout(() => scheduleSave(), 150);
+        }
+        setScreen("deal");
+        setBooting(false);
+      })
+      .catch(() => {
+        setScreen("deal");
+        setBooting(false);
+      });
   };
 
   const handleSignOut = () => {
