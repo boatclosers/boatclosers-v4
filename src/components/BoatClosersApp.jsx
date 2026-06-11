@@ -1,5 +1,5 @@
 'use client'
-
+import DocumentsStepV2 from "./DocumentsStepV2";
 import { useState, useRef, useEffect } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
 // ─────────────────────────────────────────────────────────────────────────────
