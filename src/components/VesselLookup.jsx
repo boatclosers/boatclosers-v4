@@ -1,17 +1,19 @@
 'use client'
 
 // ═══════════════════════════════════════════════════════════════════════════
-// BOATCLOSERS — VESSEL LOOKUP / TITLE-HISTORY RESOURCE
+// BOATCLOSERS — VESSEL LOOKUP / TITLE-HISTORY RESOURCE  (optional tool)
 // src/components/VesselLookup.jsx
 //
-// A self-contained resource panel that shows a buyer how to verify a vessel's
-// documentation and pull its title/lien history before money changes hands.
-// Leads with the FREE official Coast Guard search and the OFFICIAL NVDC abstract;
-// notes third-party paid services; includes a clear non-affiliation disclaimer.
+// Shows as ONE quiet line by default ("Want to verify this boat's title
+// history and check for liens? → Open vessel lookup"). Tapping it opens the
+// full panel: free official Coast Guard search, official NVDC abstract,
+// third-party option, and the non-affiliation disclaimer.
 //
-// Drop-in: add this file, import it, render <VesselLookup /> wherever you want
-// it (recommended: the Due Diligence step). No props required.
+// Optional, not required — present for anyone who needs it, ignorable if not.
+// Drop-in: add this file, import it, render <VesselLookup />. No props needed.
 // ═══════════════════════════════════════════════════════════════════════════
+
+import { useState } from "react";
 
 const C = {
   navy:"#08152e", teal:"#0e6b7c", tealLight:"#e4f4f7", brass:"#b8863a",
@@ -50,53 +52,70 @@ const LINKS = [
 ];
 
 export default function VesselLookup() {
-  return (
-    <div style={{ background:C.white, border:`0.5px solid ${C.mist}`, borderRadius:8, padding:"1.25rem", marginBottom:20 }}>
-      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-        <span style={{ fontSize:18 }}>⚓</span>
-        <h3 style={{ fontSize:15, fontWeight:700, color:C.navy, fontFamily:"sans-serif", margin:0 }}>
-          Verify the Vessel — Title History &amp; Lien Check
-        </h3>
-      </div>
-      <p style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65, margin:"0 0 14px" }}>
-        Before money changes hands, confirm the boat is documented as the seller claims and carries no hidden liens.
-        You can check this yourself — here's how, starting with the free official source.
-      </p>
+  const [open, setOpen] = useState(false);
 
-      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-        {LINKS.map((l) => (
-          <div key={l.title} style={{ border:`1px solid ${C.mist}`, borderRadius:7, padding:"12px 14px", background:l.bg }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12, flexWrap:"wrap" }}>
-              <div style={{ minWidth:0, flex:1 }}>
+  return (
+    <div style={{ marginBottom:20 }}>
+      {/* Quiet one-line prompt — always visible */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left",
+          background: open ? C.tealLight : C.white,
+          border:`1px solid ${open ? C.teal : C.mist}`, borderRadius:8,
+          padding:"11px 14px", cursor:"pointer", fontFamily:"sans-serif",
+          transition:"all 0.15s",
+        }}
+      >
+        <span style={{ fontSize:16 }}>⚓</span>
+        <span style={{ flex:1, fontSize:13, color:C.navy }}>
+          <strong>Optional:</strong> verify this boat's title history &amp; check for liens
+        </span>
+        <span style={{ fontSize:12, fontWeight:700, color:C.teal, whiteSpace:"nowrap" }}>
+          {open ? "Close ▲" : "Open vessel lookup ▾"}
+        </span>
+      </button>
+
+      {/* Full panel — only when opened */}
+      {open && (
+        <div style={{ background:C.white, border:`0.5px solid ${C.mist}`, borderTop:"none", borderRadius:"0 0 8px 8px", padding:"1.1rem 1.25rem 1.25rem", marginTop:-4 }}>
+          <p style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65, margin:"4px 0 14px" }}>
+            Not needed for every sale — but on an older, larger, or financed boat it's smart to confirm the vessel is
+            documented as the seller claims and carries no hidden liens. Here's how, starting with the free official source.
+          </p>
+
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {LINKS.map((l) => (
+              <div key={l.title} style={{ border:`1px solid ${C.mist}`, borderRadius:7, padding:"12px 14px", background:l.bg }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
                   <span style={{ fontSize:15 }}>{l.icon}</span>
                   <span style={{ fontSize:9, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".08em", textTransform:"uppercase", color:l.color, background:C.white, padding:"2px 8px", borderRadius:20, border:`1px solid ${l.color}` }}>{l.rank}</span>
                 </div>
                 <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, color:C.navy, marginBottom:3 }}>{l.title}</div>
                 <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>{l.desc}</div>
+                <a href={l.url} target="_blank" rel="noopener noreferrer"
+                   style={{ display:"inline-block", marginTop:10, background:l.color, color:"#fff", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, textDecoration:"none" }}>
+                  {l.btn}
+                </a>
               </div>
-            </div>
-            <a href={l.url} target="_blank" rel="noopener noreferrer"
-               style={{ display:"inline-block", marginTop:10, background:l.color, color:"#fff", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, textDecoration:"none" }}>
-              {l.btn}
-            </a>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:12, padding:"8px 12px", background:C.sandDark, borderRadius:6 }}>
-        <strong>State-titled (non-documented) boats:</strong> run the HIN and request the title and lien record from
-        your state's titling agency (DMV/DNR) — that's the equivalent of the Coast Guard abstract for boats that
-        aren't federally documented.
-      </div>
+          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:12, padding:"8px 12px", background:C.sandDark, borderRadius:6 }}>
+            <strong>State-titled (non-documented) boats:</strong> run the HIN and request the title and lien record from
+            your state's titling agency (DMV/DNR) — that's the equivalent of the Coast Guard abstract for boats that
+            aren't federally documented.
+          </div>
 
-      <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65, marginTop:12, padding:"10px 12px", border:`1px solid ${C.mist}`, borderRadius:6, background:C.white }}>
-        <strong style={{ color:C.navy }}>Disclaimer:</strong> BoatClosers is not affiliated with, endorsed by, or
-        connected to the U.S. Coast Guard, the National Vessel Documentation Center, CGMIX/PSIX, or any third-party
-        service listed above. These links are provided for your convenience only. BoatClosers does not perform title
-        searches, does not access these records on your behalf, and does not guarantee any vessel's title or lien
-        status. Always verify through official government sources.
-      </div>
+          <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65, marginTop:12, padding:"10px 12px", border:`1px solid ${C.mist}`, borderRadius:6, background:C.white }}>
+            <strong style={{ color:C.navy }}>Disclaimer:</strong> BoatClosers is not affiliated with, endorsed by, or
+            connected to the U.S. Coast Guard, the National Vessel Documentation Center, CGMIX/PSIX, or any third-party
+            service listed above. These links are provided for your convenience only. BoatClosers does not perform title
+            searches, does not access these records on your behalf, and does not guarantee any vessel's title or lien
+            status. Always verify through official government sources.
+          </div>
+        </div>
+      )}
     </div>
   );
 }
