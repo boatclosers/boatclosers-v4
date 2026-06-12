@@ -1,5 +1,6 @@
 'use client'
 import DocumentsStepV2 from "./DocumentsStepV2";
+import ContingencyPicker from "./ContingencyPicker";
 import { useState, useRef, useEffect } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -873,7 +874,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
         </div>
 
         <hr style={S.divider}/>
-
+<ContingencyPicker
+          value={data.selectedContingencies}
+          onChange={(sel)=>setData(d=>({...d, selectedContingencies: sel}))}
+          paymentType={paymentType}
+          ddEnd={ddStart && ddDays ? addDays(ddStart, Number(ddDays)) : ""}
+        />
         {/* ── DEPOSIT RETURN / KEEP TERMS ── */}
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>Earnest Money — Return or Forfeiture Terms</div>
