@@ -337,6 +337,170 @@ export const DOCUMENTS = [
   <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer<br>Date: ____________</small></div>
   <div class="sigbox"><div class="ln"></div><small>Acknowledged \u2014 <b>{{sellerName}}</b> (Seller)<br>Date: ____________</small></div>
 </div>`
+  },
+
+  // ===== GROUP 3: TITLE & GOVERNMENT =====
+  // `showIf(deal)` (optional) hides a document unless the deal calls for it.
+  {
+    id: "title_app",
+    group: "Title & Government",
+    tab: "Title Application",
+    eyebrow: "New Owner Registration",
+    title: "Application for Certificate of Title",
+    body: `
+<p class="lead">Application is hereby made to the titling agency of the State of {{vesselState}} for a Certificate of Title to the vessel described below, recording {{buyerName}} as the new lawful owner following its purchase from {{sellerName}} on {{closingDate}}.</p>
+
+<h3>Vessel</h3>
+<div class="field"><span class="k">Year / Make / Model</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">Length &amp; Hull</span><span class="v">{{vesselLength}}, {{hullMaterial}}</span></div>
+<div class="field"><span class="k">Hull Identification Number (HIN)</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Prior Title No. / Registration</span><span class="v">{{titleNo}} / {{regNo}}</span></div>
+<div class="field"><span class="k">U.S. Coast Guard Official No.</span><span class="v">{{uscgOfficialNo}}</span></div>
+<div class="field"><span class="k">Propulsion</span><span class="v">{{engineDesc}}</span></div>
+
+<h3>New Owner (Applicant)</h3>
+<div class="field"><span class="k">Name</span><span class="v">{{buyerName}}</span></div>
+<div class="field"><span class="k">Address</span><span class="v">{{buyerAddress}}</span></div>
+<div class="field"><span class="k">Purchase Price</span><span class="v">{{salePrice}}</span></div>
+<div class="field"><span class="k">Date of Sale</span><span class="v">{{closingDate}}</span></div>
+
+<p style="margin-top:16px">The applicant certifies the information above is true and correct, that the vessel is free of undisclosed liens, and applies for a Certificate of Title and registration in the applicant's name.</p>
+
+<div class="note">Each state files title and registration on its own form. This document collects every field those forms require so it transfers directly onto the state filing for {{vesselState}}.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Applicant / New Owner<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Agency Use Only<br>Title No. assigned: ____________</small></div>
+</div>`
+  },
+
+  {
+    id: "notice_sale",
+    group: "Title & Government",
+    tab: "Notice of Sale",
+    eyebrow: "Seller Liability Release",
+    title: "Notice of Sale & Transfer of Ownership",
+    body: `
+<p class="lead">{{sellerName}}, of {{sellerAddress}} (the \u201cSeller\u201d), gives notice to the titling and registration agency of the State of {{vesselState}} that the vessel described below was sold and transferred to {{buyerName}}, of {{buyerAddress}} (the \u201cBuyer\u201d), on {{closingDate}}.</p>
+
+<h3>Vessel Sold</h3>
+<div class="field"><span class="k">Year / Make / Model</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Title No. / Registration</span><span class="v">{{titleNo}} / {{regNo}}</span></div>
+<div class="field"><span class="k">Date of Sale</span><span class="v">{{closingDate}}</span></div>
+<div class="field"><span class="k">Sale Price</span><span class="v">{{salePrice}}</span></div>
+
+<p style="margin-top:16px">As of the date of sale, the Seller relinquishes all ownership of and responsibility for the vessel, including registration renewal, taxes, fees, and any liability arising from its use. The Seller requests that the agency update its records to reflect the Buyer as the new owner.</p>
+
+<div class="note">Filing a notice of sale is what ends the seller's liability for the vessel. Many states have a short window to file it after the sale \u2014 submitting promptly protects the seller.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Acknowledged \u2014 <b>{{buyerName}}</b> (Buyer)<br>Date: ____________</small></div>
+</div>`
+  },
+
+  {
+    id: "lien_release",
+    group: "Title & Government",
+    tab: "Lien Release",
+    eyebrow: "Conditional \u2014 If Financed",
+    title: "Lien Release & Satisfaction",
+    showIf: (deal) => !!(deal && deal.hasLien),
+    body: `
+<p class="lead recital">This Lien Release applies only where the vessel was subject to a recorded lien or loan. {{lienholderName}} (the \u201cLienholder\u201d) confirms the following regarding the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}.</p>
+
+<h3>Lien Details</h3>
+<div class="field"><span class="k">Lienholder</span><span class="v">{{lienholderName}}</span></div>
+<div class="field"><span class="k">Loan / Account No.</span><span class="v">{{lienAcctNo}}</span></div>
+<div class="field"><span class="k">Payoff Amount</span><span class="v">{{lienAmount}}</span></div>
+<div class="field"><span class="k">Vessel Owner of Record</span><span class="v">{{sellerName}}</span></div>
+
+<h3>Release</h3>
+<p>The Lienholder certifies that the obligation secured by the above lien has been paid in full and that the Lienholder hereby releases and discharges all right, title, claim, and interest in the vessel. The Lienholder authorizes the titling agency to remove this lien from the vessel's record so that clear title may pass to the Buyer.</p>
+
+<div class="note">This document appears only when the deal indicates the vessel had a loan. A clear, recorded lien release is what lets a clean title transfer to the buyer.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small>Authorized Officer \u2014 <b>{{lienholderName}}</b><br>Title: ____________ \u00b7 Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Received \u2014 <b>{{sellerName}}</b> (Owner of Record)<br>Date: ____________</small></div>
+</div>
+
+<div class="notary">
+  <div class="nt">Notary Acknowledgment (if required)</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Acknowledged before me this ______ day of __________, 20____, by the authorized officer of {{lienholderName}}, who is personally known to me or produced ____________________ as identification.</p>
+  <p style="margin-top:12px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
+</div>`
+  },
+
+  {
+    id: "uscg_transfer",
+    group: "Title & Government",
+    tab: "USCG Transfer",
+    eyebrow: "Federal \u2014 Documented Vessels",
+    title: "USCG Bill of Sale & Transfer / Deletion",
+    showIf: (deal) => !!(deal && deal.uscgOfficialNo && deal.uscgOfficialNo !== "N/A" && !String(deal.uscgOfficialNo).startsWith("[")),
+    body: `
+<p class="lead">For United States Coast Guard documented vessels, this instrument transfers a documented vessel and supports the application to re-document it in the Buyer's name or to delete it from documentation. It concerns the vessel <b>{{vesselModel}}</b>, U.S. Coast Guard Official Number {{uscgOfficialNo}}.</p>
+
+<h3>Documented Vessel</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">Official Number</span><span class="v">{{uscgOfficialNo}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Length</span><span class="v">{{vesselLength}}</span></div>
+
+<h3>Transfer</h3>
+<p>For consideration of {{salePrice}}, {{sellerName}} (the \u201cSeller\u201d) sells, assigns, and transfers to {{buyerName}} (the \u201cBuyer\u201d) all right, title, and interest in the documented vessel above. The Seller warrants good and lawful title, free of undisclosed maritime liens, and agrees to deliver the Certificate of Documentation and to execute any further instruments the National Vessel Documentation Center requires.</p>
+
+<p>The Buyer elects to: \u2610 apply for a new Certificate of Documentation in the Buyer's name; or \u2610 delete the vessel from documentation and title it under state law.</p>
+
+<div class="note">This document is federal and works identically in every state. It appears only when the deal has a U.S. Coast Guard Official Number (documented vessels, generally those over five net tons). An Abstract of Title from the National Vessel Documentation Center confirms the vessel's lien history.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer<br>Date: ____________</small></div>
+</div>
+
+<div class="notary">
+  <div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Acknowledged before me this ______ day of __________, 20____, by {{sellerName}}, who is personally known to me or produced ____________________ as identification.</p>
+  <p style="margin-top:12px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
+</div>`
+  },
+
+  {
+    id: "hin_affidavit",
+    group: "Title & Government",
+    tab: "HIN Verification",
+    eyebrow: "Hull Identity",
+    title: "HIN Verification Affidavit",
+    body: `
+<p class="lead recital">This affidavit confirms the Hull Identification Number of the vessel being titled, as some titling agencies require verification before issuing a new Certificate of Title.</p>
+
+<h3>Vessel Identity</h3>
+<div class="field"><span class="k">Hull Identification Number (HIN)</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Year / Make / Model</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">Title No. / Registration</span><span class="v">{{titleNo}} / {{regNo}}</span></div>
+<div class="field"><span class="k">New Owner</span><span class="v">{{buyerName}}</span></div>
+
+<h3>Verification</h3>
+<p>The undersigned states that the HIN above was physically observed on the vessel's transom (or as otherwise affixed by the manufacturer), that it matches the number shown on the title and bill of sale, and that no evidence of alteration, removal, or tampering was observed. This affidavit is made in support of the application to title and register the vessel in the State of {{vesselState}}.</p>
+
+<div class="note">A quick HIN check guards against a transposed digit or a mismatched record stopping the title at the agency counter \u2014 a common, avoidable delay.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small>Verified by \u2610 Buyer \u2610 Seller \u2610 Inspector<br>Name: ____________ \u00b7 Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Signature<br>____________________</small></div>
+</div>
+
+<div class="notary">
+  <div class="nt">Notary Acknowledgment (if required)</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Acknowledged before me this ______ day of __________, 20____, by the affiant named above.</p>
+  <p style="margin-top:12px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
+</div>`
   }
 ];
 
