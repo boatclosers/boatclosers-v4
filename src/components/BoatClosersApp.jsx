@@ -3,6 +3,7 @@ import DocumentsStepV2 from "./DocumentsStepV2";
 import ContingencyPicker from "./ContingencyPicker";
 import { useState, useRef, useEffect } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
+import VesselLookup from "./VesselLookup";
 // ─────────────────────────────────────────────────────────────────────────────
 // BOATCLOSERS v4
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1202,7 +1203,7 @@ function StepDueDiligence({ data, setData, vessel, parties, terms, negotiate, on
         <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:done?C.green:C.navy }}>{title}</div>
         {subtitle && <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>{subtitle}</div>}
       </div>
-      <div style={{ fontSize:12, color:C.slate }}>{open ? "▲" : "▼"}</div>
+      <div style={{ fontSize:12, color:C.slate }}>{open ? "▲" : "▼"}</div>f
     </div>
   );
 
@@ -1210,7 +1211,7 @@ function StepDueDiligence({ data, setData, vessel, parties, terms, negotiate, on
     <div style={S.page}>
       <EarnestReceiptModal open={showReceipt} onClose={()=>setShowReceipt(false)} vessel={vessel} parties={parties} negotiate={negotiate} />
       <TipBox tips={TIPS.diligence}/>
-
+<VesselLookup />
       {/* Header bar */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"1.5rem" }}>
         <div>
