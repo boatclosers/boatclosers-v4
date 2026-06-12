@@ -576,6 +576,143 @@ export const DOCUMENTS = [
     accept: "PDF, JPG, PNG",
     guide: "Your <b>marine surveyor</b> produces this report after inspecting the vessel. Both your lender and insurer usually require it, and it's the basis for addressing any findings before closing. Upload the surveyor's PDF here so it's attached to the deal and easy to share with your lender and insurer.",
     body: ""
+  },
+
+  // ===== GROUP 5: AUTHORITY & SIGNING =====
+  // Optional instruments that establish who may legally sign a transfer.
+  // Situational details (agent, entity, co-owner, name variant) are write-in
+  // lines, since the app does not yet capture them in the Parties step.
+  {
+    id: "poa",
+    group: "Authority & Signing",
+    tab: "Power of Attorney",
+    eyebrow: "Authority to Sign",
+    title: "Limited Power of Attorney \u2014 Vessel Transfer",
+    body: `
+<p class="lead">{{sellerName}}, of {{sellerAddress}} (the \u201cPrincipal\u201d), appoints the Agent named below (attorney-in-fact) to act on the Principal's behalf solely for the transfer of the vessel described below.</p>
+
+<h3>Vessel</h3>
+<div class="field"><span class="k">Year / Make / Model</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Title No. / Registration</span><span class="v">{{titleNo}} / {{regNo}}</span></div>
+
+<h3>Agent (Attorney-in-Fact)</h3>
+<div class="field"><span class="k">Agent name</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Agent address</span><span class="v">________________________</span></div>
+
+<h3>Powers Granted</h3>
+<p>The Agent is authorized to execute, on the Principal's behalf, the bill of sale, title assignment, notice of sale, and any titling or documentation forms required to transfer the vessel to {{buyerName}}, and to do all things reasonably necessary to complete that transfer.</p>
+<p class="recital">This is a <b>limited</b> power of attorney. It is confined to the vessel above and expires upon completion of the transfer or one year from the date below, whichever is first.</p>
+
+<div class="note">Used whenever someone signs for the owner \u2014 an out-of-state seller, a spouse, or an authorized representative. Most titling agencies require it to be notarized.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Principal<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Agent / Attorney-in-Fact<br>Date: ____________</small></div>
+</div>
+
+<div class="notary">
+  <div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Acknowledged before me this ______ day of __________, 20____, by {{sellerName}}, who is personally known to me or produced ____________________ as identification.</p>
+  <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "entity_auth",
+    group: "Authority & Signing",
+    tab: "Entity Authorization",
+    eyebrow: "Business / Trust Owner",
+    title: "Authorization & Resolution to Sell Vessel",
+    body: `
+<p class="lead">The undersigned certifies that the entity named below (the \u201cOwner\u201d) is the record owner of the vessel described and has authorized its sale and transfer to {{buyerName}}.</p>
+
+<h3>Owner &amp; Vessel</h3>
+<div class="field"><span class="k">Entity name</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Type / State</span><span class="v">______________ / ______________</span></div>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+
+<h3>Resolution</h3>
+<p>By this instrument, the Owner resolves that the sale of the vessel is approved, and that the authorized signer named below is authorized to execute the bill of sale, title assignment, and all transfer documents on the Owner's behalf. The undersigned warrants they hold the authority stated and that this authorization has not been revoked.</p>
+
+<div class="note">Required whenever the boat is owned by an LLC, corporation, or trust rather than an individual. Titling agencies and the Coast Guard require proof that the person signing has authority to bind the entity.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small>Authorized signer \u2014 Name &amp; Title<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Witness / Second Officer (if required)<br>Date: ____________</small></div>
+</div>
+
+<div class="notary">
+  <div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Acknowledged before me this ______ day of __________, 20____, by the authorized signer named above.</p>
+  <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "coowner",
+    group: "Authority & Signing",
+    tab: "Co-Owner Consent",
+    eyebrow: "Joint Ownership",
+    title: "Co-Owner Consent to Sale",
+    body: `
+<p class="lead">The vessel below is owned jointly. All co-owners listed consent to its sale and transfer to {{buyerName}} and authorize the signing co-owner to execute the transfer documents.</p>
+
+<h3>Vessel &amp; Owners</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Co-Owner 1</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Co-Owner 2</span><span class="v">________________________</span></div>
+
+<h3>Consent</h3>
+<p>Each co-owner below affirms they hold an ownership interest in the vessel, consents to the sale at the agreed terms, and authorizes the bill of sale and title assignment to be executed to complete the transfer. Where the title reads with \u201cand,\u201d all owners must sign; where it reads with \u201cor,\u201d any one may sign \u2014 this consent records the agreement of all.</p>
+
+<div class="note">Prevents the most common joint-ownership snag: a title held by two people (\u201cand\u201d) where only one signs. Both must consent for clean transfer.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small>Co-Owner 1<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Co-Owner 2<br>Date: ____________</small></div>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "same_person",
+    group: "Authority & Signing",
+    tab: "Name Affidavit",
+    eyebrow: "Name Discrepancy",
+    title: "Affidavit of One and the Same Person",
+    body: `
+<p class="lead recital">This affidavit resolves a difference in the name shown on the vessel's title and the name on the owner's identification, so the titling agency can process the transfer without a mismatch.</p>
+
+<h3>The Discrepancy</h3>
+<div class="field"><span class="k">Name on title / registration</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Name on identification</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+
+<h3>Affirmation</h3>
+<p>The affiant swears that the two names above refer to one and the same person, that the affiant is the lawful owner of the vessel described, and that this affidavit is made to correct the name of record for purposes of transferring the vessel to {{buyerName}}.</p>
+
+<div class="note">Handles the everyday \u201cBob vs. Robert,\u201d maiden-vs-married name, or middle-initial mismatch that otherwise stalls a title at the counter.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small>Affiant signature<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>&nbsp;</small></div>
+</div>
+
+<div class="notary">
+  <div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Sworn to and acknowledged before me this ______ day of __________, 20____, by the affiant named above.</p>
+  <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
+</div>
+<div class="footer-flag">BoatClosers</div>`
   }
 ];
 
