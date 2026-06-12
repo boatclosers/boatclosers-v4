@@ -97,8 +97,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const agreed = Number(negotiate.agreedPrice||0);
   const dep = Number(negotiate.deposit||0);
   const ddEndCalc = terms.ddStartDate && terms.dueDiligenceDays ? addDays(terms.ddStartDate, Number(terms.dueDiligenceDays)) : "";
-  const selectedContingencies = ["survey","seaTrial","title"];
-  if (negotiate.paymentType === "finance") selectedContingencies.push("financing");
+  // Use the buyer's picks from Negotiate & Terms; fall back to a sensible default.
+  let selectedContingencies = negotiate.selectedContingencies;
+  if (!Array.isArray(selectedContingencies) || !selectedContingencies.length) {
+    selectedContingencies = ["survey","seaTrial","title"];
+    if (negotiate.paymentType === "finance") selectedContingencies.push("financing");
+  }
   const deal = {
     dealRef: data.dealRef || ("BC-" + String(Date.now()).slice(-5)),
     effectiveDate: today(),
