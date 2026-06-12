@@ -132,6 +132,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     financingDeadline: ddEndCalc || "[Financing Deadline]",
     brokerFee: "$249.00",
     selectedContingencies,
+    paymentType: negotiate.paymentType || "",
+    docStatus: signed,
     // Title & Government pack signals + fillable fields
     hasLien: !!(negotiate.sellerHasLien || data.hasLien),
     lienholderName: negotiate.lienholderName || "[Lienholder]",
@@ -280,6 +282,23 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 .bc-doc .field{border-bottom:1px solid ${C.mist};padding:6px 0;display:flex;justify-content:space-between;gap:14px;font-size:13px}
 .bc-doc .field .k{color:${C.slate}}
 .bc-doc .field .v{font-weight:600;color:${C.navy};text-align:right}
+.bc-doc .check{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid ${C.mist}}
+.bc-doc .check .box{width:17px;height:17px;border:1.5px solid ${C.slate};border-radius:4px;flex:none;margin-top:2px}
+.bc-doc .check .ct{flex:1}
+.bc-doc .check .ct b{color:${C.navy}}
+.bc-doc .check .ct .d{font-size:12px;color:${C.slate};font-style:italic;margin-top:2px;line-height:1.5}
+.bc-doc .muted{font-size:11px;color:${C.slate};font-style:italic;text-transform:none;letter-spacing:0}
+.bc-doc .reqlist{margin:6px 0 4px}
+.bc-doc .req{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid ${C.mist}}
+.bc-doc .req .rmark{font-size:16px;line-height:1.3;flex:none;width:18px;text-align:center}
+.bc-doc .req .rlabel{flex:1;color:${C.navy};font-weight:600}
+.bc-doc .req .rstatus{font-size:11px;font-family:sans-serif;color:${C.slate};text-align:right;max-width:46%;line-height:1.4}
+.bc-doc .req.done .rmark{color:${C.green}}
+.bc-doc .req.ready .rmark{color:${C.brass}}
+.bc-doc .req.todo .rmark{color:${C.slate}}
+.bc-doc .req.done .rstatus{color:${C.green}}
+.bc-doc .reqtally{margin-top:10px;font-size:12.5px;color:${C.navy}}
+.bc-doc .reqtally b{color:${C.green}}
 .bc-doc .footer-flag{text-align:center;margin-top:24px;font-size:9px;color:${C.slate};letter-spacing:.12em;text-transform:uppercase;font-family:sans-serif}
 .bc-doc .val{font-weight:600;color:${C.navy}}`;
 
@@ -333,24 +352,42 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                     </div>
                     <div style={{ display:"flex", gap:5, flexShrink:0, flexWrap:"wrap", justifyContent:"flex-end" }}>
                       <ActionBtn docId={doc.id} action="view"   icon="👁" label="View"   />
-                      <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />
-                      <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />
+                      {doc.kind !== "upload" && <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />}
+                      {doc.kind !== "upload" && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
                       <ActionBtn docId={doc.id} action="send"   icon="📤" label="Send"   color={C.brass} />
                       <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />
                       <button onClick={printDoc} title="Print" style={{ fontSize:13, padding:"6px 10px", borderRadius:5, cursor:"pointer", border:`1px solid ${C.mist}`, background:C.white, color:C.slate }}>🖨️</button>
                     </div>
                   </div>
 
-                  {/* VIEW — filled-in polished document */}
+                  {/* VIEW — filled-in polished document, or upload-slot guide */}
                   {docAction[doc.id]==="view" && (
                     <div style={{ marginTop:12 }}>
-                      <div className="bc-doc-paper">
-                        <div className="bc-doc-eyebrow">{doc.eyebrow}</div>
-                        <div className="bc-doc-title">{doc.title}</div>
-                        <div className="bc-doc-ref">Ref {deal.dealRef} · {deal.vesselYear} {deal.vesselMake} {deal.vesselModel}</div>
-                        <div className="bc-doc-rule"></div>
-                        <div className="bc-doc" dangerouslySetInnerHTML={{ __html: fillDocument(doc, deal) }} />
-                      </div>
+                      {doc.kind === "upload" ? (
+                        <div style={{ textAlign:"center", padding:"26px 22px", border:`2px dashed ${C.mist}`, borderRadius:8, background:"#fcfaf4" }}>
+                          <div style={{ fontSize:32 }}>{doc.icon}</div>
+                          <div style={{ fontFamily:"Georgia,serif", fontSize:17, fontWeight:700, color:C.navy, margin:"8px 0 4px" }}>{doc.title}</div>
+                          <div style={{ display:"inline-block", fontSize:10, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".08em", textTransform:"uppercase", color:C.teal, background:C.tealLight, padding:"3px 10px", borderRadius:20, marginBottom:12 }}>{doc.issued}</div>
+                          <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.text, lineHeight:1.7, maxWidth:460, margin:"0 auto 14px", textAlign:"left" }} dangerouslySetInnerHTML={{ __html: doc.guide }} />
+                          {uploadedFile[doc.id] ? (
+                            <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Uploaded: <strong>{uploadedFile[doc.id]}</strong></div>
+                          ) : (
+                            <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:6, padding:"10px 22px", fontSize:13, fontFamily:"sans-serif", fontWeight:700 }}>
+                              📎 Upload {doc.tab}
+                              <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
+                            </label>
+                          )}
+                          <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:10 }}>Accepted: {doc.accept}</div>
+                        </div>
+                      ) : (
+                        <div className="bc-doc-paper">
+                          <div className="bc-doc-eyebrow">{doc.eyebrow}</div>
+                          <div className="bc-doc-title">{doc.title}</div>
+                          <div className="bc-doc-ref">Ref {deal.dealRef} · {deal.vesselYear} {deal.vesselMake} {deal.vesselModel}</div>
+                          <div className="bc-doc-rule"></div>
+                          <div className="bc-doc" dangerouslySetInnerHTML={{ __html: fillDocument(doc, deal) }} />
+                        </div>
+                      )}
                     </div>
                   )}
 
