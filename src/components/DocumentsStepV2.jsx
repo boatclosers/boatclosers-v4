@@ -132,12 +132,19 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     financingDeadline: ddEndCalc || "[Financing Deadline]",
     brokerFee: "$249.00",
     selectedContingencies,
+    // Title & Government pack signals + fillable fields
+    hasLien: !!(negotiate.sellerHasLien || data.hasLien),
+    lienholderName: negotiate.lienholderName || "[Lienholder]",
+    lienAcctNo: negotiate.lienAcctNo || "[Loan / Account No.]",
+    lienAmount: negotiate.lienAmount ? fmt(Number(negotiate.lienAmount)) : "[Payoff Amount]",
   };
 
   // ── Map curated docs onto app IDs so the Closing step stays in sync ──
   const ID_MAP = { psa:"purchase_agreement", bos:"bill_of_sale", dep:"deposit_receipt", asis:"as_is_acknowledgment", stmt:"closing_statement", accept:"acceptance", amend:"renegotiation", term:"rejection" };
   const REQUIRED = new Set(["purchase_agreement","bill_of_sale","deposit_receipt","as_is_acknowledgment","closing_statement"]);
-  const DOC_SET = DOCUMENTS.map(d => ({ ...d, id: ID_MAP[d.id]||d.id, required: REQUIRED.has(ID_MAP[d.id]||d.id) }));
+  const DOC_SET = DOCUMENTS
+    .filter(d => typeof d.showIf !== "function" || d.showIf(deal))
+    .map(d => ({ ...d, id: ID_MAP[d.id]||d.id, required: REQUIRED.has(ID_MAP[d.id]||d.id) }));
   const GROUPS = [...new Set(DOC_SET.map(d=>d.group))];
 
   const requiredDocs = DOC_SET.filter(d => d.required);
@@ -270,6 +277,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 .bc-doc table.stmt tr.tot td{font-weight:700;color:${C.navy};border-bottom:2px solid ${C.brass};border-top:1.5px solid ${C.navy};font-size:14px}
 .bc-doc table.stmt td.sec{padding-top:14px;font-weight:700;color:${C.teal};text-transform:uppercase;font-size:10px;border-bottom:none}
 .bc-doc .note{font-size:11.5px;color:${C.slate};font-style:italic;border-left:2px solid ${C.brass};padding:3px 0 3px 11px;margin:14px 0}
+.bc-doc .field{border-bottom:1px solid ${C.mist};padding:6px 0;display:flex;justify-content:space-between;gap:14px;font-size:13px}
+.bc-doc .field .k{color:${C.slate}}
+.bc-doc .field .v{font-weight:600;color:${C.navy};text-align:right}
 .bc-doc .footer-flag{text-align:center;margin-top:24px;font-size:9px;color:${C.slate};letter-spacing:.12em;text-transform:uppercase;font-family:sans-serif}
 .bc-doc .val{font-weight:600;color:${C.navy}}`;
 
