@@ -713,6 +713,199 @@ export const DOCUMENTS = [
   <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
 </div>
 <div class="footer-flag">BoatClosers</div>`
+  },
+
+  // ===== GROUP 6: DEAL STRUCTURES =====
+  // Trade-in, trailer, gift, and seller-financing instruments. The three
+  // financing docs carry an attorney-review banner (lawBanner prepended to body).
+  {
+    id: "trade_in",
+    group: "Deal Structures",
+    tab: "Trade-In Addendum",
+    eyebrow: "Partial Payment",
+    title: "Trade-In Addendum",
+    body: `
+<p class="lead">This addendum to the Purchase &amp; Sale Agreement records property the Buyer, {{buyerName}}, is trading to the Seller, {{sellerName}}, as partial payment toward the {{vesselYear}} {{vesselMake}} {{vesselModel}}.</p>
+
+<h3>Trade-In Property</h3>
+<div class="field"><span class="k">Year / Make / Model</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">HIN / Serial</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Agreed trade value</span><span class="v">$______________</span></div>
+
+<h3>Adjusted Balance</h3>
+<div class="field"><span class="k">Purchase price</span><span class="v">{{salePrice}}</span></div>
+<div class="field"><span class="k">Less trade-in value</span><span class="v">($______________)</span></div>
+<div class="field"><span class="k">Net cash due from Buyer</span><span class="v">$______________</span></div>
+
+<p style="margin-top:14px">The Buyer warrants good title to the trade-in property, free of undisclosed liens, and will deliver its title and a signed bill of sale at closing. The Seller accepts the trade-in at the agreed value above as partial payment.</p>
+
+<div class="note">Used when a buyer offers another boat (or property) as part of the price. The trade-in itself needs its own bill of sale and title transfer \u2014 the same way any boat sale does.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller<br>Date: ____________</small></div>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "trailer_bos",
+    group: "Deal Structures",
+    tab: "Trailer Bill of Sale",
+    eyebrow: "Separate Title",
+    title: "Trailer Bill of Sale",
+    body: `
+<p class="lead">A boat trailer is titled and registered separately from the vessel. This bill of sale transfers the trailer below from {{sellerName}} to {{buyerName}}.</p>
+
+<h3>Trailer</h3>
+<div class="field"><span class="k">Year / Make</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">VIN</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Sale value</span><span class="v">$______________</span></div>
+<div class="field"><span class="k">Sold with vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+
+<h3>Transfer</h3>
+<p>For the value stated, the Seller sells and transfers the trailer to the Buyer, warrants good title free of undisclosed liens, and will deliver the trailer's title and any registration documents at closing. The trailer is sold in its present condition.</p>
+
+<div class="note">Easy to forget: the trailer has its own title and registration in most states. Transferring the boat does not transfer the trailer \u2014 this handles it.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer<br>Date: ____________</small></div>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "gift_transfer",
+    group: "Deal Structures",
+    tab: "Gift / Family",
+    eyebrow: "No / Nominal Money",
+    title: "Gift & Family Transfer Affidavit",
+    body: `
+<p class="lead recital">This affidavit records that the vessel below is being transferred as a gift, or for nominal consideration, rather than an arm's-length sale \u2014 which affects how the transfer and any tax are treated.</p>
+
+<h3>Vessel &amp; Parties</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">From (Donor)</span><span class="v">{{sellerName}}</span></div>
+<div class="field"><span class="k">To (Recipient)</span><span class="v">{{buyerName}}</span></div>
+<div class="field"><span class="k">Relationship</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Consideration</span><span class="v">Gift / $______ nominal</span></div>
+
+<h3>Affirmation</h3>
+<p>The Donor affirms they are the lawful owner of the vessel, that it is transferred to the Recipient as a gift (or for the nominal amount stated), that no other consideration has been exchanged, and that the vessel is free of undisclosed liens. The parties will report the transfer to the titling agency accordingly.</p>
+
+<div class="note">For family or gift transfers. Many states tax gifts differently than sales, and the titling agency needs the transfer characterized honestly \u2014 this documents it. Confirm tax treatment with your state.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Donor<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Recipient<br>Date: ____________</small></div>
+</div>
+
+<div class="notary">
+  <div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Acknowledged before me this ______ day of __________, 20____, by the Donor named above.</p>
+  <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "promissory_note",
+    group: "Deal Structures",
+    tab: "Promissory Note \u26A0",
+    eyebrow: "Seller Financing",
+    title: "Promissory Note",
+    body: `
+<div class="lawbanner"><b>\u26A0 Attorney review required.</b> This instrument creates a legally binding debt. Have it reviewed by a licensed attorney, and confirm interest limits (state usury caps) before use on a real deal.</div>
+<p class="lead">For value received, {{buyerName}} (the \u201cBorrower\u201d), of {{buyerAddress}}, promises to pay {{sellerName}} (the \u201cHolder\u201d), of {{sellerAddress}}, the principal sum below for the purchase of the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}.</p>
+
+<h3>Terms</h3>
+<div class="field"><span class="k">Purchase price</span><span class="v">{{salePrice}}</span></div>
+<div class="field"><span class="k">Down payment</span><span class="v">$______________</span></div>
+<div class="field"><span class="k">Principal financed</span><span class="v">$______________</span></div>
+<div class="field"><span class="k">Interest rate (per annum)</span><span class="v">______ %</span></div>
+<div class="field"><span class="k">Term</span><span class="v">______ months</span></div>
+<div class="field"><span class="k">Monthly payment</span><span class="v">$______________</span></div>
+<div class="field"><span class="k">First payment due</span><span class="v">________________</span></div>
+
+<h3>Promise to Pay</h3>
+<ol>
+  <li>The Borrower will pay the principal and interest in equal monthly installments, beginning on the first payment date and continuing on the same day each month until paid in full.</li>
+  <li>The Borrower may prepay in whole or in part at any time without penalty.</li>
+  <li>If a payment is more than ____ days late, the Holder may declare the entire unpaid balance due, and the Borrower agrees to pay reasonable costs of collection.</li>
+  <li>This Note is secured by a Security Agreement of even date covering the vessel above.</li>
+</ol>
+
+<div class="note">The buyer's written promise to repay the seller over time. Paired with the Security Agreement, which lets the seller repossess if the buyer defaults. Interest rates may be capped by state usury law.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Borrower<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Accepted \u2014 <b>{{sellerName}}</b> (Holder)<br>Date: ____________</small></div>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "security_agreement",
+    group: "Deal Structures",
+    tab: "Security Agreement \u26A0",
+    eyebrow: "Seller Financing",
+    title: "Security Agreement",
+    body: `
+<div class="lawbanner"><b>\u26A0 Attorney review required.</b> This instrument creates a lien on the vessel. Have it reviewed by a licensed attorney, and confirm the UCC-1 filing and title-lien steps for your state, before use on a real deal.</div>
+<p class="lead">{{buyerName}} (the \u201cDebtor\u201d) grants {{sellerName}} (the \u201cSecured Party\u201d) a security interest in the vessel below to secure payment of the Promissory Note of even date.</p>
+
+<h3>Collateral</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Title No. / Registration</span><span class="v">{{titleNo}} / {{regNo}}</span></div>
+<div class="field"><span class="k">Secured amount</span><span class="v">$______________</span></div>
+
+<h3>Terms</h3>
+<ol>
+  <li>The security interest secures the Note and all amounts owed under it.</li>
+  <li>Until paid in full, the Debtor will keep the vessel insured, free of other liens, and will not sell or transfer it without the Secured Party's written consent.</li>
+  <li>On default, the Secured Party may exercise all remedies of a secured party under the Uniform Commercial Code, including repossession and sale of the vessel.</li>
+  <li>The Secured Party may file a UCC-1 financing statement and note its lien on the vessel's title to perfect this interest.</li>
+</ol>
+
+<div class="note"><b>Perfecting the lien:</b> a security agreement alone is not enough \u2014 to protect the seller's interest against other creditors, file a <b>UCC-1 financing statement</b> with the state (and record the lien on the vessel title). Without it, the seller's claim can be defeated by others. Confirm the exact steps with your state.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Debtor<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Secured Party<br>Date: ____________</small></div>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "payoff",
+    group: "Deal Structures",
+    tab: "Payoff Authorization \u26A0",
+    eyebrow: "Existing Loan Payoff",
+    title: "Payoff Demand & Authorization",
+    body: `
+<div class="lawbanner"><b>\u26A0 Attorney review recommended.</b> This authorizes release of loan and payoff information and directs payment from closing funds. Confirm the lien is released before final payment.</div>
+<p class="lead">The Seller, {{sellerName}}, authorizes the lienholder below to provide a payoff figure and to release its lien on the vessel upon receipt of payment at closing, so clear title can pass to {{buyerName}}.</p>
+
+<h3>Existing Loan</h3>
+<div class="field"><span class="k">Lienholder</span><span class="v">{{lienholderName}}</span></div>
+<div class="field"><span class="k">Loan / Account No.</span><span class="v">{{lienAcctNo}}</span></div>
+<div class="field"><span class="k">Estimated payoff</span><span class="v">{{lienAmount}}</span></div>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}</span></div>
+
+<h3>Authorization</h3>
+<p>The Seller authorizes the lienholder to release the payoff amount and loan details to the parties and the closing agent, and directs that the payoff be remitted from closing funds. Upon payment, the lienholder is to release its lien and deliver a Lien Release so the title transfers free and clear.</p>
+
+<div class="note">Used when the seller still owes money on the boat. Pairs with the Lien Release in your Title &amp; Government pack \u2014 this authorizes the payoff; that records the release. The buyer should confirm the lien is cleared before final payment.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller / Borrower<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Closing Agent (if any)<br>Date: ____________</small></div>
+</div>
+<div class="footer-flag">BoatClosers</div>`
   }
 ];
 
