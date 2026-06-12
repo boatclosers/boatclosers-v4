@@ -501,6 +501,81 @@ export const DOCUMENTS = [
   <p>Acknowledged before me this ______ day of __________, 20____, by the affiant named above.</p>
   <p style="margin-top:12px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
 </div>`
+  },
+
+  // ===== GROUP 4: FINANCING & INSURANCE =====
+  // One generated checklist + three upload slots (kind:"upload") for paperwork
+  // the lender, insurer, and surveyor issue.
+  {
+    id: "fin_conditions",
+    group: "Financing & Insurance",
+    tab: "Conditions Checklist",
+    eyebrow: "Your Guide",
+    title: "Financing & Insurance Conditions Checklist",
+    body: `
+<p class="lead">Before a lender will fund or an insurer will bind coverage on the {{vesselYear}} {{vesselMake}} {{vesselModel}} (HIN {{hin}}), the items below typically must be satisfied. Use this as {{buyerName}}'s roadmap ahead of closing on {{closingDate}}.</p>
+
+<h3>Insurance Conditions</h3>
+<div class="check"><div class="box"></div><div class="ct"><b>Proof of insurance / binder effective by closing</b><div class="d">Coverage must be active on or before {{closingDate}}. Upload the binder to the slot in this pack.</div></div></div>
+<div class="check"><div class="box"></div><div class="ct"><b>Loss-payee endorsement (if financed)</b><div class="d">If a lender is involved, the policy must name them as loss payee.</div></div></div>
+<div class="check"><div class="box"></div><div class="ct"><b>Marine survey on file</b><div class="d">Most insurers require a survey for older or larger vessels and that any safety findings are addressed.</div></div></div>
+<div class="check"><div class="box"></div><div class="ct"><b>Operator experience information (if requested)</b><div class="d">Underwriters may ask the buyer's boating experience for larger vessels before binding.</div></div></div>
+
+<h3>Financing Conditions <span class="muted">(if buyer is financing)</span></h3>
+<div class="check"><div class="box"></div><div class="ct"><b>Lender commitment letter received</b><div class="d">The lender's written commitment to fund. Upload it to the slot in this pack.</div></div></div>
+<div class="check"><div class="box"></div><div class="ct"><b>Clear title confirmed / liens released</b><div class="d">The lender requires clean title; pairs with the Lien Release in the Title &amp; Government pack.</div></div></div>
+<div class="check"><div class="box"></div><div class="ct"><b>Survey acceptable to lender</b><div class="d">Lenders typically require the same survey the insurer does.</div></div></div>
+
+<h3>Document Request \u2014 What They'll Ask For vs. What You Already Have</h3>
+<p class="recital">Lenders and insurers request a stack of documents. Here is that stack \u2014 and how much of it is already done and saved in your BoatClosers deal, so you can send it in minutes instead of scrambling.</p>
+{{DOC_REQUEST_STATUS}}
+
+<div class="note">This is the real BoatClosers advantage: most of what a lender or insurer asks for is already generated, filled, and saved in your deal. You obtain only the survey, binder, and commitment letter from those providers \u2014 and the slots in this pack give each one a home.</div>
+
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "commitment",
+    group: "Financing & Insurance",
+    tab: "Commitment Letter",
+    kind: "upload",
+    eyebrow: "Upload Slot",
+    title: "Lender Commitment Letter",
+    issued: "Issued by the buyer's lender",
+    icon: "\uD83C\uDFE6",
+    accept: "PDF, JPG, PNG",
+    showIf: (deal) => deal && deal.paymentType === "finance",
+    guide: "Your <b>marine lender</b> issues this letter once your loan is approved \u2014 it confirms they will fund the purchase. BoatClosers can't generate it (only your bank can), so when you receive it, upload it here to attach it to your deal file. Lenders usually issue it after they've received your signed purchase agreement, the survey, and proof of insurance.",
+    body: ""
+  },
+
+  {
+    id: "binder",
+    group: "Financing & Insurance",
+    tab: "Insurance Binder",
+    kind: "upload",
+    eyebrow: "Upload Slot",
+    title: "Insurance Binder / Proof of Coverage",
+    issued: "Issued by the buyer's insurer",
+    icon: "\uD83D\uDEE1\uFE0F",
+    accept: "PDF, JPG, PNG",
+    guide: "Your <b>marine insurer</b> issues this binder confirming coverage is in force, effective on or before closing. If you're financing, make sure it names your lender as <b>loss payee</b>. BoatClosers doesn't create it \u2014 your insurance company does \u2014 so upload it here when you have it. Send a copy to your lender too; most won't fund without it.",
+    body: ""
+  },
+
+  {
+    id: "survey_report",
+    group: "Financing & Insurance",
+    tab: "Survey Report",
+    kind: "upload",
+    eyebrow: "Upload Slot",
+    title: "Marine Survey Report",
+    issued: "Issued by the marine surveyor",
+    icon: "\uD83D\uDD0D",
+    accept: "PDF, JPG, PNG",
+    guide: "Your <b>marine surveyor</b> produces this report after inspecting the vessel. Both your lender and insurer usually require it, and it's the basis for addressing any findings before closing. Upload the surveyor's PDF here so it's attached to the deal and easy to share with your lender and insurer.",
+    body: ""
   }
 ];
 
@@ -554,11 +629,45 @@ export function assembleContingencyClauses(deal) {
 
 // MAIN: fill one document from a deal. Returns ready-to-render HTML.
 export function fillDocument(doc, deal) {
-  let body = doc.body;
+  let body = doc.body || "";
   body = body.replace("{{CONTINGENCY_CLAUSES}}", assembleContingencyClauses(deal));
+  body = body.replace("{{DOC_REQUEST_STATUS}}", buildDocRequestStatus(deal));
   body = body.replace(/\{\{contList\}\}/g, contingencyList(deal));
   body = mergeFields(body, deal);
   return body;
+}
+
+// Live "what lenders/insurers request" vs. "what you already have" list.
+// Reads deal.docStatus (a map of docId -> truthy when signed/uploaded).
+export function buildDocRequestStatus(deal) {
+  const st = (deal && deal.docStatus) || {};
+  const items = [
+    { label:"Signed Purchase & Sale Agreement",            id:"purchase_agreement", kind:"gen" },
+    { label:"Bill of Sale",                                id:"bill_of_sale",       kind:"gen" },
+    { label:"Earnest Money Deposit Receipt",               id:"deposit_receipt",    kind:"gen" },
+    { label:"Closing / Settlement Statement",              id:"closing_statement",  kind:"gen" },
+    { label:"Title application / proof of clear title",    id:"title_app",          kind:"gen" },
+    { label:"Marine survey report",                        id:"survey_report",      kind:"up", from:"your surveyor" },
+    { label:"Proof of insurance (binder; loss-payee if financed)", id:"binder",      kind:"up", from:"your insurer" },
+    { label:"Lender commitment letter",                    id:"commitment",         kind:"up", from:"your lender" },
+  ];
+  let html = '<div class="reqlist">';
+  items.forEach(it => {
+    const done = !!st[it.id];
+    let mark, cls, status;
+    if (it.kind === "gen") {
+      if (done) { mark = "\u2713"; cls = "done";  status = "Saved in your BoatClosers file"; }
+      else      { mark = "\u25D0"; cls = "ready"; status = "Ready in your deal \u2014 sign to finalize"; }
+    } else {
+      if (done) { mark = "\u2713"; cls = "done";  status = "Uploaded to your deal"; }
+      else      { mark = "\u25CB"; cls = "todo";  status = "Get from " + it.from + " and upload here"; }
+    }
+    html += `<div class="req ${cls}"><span class="rmark">${mark}</span><span class="rlabel">${it.label}</span><span class="rstatus">${status}</span></div>`;
+  });
+  html += '</div>';
+  const have = items.filter(it => st[it.id]).length;
+  html += `<p class="reqtally"><b>${have} of ${items.length}</b> already in your BoatClosers file or uploaded \u2014 the rest you obtain and attach here.</p>`;
+  return html;
 }
 
 // Convenience: the deal fields these documents expect (for reference/validation).
