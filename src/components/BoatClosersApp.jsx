@@ -187,7 +187,7 @@ function DataWarning({ vessel, parties }) {
 }
 
 // ── PROGRESS BAR ─────────────────────────────────────────────────────────────
-const STEPS = ["Vessel","Parties","Negotiate & Terms","Due Diligence","Documents","Closing"];
+const STEPS = ["Vessel","Parties","Price & Terms","Due Diligence","Documents","Closing"];
 function ProgressBar({ step, setStep, maxStep }) {
   return (
     <div style={{ background:C.white, borderBottom:`1px solid ${C.mist}`, padding:"0.85rem 2rem" }}>
