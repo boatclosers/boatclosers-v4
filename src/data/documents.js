@@ -512,20 +512,18 @@ export const DOCUMENTS = [
     tab: "Conditions Checklist",
     eyebrow: "Your Guide",
     title: "Financing & Insurance Conditions Checklist",
+    checklist: [
+      { section:"Insurance Conditions", label:"Proof of insurance / binder effective by closing", desc:"Coverage must be active on or before closing. Upload the binder to the slot in this pack." },
+      { section:"Insurance Conditions", label:"Loss-payee endorsement (if financed)", desc:"If a lender is involved, the policy must name them as loss payee." },
+      { section:"Insurance Conditions", label:"Marine survey on file", desc:"Most insurers require a survey for older or larger vessels, and that any safety findings are addressed." },
+      { section:"Insurance Conditions", label:"Operator experience information (if requested)", desc:"Underwriters may ask the buyer's boating experience for larger vessels before binding." },
+      { section:"Financing Conditions (if buyer is financing)", label:"Lender commitment letter received", desc:"The lender's written commitment to fund. Upload it to the slot in this pack." },
+      { section:"Financing Conditions (if buyer is financing)", label:"Clear title confirmed / liens released", desc:"The lender requires clean title; pairs with the Lien Release in the Title & Government pack." },
+      { section:"Financing Conditions (if buyer is financing)", label:"Survey acceptable to lender", desc:"Lenders typically require the same survey the insurer does." },
+    ],
     body: `
-<p class="lead">Before a lender will fund or an insurer will bind coverage on the {{vesselYear}} {{vesselMake}} {{vesselModel}} (HIN {{hin}}), the items below typically must be satisfied. Use this as {{buyerName}}'s roadmap ahead of closing on {{closingDate}}.</p>
-
-<h3>Insurance Conditions</h3>
-<div class="check"><div class="box"></div><div class="ct"><b>Proof of insurance / binder effective by closing</b><div class="d">Coverage must be active on or before {{closingDate}}. Upload the binder to the slot in this pack.</div></div></div>
-<div class="check"><div class="box"></div><div class="ct"><b>Loss-payee endorsement (if financed)</b><div class="d">If a lender is involved, the policy must name them as loss payee.</div></div></div>
-<div class="check"><div class="box"></div><div class="ct"><b>Marine survey on file</b><div class="d">Most insurers require a survey for older or larger vessels and that any safety findings are addressed.</div></div></div>
-<div class="check"><div class="box"></div><div class="ct"><b>Operator experience information (if requested)</b><div class="d">Underwriters may ask the buyer's boating experience for larger vessels before binding.</div></div></div>
-
-<h3>Financing Conditions <span class="muted">(if buyer is financing)</span></h3>
-<div class="check"><div class="box"></div><div class="ct"><b>Lender commitment letter received</b><div class="d">The lender's written commitment to fund. Upload it to the slot in this pack.</div></div></div>
-<div class="check"><div class="box"></div><div class="ct"><b>Clear title confirmed / liens released</b><div class="d">The lender requires clean title; pairs with the Lien Release in the Title &amp; Government pack.</div></div></div>
-<div class="check"><div class="box"></div><div class="ct"><b>Survey acceptable to lender</b><div class="d">Lenders typically require the same survey the insurer does.</div></div></div>
-
+<p class="lead">Before a lender will fund or an insurer will bind coverage on the {{vesselYear}} {{vesselMake}} {{vesselModel}} (HIN {{hin}}), the items below typically must be satisfied. Tap each one as you complete it. Use this as {{buyerName}}'s roadmap ahead of closing on {{closingDate}}.</p>
+<!--CHECKLIST-->
 <h3>Document Request \u2014 What They'll Ask For vs. What You Already Have</h3>
 <p class="recital">Lenders and insurers request a stack of documents. Here is that stack \u2014 and how much of it is already done and saved in your BoatClosers deal, so you can send it in minutes instead of scrambling.</p>
 {{DOC_REQUEST_STATUS}}
@@ -1261,6 +1259,106 @@ export const DOCUMENTS = [
   <p>State of __________________ \u00b7 County of __________________</p>
   <p>Acknowledged before me this ______ day of __________, 20____, by the affiant named above.</p>
   <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p></div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  // ===== GROUP 9: CLOSING-DAY =====
+  // Handoff-day documents. Delivery receipt and disclosure use interactive
+  // checklists (checklist array + <!--CHECKLIST--> marker in body).
+  {
+    id: "delivery_receipt",
+    group: "Closing-Day",
+    tab: "Delivery Receipt",
+    eyebrow: "Possession Handoff",
+    title: "Delivery & Possession Receipt",
+    checklist: [
+      { label:"Keys & access", desc:"All keys, fobs, and security codes" },
+      { label:"Documents", desc:"Title/registration, manuals, service records" },
+      { label:"Equipment & gear", desc:"Electronics, safety equipment, dinghy/tender, and personal property included in the sale" },
+    ],
+    body: `
+<p class="lead">This receipt confirms that possession of the vessel below passed from {{sellerName}} (Seller) to {{buyerName}} (Buyer) on {{closingDate}}.</p>
+
+<h3>Vessel &amp; Handoff</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Date of delivery</span><span class="v">{{closingDate}}</span></div>
+<div class="field"><span class="k">Location</span><span class="v">{{closingLocation}}</span></div>
+
+<h3>Items Delivered</h3>
+<!--CHECKLIST-->
+<p style="margin-top:14px">The Buyer acknowledges taking possession of the vessel and the items above in their present condition. From the time of delivery, risk of loss and responsibility for the vessel pass to the Buyer.</p>
+
+<div class="note">The clean line between \u201cSeller's boat\u201d and \u201cBuyer's boat.\u201d After signing, risk of loss shifts to the buyer \u2014 which is exactly why the buyer should confirm insurance is active before taking possession.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller (delivered)<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer (received)<br>Date: ____________</small></div>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "defect_disclosure",
+    group: "Closing-Day",
+    tab: "Defect Disclosure",
+    eyebrow: "Seller's Disclosure",
+    title: "Seller's Disclosure of Known Defects",
+    checklist: [
+      { label:"Hull damage, blistering, or prior structural repair" },
+      { label:"Engine, transmission, or drive issues" },
+      { label:"Electrical, plumbing, or systems problems" },
+      { label:"Prior accident, sinking, fire, or insurance claim" },
+      { label:"Water intrusion / leaks" },
+      { label:"Other (describe in the details line below)" },
+    ],
+    body: `
+<p class="lead">{{sellerName}} (Seller) provides this disclosure of known material defects in the vessel below to {{buyerName}} (Buyer), to the best of the Seller's knowledge as of {{closingDate}}.</p>
+
+<h3>Vessel</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}</span></div>
+
+<h3>Known Conditions \u2014 tap all that apply</h3>
+<!--CHECKLIST-->
+<h3>Details</h3>
+<p>________________________________________________________________<br>________________________________________________________________</p>
+
+<p>The Seller affirms the above is accurate to the best of their knowledge. This disclosure does not replace the Buyer's own inspection or survey, and the vessel is otherwise sold as-is per the Purchase Agreement.</p>
+
+<div class="note">Even in an as-is sale, a seller disclosing known defects sharply reduces the risk of a later \u201cyou hid this from me\u201d dispute. Honesty here protects the seller as much as the buyer.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer (acknowledged)<br>Date: ____________</small></div>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "engine_hours",
+    group: "Closing-Day",
+    tab: "Engine Hours",
+    eyebrow: "Hours / Condition",
+    title: "Engine Hours & Operating Statement",
+    body: `
+<p class="lead">{{sellerName}} states the engine hours and operating condition of the vessel below as of {{closingDate}}, for the Buyer's records and for insurance and resale purposes.</p>
+
+<h3>Vessel &amp; Engines</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}</span></div>
+<div class="field"><span class="k">Engine(s)</span><span class="v">{{engineDesc}}</span></div>
+<div class="field"><span class="k">Port / single engine hours</span><span class="v">____________</span></div>
+<div class="field"><span class="k">Starboard engine hours</span><span class="v">____________</span></div>
+<div class="field"><span class="k">Generator hours (if any)</span><span class="v">____________</span></div>
+
+<h3>Statement</h3>
+<p>The Seller states the hour readings above are taken from the vessel's meters and are accurate to the best of the Seller's knowledge, that the meters have not, to the Seller's knowledge, been altered or replaced except as noted, and that the engines are in the operating condition described in any survey or the Purchase Agreement.</p>
+
+<div class="note">Engine hours are the boat's odometer \u2014 they drive value and insurability. A signed hours statement protects the buyer against a rolled-back or mis-stated meter, and gives the seller a clean record.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer (acknowledged)<br>Date: ____________</small></div>
+</div>
 <div class="footer-flag">BoatClosers</div>`
   }
 ];
