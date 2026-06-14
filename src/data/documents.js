@@ -906,6 +906,164 @@ export const DOCUMENTS = [
   <div class="sigbox"><div class="ln"></div><small>Closing Agent (if any)<br>Date: ____________</small></div>
 </div>
 <div class="footer-flag">BoatClosers</div>`
+  },
+
+  // ===== GROUP 7: ESTATE & INHERITANCE =====
+  // A "Start Here" orienting guide + three estate affidavits (estate-law banner)
+  // + a death-certificate upload slot. Framed as a guide that includes forms.
+  {
+    id: "estate_guide",
+    group: "Estate & Inheritance",
+    tab: "Start Here",
+    eyebrow: "Inherited a Boat?",
+    title: "Inherited a Boat? Start Here",
+    body: `
+<div class="estbanner"><b>\u2696 This is a guide, not legal advice.</b> Estate and probate law varies significantly by state. Use this to understand your options \u2014 but for anything beyond a simple, uncontested transfer, talk to a probate attorney in your state.</div>
+<p class="lead">When a boat's owner has died, the vessel can still be sold or transferred \u2014 but who signs, and what paperwork the state needs, depends on the estate. Here is how to find your path.</p>
+
+<h3>Which Situation Fits?</h3>
+<ol>
+  <li><b>No probate is being opened</b> (small or simple estate, clear heirs) \u2014 use the <b>Affidavit of Heirship</b> in this group. The lawful heir(s) attest to their right to the vessel; most agencies accept this with a certified death certificate.</li>
+  <li><b>A probate estate is open</b> (a court appointed an executor/administrator) \u2014 use the <b>Executor / Administrator Authorization</b>. The personal representative signs for the estate, with the court's Letters attached.</li>
+  <li><b>The estate is small</b> (under your state's dollar threshold) \u2014 your state may allow a <b>Small Estate Affidavit</b>, a faster path that skips full probate.</li>
+</ol>
+
+<h3>What Every Path Needs</h3>
+<p>A <b>certified death certificate</b> (upload slot in this group), the vessel's title and registration, and the heir's or representative's identification. The vessel concerned: {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}.</p>
+
+<h3>When to Get an Attorney</h3>
+<p>Talk to a probate attorney if the will is contested, heirs disagree, the estate is large or complex, there are debts against the estate, or you're unsure whether probate is required in {{vesselState}}. The cost of an hour of advice is small next to a transfer that has to be undone.</p>
+
+<div class="note">BoatClosers provides these documents to help you move forward \u2014 it is not a law firm and does not give legal advice. The forms here cover common, uncontested transfers; your state's exact requirements govern.</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "heirship",
+    group: "Estate & Inheritance",
+    tab: "Affidavit of Heirship",
+    eyebrow: "No Probate",
+    title: "Affidavit of Heirship \u2014 Vessel",
+    body: `
+<div class="estbanner"><b>\u2696 Estate law varies by state.</b> Probate, heirship, and small-estate rules differ significantly between states. Have this reviewed against your state's process by a licensed attorney before use.</div>
+<p class="lead recital">This affidavit is used where the owner of a vessel has died and no formal probate administration is being opened, to identify the lawful heir(s) entitled to transfer the vessel.</p>
+
+<h3>Deceased Owner</h3>
+<div class="field"><span class="k">Name</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Date of death</span><span class="v">________________</span></div>
+<div class="field"><span class="k">Last address</span><span class="v">________________________</span></div>
+
+<h3>Vessel</h3>
+<div class="field"><span class="k">Year / Make / Model</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Title No. / Registration</span><span class="v">{{titleNo}} / {{regNo}}</span></div>
+
+<h3>Heir(s)</h3>
+<div class="field"><span class="k">Heir name</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Relationship to deceased</span><span class="v">________________</span></div>
+
+<p style="margin-top:14px">The affiant swears that the deceased died owning the vessel above, that the person(s) named are the lawful heir(s) entitled to it under the laws of {{vesselState}}, that to the affiant's knowledge no probate is pending or required, and that the heir(s) have authority to transfer the vessel to {{buyerName}}. The affiant agrees to indemnify the titling agency against competing claims.</p>
+
+<div class="note">Where no probate is opened, most titling agencies accept an affidavit of heirship signed by the heir(s) and notarized, together with a certified death certificate. Requirements vary by state and by estate value.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small>Affiant / Heir<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Disinterested Witness (if required)<br>Date: ____________</small></div>
+</div>
+
+<div class="notary">
+  <div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Sworn to and acknowledged before me this ______ day of __________, 20____, by the affiant named above.</p>
+  <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "executor_auth",
+    group: "Estate & Inheritance",
+    tab: "Executor Authorization",
+    eyebrow: "Probate Opened",
+    title: "Executor / Administrator Authorization to Sell",
+    body: `
+<div class="estbanner"><b>\u2696 Estate law varies by state.</b> Have this reviewed against your state's probate process by a licensed attorney before use, and attach the court's Letters.</div>
+<p class="lead">Where a probate estate has been opened, the court-appointed personal representative has authority to transfer estate property. This document records that authority for the sale of the vessel below.</p>
+
+<h3>Estate</h3>
+<div class="field"><span class="k">Deceased</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Date of death</span><span class="v">________________</span></div>
+<div class="field"><span class="k">Probate court / case no.</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Personal representative</span><span class="v">________________________</span></div>
+
+<h3>Vessel &amp; Authority</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}</span></div>
+<p style="margin-top:12px">The personal representative certifies they have been duly appointed by the court named above (Letters Testamentary / of Administration attached), that the appointment remains in effect, and that they are authorized to sell and transfer the vessel to {{buyerName}} on behalf of the estate, executing the bill of sale, title assignment, and all transfer documents.</p>
+
+<div class="note">Used when probate is open. The personal representative signs for the estate; titling agencies require the court's Letters (attached) showing the appointment. Pairs with a certified death certificate.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small>Personal Representative<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Acknowledged \u2014 <b>{{buyerName}}</b> (Buyer)<br>Date: ____________</small></div>
+</div>
+
+<div class="notary">
+  <div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Acknowledged before me this ______ day of __________, 20____, by the personal representative of the estate named above.</p>
+  <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "small_estate",
+    group: "Estate & Inheritance",
+    tab: "Small Estate Affidavit",
+    eyebrow: "Simplified Transfer",
+    title: "Small Estate Affidavit \u2014 Vessel",
+    body: `
+<div class="estbanner"><b>\u2696 Estate law varies by state.</b> The dollar threshold, waiting period, and exact form are set by each state. Confirm your state's small-estate rules with a licensed attorney before relying on this.</div>
+<p class="lead recital">Many states allow estates under a dollar threshold to transfer property by a small-estate affidavit, without full probate. This affidavit supports transfer of the vessel under that simplified process.</p>
+
+<h3>Deceased &amp; Claimant</h3>
+<div class="field"><span class="k">Deceased</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Date of death</span><span class="v">________________</span></div>
+<div class="field"><span class="k">Claimant / Successor</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Relationship</span><span class="v">________________</span></div>
+
+<h3>Vessel &amp; Affirmation</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}</span></div>
+<p style="margin-top:12px">The claimant swears that the value of the entire estate qualifies under {{vesselState}}'s small-estate limit, that the statutory waiting period has passed, that no application for appointment of a personal representative is pending or granted, and that the claimant is entitled to the vessel and authorized to transfer it to {{buyerName}}.</p>
+
+<div class="note">A faster path than full probate for modest estates \u2014 but the dollar threshold, waiting period, and exact form are set by each state. Confirm your state's small-estate rules before relying on this.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small>Claimant / Successor<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Witness (if required)<br>Date: ____________</small></div>
+</div>
+
+<div class="notary">
+  <div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Sworn to and acknowledged before me this ______ day of __________, 20____, by the claimant named above.</p>
+  <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "death_cert",
+    group: "Estate & Inheritance",
+    tab: "Death Certificate",
+    kind: "upload",
+    eyebrow: "Upload Slot",
+    title: "Certified Death Certificate",
+    issued: "Issued by the state vital-records office",
+    icon: "\uD83D\uDCD1",
+    accept: "PDF, JPG, PNG",
+    guide: "A <b>certified copy</b> of the owner's death certificate is required by every titling agency to transfer a deceased owner's vessel. BoatClosers can't generate it \u2014 it's issued by the state's vital-records office (often the county or state health department). Order a certified copy, then upload it here so it's attached to the deal alongside the affidavit or letters.",
+    body: ""
   }
 ];
 
