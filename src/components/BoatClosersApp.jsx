@@ -2103,42 +2103,20 @@ function StepClosing({ vessel, parties, terms, negotiate, ddData, docsData, onBa
   ] : [
     {
       heading:"Core Closing Documents",
+      desc:"The required documents — signed in the Documents step.",
       docs:[
-        { id:"purchase_agreement",  label:"Purchase & Sale Agreement",   desc:"The main binding contract. Must be signed by both parties before any money changes hands.", signed:!!docsData.signedDocs?.purchase_agreement },
-        { id:"bill_of_sale",        label:"Bill of Sale",                desc:"Transfers legal ownership from seller to buyer. Required for registration in all states.", signed:!!docsData.signedDocs?.bill_of_sale },
-        { id:"closing_statement",   label:"Closing Statement",           desc:"Financial summary showing purchase price, deposit credit, and balance due at closing.", signed:!!docsData.signedDocs?.closing_statement },
-        { id:"title_transfer",      label:"Title Transfer Affidavit",    desc:"Seller's sworn statement of ownership and authority to sell. Required for new registration.", signed:!!docsData.signedDocs?.title_transfer },
-        { id:"deposit_receipt",     label:"Deposit Receipt",             desc:"Confirms earnest money received and how it applies to the purchase price.", signed:!!docsData.signedDocs?.deposit_receipt },
+        { id:"purchase_agreement",  label:"Purchase & Sale Agreement",   desc:"The main binding contract between buyer and seller.", signed:!!docsData.signedDocs?.purchase_agreement },
+        { id:"bill_of_sale",        label:"Bill of Sale",                desc:"Transfers legal ownership from seller to buyer.", signed:!!docsData.signedDocs?.bill_of_sale },
+        { id:"deposit_receipt",     label:"Earnest Money Deposit Receipt",desc:"Confirms earnest money received and how it applies to the price.", signed:!!docsData.signedDocs?.deposit_receipt },
+        { id:"as_is_acknowledgment",label:"As-Is Acknowledgment",        desc:"Buyer accepts the vessel in its present condition per the agreement.", signed:!!docsData.signedDocs?.as_is_acknowledgment },
+        { id:"closing_statement",   label:"Closing Statement",           desc:"Final figures: price, deposit credit, and balance due at closing.", signed:!!docsData.signedDocs?.closing_statement },
       ]
     },
     {
-      heading:"Survey & Inspection Documents",
-      desc:"Required by marine lenders and most insurance companies.",
+      heading:"Due-Diligence Outcome",
+      desc:"The result of the survey and inspection period.",
       docs:[
-        { id:"survey_auth",     label:"Survey Authorization",         desc:"Authorizes the marine surveyor to inspect the vessel on behalf of the buyer.", signed:!!docsData.signedDocs?.survey_auth },
-        { id:"dd_report",       label:"Due Diligence Report",         desc:"Summary of all inspections completed during the due diligence period.", signed:!!docsData.signedDocs?.dd_report },
-        { id:"acceptance",      label:"Vessel Acceptance",            desc:"Buyer's formal acceptance of the vessel after due diligence.", signed:!!docsData.signedDocs?.acceptance },
-        { id:"damage_disclosure",label:"Damage Disclosure Statement", desc:"Seller's disclosure of any known defects, damage, or repair history.", signed:!!docsData.signedDocs?.damage_disclosure },
-        { id:"sea_trial",       label:"Sea Trial Agreement",          desc:"Documents the underway test and confirms vessel performed as represented.", signed:!!docsData.signedDocs?.sea_trial },
-      ]
-    },
-    {
-      heading:"Financing & Insurance Documents",
-      desc:"Required if buyer is financing or if a lender is involved.",
-      docs:[
-        { id:"insurance_binder",  label:"Insurance Binder Confirmation", desc:"Proof the buyer has obtained marine insurance effective at closing. Required by most lenders.", signed:!!docsData.signedDocs?.insurance_binder },
-        { id:"commitment_letter", label:"Commitment Letter (if financed)", desc:"Lender's formal commitment to fund the purchase. Required before seller releases the vessel.", signed:false, manual:true, manualKey:"commitment_letter" },
-        { id:"loan_payoff",       label:"Loan Payoff Letter (if seller has loan)", desc:"Seller's lender confirmation of payoff amount. Required to deliver clear title.", signed:!!docsData.signedDocs?.loan_payoff },
-        { id:"lien_release",      label:"Lien Release",                desc:"Confirms all liens on the vessel have been satisfied. Required for clean title transfer.", signed:!!docsData.signedDocs?.lien_release },
-      ]
-    },
-    {
-      heading:"Title & Registration Transfer",
-      desc:"Final steps to legally transfer ownership with the state or USCG.",
-      docs:[
-        { id:"uscg_deletion",    label:"USCG Documentation / Deletion", desc:"For USCG-documented vessels: surrender existing documentation and apply for new.", signed:!!docsData.signedDocs?.uscg_deletion },
-        { id:"delivery_receipt", label:"Delivery Receipt",             desc:"Confirms physical delivery of vessel, keys, manuals, and all included equipment.", signed:!!docsData.signedDocs?.delivery_receipt },
-        { id:"wire_instructions",label:"Wire Transfer Instructions",   desc:"Bank wiring details for the final closing payment. Verify by phone — never by email alone.", signed:!!docsData.signedDocs?.wire_instructions },
+        { id:"acceptance", label:"Vessel Acceptance", desc:"Buyer's formal acceptance of the vessel after due diligence.", signed:!!docsData.signedDocs?.acceptance },
       ]
     },
     {
