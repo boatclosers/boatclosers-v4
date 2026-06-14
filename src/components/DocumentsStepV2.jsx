@@ -283,6 +283,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 .bc-doc .lawbanner b{color:${C.red}}
 .bc-doc .estbanner{background:#fbf4e3;border:1px solid #8a6d1a;border-radius:6px;padding:10px 13px;margin-bottom:16px;font-size:11.5px;line-height:1.55;color:#6b540f}
 .bc-doc .estbanner b{color:#8a6d1a}
+.bc-doc .sysbadge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:20px;margin-bottom:12px;font-family:sans-serif}
+.bc-doc .sys-state{background:#e4f0ea;color:#1a5c35}
+.bc-doc .sys-uscg{background:#e4f4f7;color:#0e6b7c}
+.bc-doc .sys-reg{background:#fff3cd;color:#7a5500}
 .bc-doc .field{border-bottom:1px solid ${C.mist};padding:6px 0;display:flex;justify-content:space-between;gap:14px;font-size:13px}
 .bc-doc .field .k{color:${C.slate}}
 .bc-doc .field .v{font-weight:600;color:${C.navy};text-align:right}
