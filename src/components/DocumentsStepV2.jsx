@@ -92,6 +92,24 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [uploadedFile, setUploadedFile] = useState({});
   const [manualSig, setManualSig] = useState({});
   const [manualFields, setManualFields] = useState({});
+  const [checkState, setCheckState] = useState({}); // docId -> { itemIndex: true }
+
+  // One-line "is this section for me?" descriptions under each group header.
+  const GROUP_DESC = {
+    "Closing Instruments": "The core documents every sale needs. Start here.",
+    "Due-Diligence Outcomes": "After the survey — accept, renegotiate, or walk away.",
+    "Title & Government": "Transfer ownership and registration to the buyer.",
+    "Financing & Insurance": "Only if the buyer is financing or needs proof of coverage.",
+    "Authority & Signing": "Only if someone other than the owner is signing — business, co-owner, or power of attorney.",
+    "Deal Structures": "For trade-ins, seller financing, trailers, or gifts.",
+    "Estate & Inheritance": "Only if the owner has passed away. Start with the guide.",
+    "Title Problems": "Lost title, missing documentation, or registration issues.",
+    "Closing-Day": "Sign these at the handoff, when the boat changes hands.",
+  };
+
+  const toggleCheck = (docId, idx) => setCheckState(s => ({
+    ...s, [docId]: { ...(s[docId]||{}), [idx]: !(s[docId]||{})[idx] }
+  }));
 
   // ── Build the deal object documents.js fills from ──
   const agreed = Number(negotiate.agreedPrice||0);
@@ -287,6 +305,16 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 .bc-doc .sys-state{background:#e4f0ea;color:#1a5c35}
 .bc-doc .sys-uscg{background:#e4f4f7;color:#0e6b7c}
 .bc-doc .sys-reg{background:#fff3cd;color:#7a5500}
+.bc-notary-flag{background:#fbf4e3;border:1px solid #8a6d1a;border-radius:6px;padding:10px 13px;margin-bottom:16px;font-size:11.5px;line-height:1.55;color:#6b540f;font-family:sans-serif}
+.bc-notary-flag strong{color:#8a6d1a}
+.bc-checklist{margin:6px 0 14px}
+.bc-cl-sec{font-family:Georgia,serif;color:${C.navy};font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 6px}
+.bc-cl-item{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid ${C.mist};cursor:pointer}
+.bc-cl-box{width:18px;height:18px;border:1.5px solid ${C.slate};border-radius:4px;flex:none;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-family:sans-serif}
+.bc-cl-box.on{background:${C.green};border-color:${C.green}}
+.bc-cl-text{flex:1}
+.bc-cl-text b{color:${C.navy}}
+.bc-cl-desc{display:block;font-size:12px;color:${C.slate};font-style:italic;margin-top:2px;line-height:1.5}
 .bc-doc .field{border-bottom:1px solid ${C.mist};padding:6px 0;display:flex;justify-content:space-between;gap:14px;font-size:13px}
 .bc-doc .field .k{color:${C.slate}}
 .bc-doc .field .v{font-weight:600;color:${C.navy};text-align:right}
@@ -337,9 +365,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
       {GROUPS.map(g=>(
         <div key={g} style={{ marginBottom:14 }}>
-          <div style={{ fontSize:10, fontFamily:"sans-serif", fontWeight:700, letterSpacing:2, color:C.slate, textTransform:"uppercase", marginBottom:6 }}>{g}</div>
+          <div style={{ fontSize:10, fontFamily:"sans-serif", fontWeight:700, letterSpacing:2, color:C.slate, textTransform:"uppercase", marginBottom:2 }}>{g}</div>
+          {GROUP_DESC[g] && <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginBottom:7, fontStyle:"italic" }}>{GROUP_DESC[g]}</div>}
           <div style={S.card}>
-            {DOC_SET.filter(d=>d.group===g).map((doc,i,arr)=>(
+            {DOC_SET.filter(d=>d.group===g).map((doc,i,arr)=>{
+              const needsNotary = doc.kind !== "upload" && (doc.body||"").includes("Notary Acknowledgment");
+              return (
               <div key={doc.id}>
                 <div style={{ padding:"11px 0" }}>
                   <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12 }}>
@@ -352,6 +383,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                         <div style={{ display:"flex", gap:5, marginTop:2, flexWrap:"wrap" }}>
                           {doc.required && <span style={{...S.tag, background:"#fff3cd", color:"#7a5500"}}>Required</span>}
                           {!doc.required && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Optional</span>}
+                          {needsNotary && <span style={{...S.tag, background:"#fbf4e3", color:"#8a6d1a"}}>Notary required</span>}
                           {signed[doc.id] && <span style={{...S.tag, background:C.greenLight, color:C.green}}>✓ {signed[doc.id].date} · {signed[doc.id].name}</span>}
                           {sentLog[doc.id]?.length > 0 && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Sent ×{sentLog[doc.id].length}</span>}
                           {uploadedFile[doc.id] && !signed[doc.id]?.uploaded && <span style={{...S.tag}}>📎 {uploadedFile[doc.id]}</span>}
@@ -360,7 +392,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                     </div>
                     <div style={{ display:"flex", gap:5, flexShrink:0, flexWrap:"wrap", justifyContent:"flex-end" }}>
                       <ActionBtn docId={doc.id} action="view"   icon="👁" label="View"   />
-                      {doc.kind !== "upload" && <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />}
+                      {doc.kind !== "upload" && !needsNotary && <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />}
                       {doc.kind !== "upload" && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
                       <ActionBtn docId={doc.id} action="send"   icon="📤" label="Send"   color={C.brass} />
                       <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />
@@ -393,7 +425,40 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                           <div className="bc-doc-title">{doc.title}</div>
                           <div className="bc-doc-ref">Ref {deal.dealRef} · {deal.vesselYear} {deal.vesselMake} {deal.vesselModel}</div>
                           <div className="bc-doc-rule"></div>
-                          <div className="bc-doc" dangerouslySetInnerHTML={{ __html: fillDocument(doc, deal) }} />
+                          {needsNotary && (
+                            <div className="bc-notary-flag">
+                              ⚖ <strong>Must be notarized.</strong> A typed e-signature can't be notarized. Print this, sign it in front of a notary, then upload the notarized copy. Use <em>Manual</em> to record the signed names.
+                            </div>
+                          )}
+                          {(() => {
+                            const html = fillDocument(doc, deal);
+                            if (doc.checklist && html.includes("<!--CHECKLIST-->")) {
+                              const [before, after] = html.split("<!--CHECKLIST-->");
+                              let lastSec = null;
+                              return (
+                                <div className="bc-doc">
+                                  <div dangerouslySetInnerHTML={{ __html: before }} />
+                                  <div className="bc-checklist">
+                                    {doc.checklist.map((it, idx) => {
+                                      const secHeader = it.section && it.section !== lastSec ? (lastSec = it.section, <div key={"s"+idx} className="bc-cl-sec">{it.section}</div>) : null;
+                                      const on = !!(checkState[doc.id]||{})[idx];
+                                      return (
+                                        <div key={idx}>
+                                          {secHeader}
+                                          <div className="bc-cl-item" onClick={()=>toggleCheck(doc.id, idx)}>
+                                            <span className={"bc-cl-box"+(on?" on":"")}>{on ? "✓" : ""}</span>
+                                            <span className="bc-cl-text"><b>{it.label}</b>{it.desc ? <span className="bc-cl-desc">{it.desc}</span> : null}</span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  <div dangerouslySetInnerHTML={{ __html: after }} />
+                                </div>
+                              );
+                            }
+                            return <div className="bc-doc" dangerouslySetInnerHTML={{ __html: html }} />;
+                          })()}
                         </div>
                       )}
                     </div>
@@ -488,7 +553,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                 </div>
                 {i<arr.length-1 && <hr style={{...S.divider, margin:0}}/>}
               </div>
-            ))}
+            );})}
           </div>
         </div>
       ))}
