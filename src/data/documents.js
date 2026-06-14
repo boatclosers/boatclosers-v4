@@ -1064,6 +1064,204 @@ export const DOCUMENTS = [
     accept: "PDF, JPG, PNG",
     guide: "A <b>certified copy</b> of the owner's death certificate is required by every titling agency to transfer a deceased owner's vessel. BoatClosers can't generate it \u2014 it's issued by the state's vital-records office (often the county or state health department). Order a certified copy, then upload it here so it's attached to the deal alongside the affidavit or letters.",
     body: ""
+  },
+
+  // ===== GROUP 8: TITLE PROBLEMS =====
+  // Affidavits across the three systems a boat lives in: state title, USCG
+  // documentation, and state registration. Each body opens with a system badge.
+  {
+    id: "lost_title",
+    group: "Title Problems",
+    tab: "Lost Title",
+    eyebrow: "State Title Missing",
+    title: "Lost / Missing Title Affidavit",
+    body: `
+<div class="sysbadge sys-state">State-Titled</div>
+<p class="lead recital">Used where a state-titled vessel's Certificate of Title has been lost, destroyed, or never received, to support a duplicate title or the bonded-title process so the vessel can transfer.</p>
+
+<h3>Vessel &amp; Owner</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Title No. (if known)</span><span class="v">{{titleNo}}</span></div>
+<div class="field"><span class="k">Registration</span><span class="v">{{regNo}}</span></div>
+<div class="field"><span class="k">Owner of record</span><span class="v">{{sellerName}}</span></div>
+
+<h3>Affirmation</h3>
+<p>The affiant swears they are the lawful owner of the vessel above, that the Certificate of Title has been lost, destroyed, or never received, that it has not been sold, pledged, or assigned to any other person, and that this affidavit is made to obtain a duplicate title or bonded title so the vessel may be transferred to {{buyerName}} in {{vesselState}}.</p>
+
+<div class="note">Most states issue a <b>duplicate title</b> to the owner of record, or require a <b>surety bond</b> (bonded title) when ownership can't be fully proven. Check which path {{vesselState}} uses \u2014 this affidavit supports both.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Owner / Affiant<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>&nbsp;</small></div>
+</div>
+<div class="notary"><div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Sworn to and acknowledged before me this ______ day of __________, 20____, by the affiant named above.</p>
+  <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p></div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "bos_only",
+    group: "Title Problems",
+    tab: "Bill-of-Sale Only",
+    eyebrow: "No Title Exists",
+    title: "Bill-of-Sale-Only Transfer Affidavit",
+    body: `
+<div class="sysbadge sys-state">State-Titled</div>
+<p class="lead recital">Used for vessels with no title on record \u2014 older boats, or boats from states that did not title at the time \u2014 where ownership transfers by bill of sale and registration history.</p>
+
+<h3>Vessel</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Registration (if any)</span><span class="v">{{regNo}}</span></div>
+
+<h3>Affirmation</h3>
+<p>The affiant swears that the vessel above has no Certificate of Title on record, that the affiant is its lawful owner by purchase or registration, that it is free of undisclosed liens, and that ownership is transferred to {{buyerName}} by bill of sale. The affiant will provide all available registration and purchase records to support titling in the buyer's name.</p>
+
+<div class="note">Some states never titled certain vessels (often older or under a length threshold). The state then transfers on the strength of the bill of sale plus registration history \u2014 this affidavit documents that chain.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller / Affiant<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer<br>Date: ____________</small></div>
+</div>
+<div class="notary"><div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Acknowledged before me this ______ day of __________, 20____, by the affiant named above.</p>
+  <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p></div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "chain_title",
+    group: "Title Problems",
+    tab: "Chain of Title",
+    eyebrow: "Ownership Gap",
+    title: "Chain-of-Title Affidavit",
+    body: `
+<div class="sysbadge sys-state">State-Titled</div>
+<p class="lead recital">Used where there is a gap in the ownership record \u2014 for example, the seller bought the vessel but never titled it in their name before reselling \u2014 to establish the chain so clean title can issue to the buyer.</p>
+
+<h3>Vessel</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}</span></div>
+
+<h3>Ownership Chain</h3>
+<div class="field"><span class="k">Prior titled owner</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Current seller</span><span class="v">{{sellerName}}</span></div>
+<div class="field"><span class="k">Acquired by seller on</span><span class="v">________________</span></div>
+<div class="field"><span class="k">New buyer</span><span class="v">{{buyerName}}</span></div>
+
+<h3>Affirmation</h3>
+<p>The affiant swears that the ownership history stated above is true and complete to the best of their knowledge, that each transfer was a lawful sale or gift, that no other party holds an ownership claim, and that this affidavit is made to establish the chain of title so the vessel may be titled in the buyer's name. The affiant agrees to indemnify the titling agency against competing claims.</p>
+
+<div class="note">The \u201cI bought it from a guy who never put it in his name\u201d problem. Attach every bill of sale you have; this affidavit bridges the documented gaps so the state can issue clean title.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Affiant<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Witness (if required)<br>Date: ____________</small></div>
+</div>
+<div class="notary"><div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Sworn to and acknowledged before me this ______ day of __________, 20____, by the affiant named above.</p>
+  <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p></div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "lost_cod",
+    group: "Title Problems",
+    tab: "Lost COD",
+    eyebrow: "Documentation Missing",
+    title: "Lost Certificate of Documentation Affidavit",
+    body: `
+<div class="sysbadge sys-uscg">USCG Documented</div>
+<p class="lead recital">For U.S. Coast Guard documented vessels whose Certificate of Documentation (COD) has been lost or destroyed, to support reissue or transfer through the National Vessel Documentation Center (NVDC).</p>
+
+<h3>Documented Vessel</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">Official Number</span><span class="v">{{uscgOfficialNo}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Owner of record</span><span class="v">{{sellerName}}</span></div>
+
+<h3>Affirmation</h3>
+<p>The affiant swears they are the owner of record of the documented vessel above, that the Certificate of Documentation has been lost or destroyed, that it has not been surrendered or pledged, and that this affidavit is made to obtain a replacement COD or to support transfer of documentation to {{buyerName}} through the NVDC.</p>
+
+<div class="note">Documentation is <b>federal</b> \u2014 this goes to the NVDC, not the state. A lost COD is reissued by the Coast Guard; this affidavit supports that request and keeps a documented-vessel sale moving.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Owner / Affiant<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>&nbsp;</small></div>
+</div>
+<div class="notary"><div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Acknowledged before me this ______ day of __________, 20____, by the affiant named above.</p>
+  <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p></div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "mortgage_release",
+    group: "Title Problems",
+    tab: "Mortgage Release",
+    eyebrow: "Clear the Abstract",
+    title: "Satisfaction / Release of Preferred Ship's Mortgage",
+    body: `
+<div class="sysbadge sys-uscg">USCG Documented</div>
+<p class="lead">For documented vessels, a preferred ship's mortgage recorded with the NVDC stays on the abstract of title until formally released. This satisfaction clears that recorded mortgage so clean documentation can pass.</p>
+
+<h3>Recorded Mortgage</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">Official Number</span><span class="v">{{uscgOfficialNo}}</span></div>
+<div class="field"><span class="k">Mortgagee (lender)</span><span class="v">________________________</span></div>
+<div class="field"><span class="k">Original amount</span><span class="v">$______________</span></div>
+
+<h3>Release</h3>
+<p>The mortgagee certifies that the preferred ship's mortgage on the vessel above is paid in full and satisfied, and releases all right, title, and interest under it. The mortgagee authorizes the NVDC to record this satisfaction and remove the mortgage from the vessel's abstract of title.</p>
+
+<div class="note">The documented-vessel cousin of a lien release \u2014 but it clears through the <b>Coast Guard (NVDC)</b>, not the state. An old, unsatisfied mortgage on the abstract will block a clean transfer until released. (See also the Lien Release in the Title &amp; Government pack.)</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small>Authorized Officer \u2014 Mortgagee<br>Title: ________ \u00b7 Date: ________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Received \u2014 <b>{{sellerName}}</b><br>Date: ____________</small></div>
+</div>
+<div class="notary"><div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Acknowledged before me this ______ day of __________, 20____, by the authorized officer of the mortgagee.</p>
+  <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p></div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "lost_reg",
+    group: "Title Problems",
+    tab: "Lost Registration",
+    eyebrow: "Registration Only",
+    title: "Registration-Only / Lost Registration Affidavit",
+    body: `
+<div class="sysbadge sys-reg">State-Registered</div>
+<p class="lead recital">For vessels that were only registered (numbered) and never titled, where the registration is lost or expired and is blocking transfer to the buyer.</p>
+
+<h3>Vessel</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">HIN</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Registration No. (if known)</span><span class="v">{{regNo}}</span></div>
+<div class="field"><span class="k">Owner of record</span><span class="v">{{sellerName}}</span></div>
+
+<h3>Affirmation</h3>
+<p>The affiant swears they are the lawful owner of the vessel above, that it was registered (numbered) rather than titled, that the registration has been lost or has expired, and that this affidavit is made to obtain a duplicate registration and transfer the vessel to {{buyerName}}. The affiant affirms the vessel is free of undisclosed liens.</p>
+
+<div class="note">Many smaller boats are registered, not titled. When that registration is lost or lapsed, the state issues a duplicate to the owner of record \u2014 this affidavit supports that, separate from the title process.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Owner / Affiant<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer<br>Date: ____________</small></div>
+</div>
+<div class="notary"><div class="nt">Notary Acknowledgment</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Acknowledged before me this ______ day of __________, 20____, by the affiant named above.</p>
+  <p style="margin-top:10px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p></div>
+<div class="footer-flag">BoatClosers</div>`
   }
 ];
 
