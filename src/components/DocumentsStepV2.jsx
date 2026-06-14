@@ -111,6 +111,17 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     ...s, [docId]: { ...(s[docId]||{}), [idx]: !(s[docId]||{})[idx] }
   }));
 
+  // Jump to a document from the required-docs tracker: open it and scroll to it.
+  const jumpToDoc = (docId) => {
+    setDocAction(d => ({ ...d, [docId]: "view" }));
+    if (typeof document !== "undefined") {
+      setTimeout(() => {
+        const el = document.getElementById("bcdoc-" + docId);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
+    }
+  };
+
   // ── Build the deal object documents.js fills from ──
   const agreed = Number(negotiate.agreedPrice||0);
   const dep = Number(negotiate.deposit||0);
@@ -363,6 +374,34 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         <div style={{ height:"100%", width:`${(signedCount/DOC_SET.length)*100}%`, background:C.green, borderRadius:3, transition:"width 0.4s" }}/>
       </div>
 
+      {/* ── REQUIRED DOCUMENTS TRACKER ── */}
+      <div style={{ border:`2px solid ${allRequiredSigned ? C.green : C.brass}`, borderRadius:8, padding:"13px 16px", marginBottom:22, background: allRequiredSigned ? C.greenLight : "#fff9ee" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+          <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, color:C.navy }}>
+            {allRequiredSigned ? "✓ All required documents signed" : "Required documents to sign"}
+          </div>
+          <span style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color: allRequiredSigned ? C.green : C.brass }}>
+            {requiredDocs.filter(d=>signed[d.id]).length} of {requiredDocs.length} signed
+          </span>
+        </div>
+        <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, lineHeight:1.5 }}>
+          Open and sign each one — they're the core documents the sale needs. Tap to jump to a document.
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
+          {requiredDocs.map(doc => {
+            const done = !!signed[doc.id];
+            return (
+              <button key={doc.id} onClick={()=>jumpToDoc(doc.id)}
+                style={{ display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left", background:"transparent", border:"none", borderBottom:`1px solid ${allRequiredSigned ? "#cfe6d8" : "#f0e2c4"}`, padding:"8px 2px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                <span style={{ width:18, height:18, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, background: done ? C.green : "transparent", color: done ? "#fff" : C.slate, border: done ? "none" : `1.5px solid ${C.mist}` }}>{done ? "✓" : ""}</span>
+                <span style={{ flex:1, fontSize:12.5, color:C.navy, fontWeight: done ? 400 : 600, textDecoration: done ? "line-through" : "none", opacity: done ? 0.7 : 1 }}>{doc.title}</span>
+                <span style={{ fontSize:11, color: done ? C.green : C.brass, fontWeight:600, whiteSpace:"nowrap" }}>{done ? "Signed" : "Sign →"}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {GROUPS.map(g=>(
         <div key={g} style={{ marginBottom:14 }}>
           <div style={{ fontSize:10, fontFamily:"sans-serif", fontWeight:700, letterSpacing:2, color:C.slate, textTransform:"uppercase", marginBottom:2 }}>{g}</div>
@@ -371,7 +410,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             {DOC_SET.filter(d=>d.group===g).map((doc,i,arr)=>{
               const needsNotary = doc.kind !== "upload" && (doc.body||"").includes("Notary Acknowledgment");
               return (
-              <div key={doc.id}>
+              <div key={doc.id} id={"bcdoc-"+doc.id}>
                 <div style={{ padding:"11px 0" }}>
                   <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
