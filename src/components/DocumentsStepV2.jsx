@@ -281,6 +281,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 .bc-doc .note{font-size:11.5px;color:${C.slate};font-style:italic;border-left:2px solid ${C.brass};padding:3px 0 3px 11px;margin:14px 0}
 .bc-doc .lawbanner{background:#fbeaea;border:1px solid ${C.red};border-radius:6px;padding:10px 13px;margin-bottom:16px;font-size:11.5px;line-height:1.55;color:#7a1c1c}
 .bc-doc .lawbanner b{color:${C.red}}
+.bc-doc .estbanner{background:#fbf4e3;border:1px solid #8a6d1a;border-radius:6px;padding:10px 13px;margin-bottom:16px;font-size:11.5px;line-height:1.55;color:#6b540f}
+.bc-doc .estbanner b{color:#8a6d1a}
 .bc-doc .field{border-bottom:1px solid ${C.mist};padding:6px 0;display:flex;justify-content:space-between;gap:14px;font-size:13px}
 .bc-doc .field .k{color:${C.slate}}
 .bc-doc .field .v{font-weight:600;color:${C.navy};text-align:right}
