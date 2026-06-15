@@ -451,7 +451,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
   ]);
   // Purchase Agreement modal — triggered when offer accepted
   const [paModal, setPaModal] = useState(null); // null or the offer being accepted
-  const [paStage, setPaStage] = useState("review"); // "review" (sign) | "pay" (lock)
+  const [paStage, setPaStage] = useState("pay"); // "pay" (pay first) | "review" (then sign)
+  const [paPaid, setPaPaid] = useState(false);
   const [paBuyerName, setPaBuyerName] = useState("");
   const [paSellerName, setPaSellerName] = useState("");
   const [paBuyerDisc, setPaBuyerDisc] = useState(false);
@@ -520,10 +521,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
     setTimeout(() => offerFormRef.current?.scrollIntoView({ behavior:"smooth", block:"center" }), 60);
   };
 
-  // Accepting an offer opens the PA signing modal first
+  // Accepting an offer opens the modal — pay first, then sign the PA.
   const acceptOffer = (id) => {
     const acc = offers.find(o => o.id===id);
-    if (acc) setPaModal(acc);
+    if (acc) { setPaModal(acc); setPaStage("pay"); setPaPaid(false); }
   };
 
   // Final step: payment locks the deal — records the binding PA, marks paid, unlocks documents.
@@ -554,7 +555,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
       depositRule, depositRuleCustom,
       paymentType, financeContingency,
     }));
-    setPaModal(null); setPaStage("review");
+    setPaModal(null); setPaStage("pay"); setPaPaid(false);
     setPaBuyerName(""); setPaSellerName(""); setPaBuyerDisc(false); setPaSellerDisc(false);
   };
 
@@ -598,7 +599,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
             <div style={{ background:C.navy, padding:"1.25rem 1.5rem", textAlign:"center" }}>
               <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:"sans-serif", textTransform:"uppercase" }}>BoatClosers.com</div>
               <div style={{ fontSize:18, fontWeight:800, color:"#fff", marginTop:4 }}>🔒 Lock This Deal</div>
-              <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"sans-serif", marginTop:4 }}>Both parties have signed. One step makes it binding.</div>
+              <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"sans-serif", marginTop:4 }}>Price agreed. Pay to unlock the Purchase Agreement for signing.</div>
             </div>
             <div style={{ padding:"1.5rem" }}>
               {/* Agreed terms summary */}
@@ -621,9 +622,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
                 ))}
               </div>
 
-              {/* What locking does */}
+              {/* What paying does */}
               <div style={{ background:C.sandDark, borderRadius:8, padding:"12px 14px", marginBottom:18, fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
-                Paying the one-time fee records the binding Purchase Agreement with these exact terms, secures the deal so neither party can walk away to another buyer, and unlocks all {DOCUMENTS.length} closing documents.
+                Paying the one-time fee unlocks the Purchase Agreement for signing and all {DOCUMENTS.length} closing documents. You and the other party sign on the next screen to make the agreement binding.
               </div>
 
               {/* Price + pay button */}
@@ -631,14 +632,14 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
                 <span style={{ fontSize:40, fontWeight:800, color:C.navy, fontFamily:"sans-serif" }}>$249</span>
                 <span style={{ fontSize:13, color:C.slate, fontFamily:"sans-serif" }}> &nbsp;flat fee · one deal</span>
               </div>
-              <button style={{ ...S.btnBrass, width:"100%", fontSize:15, padding:"13px" }} onClick={lockDeal}>
-                Pay $249 &amp; Lock the Deal →
+              <button style={{ ...S.btnBrass, width:"100%", fontSize:15, padding:"13px" }} onClick={()=>{ setPaPaid(true); setPaStage("review"); }}>
+                Pay $249 &amp; Continue to Sign →
               </button>
               <div style={{ textAlign:"center", fontSize:10, color:C.slate, fontFamily:"sans-serif", marginTop:10, lineHeight:1.5 }}>
                 Demo mode — no real charge yet. Secure card payment via Stripe will be enabled before launch.
               </div>
               <div style={{ textAlign:"center", marginTop:14 }}>
-                <button style={{ background:"transparent", border:"none", color:C.slate, fontSize:12, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }} onClick={()=>setPaStage("review")}>← Back to review &amp; signatures</button>
+                <button style={{ background:"transparent", border:"none", color:C.slate, fontSize:12, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }} onClick={()=>{ setPaModal(null); setPaStage("pay"); }}>← Cancel</button>
               </div>
             </div>
           </div>
@@ -660,10 +661,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
           </div>
 
           <div style={{ padding:"1.5rem", overflowY:"auto", maxHeight:"65vh" }}>
-            {/* Not-yet-binding banner */}
-            <div style={{ background:"#fff8e6", border:`1.5px dashed ${C.brass}`, borderRadius:6, padding:"10px 14px", marginBottom:16, textAlign:"center" }}>
-              <div style={{ fontSize:12, fontWeight:800, color:"#7a5500", fontFamily:"sans-serif", letterSpacing:1 }}>PREVIEW — NOT YET BINDING</div>
-              <div style={{ fontSize:11, color:"#7a5500", fontFamily:"sans-serif", marginTop:2 }}>Both parties sign below, then lock the deal to make this Purchase Agreement binding.</div>
+            {/* Paid — sign to make binding */}
+            <div style={{ background:C.greenLight, border:`1.5px solid ${C.green}`, borderRadius:6, padding:"10px 14px", marginBottom:16, textAlign:"center" }}>
+              <div style={{ fontSize:12, fontWeight:800, color:C.green, fontFamily:"sans-serif", letterSpacing:1 }}>✓ PAID — SIGN TO MAKE BINDING</div>
+              <div style={{ fontSize:11, color:"#0d7a4f", fontFamily:"sans-serif", marginTop:2 }}>Both parties type their names and agree below to execute the Purchase Agreement.</div>
             </div>
             {/* Agreement body */}
             <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.text, lineHeight:1.8, marginBottom:16 }}>
@@ -723,9 +724,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
 
           {/* Footer actions */}
           <div style={{ padding:"1rem 1.5rem", borderTop:`1px solid ${C.mist}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <button style={S.btnOutline} onClick={()=>{ setPaModal(null); setPaStage("review"); }}>← Cancel</button>
-            <button style={{ ...S.btnBrass, opacity: paBothSigned?1:0.4, cursor:paBothSigned?"pointer":"not-allowed" }} disabled={!paBothSigned} onClick={()=>setPaStage("pay")}>
-              Both Signed — Continue to Lock the Deal →
+            <button style={S.btnOutline} onClick={()=>setPaStage("pay")}>← Back</button>
+            <button style={{ ...S.btnBrass, opacity: paBothSigned?1:0.4, cursor:paBothSigned?"pointer":"not-allowed" }} disabled={!paBothSigned} onClick={lockDeal}>
+              Sign &amp; Lock the Deal →
             </button>
           </div>
         </div>
