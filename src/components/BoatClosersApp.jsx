@@ -445,11 +445,13 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
   const [ddStart, setDdStart] = useState(data.ddStartDate || today());
   const [closingDate, setClosingDate] = useState(data.closingDate || "");
   const [offers, setOffers] = useState(data.offers || []);
+  const [offerFrom, setOfferFrom] = useState(data.userRole==="seller" ? "seller" : "buyer"); // who is making the current offer
   const [messages, setMessages] = useState(data.messages || [
     { from:"seller", text:`Asking price is ${fmt(vessel.askingPrice||0)}. Let's talk!`, time: new Date().toLocaleTimeString() }
   ]);
   // Purchase Agreement modal — triggered when offer accepted
   const [paModal, setPaModal] = useState(null); // null or the offer being accepted
+  const [paStage, setPaStage] = useState("review"); // "review" (sign) | "pay" (lock)
   const [paBuyerName, setPaBuyerName] = useState("");
   const [paSellerName, setPaSellerName] = useState("");
   const [paBuyerDisc, setPaBuyerDisc] = useState(false);
@@ -480,6 +482,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
   const [financeContingency, setFinanceContingency] = useState(data.financeContingency||"14");
 
   const messagesEnd = useRef(null);
+  const offerFormRef = useRef(null);
   useEffect(() => { messagesEnd.current?.scrollIntoView({behavior:"smooth"}); }, [messages]);
 
   const sendMsg = () => {
@@ -492,14 +495,29 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
     const amt = Number(offerAmt);
     if (!amt) return;
     const deposit = Math.round(amt*Number(escrowPct)/100);
-    const offer = { id:Date.now(), amount:amt, escrowPct:Number(escrowPct), escrowPath, deposit, ddDays, closingDate, verbal:verbalDeal, status:"pending", time:new Date().toLocaleTimeString() };
-    setOffers(o => [...o, offer]);
+    const offer = { id:Date.now(), from:offerFrom, amount:amt, escrowPct:Number(escrowPct), escrowPath, deposit, ddDays, closingDate, verbal:verbalDeal, status:"pending", time:new Date().toLocaleTimeString() };
+    // A new offer supersedes any still-pending offer (it becomes a counter).
+    setOffers(o => [...o.map(of => of.status==="pending" ? {...of, status:"countered"} : of), offer]);
     const escrowLabel = escrowPath==="escrow_com"?"Escrow.com":escrowPath==="attorney"?"Third Party Attorney":"Direct to Seller";
     setMessages(m => [...m, {
-      from:"buyer",
-      text:`Offer: ${fmt(amt)}${deposit>0?` · ${fmt(deposit)} (${escrowPct}%) earnest money via ${escrowLabel}`:" · No deposit"} · DD: ${ddDays} days · Closing: ${closingDate||"TBD"}`,
+      from:offerFrom,
+      text:`${offerFrom==="buyer"?"Offer":"Counter"}: ${fmt(amt)}${deposit>0?` · ${fmt(deposit)} (${escrowPct}%) earnest money via ${escrowLabel}`:" · No deposit"} · DD: ${ddDays} days · Closing: ${closingDate||"TBD"}`,
       time:new Date().toLocaleTimeString()
     }]);
+  };
+
+  // Counter an offer: pre-fill the form with its terms, flip to the other party, scroll to the form.
+  const counterOffer = (id) => {
+    const o = offers.find(x => x.id===id);
+    if (!o) return;
+    setOfferAmt(String(o.amount));
+    setEscrowPct(String(o.escrowPct));
+    setEscrowPath(o.escrowPath);
+    if (o.ddDays) setDdDays(o.ddDays);
+    if (o.closingDate) setClosingDate(o.closingDate);
+    setOfferFrom(o.from==="buyer" ? "seller" : "buyer");
+    setNegMode("negotiate");
+    setTimeout(() => offerFormRef.current?.scrollIntoView({ behavior:"smooth", block:"center" }), 60);
   };
 
   // Accepting an offer opens the PA signing modal first
@@ -508,11 +526,36 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
     if (acc) setPaModal(acc);
   };
 
-  const confirmAcceptWithPA = () => {
-    if (!paBothSigned || !paModal) return;
-    setOffers(o => o.map(of => of.id===paModal.id ? {...of, status:"accepted", paBuyerSig:paBuyerName, paSellerSig:paSellerName, paDate:today()} : of));
-    setMessages(m => [...m, {from:"seller", text:`✓ Offer accepted — ${fmt(paModal.amount)}. Purchase Agreement signed by both parties on ${today()}.`, time:new Date().toLocaleTimeString()}]);
-    setPaModal(null); setPaBuyerName(""); setPaSellerName(""); setPaBuyerDisc(false); setPaSellerDisc(false);
+  // Final step: payment locks the deal — records the binding PA, marks paid, unlocks documents.
+  // NOTE: payment is SIMULATED for now. Wire Stripe Checkout to this handler as the final task.
+  const lockDeal = () => {
+    if (!paModal) return;
+    const updatedOffers = offers.map(of => of.id===paModal.id ? {...of, status:"accepted", paBuyerSig:paBuyerName, paSellerSig:paSellerName, paDate:today()} : of);
+    const lockMsg = { from:"seller", text:`✓ Deal locked — ${fmt(paModal.amount)}. Purchase Agreement signed by both parties and payment received on ${today()}. This deal is now binding.`, time:new Date().toLocaleTimeString() };
+    const updatedMsgs = [...messages, lockMsg];
+    setOffers(updatedOffers);
+    setMessages(updatedMsgs);
+    setData(d => ({
+      ...d,
+      offers: updatedOffers,
+      messages: updatedMsgs,
+      paid: true,            // unlocks the Documents step (no second paywall)
+      dealLocked: true,
+      dealStatus: "locked",
+      agreedPrice: paModal.amount,
+      escrowPct: paModal.escrowPct,
+      escrowPath: paModal.escrowPath,
+      deposit: paModal.deposit,
+      dueDiligenceDays: paModal.ddDays || ddDays,
+      ddStartDate: ddStart,
+      closingDate: paModal.closingDate || closingDate,
+      verbalDeal, verbalNote,
+      ddExtension, ddExtDays, ddExtDepositRule,
+      depositRule, depositRuleCustom,
+      paymentType, financeContingency,
+    }));
+    setPaModal(null); setPaStage("review");
+    setPaBuyerName(""); setPaSellerName(""); setPaBuyerDisc(false); setPaSellerDisc(false);
   };
 
   const rejectOffer = (id) => {
@@ -546,6 +589,64 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
   // ── PURCHASE AGREEMENT MODAL ─────────────────────────────────────────────
   if (paModal) {
     const esc = paModal.escrowPath==="escrow_com"?"Escrow.com":paModal.escrowPath==="attorney"?"Third Party Attorney":"Direct to Seller";
+
+    // ── STAGE 2: PAY TO LOCK ──
+    if (paStage === "pay") {
+      return (
+        <div style={{ minHeight:"100vh", background:"rgba(8,21,46,0.85)", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"2rem 1rem" }}>
+          <div style={{ background:C.white, borderRadius:10, width:"100%", maxWidth:520, border:`2px solid ${C.brass}`, overflow:"hidden" }}>
+            <div style={{ background:C.navy, padding:"1.25rem 1.5rem", textAlign:"center" }}>
+              <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:"sans-serif", textTransform:"uppercase" }}>BoatClosers.com</div>
+              <div style={{ fontSize:18, fontWeight:800, color:"#fff", marginTop:4 }}>🔒 Lock This Deal</div>
+              <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"sans-serif", marginTop:4 }}>Both parties have signed. One step makes it binding.</div>
+            </div>
+            <div style={{ padding:"1.5rem" }}>
+              {/* Agreed terms summary */}
+              <div style={{ fontSize:11, letterSpacing:2, color:C.brass, textTransform:"uppercase", fontFamily:"sans-serif", fontWeight:700, marginBottom:10 }}>Agreed Terms</div>
+              <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, overflow:"hidden", marginBottom:18 }}>
+                {[
+                  ["Vessel", `${vessel.year||""} ${vessel.make||""} ${vessel.model||""}`.trim()||"—"],
+                  ["Purchase Price", fmt(paModal.amount)],
+                  ["Earnest Money", `${fmt(paModal.deposit)} (${paModal.escrowPct}%)`],
+                  ["Escrow Method", esc],
+                  ["Due Diligence", `${paModal.ddDays||"10"} days`],
+                  ["Closing Date", paModal.closingDate||"To be agreed"],
+                  ["Buyer", paBuyerName||parties.buyer.name||"Buyer"],
+                  ["Seller", paSellerName||parties.seller.name||"Seller"],
+                ].map(([k,v],i)=>(
+                  <div key={k} style={{ display:"flex", justifyContent:"space-between", gap:12, padding:"9px 14px", background:i%2?C.white:C.sandDark, fontFamily:"sans-serif" }}>
+                    <span style={{ fontSize:12, color:C.slate }}>{k}</span>
+                    <span style={{ fontSize:12, fontWeight:700, color:C.navy, textAlign:"right" }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* What locking does */}
+              <div style={{ background:C.sandDark, borderRadius:8, padding:"12px 14px", marginBottom:18, fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
+                Paying the one-time fee records the binding Purchase Agreement with these exact terms, secures the deal so neither party can walk away to another buyer, and unlocks all {DOCUMENTS.length} closing documents.
+              </div>
+
+              {/* Price + pay button */}
+              <div style={{ textAlign:"center", marginBottom:14 }}>
+                <span style={{ fontSize:40, fontWeight:800, color:C.navy, fontFamily:"sans-serif" }}>$249</span>
+                <span style={{ fontSize:13, color:C.slate, fontFamily:"sans-serif" }}> &nbsp;flat fee · one deal</span>
+              </div>
+              <button style={{ ...S.btnBrass, width:"100%", fontSize:15, padding:"13px" }} onClick={lockDeal}>
+                Pay $249 &amp; Lock the Deal →
+              </button>
+              <div style={{ textAlign:"center", fontSize:10, color:C.slate, fontFamily:"sans-serif", marginTop:10, lineHeight:1.5 }}>
+                Demo mode — no real charge yet. Secure card payment via Stripe will be enabled before launch.
+              </div>
+              <div style={{ textAlign:"center", marginTop:14 }}>
+                <button style={{ background:"transparent", border:"none", color:C.slate, fontSize:12, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }} onClick={()=>setPaStage("review")}>← Back to review &amp; signatures</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── STAGE 1: REVIEW & SIGN ──
     return (
       <div style={{ minHeight:"100vh", background:"rgba(8,21,46,0.85)", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"2rem 1rem" }}>
         <div style={{ background:C.white, borderRadius:10, width:"100%", maxWidth:680, border:`2px solid ${C.brass}` }}>
@@ -559,6 +660,11 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
           </div>
 
           <div style={{ padding:"1.5rem", overflowY:"auto", maxHeight:"65vh" }}>
+            {/* Not-yet-binding banner */}
+            <div style={{ background:"#fff8e6", border:`1.5px dashed ${C.brass}`, borderRadius:6, padding:"10px 14px", marginBottom:16, textAlign:"center" }}>
+              <div style={{ fontSize:12, fontWeight:800, color:"#7a5500", fontFamily:"sans-serif", letterSpacing:1 }}>PREVIEW — NOT YET BINDING</div>
+              <div style={{ fontSize:11, color:"#7a5500", fontFamily:"sans-serif", marginTop:2 }}>Both parties sign below, then lock the deal to make this Purchase Agreement binding.</div>
+            </div>
             {/* Agreement body */}
             <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.text, lineHeight:1.8, marginBottom:16 }}>
               <p>This Purchase and Sale Agreement ("Agreement") is entered into as of <strong>{today()}</strong> between:</p>
@@ -617,9 +723,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
 
           {/* Footer actions */}
           <div style={{ padding:"1rem 1.5rem", borderTop:`1px solid ${C.mist}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <button style={S.btnOutline} onClick={()=>setPaModal(null)}>← Cancel</button>
-            <button style={{ ...S.btnBrass, opacity: paBothSigned?1:0.4, cursor:paBothSigned?"pointer":"not-allowed" }} disabled={!paBothSigned} onClick={confirmAcceptWithPA}>
-              Both Parties Sign & Accept Offer →
+            <button style={S.btnOutline} onClick={()=>{ setPaModal(null); setPaStage("review"); }}>← Cancel</button>
+            <button style={{ ...S.btnBrass, opacity: paBothSigned?1:0.4, cursor:paBothSigned?"pointer":"not-allowed" }} disabled={!paBothSigned} onClick={()=>setPaStage("pay")}>
+              Both Signed — Continue to Lock the Deal →
             </button>
           </div>
         </div>
@@ -634,6 +740,19 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
         <h1 style={S.h1}>Negotiate & Terms</h1>
         <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Make offers, set your terms, and agree on a closing timeline — all on one page. You can proceed without a formally accepted offer.</p>
       </div>
+
+      {/* ── DEAL LOCKED BANNER ── */}
+      {acceptedOffer && (
+        <div style={{ background:`linear-gradient(135deg, ${C.green} 0%, #0d7a4f 100%)`, borderRadius:10, padding:"16px 20px", marginBottom:16, color:"#fff", display:"flex", alignItems:"center", gap:14 }}>
+          <div style={{ fontSize:28 }}>🔒</div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif" }}>Deal Locked — {fmt(acceptedOffer.amount)}</div>
+            <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.85)", marginTop:2, lineHeight:1.5 }}>
+              The Purchase Agreement is signed and binding. Earnest money: {fmt(acceptedOffer.deposit)} · DD: {acceptedOffer.ddDays||"10"} days · Closing: {acceptedOffer.closingDate||"TBD"}. All documents are unlocked.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── VERBAL AGREEMENT ── */}
       <div style={{ ...S.card, borderLeft:`4px solid ${C.teal}`, marginBottom:16 }}>
@@ -704,8 +823,18 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
                 <button style={S.btn} onClick={sendMsg}>Send</button>
               </div>
             </div>
-            <div>
+            <div ref={offerFormRef}>
               <h3 style={S.h3}>Make an Offer</h3>
+              <div style={{ marginBottom:10 }}>
+                <label style={{ ...S.label, marginBottom:5 }}>Offering as</label>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:5 }}>
+                  {[["buyer","🧑‍💼 Buyer"],["seller","⚓ Seller"]].map(([v,lbl]) => (
+                    <button key={v} onClick={()=>setOfferFrom(v)} style={{ ...S.btnOutline, background:offerFrom===v?(v==="buyer"?C.navy:C.brass):"transparent", color:offerFrom===v?(v==="buyer"?"#fff":C.navy):C.navy, fontSize:12, padding:"7px 0", textAlign:"center", fontWeight:700 }}>
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <Field label="Offer Amount ($)">
                 <input style={S.input} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder={vessel.askingPrice||"85000"} />
               </Field>
@@ -721,7 +850,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
               <Field label="Escrow Method" span2>
                 <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
               </Field>
-              <button style={{...S.btnBrass, width:"100%", gridColumn:"span 2"}} onClick={makeOffer} disabled={!offerAmt}>Submit Offer</button>
+              <button style={{...S.btnBrass, width:"100%", gridColumn:"span 2"}} onClick={makeOffer} disabled={!offerAmt}>
+                {offerFrom==="buyer" ? "Submit Offer" : "Submit Counter-Offer"} →
+              </button>
             </div>
           </div>
         )}
@@ -773,35 +904,85 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
         )}
       </div>
 
-      {/* ── OFFER HISTORY ── */}
-      {offers.length > 0 && (
-        <div style={{...S.card, marginBottom:16}}>
-          <h3 style={S.h3}>Offer History</h3>
-          {offers.map(o => (
-            <div key={o.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${C.mist}` }}>
-              <div>
-                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{ fontSize:16, fontWeight:700, color:C.navy }}>{fmt(o.amount)}</span>
-                  {o.verbal && <span style={{...S.pill, background:C.tealLight, color:C.teal}}>Verbal</span>}
-                </div>
-                <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:2 }}>
-                  Deposit: {o.escrowPct}% ({fmt(o.deposit)}) · {o.escrowPath==="escrow_com"?"Escrow.com":o.escrowPath==="attorney"?"Attorney":"Direct"} · DD: {o.ddDays} days · Close: {o.closingDate||"TBD"}
-                </div>
-              </div>
-              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                {o.status==="accepted"
-                  ? <span style={{...S.pill, background:C.greenLight, color:C.green}}>Accepted ✓</span>
-                  : o.status==="rejected"
-                  ? <span style={{...S.pill, background:C.redLight, color:C.red}}>Rejected</span>
-                  : <>
-                      <button style={{...S.btn, background:C.green, fontSize:11, padding:"5px 12px"}} onClick={()=>acceptOffer(o.id)}>Accept</button>
-                      <button style={{...S.btnOutline, fontSize:11, padding:"5px 12px", color:C.red, borderColor:C.red}} onClick={()=>rejectOffer(o.id)}>Reject</button>
-                    </>}
-              </div>
+      {/* ── NEGOTIATION LADDER ── */}
+      {offers.length > 0 && (() => {
+        const latestPending = [...offers].reverse().find(o => o.status==="pending");
+        const lastBuyer = [...offers].reverse().find(o => o.from==="buyer");
+        const lastSeller = [...offers].reverse().find(o => o.from==="seller");
+        const gap = (lastBuyer && lastSeller) ? Math.abs(lastSeller.amount - lastBuyer.amount) : null;
+        return (
+          <div style={{...S.card, marginBottom:16}}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+              <h3 style={{...S.h3, margin:0}}>Negotiation</h3>
+              {gap !== null && gap > 0 && (
+                <span style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.brass, background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:20, padding:"3px 12px" }}>
+                  {fmt(gap)} apart
+                </span>
+              )}
+              {gap === 0 && (
+                <span style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.green, background:C.greenLight, borderRadius:20, padding:"3px 12px" }}>
+                  Both sides aligned ✓
+                </span>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:14 }}>Read top to bottom — buyer on the left, seller on the right.</div>
+
+            {offers.map((o,i) => {
+              const isBuyer = o.from==="buyer";
+              const prev = i>0 ? offers[i-1] : null;
+              const delta = prev ? o.amount - prev.amount : 0;
+              const isLatestPending = latestPending && o.id===latestPending.id;
+              const partyName = isBuyer ? (parties.buyer?.name||"Buyer") : (parties.seller?.name||"Seller");
+              const accent = isBuyer ? C.navy : C.brass;
+              return (
+                <div key={o.id} style={{ display:"flex", justifyContent:isBuyer?"flex-start":"flex-end", marginBottom:10 }}>
+                  <div style={{
+                    width:"82%",
+                    background: isLatestPending ? (isBuyer?"#f4f7fc":"#fff9ee") : (o.status==="accepted"?C.greenLight:o.status==="rejected"?C.redLight:C.white),
+                    border:`1px solid ${isLatestPending?accent:C.mist}`,
+                    borderLeft:`4px solid ${accent}`,
+                    borderRadius:8, padding:"12px 14px",
+                    opacity: o.status==="countered" ? 0.62 : 1,
+                  }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:10 }}>
+                      <div style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:accent, textTransform:"uppercase", letterSpacing:0.5 }}>
+                        {isBuyer?"🧑‍💼":"⚓"} {partyName}
+                      </div>
+                      <div style={{ fontSize:10, fontFamily:"sans-serif", color:C.slate }}>{o.time}</div>
+                    </div>
+                    <div style={{ display:"flex", alignItems:"baseline", gap:9, marginTop:3 }}>
+                      <span style={{ fontSize:20, fontWeight:800, color:C.navy, fontFamily:"sans-serif" }}>{fmt(o.amount)}</span>
+                      {delta !== 0 && (
+                        <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color: delta>0?C.green:C.red }}>
+                          {delta>0?"▲":"▼"} {fmt(Math.abs(delta))}
+                        </span>
+                      )}
+                      {o.verbal && <span style={{...S.pill, background:C.tealLight, color:C.teal}}>Verbal</span>}
+                    </div>
+                    <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:4 }}>
+                      Deposit: {o.escrowPct}% ({fmt(o.deposit)}) · {o.escrowPath==="escrow_com"?"Escrow.com":o.escrowPath==="attorney"?"Attorney":"Direct"} · DD: {o.ddDays} days · Close: {o.closingDate||"TBD"}
+                    </div>
+
+                    {/* status / actions */}
+                    <div style={{ marginTop:9 }}>
+                      {o.status==="accepted" && <span style={{...S.pill, background:C.green, color:"#fff"}}>Accepted ✓ — Purchase Agreement signed</span>}
+                      {o.status==="rejected" && <span style={{...S.pill, background:C.red, color:"#fff"}}>Rejected</span>}
+                      {o.status==="countered" && <span style={{...S.pill, background:C.mist, color:C.slate}}>Countered — see newer offer below</span>}
+                      {isLatestPending && (
+                        <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
+                          <button style={{...S.btn, background:C.green, fontSize:12, padding:"7px 16px"}} onClick={()=>acceptOffer(o.id)}>Accept & Sign</button>
+                          <button style={{...S.btn, background:accent, fontSize:12, padding:"7px 16px"}} onClick={()=>counterOffer(o.id)}>Counter</button>
+                          <button style={{...S.btnOutline, fontSize:12, padding:"7px 16px", color:C.red, borderColor:C.red}} onClick={()=>rejectOffer(o.id)}>Reject</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* ── DEAL TERMS ── */}
       <div style={{ ...S.card, borderTop:`3px solid ${C.brass}`, marginBottom:16 }}>
