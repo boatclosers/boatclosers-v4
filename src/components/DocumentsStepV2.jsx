@@ -79,7 +79,7 @@ const priceToWords = (n) => {
 };
 
 export default function DocumentsStepV2({ data, setData, vessel, parties, terms, negotiate, onNext, onBack }) {
-  const [paid, setPaid] = useState(data.paid||false);
+  const [paid, setPaid] = useState(data.paid || (negotiate && (negotiate.paid || negotiate.dealLocked)) || false);
   const [payDisc, setPayDisc] = useState(false);
   const [agreedTos, setAgreedTos] = useState(false);
   const [signed, setSigned] = useState(data.signedDocs||{});
