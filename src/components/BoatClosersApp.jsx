@@ -2648,39 +2648,47 @@ function Landing({ onStart }) {
   };
 
   const features = [
-    { icon:"📜", title:`${DOC_COUNT} Documents for Every Situation`, desc:`From the purchase agreement and bill of sale to the title-transfer paperwork — plus estate sales, seller financing, lost titles, and USCG documented vessels. If your deal can hit it, there's a document ready.` },
-    { icon:"🎯", title:"Smart Document Selection", desc:"Tell the app about your deal and it shows only the documents you actually need — and hides the rest. No wall of forms to wade through." },
-    { icon:"⚓", title:"Free Vessel & Lien Lookup", desc:"Verify any boat's documentation and check for hidden liens through the official U.S. Coast Guard database — built right in, before you buy." },
-    { icon:"💬", title:"Deposit-Backed Offers", desc:"Make and counter real offers with an earnest-money deposit attached — separating serious buyers from lowballers, and locking the boat in so it can't be sold out from under you." },
-    { icon:"✍️", title:"E-Sign — Notary-Aware", desc:"Sign routine documents electronically. Affidavits that legally require a notary are clearly flagged, so nothing ever gets signed the wrong way." },
-    { icon:"🤝", title:"Flat $249 — No Commission", desc:"One flat fee per deal. No 10% broker commission, no subscription, no surprises — versus the thousands a broker takes off the top." },
+    { icon:"📜", title:`${DOC_COUNT} Documents for Every Situation`, desc:"Purchase agreement to title transfer — plus estate sales, loans, lost titles, and documented vessels." },
+    { icon:"🎯", title:"Smart Document Selection", desc:"Tell us about your deal; see only the documents you actually need." },
+    { icon:"🧭", title:"Guided Closing Checklist", desc:"A step-by-step checklist takes both sides from agreement to filed title transfer." },
+    { icon:"💬", title:"Deposit-Backed Offers", desc:"Real offers with earnest money attached — and the boat locked so it can't be sold out from under you." },
+    { icon:"✍️", title:"E-Sign — Notary-Aware", desc:"Sign routine documents electronically; notary-required affidavits are clearly flagged." },
+    { icon:"🤝", title:"Flat $249 — No Commission", desc:"One flat fee per deal. No broker commission, no subscription, no surprises." },
   ];
 
   const steps = [
     ["Enter Vessel Details","Year, make, HIN, engines, registration — the foundation for every document."],
     ["Add Both Parties","Buyer and seller details. Invite the other side by email to join free."],
     ["Set Price & Terms","Make offers, choose contingencies, and set the due-diligence window and closing date — together."],
-    ["Complete Due Diligence","Survey, title and lien search, sea trial, insurance — with a built-in renegotiation window and free Coast Guard vessel lookup."],
+    ["Complete Due Diligence","Survey, title and lien search, sea trial, and insurance — with a built-in renegotiation window."],
     ["Pay & Sign","$249 unlocks all "+DOC_COUNT+" documents. Sign electronically; print-and-notarize where the law requires it."],
     ["Close & File for Title","A final checklist walks both parties through payment, handoff, and the paperwork to file the title and registration transfer with your state or the Coast Guard."],
   ];
 
   const situations = [
-    { icon:"🛥️", title:"Selling to a private buyer", desc:"You found the buyer — BoatClosers handles the agreement, the title-transfer paperwork, and closing the right way." },
-    { icon:"🔍", title:"Buying a boat privately", desc:"Verify the vessel, check for hidden liens, and protect your payment through escrow before you commit." },
-    { icon:"🕊️", title:"You inherited a boat", desc:"Transfer or sell a vessel after the owner has passed, with estate-specific documents and plain-language guidance." },
-    { icon:"💵", title:"The boat still has a loan", desc:"Clear the seller's loan and liens from the title so clean ownership can pass to the buyer at closing." },
-    { icon:"📄", title:"Lost or missing title", desc:"Affidavits and step-by-step paths to fix lost titles, missing documentation, and registration gaps." },
-    { icon:"⚓", title:"Coast Guard documented vessel", desc:"Transfer federal documentation through the NVDC with the correct forms — not just state paperwork." },
-    { icon:"🤝", title:"Seller financing or a trade-in", desc:"Promissory notes, security agreements, and trade-in paperwork structured correctly and recorded." },
-    { icon:"🏢", title:"Business, co-owner, or power of attorney", desc:"When someone other than a single owner is signing, the authority documents are ready to go." },
+    { icon:"🛥️", title:"Selling to a private buyer", desc:"You found the buyer; we handle the agreement, title transfer, and closing." },
+    { icon:"🔍", title:"Buying a boat privately", desc:"Protect your payment through escrow and get the paperwork right before you commit." },
+    { icon:"🕊️", title:"You inherited a boat", desc:"Sell or transfer after the owner has passed, with estate-specific documents." },
+    { icon:"💵", title:"The boat still has a loan", desc:"Clear the seller's loan and liens so clean title passes at closing." },
+    { icon:"📄", title:"Lost or missing title", desc:"Affidavits and step-by-step paths to fix lost titles and registration gaps." },
+    { icon:"⚓", title:"Coast Guard documented vessel", desc:"Transfer federal documentation through the NVDC with the correct forms." },
+    { icon:"🤝", title:"Seller financing or a trade-in", desc:"Promissory notes, security agreements, and trade-in paperwork done right." },
+    { icon:"🏢", title:"Business, co-owner, or power of attorney", desc:"Authority documents ready when someone other than a sole owner signs." },
   ];
 
   const secure = [
-    { icon:"🎯", title:"Real offers, not noise", desc:"Buyers make structured offers backed by an earnest-money deposit — so sellers instantly tell a committed buyer from another \u201cis this still available?\u201d Lowballers and tire-kickers stay out; serious offers rise to the top, each one recorded." },
-    { icon:"🔒", title:"Lock it so nobody walks", desc:"The moment both sides agree, a signed purchase agreement and deposit lock the deal in. No more a seller quietly selling the boat out from under a committed buyer — and no more a buyer ghosting after you turned others away. Both sides are protected." },
-    { icon:"🏦", title:"Move money safely — even remotely", desc:"Most private deals happen at a distance: different states, found online. Funds route through escrow (Escrow.com, an attorney, or a verified path) so neither party wires thousands to a stranger on faith. Money releases only when the deal is done." },
+    { icon:"🎯", title:"Real offers, not noise", desc:"Offers come backed by an earnest-money deposit, so sellers can tell a committed buyer from a tire-kicker." },
+    { icon:"🔒", title:"Lock it so nobody walks", desc:"Once both sides agree, a signed purchase agreement and deposit lock the deal — no ghosting, no selling out from under you." },
+    { icon:"🏦", title:"Move money safely — even remotely", desc:"Funds route through escrow so neither party wires thousands to a stranger. Money releases only when the deal is done." },
   ];
+
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 760 : false);
+  useEffect(() => {
+    const onR = () => setIsMobile(window.innerWidth < 760);
+    window.addEventListener("resize", onR);
+    return () => window.removeEventListener("resize", onR);
+  }, []);
+  const cols = (n) => isMobile ? "1fr" : Array(n).fill("1fr").join(" ");
 
   const Section = ({ children, style }) => <div style={{ maxWidth:880, margin:"0 auto", padding:"4.5rem 2rem", ...style }}>{children}</div>;
 
@@ -2748,7 +2756,7 @@ function Landing({ onStart }) {
       <Section style={{ paddingTop:"1.5rem" }}>
         <h2 style={{ textAlign:"center", fontSize:30, marginBottom:8 }}>Everything You Need to Close a Boat Sale</h2>
         <p style={{ textAlign:"center", fontSize:14, fontFamily:"sans-serif", color:C.slate, marginBottom:40 }}>From the first offer to the final signature, every part of the deal is built in.</p>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:24 }}>
+        <div style={{ display:"grid", gridTemplateColumns:cols(3), gap:24 }}>
           {features.map(f=>(
             <div key={f.title} style={{ background:C.white, borderRadius:8, padding:"1.5rem", border:`0.5px solid ${C.mist}` }}>
               <div style={{ fontSize:26, marginBottom:10 }}>{f.icon}</div>
@@ -2766,7 +2774,7 @@ function Landing({ onStart }) {
           <p style={{ textAlign:"center", fontSize:14, fontFamily:"sans-serif", color:C.slate, marginBottom:40, maxWidth:640, marginLeft:"auto", marginRight:"auto" }}>
             BoatClosers isn't only for skipping a broker. It's built for the full range of private vessel transfers — including the complicated ones almost nobody else helps with.
           </p>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+          <div style={{ display:"grid", gridTemplateColumns:cols(2), gap:16 }}>
             {situations.map(s=>(
               <div key={s.title} style={{ display:"flex", gap:13, background:C.white, borderRadius:8, padding:"1.25rem 1.4rem", border:`0.5px solid ${C.mist}` }}>
                 <div style={{ fontSize:22, flexShrink:0, lineHeight:1.3 }}>{s.icon}</div>
@@ -2793,7 +2801,7 @@ function Landing({ onStart }) {
               The riskiest part of a private boat sale isn't the price — it's the handshake that was never binding, the lowball offers with no commitment behind them, and the stranger you're about to wire money to. BoatClosers makes the commitment real, for both buyer and seller.
             </p>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:18 }}>
+          <div style={{ display:"grid", gridTemplateColumns:cols(3), gap:18 }}>
             {secure.map(s=>(
               <div key={s.title} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid rgba(184,134,58,0.3)`, borderRadius:9, padding:"1.6rem 1.4rem" }}>
                 <div style={{ fontSize:26, marginBottom:12 }}>{s.icon}</div>
@@ -2812,7 +2820,7 @@ function Landing({ onStart }) {
       <Section>
         <h2 style={{ textAlign:"center", fontSize:30, marginBottom:8 }}>How It Works</h2>
         <p style={{ textAlign:"center", fontSize:14, fontFamily:"sans-serif", color:C.slate, marginBottom:40 }}>Six clear steps from first offer to a clean close.</p>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+        <div style={{ display:"grid", gridTemplateColumns:cols(2), gap:16 }}>
           {steps.map(([title,desc],i)=>(
             <div key={i} style={{ display:"flex", gap:14, background:C.white, borderRadius:7, padding:"1.25rem", border:`0.5px solid ${C.mist}` }}>
               <div style={{ width:34, height:34, borderRadius:"50%", background:C.navy, color:C.brass2, fontWeight:800, fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontFamily:"sans-serif" }}>{i+1}</div>
@@ -2832,7 +2840,7 @@ function Landing({ onStart }) {
           <p style={{ textAlign:"center", fontSize:14, fontFamily:"sans-serif", color:C.slate, marginBottom:40, maxWidth:620, marginLeft:"auto", marginRight:"auto" }}>
             Every document auto-fills with your deal data and is organized by exactly when you need it. Your deal only shows the categories that apply to it.
           </p>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16 }}>
+          <div style={{ display:"grid", gridTemplateColumns:cols(3), gap:16 }}>
             {docGroups.map(({group,count})=>(
               <div key={group} style={{ background:C.white, borderRadius:8, padding:"1.1rem 1.25rem", border:`0.5px solid ${C.mist}` }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:5 }}>
@@ -2856,7 +2864,7 @@ function Landing({ onStart }) {
             <div style={{ fontSize:56, fontWeight:800, color:"#fff", fontFamily:"sans-serif", lineHeight:1 }}>$249</div>
             <div style={{ fontSize:12, color:"rgba(255,255,255,0.45)", marginBottom:24, fontFamily:"sans-serif" }}>Flat fee · One vessel · One deal</div>
             <div style={{ textAlign:"left", fontSize:13, fontFamily:"sans-serif", lineHeight:2.2, color:"rgba(255,255,255,0.75)" }}>
-              {[`All ${DOC_COUNT} professional documents, ${CAT_COUNT} categories`,"Smart selection — see only what your deal needs","Electronic signatures for both parties","Free Coast Guard vessel & lien lookup","Full negotiation, offers & contingencies","Three escrow path options","Due-diligence & closing checklists","AI deal assistant","PDF download package — both parties","No commission, no subscription, ever"].map(f=>(
+              {[`All ${DOC_COUNT} professional documents, ${CAT_COUNT} categories`,"Smart selection — see only what your deal needs","Electronic signatures for both parties","Title-transfer & registration paperwork","Full negotiation, offers & contingencies","Three escrow path options","Due-diligence & closing checklists","AI deal assistant","PDF download package — both parties","No commission, no subscription, ever"].map(f=>(
                 <div key={f}>✓ {f}</div>
               ))}
             </div>
@@ -2878,7 +2886,7 @@ function Landing({ onStart }) {
           ["How do I keep a seller from selling the boat to someone else after we agree?","This is one of the most common ways private deals fall apart. The fix is to secure it: the moment both sides agree, a signed purchase agreement plus an earnest-money deposit binds the deal. The seller can no longer walk to another buyer without consequence, and the buyer can't be left empty-handed after turning others away."],
           ["Is it safe to buy a boat remotely from another state?","Yes, when the money is handled correctly. BoatClosers keeps the whole negotiation and signing remote, and routes funds through escrow — Escrow.com, a private attorney, or another verified path — so you never wire thousands to a stranger on faith. The funds release only when the deal is complete."],
           ["Are these documents legally binding?","Our templates follow recognized maritime and state-transfer standards, but enforceability depends on how accurately you complete them and on your state's requirements. We flag the documents that must be notarized, and we strongly recommend a local maritime attorney review anything involving financing, estates, or title problems before signing."],
-          ["How does title transfer work for a Coast Guard documented vessel?","Documented vessels transfer through the National Vessel Documentation Center rather than the state. BoatClosers includes the USCG transfer and documentation forms, and the built-in lookup lets you verify a vessel and request its abstract of title directly from the Coast Guard."],
+          ["How does title transfer work for a Coast Guard documented vessel?","Documented vessels transfer through the National Vessel Documentation Center rather than the state. BoatClosers includes the USCG transfer and documentation forms and walks you through requesting the vessel's abstract of title from the Coast Guard."],
           ["What if the seller still owes money on the boat?","The deal includes a payoff authorization and lien release so the seller's existing loan is cleared from the title at closing — letting clean title pass to the buyer. The buyer should confirm the lien is released before final payment."],
           ["What if I inherited a boat I want to sell?","BoatClosers includes an estate and inheritance section with a plain-language guide plus affidavit of heirship, executor authorization, and small-estate forms. Estate rules vary by state, so the app points you to when a probate attorney is needed."],
           ["Who pays the $249 fee?","Whoever starts the deal pays the flat fee and controls the vessel details and terms. The other party joins free to review, add their information, and sign."],
