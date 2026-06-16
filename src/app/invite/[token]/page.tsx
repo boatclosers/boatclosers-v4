@@ -84,4 +84,4 @@ const token = Array.isArray(params.token) ? params.token[0] : params.token;
   }
 
   return null;
-}
+} 
