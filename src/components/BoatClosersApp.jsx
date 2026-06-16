@@ -3023,7 +3023,7 @@ export default function BoatClosers() {
 
   const goToStep = (n) => { setStep(n); if (n > maxStep) setMaxStep(n); scheduleSave(); };
 
-  const handleAuth = (authData) => {
+  const handleAuth = async (authData) => {
     setUser(authData);
     try {
       localStorage.setItem("bc_session", JSON.stringify({
@@ -3031,9 +3031,25 @@ export default function BoatClosers() {
         name: authData.name, email: authData.email, role: authData.role
       }));
     } catch (e) {}
-    // Load their existing deal from the database FIRST, so we never
-    // overwrite saved work with a blank screen.
     setBooting(true);
+
+    // If they arrived via an invite link, claim it now that they're
+    // authenticated, before we load whichever deal ends up being theirs.
+    try {
+      const pendingToken = sessionStorage.getItem("pendingInviteToken");
+      if (pendingToken) {
+        await fetch("/api/deals/invite/accept", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: pendingToken, userId: authData.userId })
+        }).catch(() => {});
+        sessionStorage.removeItem("pendingInviteToken");
+      }
+    } catch (e) {}
+
+    // Load their existing deal from the database FIRST, so we never
+    // overwrite saved work with a blank screen. This now also picks up
+    // a deal they were just invited into (see /api/deals GET).
     fetch("/api/deals", {
       method: "GET",
       headers: { "Authorization": "Bearer " + authData.token }
