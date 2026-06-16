@@ -367,7 +367,57 @@ function StepVessel({ data, setData, onNext }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 1 — PARTIES (role-aware)
 // ─────────────────────────────────────────────────────────────────────────────
-function StepParties({ data, setData, userRole, onNext, onBack }) {
+function StepParties({ data, setData, userRole, onNext, onBack, dealId, user }) {
+  const [inviteLink, setInviteLink] = useState("");
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [inviteError, setInviteError] = useState("");
+
+  const otherSide = userRole === "buyer" ? "seller" : "buyer";
+
+  const generateInviteLink = async () => {
+    const email = data?.[otherSide]?.email;
+    if (!email) {
+      setInviteError("Enter the other party's email above first.");
+      return;
+    }
+    if (!dealId || !user?.userId) {
+      setInviteError("Save the deal first, then try again.");
+      return;
+    }
+    setInviteLoading(true);
+    setInviteError("");
+    try {
+      const res = await fetch("/api/deals/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dealId,
+          inviteEmail: email,
+          inviteRole: otherSide,
+          userId: user.userId
+        })
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        setInviteError(result?.error || "Could not create invite link.");
+        setInviteLoading(false);
+        return;
+      }
+      setInviteLink(result.inviteUrl);
+    } catch (e) {
+      setInviteError("Network error, please try again.");
+    }
+    setInviteLoading(false);
+  };
+
+  const copyInviteLink = () => {
+    if (!inviteLink) return;
+    navigator.clipboard?.writeText(inviteLink);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  };
+
   const set = (side,k,v) => setData(d => ({...d,[side]:{...d[side],[k]:v}}));
   const canContinue = userRole==="seller"
     ? (data.seller.name && data.seller.email)
@@ -427,15 +477,22 @@ function StepParties({ data, setData, userRole, onNext, onBack }) {
             The other party needs a free BoatClosers account to receive offer notifications, respond to messages, and sign documents. Enter their email above, then send them this invite link. They create their account, your deal is pre-linked, and their info populates their side automatically.
           </div>
           <div style={{ background:"rgba(255,255,255,0.08)", borderRadius:6, padding:"9px 12px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.5)", wordBreak:"break-all" }}>
-              https://boatclosers.com/join?deal=DEAL-ID
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.5)", wordBreak:"break-all", flex:1 }}>
+              {inviteLink || "Click Generate to create a link"}
             </div>
-            <button onClick={()=>{
-              navigator.clipboard?.writeText("https://boatclosers.com/join?deal=DEAL-ID");
-            }} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"5px 12px", fontSize:11, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", flexShrink:0 }}>
-              Copy Link
-            </button>
+            {inviteLink ? (
+              <button onClick={copyInviteLink} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"5px 12px", fontSize:11, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", flexShrink:0 }}>
+                {inviteCopied ? "Copied!" : "Copy Link"}
+              </button>
+            ) : (
+              <button onClick={generateInviteLink} disabled={inviteLoading} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"5px 12px", fontSize:11, fontFamily:"sans-serif", fontWeight:700, cursor:inviteLoading?"default":"pointer", flexShrink:0, opacity:inviteLoading?0.6:1 }}>
+                {inviteLoading ? "Generating..." : "Generate Link"}
+              </button>
+            )}
           </div>
+          {inviteError && (
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"#fca5a5", marginTop:6 }}>{inviteError}</div>
+          )}
           <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(255,255,255,0.35)", marginTop:8 }}>
             💡 When they sign up using this link, their contact info auto-fills the correct side of this deal and both of you get email notifications for offers and messages.
           </div>
@@ -3126,7 +3183,7 @@ export default function BoatClosers() {
       <ProgressBar step={step} setStep={setStep} maxStep={maxStep}/>
       <PreviewBanner step={step} maxStep={maxStep} setStep={setStep}/>
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} onNext={()=>goToStep(1)}/>}
-      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={user?.role||"buyer"} onNext={()=>goToStep(2)} onBack={()=>setStep(0)}/>}
+      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={user?.role||"buyer"} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && <StepDueDiligence data={ddData} setData={setDdDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/>}
       {step===4 && <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
