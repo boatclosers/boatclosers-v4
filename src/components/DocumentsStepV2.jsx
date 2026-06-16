@@ -86,6 +86,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [sigName, setSigName] = useState({});
 
   const [docAction, setDocAction] = useState({});
+  // Collapsible groups — required group open by default, the rest collapsed.
+  const [openGroups, setOpenGroups] = useState({ "Closing Instruments": true });
+  const [esignConsent, setEsignConsent] = useState({}); // per-doc consent before e-signing
+  const toggleGroup = (g) => setOpenGroups(o => ({ ...o, [g]: !o[g] }));
   const [sendEmail, setSendEmail] = useState({});
   const [sendNote, setSendNote] = useState({});
   const [sentLog, setSentLog] = useState({});
@@ -96,15 +100,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
   // One-line "is this section for me?" descriptions under each group header.
   const GROUP_DESC = {
-    "Closing Instruments": "The core documents every sale needs. Start here.",
-    "Due-Diligence Outcomes": "After the survey — accept, renegotiate, or walk away.",
-    "Title & Government": "Transfer ownership and registration to the buyer.",
-    "Financing & Insurance": "Only if the buyer is financing or needs proof of coverage.",
-    "Authority & Signing": "Only if someone other than the owner is signing — business, co-owner, or power of attorney.",
-    "Deal Structures": "For trade-ins, seller financing, trailers, or gifts.",
-    "Estate & Inheritance": "Only if the owner has passed away. Start with the guide.",
-    "Title Problems": "Lost title, missing documentation, or registration issues.",
-    "Closing-Day": "Sign these at the handoff, when the boat changes hands.",
+    "Closing Instruments": "The core paperwork every sale needs — purchase agreement, bill of sale, deposit receipt, as-is acknowledgment, and closing statement. Everyone signs these.",
+    "Due-Diligence Outcomes": "Use after the survey and sea trial — formally accept the boat, renegotiate the price, or walk away and reclaim your deposit.",
+    "Title & Government": "The documents that transfer ownership and registration to the buyer with your state or the Coast Guard. Add these once you're ready to file.",
+    "Financing & Insurance": "Only if the buyer is getting a loan or the lender/insurer needs proof of coverage — commitment letter, binder, and a conditions checklist.",
+    "Authority & Signing": "Only if someone other than a sole individual owner is signing — a business, multiple co-owners, a trust, or a power of attorney.",
+    "Deal Structures": "For deals that aren't a straight cash sale — a trade-in, seller financing, a trailer included, or gifting the boat to family.",
+    "Estate & Inheritance": "Only if the owner has passed away. Start with the plain-language guide, then the right affidavit for your situation, plus the death certificate.",
+    "Title Problems": "When the paperwork is a mess — a lost title, no title on record, a gap in ownership history, missing Coast Guard documentation, or a lapsed registration.",
+    "Closing-Day": "Sign these at the handoff — delivery and possession receipt, the seller's disclosure of known defects, and the engine-hours statement.",
   };
 
   const toggleCheck = (docId, idx) => setCheckState(s => ({
@@ -275,10 +279,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
   const ActionBtn = ({ docId, action, icon, label, color }) => {
     const active = docAction[docId] === action;
+    const c = color || C.navy;
     return (
       <button onClick={() => setAction(docId, action)} title={label}
-        style={{ display:"flex", alignItems:"center", gap:5, fontSize:11, fontFamily:"sans-serif", fontWeight:600, padding:"6px 11px", borderRadius:5, cursor:"pointer", border:`1px solid ${active ? (color||C.navy) : C.mist}`, background: active ? (color||C.navy) : C.white, color: active ? "#fff" : (color||C.navy), whiteSpace:"nowrap" }}>
-        <span style={{ fontSize:13 }}>{icon}</span> {label}
+        style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:`1.5px solid ${active ? c : "#e3ddd0"}`, background: active ? c : C.white, color: active ? "#fff" : c, whiteSpace:"nowrap", transition:"all .12s", boxShadow: active ? "0 1px 3px rgba(0,0,0,0.12)" : "none" }}>
+        <span style={{ fontSize:12 }}>{icon}</span> {label}
       </button>
     );
   };
@@ -402,11 +407,28 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         </div>
       </div>
 
-      {GROUPS.map(g=>(
-        <div key={g} style={{ marginBottom:14 }}>
-          <div style={{ fontSize:10, fontFamily:"sans-serif", fontWeight:700, letterSpacing:2, color:C.slate, textTransform:"uppercase", marginBottom:2 }}>{g}</div>
-          {GROUP_DESC[g] && <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginBottom:7, fontStyle:"italic" }}>{GROUP_DESC[g]}</div>}
-          <div style={S.card}>
+      {GROUPS.map(g=>{
+        const groupDocs = DOC_SET.filter(d=>d.group===g);
+        const groupSigned = groupDocs.filter(d=>signed[d.id]).length;
+        const hasRequired = groupDocs.some(d=>d.required);
+        const open = openGroups[g];
+        return (
+        <div key={g} style={{ marginBottom:10 }}>
+          <button onClick={()=>toggleGroup(g)} style={{ display:"flex", width:"100%", alignItems:"flex-start", gap:12, textAlign:"left", cursor:"pointer", background: open ? C.white : "#faf7f0", border:`1px solid ${hasRequired ? C.brass : C.mist}`, borderRadius: open ? "8px 8px 0 0" : 8, padding:"13px 16px" }}>
+            <span style={{ fontSize:14, color:C.slate, marginTop:1, flexShrink:0, transform: open?"rotate(90deg)":"none", transition:"transform .15s" }}>▶</span>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                <span style={{ fontSize:13.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy }}>{g}</span>
+                <span style={{ fontSize:10, fontFamily:"sans-serif", fontWeight:700, color:C.slate, background:C.sandDark, borderRadius:20, padding:"2px 8px" }}>{groupDocs.length} doc{groupDocs.length>1?"s":""}</span>
+                {hasRequired && <span style={{ fontSize:10, fontFamily:"sans-serif", fontWeight:700, color:"#7a5500", background:"#fff3cd", borderRadius:20, padding:"2px 8px" }}>Required</span>}
+                {groupSigned>0 && <span style={{ fontSize:10, fontFamily:"sans-serif", fontWeight:700, color:C.green, background:C.greenLight, borderRadius:20, padding:"2px 8px" }}>{groupSigned} signed ✓</span>}
+              </div>
+              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:4, lineHeight:1.55 }}>{GROUP_DESC[g]}</div>
+              {!open && <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.brass, marginTop:5, fontWeight:600 }}>Tap to open →</div>}
+            </div>
+          </button>
+          {open && (
+          <div style={{ ...S.card, borderRadius:"0 0 8px 8px", borderTop:"none", marginBottom:0 }}>
             {DOC_SET.filter(d=>d.group===g).map((doc,i,arr)=>{
               const needsNotary = doc.kind !== "upload" && (doc.body||"").includes("Notary Acknowledgment");
               return (
@@ -435,7 +457,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                       {doc.kind !== "upload" && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
                       <ActionBtn docId={doc.id} action="send"   icon="📤" label="Send"   color={C.brass} />
                       <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />
-                      <button onClick={printDoc} title="Print" style={{ fontSize:13, padding:"6px 10px", borderRadius:5, cursor:"pointer", border:`1px solid ${C.mist}`, background:C.white, color:C.slate }}>🖨️</button>
+                      <button onClick={printDoc} title="Print" style={{ fontSize:13, padding:"7px 11px", borderRadius:20, cursor:"pointer", border:`1.5px solid #e3ddd0`, background:C.white, color:C.slate }}>🖨️</button>
                     </div>
                   </div>
 
@@ -511,13 +533,31 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                         ⚠️ <strong style={{ color:C.brass }}>Preview only — not legally binding until BoatClosers receives payment.</strong> Upon payment confirmation, the executed package is released to both parties. BoatClosers provides document facilitation only — not legal advice or brokerage services.
                       </div>
                       {!signed[doc.id] || signed[doc.id].manual || signed[doc.id].uploaded ? (
-                        <div style={{ display:"flex", gap:10, alignItems:"flex-end" }}>
-                          <div style={{ flex:1 }}>
-                            <label style={S.label}>Type your full legal name to sign electronically</label>
-                            <input style={S.input} placeholder="Full legal name" value={sigName[doc.id]||""} onChange={e=>setSigName(s=>({...s,[doc.id]:e.target.value}))}/>
+                        <>
+                          {/* E-Sign consent & disclosure */}
+                          <div style={{ background:"#fffdf8", border:`1px solid ${C.mist}`, borderRadius:5, padding:"11px 13px", marginBottom:12 }}>
+                            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65 }}>
+                              <strong style={{ color:C.navy }}>Before you sign electronically, please understand:</strong>
+                              <ul style={{ margin:"6px 0 0", paddingLeft:18 }}>
+                                <li style={{ marginBottom:4 }}>By typing your name and signing, you agree to conduct this transaction electronically and that your electronic signature is intended to be your legal signature on this document.</li>
+                                <li style={{ marginBottom:4 }}>BoatClosers is a document-preparation tool only. It does <strong>not</strong> verify the identity of any signer, does not guarantee the legal validity or enforceability of any signature, and is not responsible for record-keeping, storage, or authentication of signed documents.</li>
+                                <li style={{ marginBottom:4 }}>You are responsible for keeping your own signed copies. If you need a verifiable, court-defensible signature, use a dedicated e-signature service or sign in ink before a notary.</li>
+                                <li style={{ marginBottom:0 }}><strong>Not comfortable signing electronically?</strong> Use the <strong>Manual</strong> option to record an in-person ink signature, or <strong>Print</strong> the document to sign by hand. Notarized documents must always be printed and signed in ink before a notary.</li>
+                              </ul>
+                            </div>
+                            <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", marginTop:10 }}>
+                              <input type="checkbox" checked={!!esignConsent[doc.id]} onChange={e=>setEsignConsent(c=>({...c,[doc.id]:e.target.checked}))} style={{ width:15, height:15, marginTop:1, accentColor:C.green, flexShrink:0 }} />
+                              <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600, lineHeight:1.5 }}>I have read the above, I consent to sign electronically, and I understand BoatClosers does not verify or store my signature.</span>
+                            </label>
                           </div>
-                          <button style={S.btnBrass} disabled={!sigName[doc.id]?.trim()} onClick={()=>{ setSigned(s=>({...s,[doc.id]:{name:sigName[doc.id],date:today()}})); setAction(doc.id,"esign"); }}>Sign Document</button>
-                        </div>
+                          <div style={{ display:"flex", gap:10, alignItems:"flex-end" }}>
+                            <div style={{ flex:1 }}>
+                              <label style={S.label}>Type your full legal name to sign electronically</label>
+                              <input style={S.input} placeholder="Full legal name" value={sigName[doc.id]||""} onChange={e=>setSigName(s=>({...s,[doc.id]:e.target.value}))}/>
+                            </div>
+                            <button style={{...S.btnBrass, opacity:(sigName[doc.id]?.trim() && esignConsent[doc.id])?1:0.45, cursor:(sigName[doc.id]?.trim() && esignConsent[doc.id])?"pointer":"not-allowed"}} disabled={!sigName[doc.id]?.trim() || !esignConsent[doc.id]} onClick={()=>{ setSigned(s=>({...s,[doc.id]:{name:sigName[doc.id],date:today(),consent:true}})); setAction(doc.id,"esign"); }}>Sign Document</button>
+                          </div>
+                        </>
                       ) : (
                         <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Already signed by {signed[doc.id].name} on {signed[doc.id].date}</div>
                       )}
@@ -594,8 +634,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
               </div>
             );})}
           </div>
+          )}
         </div>
-      ))}
+        );
+      })}
 
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
