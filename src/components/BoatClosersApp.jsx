@@ -144,7 +144,7 @@ function Field({ label, children, span2 }) {
   );
 }
 function Grid2({ children, gap }) {
-  return <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap: gap||14 }}>{children}</div>;
+  return <div className="bc-grid2" style={{ gap: gap||14 }}>{children}</div>;
 }
 
 // ── OFFER SECTION — expandable, self-explaining opt-in box for the offer builder ──
@@ -719,7 +719,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
               </div>
               <p><strong>Vessel:</strong> {vessel.year||"[Year]"} {vessel.make||"[Make]"} {vessel.model||"[Model]"} · HIN: {vessel.hin||"[HIN]"} · Reg: {vessel.regNumber||"[Reg]"}</p>
 
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, margin:"12px 0" }}>
+              <div className="bc-grid3" style={{ gap:8, margin:"12px 0" }}>
                 {[["Purchase Price",fmt(paModal.amount)],["Earnest Money",fmt(paModal.deposit)],["Escrow Method",esc]].map(([l,v])=>(
                   <div key={l} style={{ background:C.sandDark, borderRadius:4, padding:"8px 10px" }}>
                     <div style={{ fontSize:9, color:C.slate, textTransform:"uppercase", letterSpacing:0.5 }}>{l}</div>
@@ -742,7 +742,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
               By signing, both parties agree to the terms above and acknowledge that BoatClosers provides document facilitation only — not legal advice, brokerage, or escrow services.
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
+            <div className="bc-grid2" style={{ gap:20 }}>
               {/* Buyer */}
               <div style={{ background:C.sandDark, borderRadius:6, padding:"14px" }}>
                 <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>Buyer: {parties.buyer.name||"Buyer"}</div>
@@ -1019,7 +1019,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
       {acceptedOffer && (
         <div style={{...S.cardGold, marginBottom:16}}>
           <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>✓ Agreed Price Summary</div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+          <div className="bc-grid3" style={{ gap:10 }}>
             {[["Purchase Price",fmt(acceptedOffer.amount)],["Earnest Money",fmt(acceptedOffer.deposit)],["Escrow",acceptedOffer.escrowPath==="escrow_com"?"Escrow.com":acceptedOffer.escrowPath==="attorney"?"Attorney":"Direct to Seller"]].map(([l,v])=>(
               <div key={l} style={{ background:C.sandDark, borderRadius:5, padding:"10px 12px" }}>
                 <div style={{ fontSize:10, color:C.slate, fontFamily:"sans-serif" }}>{l}</div>
@@ -1081,7 +1081,7 @@ function EscrowSelector({ value, onChange, depositAmt }) {
 
   return (
     <div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:8 }}>
+      <div className="bc-grid3" style={{ gap:8, marginBottom:8 }}>
         {options.map(opt=>(
           <button key={opt.id} onClick={()=>onChange(opt.id)} style={{ padding:"10px 8px", borderRadius:6, cursor:"pointer", border:`2px solid ${value===opt.id?opt.badgeColor:C.mist}`, background:value===opt.id?opt.badgeColor==="rgb(26,92,53)"||opt.id==="escrow_com"?"rgba(26,92,53,0.08)":opt.id==="attorney"?"rgba(14,107,124,0.08)":"rgba(61,81,102,0.06)":"transparent", textAlign:"center", fontFamily:"sans-serif", transition:"all 0.15s" }}>
             <div style={{ fontSize:18, marginBottom:4 }}>{opt.icon}</div>
@@ -1491,7 +1491,7 @@ function StepDueDiligence({ data, setData, vessel, parties, terms, negotiate, on
         <p style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginBottom:14 }}>
           Only the buyer accepts or rejects the vessel. If accepted, the Vessel Acceptance document must be signed before proceeding. If rejected, the buyer's earnest money is returned and the reason is recorded in the Rejection Notice.
         </p>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>
+        <div className="bc-grid2" style={{ gap:12, marginBottom:16 }}>
           <button onClick={()=>{ setOutcome("accept"); setBuyerSigned(false); setVaSigned(false); }} style={{ padding:"14px", textAlign:"center", fontSize:14, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="accept"?C.green:"transparent", color:outcome==="accept"?"#fff":C.green, border:`2px solid ${C.green}` }}>
             ✓ Accept Vessel
           </button>
@@ -1989,7 +1989,7 @@ function DocPreview({ doc, D, negotiate }) {
           ))}
         </div>
       )}
-      <div style={{ marginTop:16, display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
+      <div className="bc-grid2" style={{ marginTop:16, gap:20 }}>
         {["Buyer","Seller"].map(p=>(
           <div key={p} style={{ borderTop:`1px solid ${C.navy}`, paddingTop:6 }}>
             <div style={{ fontSize:10, color:C.slate, fontFamily:"sans-serif" }}>{p} Signature</div>
@@ -2238,7 +2238,7 @@ function StepClosing({ vessel, parties, terms, negotiate, ddData, docsData, onBa
           {payMethodOpen && (
             <div style={{ border:`1px solid ${C.mist}`, borderTop:"none", borderRadius:"0 0 8px 8px", overflow:"hidden" }}>
               {/* Balance summary */}
-              <div style={{ background:C.sandDark, padding:"10px 16px", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+              <div className="bc-grid3" style={{ background:C.sandDark, padding:"10px 16px", gap:10 }}>
                 {[
                   ["Purchase Price", fmt(negotiate.agreedPrice||0)],
                   ["Deposit Paid", `− ${fmt(negotiate.deposit||0)}`],
@@ -2472,7 +2472,7 @@ Help with: HIN location, engine serial numbers, USCG vs state registration, earn
   );
 
   return (
-    <div style={{ position:"fixed", bottom:24, left:24, width:360, height:520, background:"#fff", border:`1px solid ${C.mist}`, borderRadius:12, display:"flex", flexDirection:"column", boxShadow:"0 8px 40px rgba(0,0,0,0.2)", zIndex:1000, overflow:"hidden" }}>
+    <div className="bc-aiwidget" style={{ position:"fixed", bottom:24, left:24, width:360, height:520, background:"#fff", border:`1px solid ${C.mist}`, borderRadius:12, display:"flex", flexDirection:"column", boxShadow:"0 8px 40px rgba(0,0,0,0.2)", zIndex:1000, overflow:"hidden" }}>
       {/* Header */}
       <div style={{ background:C.navy, padding:"12px 14px", display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom:`2px solid ${C.brass}` }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -2584,7 +2584,7 @@ function AuthScreen({ onAuth }) {
           {mode==="signup" && (
             <div style={{ marginBottom:20 }}>
               <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:600, color:C.navy, marginBottom:10 }}>I am the...</div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+              <div className="bc-grid2" style={{ gap:10 }}>
                 {[["buyer","🛒 Buyer","I am purchasing a vessel"],["seller","⚓ Seller","I own the vessel being sold"]].map(([r,l,d])=>(
                   <button key={r} onClick={()=>setRole(r)} style={{ padding:"14px 10px", borderRadius:6, cursor:"pointer", textAlign:"center", background:role===r?C.navy:"transparent", color:role===r?"#fff":C.navy, border:`2px solid ${role===r?C.brass:C.mist}`, fontFamily:"sans-serif" }}>
                     <div style={{ fontSize:18, marginBottom:4 }}>{l.split(" ")[0]}</div>
@@ -3087,6 +3087,14 @@ export default function BoatClosers() {
 
   return (
     <div style={S.app}>
+      <style>{`
+        .bc-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        .bc-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+        @media(max-width:640px){
+          .bc-grid2,.bc-grid3{grid-template-columns:1fr}
+          .bc-aiwidget{width:auto !important;left:12px !important;right:12px !important;height:70vh !important;bottom:12px !important}
+        }
+      `}</style>
       <nav style={S.nav}>
         <div style={{ cursor:"pointer" }} onClick={()=>setScreen("landing")}>
           <div style={S.logo}>BOATCLOSERS</div>
