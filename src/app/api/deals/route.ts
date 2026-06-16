@@ -29,7 +29,7 @@ export async function GET(req: Request) {
     const { data } = await admin()
       .from('deals')
       .select('*')
-      .eq('initiator_id', userId)
+      .or(`initiator_id.eq.${userId},party_b_user_id.eq.${userId}`)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(1)
@@ -59,13 +59,17 @@ export async function POST(req: Request) {
 
     if (dealId) {
       const { data, error } = await admin()
-        .from('deals').update(payload).eq('id', dealId).eq('initiator_id', userId).select().single()
+        .from('deals').update(payload).eq('id', dealId)
+        .or(`initiator_id.eq.${userId},party_b_user_id.eq.${userId}`)
+        .select().single()
       if (error) return NextResponse.json({ error: error.message }, { status: 400 })
       return NextResponse.json({ deal: data })
     }
 
     const { data: existing } = await admin()
-      .from('deals').select('id').eq('initiator_id', userId).eq('status', 'active')
+      .from('deals').select('id')
+      .or(`initiator_id.eq.${userId},party_b_user_id.eq.${userId}`)
+      .eq('status', 'active')
       .order('created_at', { ascending: false }).limit(1)
 
     if (existing && existing.length) {
@@ -78,7 +82,7 @@ export async function POST(req: Request) {
     const role = (parties && parties.seller && parties.seller.name) ? 'seller' : 'buyer'
     const { data, error } = await admin()
       .from('deals')
-      .insert({ initiator_id: userId, initiator_role: role, status: 'active', paid: false, ...payload })
+      .insert({ initiator_id: userId, party_a_user_id: userId, initiator_role: role, status: 'active', paid: false, ...payload })
       .select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     return NextResponse.json({ deal: data })
