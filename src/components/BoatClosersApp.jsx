@@ -147,6 +147,22 @@ function Grid2({ children, gap }) {
   return <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap: gap||14 }}>{children}</div>;
 }
 
+// ── OFFER SECTION — expandable, self-explaining opt-in box for the offer builder ──
+function OfferSection({ icon, title, desc, checked, onToggle, children }) {
+  return (
+    <div style={{ border:`1px solid ${checked?C.brass:C.mist}`, borderRadius:8, marginBottom:10, overflow:"hidden", background:checked?"#fffdf8":"#fff" }}>
+      <label style={{ display:"flex", gap:10, alignItems:"flex-start", cursor:"pointer", padding:"13px 14px" }}>
+        <input type="checkbox" checked={checked} onChange={onToggle} style={{ width:16, height:16, marginTop:2, accentColor:C.brass, flexShrink:0 }} />
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>{icon} {title} <span style={{ fontSize:11, fontWeight:400, color:checked?C.brass:C.slate }}>{checked?"— included ✓":"— optional, tap to add"}</span></div>
+          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:3, lineHeight:1.55 }}>{desc}</div>
+        </div>
+      </label>
+      {checked && <div style={{ padding:"2px 14px 14px" }}>{children}</div>}
+    </div>
+  );
+}
+
 // ── TIP BOX ───────────────────────────────────────────────────────────────────
 function TipBox({ tips }) {
   const [idx, setIdx] = useState(0);
@@ -446,6 +462,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
   const [closingDate, setClosingDate] = useState(data.closingDate || "");
   const [offers, setOffers] = useState(data.offers || []);
   const [offerFrom, setOfferFrom] = useState(data.userRole==="seller" ? "seller" : "buyer"); // who is making the current offer
+  // Opt-in sections of the offer — the customer chooses what to include.
+  const [inclContingencies, setInclContingencies] = useState(data.inclContingencies ?? false);
+  const [inclDates, setInclDates] = useState(data.inclDates ?? false);
+  const [inclDepositTerms, setInclDepositTerms] = useState(data.inclDepositTerms ?? false);
+  const [showMessages, setShowMessages] = useState(false);
+  const [localContingencies, setLocalContingencies] = useState(data.selectedContingencies || []);
   const [messages, setMessages] = useState(data.messages || [
     { from:"seller", text:`Asking price is ${fmt(vessel.askingPrice||0)}. Let's talk!`, time: new Date().toLocaleTimeString() }
   ]);
@@ -496,15 +518,28 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
     const amt = Number(offerAmt);
     if (!amt) return;
     const deposit = Math.round(amt*Number(escrowPct)/100);
-    const offer = { id:Date.now(), from:offerFrom, amount:amt, escrowPct:Number(escrowPct), escrowPath, deposit, ddDays, closingDate, verbal:verbalDeal, status:"pending", time:new Date().toLocaleTimeString() };
-    // A new offer supersedes any still-pending offer (it becomes a counter).
+    const offer = {
+      id:Date.now(), from:offerFrom, amount:amt,
+      escrowPct:Number(escrowPct), escrowPath, deposit,
+      verbal:verbalDeal, status:"pending", time:new Date().toLocaleTimeString(),
+      // opt-in contingencies
+      inclContingencies, contingencies: inclContingencies ? localContingencies : [],
+      // opt-in dates & payment
+      inclDates,
+      ddDays: inclDates ? ddDays : "", ddStart: inclDates ? ddStart : "",
+      closingDate: inclDates ? closingDate : "", paymentType: inclDates ? paymentType : "",
+      financeContingency: inclDates ? financeContingency : "",
+      ddExtension: inclDates ? ddExtension : false, ddExtDays, ddExtDepositRule,
+      // opt-in deposit terms / notes
+      inclDepositTerms, depositRule: inclDepositTerms ? depositRule : "", depositRuleCustom, note: verbalNote,
+    };
     setOffers(o => [...o.map(of => of.status==="pending" ? {...of, status:"countered"} : of), offer]);
     const escrowLabel = escrowPath==="escrow_com"?"Escrow.com":escrowPath==="attorney"?"Third Party Attorney":"Direct to Seller";
-    setMessages(m => [...m, {
-      from:offerFrom,
-      text:`${offerFrom==="buyer"?"Offer":"Counter"}: ${fmt(amt)}${deposit>0?` · ${fmt(deposit)} (${escrowPct}%) earnest money via ${escrowLabel}`:" · No deposit"} · DD: ${ddDays} days · Closing: ${closingDate||"TBD"}`,
-      time:new Date().toLocaleTimeString()
-    }]);
+    const parts = [`${offerFrom==="buyer"?"Offer":"Counter"}: ${fmt(amt)}`];
+    parts.push(deposit>0?`${fmt(deposit)} (${escrowPct}%) earnest via ${escrowLabel}`:"No deposit");
+    if (inclContingencies && localContingencies.length) parts.push(`${localContingencies.length} contingenc${localContingencies.length>1?"ies":"y"}`);
+    if (inclDates) parts.push(`DD ${ddDays}d · Close ${closingDate||"TBD"}`);
+    setMessages(m => [...m, { from:offerFrom, text:parts.join(" · "), time:new Date().toLocaleTimeString() }]);
   };
 
   // Counter an offer: pre-fill the form with its terms, flip to the other party, scroll to the form.
@@ -514,8 +549,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
     setOfferAmt(String(o.amount));
     setEscrowPct(String(o.escrowPct));
     setEscrowPath(o.escrowPath);
+    setInclContingencies(!!o.inclContingencies);
+    if (o.contingencies) setLocalContingencies(o.contingencies);
+    setInclDates(!!o.inclDates);
     if (o.ddDays) setDdDays(o.ddDays);
+    if (o.ddStart) setDdStart(o.ddStart);
     if (o.closingDate) setClosingDate(o.closingDate);
+    if (o.paymentType) setPaymentType(o.paymentType);
+    setInclDepositTerms(!!o.inclDepositTerms);
+    if (o.depositRule) setDepositRule(o.depositRule);
     setOfferFrom(o.from==="buyer" ? "seller" : "buyer");
     setNegMode("negotiate");
     setTimeout(() => offerFormRef.current?.scrollIntoView({ behavior:"smooth", block:"center" }), 60);
@@ -547,13 +589,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
       escrowPct: paModal.escrowPct,
       escrowPath: paModal.escrowPath,
       deposit: paModal.deposit,
+      selectedContingencies: paModal.contingencies || [],
       dueDiligenceDays: paModal.ddDays || ddDays,
-      ddStartDate: ddStart,
+      ddStartDate: paModal.ddStart || ddStart,
       closingDate: paModal.closingDate || closingDate,
-      verbalDeal, verbalNote,
-      ddExtension, ddExtDays, ddExtDepositRule,
-      depositRule, depositRuleCustom,
-      paymentType, financeContingency,
+      paymentType: paModal.paymentType || paymentType,
+      financeContingency: paModal.financeContingency || financeContingency,
+      depositRule: paModal.depositRule || depositRule, depositRuleCustom,
+      ddExtension: paModal.ddExtension ?? ddExtension, ddExtDays, ddExtDepositRule,
+      verbalDeal, verbalNote: paModal.note || verbalNote,
     }));
     setPaModal(null); setPaStage("pay"); setPaPaid(false);
     setPaBuyerName(""); setPaSellerName(""); setPaBuyerDisc(false); setPaSellerDisc(false);
@@ -738,8 +782,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
     <div style={S.page}>
       <TipBox tips={TIPS.negotiate} />
       <div style={{ marginBottom:"1.5rem" }}>
-        <h1 style={S.h1}>Negotiate & Terms</h1>
-        <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Make offers, set your terms, and agree on a closing timeline — all on one page. You can proceed without a formally accepted offer.</p>
+        <h1 style={S.h1}>Build Your Offer</h1>
+        <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Put together your price, deposit, and terms, send it to the other party, and negotiate until you agree. Free until you lock the deal.</p>
       </div>
 
       {/* ── DEAL LOCKED BANNER ── */}
@@ -755,154 +799,109 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
         </div>
       )}
 
-      {/* ── VERBAL AGREEMENT ── */}
-      <div style={{ ...S.card, borderLeft:`4px solid ${C.teal}`, marginBottom:16 }}>
-        <label style={{ display:"flex", gap:12, alignItems:"flex-start", cursor:"pointer" }}>
-          <input type="checkbox" checked={verbalDeal} onChange={e=>setVerbalDeal(e.target.checked)} style={{ width:18, height:18, marginTop:2, accentColor:C.teal, flexShrink:0 }} />
-          <div>
-            <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>This deal was verbally negotiated</div>
-            <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginTop:3, lineHeight:1.6 }}>
-              Check this if the price and terms were agreed by phone, in person, or by verbal agreement before using this platform. You can still enter the agreed price and terms below to generate your documents.
-            </div>
-          </div>
-        </label>
-        {verbalDeal && (
-          <div style={{ marginTop:12, marginLeft:30 }}>
-            <label style={S.label}>Brief description of verbal agreement (optional — for your records)</label>
-            <textarea style={{...S.textarea, minHeight:56}} value={verbalNote} onChange={e=>setVerbalNote(e.target.value)} placeholder="e.g. Agreed on $72,000 by phone on June 3rd. Seller to include trailer. No deposit. Closing at seller's marina." />
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.teal, marginTop:6 }}>
-              💡 This note will appear in the Purchase Agreement as the basis for the negotiated price.
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── HOW MESSAGING WORKS ── */}
-      <div style={{ background:C.navy, borderRadius:8, padding:"14px 18px", marginBottom:16, display:"flex", gap:14, alignItems:"flex-start" }}>
-        <div style={{ fontSize:24, flexShrink:0 }}>💬</div>
-        <div>
-          <div style={{ fontSize:13, fontWeight:700, color:C.brass, fontFamily:"sans-serif", marginBottom:4 }}>How to Negotiate with the Other Party</div>
-          <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.75)", lineHeight:1.7 }}>
-            Use the message thread below to negotiate price back and forth — just like texting. When you submit an offer, a notification is sent to the other party's email so they can log in, respond, and counter-offer. They see only their own side and the shared deal — not your account. Once both parties agree, accept the offer to generate the Purchase Agreement for both to sign.
-          </div>
-          <div style={{ marginTop:8, fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.45)" }}>
-            💡 The other party must create a free BoatClosers account to respond. Send them the invite link from the Parties step.
-          </div>
+      {/* ── HOW IT WORKS (brief) ── */}
+      <div style={{ background:C.navy, borderRadius:8, padding:"13px 16px", marginBottom:16, display:"flex", gap:12, alignItems:"flex-start" }}>
+        <div style={{ fontSize:20, flexShrink:0 }}>🤝</div>
+        <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.78)", lineHeight:1.65 }}>
+          <b style={{ color:C.brass }}>Build your complete offer below</b> — price and deposit, plus contingencies and dates if your deal needs them. Send it to the other party; they can accept, counter, or reject. <b style={{ color:"#fff" }}>It's all free</b> — you only pay $249 once a full offer is accepted and you're ready to sign the Purchase Agreement.
         </div>
       </div>
 
-      {/* ── NEGOTIATION PANEL ── */}
-      <div style={{ ...S.card, marginBottom:16 }}>
-        {/* Mode toggle */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:16 }}>
-          <button onClick={()=>setNegMode("negotiate")} style={{ padding:"11px", borderRadius:6, cursor:"pointer", border:`2px solid ${negMode==="negotiate"?C.navy:C.mist}`, background:negMode==="negotiate"?C.navy:"transparent", fontFamily:"sans-serif", textAlign:"left" }}>
-            <div style={{ fontSize:13, fontWeight:700, color:negMode==="negotiate"?"#fff":C.navy }}>💬 Negotiate Price</div>
-            <div style={{ fontSize:10, color:negMode==="negotiate"?"rgba(255,255,255,0.6)":C.slate, marginTop:1 }}>Make offers & counter-offers back and forth</div>
-          </button>
-          <button onClick={()=>setNegMode("agreed")} style={{ padding:"11px", borderRadius:6, cursor:"pointer", border:`2px solid ${negMode==="agreed"?C.brass:C.mist}`, background:negMode==="agreed"?C.brass:"transparent", fontFamily:"sans-serif", textAlign:"left" }}>
-            <div style={{ fontSize:13, fontWeight:700, color:C.navy }}>✅ Enter Agreed Price</div>
-            <div style={{ fontSize:10, color:negMode==="agreed"?"rgba(0,0,0,0.5)":C.slate, marginTop:1 }}>Price already agreed — enter it directly</div>
-          </button>
+      {/* ── BUILD YOUR OFFER ── */}
+      <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.brass}` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+          <div style={{ width:32, height:32, borderRadius:6, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>📝</div>
+          <div>
+            <div style={{ fontSize:16, fontWeight:800, fontFamily:"sans-serif", color:C.navy }}>Build Your Offer</div>
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>Assemble the full package, then send it across.</div>
+          </div>
         </div>
 
-        {/* ── NEGOTIATE MODE: messages + offer form ── */}
-        {negMode==="negotiate" && (
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
-            <div>
-              <h3 style={S.h3}>Messages</h3>
-              <div style={{ height:210, overflowY:"auto", display:"flex", flexDirection:"column", border:`1px solid ${C.mist}`, borderRadius:5, padding:"8px", marginBottom:8 }}>
-                {messages.map((m,i) => (
-                  <div key={i} style={{ alignSelf:m.from==="buyer"?"flex-end":"flex-start", maxWidth:"88%", background:m.from==="buyer"?C.navy:C.sandDark, color:m.from==="buyer"?"#fff":C.text, borderRadius:m.from==="buyer"?"12px 12px 2px 12px":"12px 12px 12px 2px", padding:"8px 12px", fontSize:12, fontFamily:"sans-serif", lineHeight:1.5, marginBottom:5 }}>
-                    <div style={{ fontSize:10, color:m.from==="buyer"?"rgba(255,255,255,0.5)":C.slate, marginBottom:2 }}>{m.from==="buyer"?(parties.buyer.name||"Buyer"):(parties.seller.name||"Seller")} · {m.time}</div>
-                    {m.text}
-                  </div>
-                ))}
-                <div ref={messagesEnd}/>
-              </div>
-              <div style={{ display:"flex", gap:8 }}>
-                <input style={{...S.input, flex:1, fontSize:12}} value={newMsg} onChange={e=>setNewMsg(e.target.value)} placeholder="Type a message…" onKeyDown={e=>e.key==="Enter"&&sendMsg()} />
-                <button style={S.btn} onClick={sendMsg}>Send</button>
-              </div>
-            </div>
-            <div ref={offerFormRef}>
-              <h3 style={S.h3}>Make an Offer</h3>
-              <div style={{ marginBottom:10 }}>
-                <label style={{ ...S.label, marginBottom:5 }}>Offering as</label>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:5 }}>
-                  {[["buyer","🧑‍💼 Buyer"],["seller","⚓ Seller"]].map(([v,lbl]) => (
-                    <button key={v} onClick={()=>setOfferFrom(v)} style={{ ...S.btnOutline, background:offerFrom===v?(v==="buyer"?C.navy:C.brass):"transparent", color:offerFrom===v?(v==="buyer"?"#fff":C.navy):C.navy, fontSize:12, padding:"7px 0", textAlign:"center", fontWeight:700 }}>
-                      {lbl}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <Field label="Offer Amount ($)">
-                <input style={S.input} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder={vessel.askingPrice||"85000"} />
-              </Field>
-              <Field label="Earnest Money Deposit">
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:5 }}>
-                  {["0","5","7.5","10"].map(p => (
-                    <button key={p} onClick={()=>setEscrowPct(p)} style={{ ...S.btnOutline, background:escrowPct===p?C.navy:"transparent", color:escrowPct===p?"#fff":C.navy, fontSize:11, padding:"7px 0", textAlign:"center" }}>
-                      {p==="0"?"No Deposit":`${p}% · ${fmt(Math.round(Number(offerAmt||0)*Number(p)/100))}`}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-              <Field label="Escrow Method" span2>
-                <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
-              </Field>
-              <button style={{...S.btnBrass, width:"100%", gridColumn:"span 2"}} onClick={makeOffer} disabled={!offerAmt}>
-                {offerFrom==="buyer" ? "Submit Offer" : "Submit Counter-Offer"} →
-              </button>
-            </div>
+        {/* Offering as */}
+        <div style={{ marginBottom:14 }}>
+          <label style={{ ...S.label, marginBottom:5 }}>I'm offering as</label>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+            {[["buyer","🧑‍💼 Buyer"],["seller","⚓ Seller"]].map(([v,lbl]) => (
+              <button key={v} onClick={()=>setOfferFrom(v)} style={{ ...S.btnOutline, background:offerFrom===v?(v==="buyer"?C.navy:C.brass):"transparent", color:offerFrom===v?(v==="buyer"?"#fff":C.navy):C.navy, fontSize:13, padding:"9px 0", textAlign:"center", fontWeight:700 }}>{lbl}</button>
+            ))}
           </div>
-        )}
+        </div>
 
-        {/* ── AGREED PRICE MODE ── */}
-        {negMode==="agreed" && (
-          <div>
-            <div style={{ background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:5, padding:"9px 12px", marginBottom:14, fontSize:11, fontFamily:"sans-serif", color:"#7a5500", lineHeight:1.6 }}>
-              Use this when the price was already agreed — by phone, in person, text, or handshake — before coming to BoatClosers. The agreed price populates all your documents directly.
+        {/* 💵 Price & Deposit — always shown */}
+        <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px", marginBottom:10, background:"#fff" }}>
+          <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>💵 Price &amp; Deposit</div>
+          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, margin:"3px 0 12px", lineHeight:1.55 }}>What you're offering, plus the earnest-money deposit that shows you're serious — the deposit is what secures the boat.</div>
+          <Field label="Offer Amount ($)">
+            <input style={S.input} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder={vessel.askingPrice||"85000"} />
+          </Field>
+          <Field label="Earnest Money Deposit">
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:5 }}>
+              {["0","5","7.5","10"].map(p => (
+                <button key={p} onClick={()=>setEscrowPct(p)} style={{ ...S.btnOutline, background:escrowPct===p?C.navy:"transparent", color:escrowPct===p?"#fff":C.navy, fontSize:11, padding:"7px 0", textAlign:"center" }}>
+                  {p==="0"?"None":`${p}%`}
+                </button>
+              ))}
             </div>
-            <Grid2>
-              <Field label="Agreed Purchase Price ($)">
-                <input style={{...S.input, fontSize:16, fontWeight:700}} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder="72000" />
-              </Field>
-              <Field label="How was the price agreed?">
-                <select style={S.select} value={outsideMethod} onChange={e=>setOutsideMethod(e.target.value)}>
-                  <option value="verbal">Verbal — by phone or in person</option>
-                  <option value="text">Text message</option>
-                  <option value="email">Email</option>
-                  <option value="handshake">Handshake deal</option>
-                  <option value="other">Other</option>
-                </select>
-              </Field>
-              <Field label="Earnest Money Deposit">
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:5 }}>
-                  {["0","5","7.5","10"].map(p => (
-                    <button key={p} onClick={()=>setEscrowPct(p)} style={{ ...S.btnOutline, background:escrowPct===p?C.navy:"transparent", color:escrowPct===p?"#fff":C.navy, fontSize:11, padding:"7px 0", textAlign:"center" }}>
-                      {p==="0"?"No Deposit":`${p}% · ${fmt(Math.round(Number(offerAmt||0)*Number(p)/100))}`}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-            </Grid2>
-            <Field label="Escrow Method">
-              <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
-            </Field>
-            <Field label="Notes about the agreement (optional — appears in Purchase Agreement)">
-              <textarea style={{...S.textarea, minHeight:52}} value={verbalNote} onChange={e=>setVerbalNote(e.target.value)} placeholder="e.g. Agreed $72,000 by phone June 3rd. Seller includes trailer. Cash deal. Closing at seller's marina." />
-            </Field>
-            <button style={{...S.btnBrass, width:"100%"}} disabled={!offerAmt} onClick={()=>{
-              const amt = Number(offerAmt);
-              const deposit = Math.round(amt*Number(escrowPct)/100);
-              const offer = { id:Date.now(), amount:amt, escrowPct:Number(escrowPct), escrowPath, deposit, ddDays, closingDate, verbal:true, outsideMethod, status:"pending", time:new Date().toLocaleTimeString() };
-              setOffers(o=>[...o,offer]);
-              setMessages(m=>[...m,{from:"seller", text:`Agreed price entered: ${fmt(amt)} (${outsideMethod}).`, time:new Date().toLocaleTimeString()}]);
-              setNegMode("negotiate");
-            }}>Add Agreed Price to Deal →</button>
+            {escrowPct!=="0" && offerAmt && <div style={{ fontSize:11, color:C.teal, fontFamily:"sans-serif", marginTop:5 }}>Deposit: {fmt(Math.round(Number(offerAmt)*Number(escrowPct)/100))}</div>}
+          </Field>
+          <Field label="Escrow Method">
+            <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
+          </Field>
+        </div>
+
+        {/* 🛡️ Contingencies — opt-in */}
+        <OfferSection icon="🛡️" title="Contingencies" desc="Conditions that must be met or you can walk away with your deposit back — like a passing survey or sea trial. Most serious offers include at least a survey contingency." checked={inclContingencies} onToggle={()=>setInclContingencies(v=>!v)}>
+          <ContingencyPicker value={localContingencies} onChange={setLocalContingencies} paymentType={paymentType} ddEnd={ddStart && ddDays ? addDays(ddStart, Number(ddDays)) : ""} />
+        </OfferSection>
+
+        {/* 📅 Dates & Timeline — opt-in */}
+        <OfferSection icon="📅" title="Dates &amp; Timeline" desc="The due-diligence window to inspect the boat and your target closing date. Leave these out for a simple, as-is cash deal you want to close fast." checked={inclDates} onToggle={()=>setInclDates(v=>!v)}>
+          <label style={S.label}>Due Diligence Period</label>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:6, marginBottom:8 }}>
+            {["7","10","14","Custom"].map(d => (
+              <button key={d} onClick={()=>{ if(d==="Custom") setDdCustom(true); else { setDdDays(d); setDdCustom(false); } }} style={{ ...S.btnOutline, background:(ddDays===d&&!ddCustom)||(d==="Custom"&&ddCustom)?C.navy:"transparent", color:(ddDays===d&&!ddCustom)||(d==="Custom"&&ddCustom)?"#fff":C.navy, padding:"8px 0", textAlign:"center", fontSize:12, fontWeight:700 }}>{d==="Custom"?"Custom":`${d}d`}</button>
+            ))}
           </div>
-        )}
+          {ddCustom && (<div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}><input style={{...S.input, maxWidth:90}} type="number" min="1" max="90" value={ddDays} onChange={e=>setDdDays(e.target.value)} placeholder="21" /><span style={{ fontSize:12, color:C.slate, fontFamily:"sans-serif" }}>days</span></div>)}
+          <Grid2>
+            <Field label="DD Start"><input style={S.input} type="date" value={ddStart} onChange={e=>setDdStart(e.target.value)} /></Field>
+            <Field label="DD End (auto)"><input style={{...S.input, background:C.sandDark, color:C.teal, fontWeight:600}} readOnly value={ddStart && ddDays ? addDays(ddStart,Number(ddDays)) : "—"} /></Field>
+          </Grid2>
+          <label style={{ display:"flex", gap:8, alignItems:"flex-start", cursor:"pointer", margin:"4px 0 10px" }}>
+            <input type="checkbox" checked={ddExtension} onChange={e=>setDdExtension(e.target.checked)} style={{ width:14, height:14, marginTop:2, accentColor:C.teal }} />
+            <span style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>Allow a due-diligence extension if both parties agree</span>
+          </label>
+          {ddExtension && (<Grid2><Field label="Max extension days"><input style={S.input} type="number" value={ddExtDays} onChange={e=>setDdExtDays(e.target.value)} placeholder="7" /></Field><Field label="If extended, deposit:"><select style={S.select} value={ddExtDepositRule} onChange={e=>setDdExtDepositRule(e.target.value)}><option value="returnable">Stays returnable</option><option value="nonrefundable">Becomes non-refundable</option><option value="partial">50% non-refundable</option></select></Field></Grid2>)}
+          <Grid2>
+            <Field label="Target Closing Date"><input style={S.input} type="date" value={closingDate} min={ddStart && ddDays ? addDays(ddStart,Number(ddDays)) : today()} onChange={e=>setClosingDate(e.target.value)} /></Field>
+            <Field label="Payment Method"><select style={S.select} value={paymentType} onChange={e=>setPaymentType(e.target.value)}><option value="cash">All Cash</option><option value="cash_quick">Cash — Quick Close (7 days)</option><option value="finance">Financed</option><option value="other">Other / TBD</option></select></Field>
+          </Grid2>
+          {paymentType==="finance" && (<Field label="Financing contingency (days)"><input style={{...S.input, maxWidth:140}} type="number" value={financeContingency} onChange={e=>setFinanceContingency(e.target.value)} placeholder="14" /></Field>)}
+        </OfferSection>
+
+        {/* 📋 Deposit Terms & Notes — opt-in */}
+        <OfferSection icon="📋" title="Deposit Terms &amp; Notes" desc="Spell out what happens to the deposit if the deal falls through, and add any notes — included gear, a trailer, or special conditions." checked={inclDepositTerms} onToggle={()=>setInclDepositTerms(v=>!v)}>
+          <label style={S.label}>If the deal falls through, the earnest money is…</label>
+          <select style={S.select} value={depositRule} onChange={e=>setDepositRule(e.target.value)}>
+            <option value="fully_returnable">Fully returnable if buyer rejects during due diligence</option>
+            <option value="returnable_cause">Returnable only for cause (survey / title / financing)</option>
+            <option value="nonrefundable_after_dd">Non-refundable after DD if buyer backs out without cause</option>
+            <option value="split">Split 50/50 if buyer backs out</option>
+            <option value="seller_default">If seller defaults, returned plus equal penalty to buyer</option>
+            <option value="custom">Custom — describe below</option>
+          </select>
+          {depositRule==="custom" && (<textarea style={{...S.textarea, minHeight:54, marginTop:8}} value={depositRuleCustom} onChange={e=>setDepositRuleCustom(e.target.value)} placeholder="Describe your agreed deposit terms…" />)}
+          <div style={{ height:10 }}/>
+          <Field label="Notes (optional — appears in the Purchase Agreement)"><textarea style={{...S.textarea, minHeight:48}} value={verbalNote} onChange={e=>setVerbalNote(e.target.value)} placeholder="e.g. Includes trailer and electronics. Closing at seller's marina." /></Field>
+        </OfferSection>
+
+        {/* Submit */}
+        <button style={{...S.btnBrass, width:"100%", marginTop:6, fontSize:15, padding:"12px"}} onClick={makeOffer} disabled={!offerAmt}>
+          {offerFrom==="buyer" ? "Send Offer to Seller" : "Send Counter-Offer to Buyer"} →
+        </button>
+        <div style={{ textAlign:"center", fontSize:10.5, color:C.slate, fontFamily:"sans-serif", marginTop:8, lineHeight:1.5 }}>
+          Free to send and negotiate. You only pay $249 when a full offer is accepted and you're ready to sign.
+        </div>
       </div>
 
       {/* ── NEGOTIATION LADDER ── */}
@@ -960,8 +959,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
                       )}
                       {o.verbal && <span style={{...S.pill, background:C.tealLight, color:C.teal}}>Verbal</span>}
                     </div>
-                    <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:4 }}>
-                      Deposit: {o.escrowPct}% ({fmt(o.deposit)}) · {o.escrowPath==="escrow_com"?"Escrow.com":o.escrowPath==="attorney"?"Attorney":"Direct"} · DD: {o.ddDays} days · Close: {o.closingDate||"TBD"}
+                    <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:4, lineHeight:1.5 }}>
+                      Deposit: {o.escrowPct}% ({fmt(o.deposit)}) · {o.escrowPath==="escrow_com"?"Escrow.com":o.escrowPath==="attorney"?"Attorney":"Direct"}
+                      {o.inclContingencies && o.contingencies?.length ? ` · ${o.contingencies.length} contingenc${o.contingencies.length>1?"ies":"y"}` : " · no contingencies"}
+                      {o.inclDates ? ` · DD ${o.ddDays}d · Close ${o.closingDate||"TBD"}` : " · dates open"}
                     </div>
 
                     {/* status / actions */}
@@ -985,165 +986,33 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
         );
       })()}
 
-      {/* ── DEAL TERMS ── */}
-      <div style={{ ...S.card, borderTop:`3px solid ${C.brass}`, marginBottom:16 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
-          <div style={{ width:32, height:32, borderRadius:6, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>📋</div>
-          <div>
-            <div style={{ fontSize:15, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>Deal Terms</div>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>All terms are part of the negotiation — set them together</div>
+      {/* ââ MESSAGES (collapsible) ââ */}
+      <div style={{ ...S.card, marginBottom:16 }}>
+        <button onClick={()=>setShowMessages(v=>!v)} style={{ display:"flex", width:"100%", justifyContent:"space-between", alignItems:"center", background:"transparent", border:"none", cursor:"pointer", padding:0 }}>
+          <div style={{ textAlign:"left" }}>
+            <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>ð¬ Messages {messages.length>0 && <span style={{ fontSize:11, fontWeight:400, color:C.slate }}>({messages.length})</span>}</div>
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:2 }}>Chat with the other party alongside your offers.</div>
           </div>
-        </div>
-
-        <hr style={S.divider}/>
-
-        {/* ── DUE DILIGENCE ── */}
-        <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>Due Diligence Period</div>
-          <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12 }}>Buyer's window to survey, check title, get insurance, and sea trial. They may renegotiate or walk away during this period.</div>
-
-          {/* Preset buttons */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:6, marginBottom:10 }}>
-            {["7","10","14","Custom"].map(d => (
-              <button key={d} onClick={()=>{ if(d==="Custom") setDdCustom(true); else { setDdDays(d); setDdCustom(false); } }} style={{ ...S.btnOutline, background:(ddDays===d&&!ddCustom)||(d==="Custom"&&ddCustom)?C.navy:"transparent", color:(ddDays===d&&!ddCustom)||(d==="Custom"&&ddCustom)?"#fff":C.navy, padding:"10px 0", textAlign:"center", fontSize:13, fontWeight:700 }}>
-                {d==="Custom" ? "Custom" : `${d} Days`}
-              </button>
-            ))}
-          </div>
-
-          {/* Custom DD input */}
-          {ddCustom && (
-            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-              <input style={{...S.input, maxWidth:100}} type="number" min="1" max="90" value={ddDays} onChange={e=>setDdDays(e.target.value)} placeholder="e.g. 21" />
-              <span style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>days</span>
-            </div>
-          )}
-
-          <Grid2>
-            <Field label="Due Diligence Start Date">
-              <input style={S.input} type="date" value={ddStart} onChange={e=>setDdStart(e.target.value)} />
-            </Field>
-            <Field label="Due Diligence End (auto-calculated)">
-              <input style={{...S.input, background:C.sandDark, color:C.teal, fontWeight:600}} readOnly value={ddStart && ddDays ? addDays(ddStart,Number(ddDays)) : "—"} />
-            </Field>
-          </Grid2>
-
-          {/* Extension */}
-          <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:5, padding:"10px 14px", marginTop:4 }}>
-            <label style={{ display:"flex", gap:10, alignItems:"flex-start", cursor:"pointer" }}>
-              <input type="checkbox" checked={ddExtension} onChange={e=>setDdExtension(e.target.checked)} style={{ width:15, height:15, marginTop:2, accentColor:C.teal, flexShrink:0 }} />
-              <div>
-                <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.teal }}>Allow due diligence extension if both parties agree</div>
-                <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:2 }}>Either party may request an extension. It only takes effect with written agreement from both buyer and seller.</div>
-              </div>
-            </label>
-            {ddExtension && (
-              <div style={{ marginTop:10, marginLeft:25 }}>
-                <Grid2>
-                  <Field label="Max extension days">
-                    <input style={S.input} type="number" min="1" max="30" value={ddExtDays} onChange={e=>setDdExtDays(e.target.value)} placeholder="7" />
-                  </Field>
-                  <Field label="If extension requested, deposit:">
-                    <select style={S.select} value={ddExtDepositRule} onChange={e=>setDdExtDepositRule(e.target.value)}>
-                      <option value="returnable">Deposit remains fully returnable</option>
-                      <option value="nonrefundable">Deposit becomes non-refundable</option>
-                      <option value="partial">Deposit partially non-refundable (50%)</option>
-                    </select>
-                  </Field>
-                </Grid2>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <hr style={S.divider}/>
-<ContingencyPicker
-          value={data.selectedContingencies}
-          onChange={(sel)=>setData(d=>({...d, selectedContingencies: sel}))}
-          paymentType={paymentType}
-          ddEnd={ddStart && ddDays ? addDays(ddStart, Number(ddDays)) : ""}
-        />
-        {/* ── DEPOSIT RETURN / KEEP TERMS ── */}
-        <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>Earnest Money — Return or Forfeiture Terms</div>
-          <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10 }}>Define what happens to the deposit if the deal falls through. This language goes directly into the Purchase Agreement.</div>
-          <select style={S.select} value={depositRule} onChange={e=>setDepositRule(e.target.value)}>
-            <option value="fully_returnable">Fully returnable if buyer rejects during due diligence for any reason</option>
-            <option value="returnable_cause">Returnable only if buyer rejects for cause (survey failure, title defect, financing denial)</option>
-            <option value="nonrefundable_after_dd">Non-refundable after due diligence period ends if buyer backs out without cause</option>
-            <option value="split">Split — 50% returned to buyer, 50% kept by seller if buyer backs out</option>
-            <option value="seller_default">If seller defaults, deposit returned plus equal penalty to buyer</option>
-            <option value="custom">Custom — describe below</option>
-          </select>
-          {depositRule==="custom" && (
-            <textarea style={{...S.textarea, minHeight:60, marginTop:8}} value={depositRuleCustom} onChange={e=>setDepositRuleCustom(e.target.value)} placeholder="Describe your agreed deposit return / forfeiture terms in plain language…" />
-          )}
-        </div>
-
-        <hr style={S.divider}/>
-
-        {/* ── CLOSING DATE + PAYMENT ── */}
-        <div>
-          <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>Projected Closing Date & Payment</div>
-          <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12 }}>Closing date and payment method are part of the negotiation. A cash buyer closing quickly is a stronger offer.</div>
-
-          <Grid2>
-            <Field label="Target Closing Date">
-              <input style={S.input} type="date" value={closingDate} min={ddStart && ddDays ? addDays(ddStart,Number(ddDays)) : today()} onChange={e=>setClosingDate(e.target.value)} />
-            </Field>
-            <Field label="Days Until Closing">
-              <input style={{...S.input, background:C.sandDark, color:C.slate}} readOnly value={closingDate ? `${Math.max(0,Math.ceil((new Date(closingDate)-new Date())/86400000))} days from today` : "—"} />
-            </Field>
-          </Grid2>
-
-          {/* Payment type */}
-          <div style={{ marginBottom:12 }}>
-            <label style={S.label}>Closing Payment Method</label>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
-              {[
-                ["cash","💵 All Cash","No lender. Fastest closing. Strongest offer."],
-                ["finance","🏦 Financed","Buyer obtaining marine financing. Subject to loan approval."],
-                ["cash_quick","⚡ Cash — Quick Close","All cash with closing within 7 days of accepted offer."],
-                ["other","📋 Other / TBD","Terms to be specified."],
-              ].map(([v,l,d])=>(
-                <button key={v} onClick={()=>setPaymentType(v)} style={{ textAlign:"left", padding:"10px 12px", borderRadius:5, cursor:"pointer", border:`2px solid ${paymentType===v?C.navy:C.mist}`, background:paymentType===v?C.navy:"transparent", color:paymentType===v?"#fff":C.navy }}>
-                  <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif" }}>{l}</div>
-                  <div style={{ fontSize:10, fontFamily:"sans-serif", color:paymentType===v?"rgba(255,255,255,0.65)":C.slate, marginTop:2 }}>{d}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Projected closing payment breakdown */}
-          {offerAmt && (
-            <div style={{ background:C.sandDark, borderRadius:6, padding:"12px 14px", border:`1px solid ${C.mist}` }}>
-              <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>Projected Closing Payment</div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, fontFamily:"sans-serif", fontSize:12 }}>
-                {[
-                  ["Purchase Price", fmt(Number(offerAmt))],
-                  ["Earnest Money (credit)", `− ${fmt(Math.round(Number(offerAmt)*Number(escrowPct)/100))}`],
-                  ["Balance Due at Closing", fmt(Math.max(0, Number(offerAmt) - Math.round(Number(offerAmt)*Number(escrowPct)/100)))],
-                  ["Payment Type", paymentType==="cash"?"All Cash":paymentType==="cash_quick"?"Cash / Quick Close":paymentType==="finance"?"Financed":"TBD"],
-                ].map(([l,v])=>(
-                  <div key={l} style={{ display:"contents" }}>
-                    <div style={{ color:C.slate, padding:"4px 0", borderBottom:`1px solid ${C.mist}` }}>{l}</div>
-                    <div style={{ fontWeight:700, color:C.navy, padding:"4px 0", borderBottom:`1px solid ${C.mist}`, textAlign:"right" }}>{v}</div>
-                  </div>
-                ))}
-              </div>
-              {paymentType==="finance" && (
-                <div style={{ marginTop:10 }}>
-                  <label style={S.label}>Financing contingency deadline (days from acceptance)</label>
-                  <input style={{...S.input, maxWidth:160}} type="number" value={financeContingency} onChange={e=>setFinanceContingency(e.target.value)} placeholder="14" />
-                  <div style={{ fontSize:10, fontFamily:"sans-serif", color:C.slate, marginTop:4 }}>If buyer cannot obtain financing within this window, they may withdraw and receive their deposit back.</div>
+          <span style={{ fontSize:13, color:C.slate }}>{showMessages?"▲":"▼"}</span>
+        </button>
+        {showMessages && (
+          <div style={{ marginTop:12 }}>
+            <div style={{ height:200, overflowY:"auto", display:"flex", flexDirection:"column", border:`1px solid ${C.mist}`, borderRadius:5, padding:"8px", marginBottom:8 }}>
+              {messages.length===0 && <div style={{ fontSize:12, color:C.slate, fontFamily:"sans-serif", textAlign:"center", margin:"auto" }}>No messages yet. Send an offer or a note to start.</div>}
+              {messages.map((m,i) => (
+                <div key={i} style={{ alignSelf:m.from==="buyer"?"flex-end":"flex-start", maxWidth:"88%", background:m.from==="buyer"?C.navy:C.sandDark, color:m.from==="buyer"?"#fff":C.text, borderRadius:m.from==="buyer"?"12px 12px 2px 12px":"12px 12px 12px 2px", padding:"8px 12px", fontSize:12, fontFamily:"sans-serif", lineHeight:1.5, marginBottom:5 }}>
+                  <div style={{ fontSize:10, color:m.from==="buyer"?"rgba(255,255,255,0.5)":C.slate, marginBottom:2 }}>{m.from==="buyer"?(parties.buyer.name||"Buyer"):(parties.seller.name||"Seller")} · {m.time}</div>
+                  {m.text}
                 </div>
-              )}
-              {paymentType==="cash_quick" && (
-                <div style={{ marginTop:8, fontSize:11, fontFamily:"sans-serif", color:C.teal }}>⚡ Quick close selected — buyer commits to closing within 7 days of offer acceptance. This will be noted in the Purchase Agreement.</div>
-              )}
+              ))}
+              <div ref={messagesEnd}/>
             </div>
-          )}
-        </div>
+            <div style={{ display:"flex", gap:8 }}>
+              <input style={{...S.input, flex:1, fontSize:12}} value={newMsg} onChange={e=>setNewMsg(e.target.value)} placeholder="Type a message…" onKeyDown={e=>e.key==="Enter"&&sendMsg()} />
+              <button style={S.btn} onClick={sendMsg}>Send</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── AGREED PRICE SUMMARY if offer accepted ── */}
