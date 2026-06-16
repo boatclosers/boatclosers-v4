@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
 export default function InvitePage() {
-  const { token } = useParams();
+  const params = useParams();
+const token = Array.isArray(params.token) ? params.token[0] : params.token;
   const router = useRouter();
   const [status, setStatus] = useState('checking');
 
