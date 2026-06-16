@@ -352,7 +352,14 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 .bc-doc .reqtally{margin-top:10px;font-size:12.5px;color:${C.navy}}
 .bc-doc .reqtally b{color:${C.green}}
 .bc-doc .footer-flag{text-align:center;margin-top:24px;font-size:9px;color:${C.slate};letter-spacing:.12em;text-transform:uppercase;font-family:sans-serif}
-.bc-doc .val{font-weight:600;color:${C.navy}}`;
+.bc-doc .val{font-weight:600;color:${C.navy}}
+.bc-docrow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.bc-docbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0}
+@media(max-width:640px){
+  .bc-docrow{flex-direction:column;gap:10px}
+  .bc-docbtns{justify-content:flex-start;width:100%}
+  .bc-docbtns button{flex:1 1 auto;justify-content:center;min-width:84px}
+}`;
 
   // ── DOCUMENTS VIEW ──
   return (
@@ -434,7 +441,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
               return (
               <div key={doc.id} id={"bcdoc-"+doc.id}>
                 <div style={{ padding:"11px 0" }}>
-                  <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12 }}>
+                  <div className="bc-docrow">
                     <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
                       <div style={{ width:30, height:30, borderRadius:5, flexShrink:0, background: signed[doc.id] ? C.greenLight : C.sandDark, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>
                         {signed[doc.id] ? (signed[doc.id].uploaded ? "📎" : signed[doc.id].manual ? "✍️" : "✅") : "📄"}
@@ -451,7 +458,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                         </div>
                       </div>
                     </div>
-                    <div style={{ display:"flex", gap:5, flexShrink:0, flexWrap:"wrap", justifyContent:"flex-end" }}>
+                    <div className="bc-docbtns">
                       <ActionBtn docId={doc.id} action="view"   icon="👁" label="View"   />
                       {doc.kind !== "upload" && !needsNotary && <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />}
                       {doc.kind !== "upload" && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
