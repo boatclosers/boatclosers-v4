@@ -3011,8 +3011,22 @@ export default function BoatClosers() {
   const [aiOpen, setAiOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [booting, setBooting] = useState(true);
+  // The logged-in user's role ON THIS SPECIFIC DEAL (buyer or seller),
+  // computed from the deal's party columns — NOT their signup choice.
+  const [myDealRole, setMyDealRole] = useState(null);
 
   const saveTimer = useRef(null);
+
+  // Work out THIS user's role on THIS deal from the deal's party columns.
+  // party_a is the initiator (role = initiator_role), party_b is the invited
+  // party (role = invite_role). Falls back to their signup role only if the
+  // deal has no party info yet (e.g. a brand-new unsaved deal).
+  const computeDealRole = (deal, userId, fallbackRole) => {
+    if (!deal || !userId) return fallbackRole || "buyer";
+    if (deal.party_a_user_id === userId) return deal.initiator_role || fallbackRole || "buyer";
+    if (deal.party_b_user_id === userId) return deal.invite_role || fallbackRole || "seller";
+    return fallbackRole || "buyer";
+  };
   const latestState = useRef({});
 
   // Keep a live ref to current state for debounced saving
@@ -3036,6 +3050,7 @@ export default function BoatClosers() {
               setUser({ name: session.name, email: session.email, role: session.role, userId: session.userId, token: session.token });
               if (data?.deal) {
                 setDealId(data.deal.id);
+                setMyDealRole(computeDealRole(data.deal, session.userId, session.role));
                 setVessel(data.deal.vessel || emptyVessel);
                 setParties(data.deal.parties || emptyParties);
                 setNegotiate(data.deal.negotiate || emptyNeg);
@@ -3124,6 +3139,7 @@ export default function BoatClosers() {
         if (data?.deal) {
           // Returning user — restore everything from the database.
           setDealId(data.deal.id);
+          setMyDealRole(computeDealRole(data.deal, authData.userId, authData.role));
           setVessel(data.deal.vessel || emptyVessel);
           setParties(data.deal.parties || emptyParties);
           setNegotiate(data.deal.negotiate || emptyNeg);
@@ -3132,6 +3148,7 @@ export default function BoatClosers() {
           if (typeof data.deal.step === "number") { setStep(data.deal.step); setMaxStep(data.deal.max_step || data.deal.step); }
         } else {
           // Brand new user — start a fresh deal with their name pre-filled.
+          setMyDealRole(authData.role || "buyer");
           setParties(p => ({ ...p, [authData.role]: { ...p[authData.role], name: authData.name, email: authData.email } }));
           setTimeout(() => scheduleSave(), 150);
         }
@@ -3183,7 +3200,7 @@ export default function BoatClosers() {
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
           {saving && <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontFamily:"sans-serif" }}>Saving…</span>}
-          {user && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1 }}>{user.role}</span>}
+          {user && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1 }}>{myDealRole || user.role}</span>}
           {vessel.year && <span style={{ fontSize:11, color:C.brass, fontFamily:"sans-serif" }}>{vessel.year} {vessel.make} {vessel.model}</span>}
           <button style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }} onClick={handleSignOut}>Sign Out</button>
         </div>
