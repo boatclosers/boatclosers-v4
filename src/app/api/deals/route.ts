@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sendEmail, emailLayout } from '@/lib/sendEmail'
 
 const SUPABASE_URL = 'https://xoihnmkgncuocxiknvgs.supabase.co'
 
@@ -19,6 +20,72 @@ async function getUserId(req: Request): Promise<string | null> {
     return data.user.id
   } catch {
     return null
+  }
+}
+
+function fmtMoney(n: number) {
+  if (typeof n !== 'number') return ''
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
+}
+
+async function notifyOnDealChange(previous: any, updated: any) {
+  try {
+    const buyerEmail = updated?.parties?.buyer?.email
+    const sellerEmail = updated?.parties?.seller?.email
+    const vesselName = updated?.vessel?.name || updated?.vessel?.makeModel || 'the vessel'
+
+    const prevOffers = previous?.negotiate?.offers || []
+    const newOffers = updated?.negotiate?.offers || []
+
+    if (newOffers.length > prevOffers.length) {
+      const latest = newOffers[newOffers.length - 1]
+      const recipientEmail = latest?.from === 'buyer' ? sellerEmail : buyerEmail
+      const verb = latest?.from === 'buyer' ? 'sent an offer' : 'sent a counter-offer'
+
+      if (recipientEmail) {
+        await sendEmail({
+          to: recipientEmail,
+          subject: `New offer on your BoatClosers deal`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">You have a new offer</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              The other party has ${verb} of <strong>${fmtMoney(latest?.amount)}</strong> on
+              <strong>${vesselName}</strong>.
+            </p>
+            <p style="text-align:center; margin: 24px 0;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+                Review the Offer
+              </a>
+            </p>
+          `)
+        })
+      }
+    }
+
+    const justLocked = updated?.dealLocked && !previous?.dealLocked
+    if (justLocked) {
+      const recipients = [buyerEmail, sellerEmail].filter(Boolean)
+      for (const email of recipients) {
+        await sendEmail({
+          to: email,
+          subject: `Your BoatClosers deal is locked`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">Deal Locked</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              Both parties have signed the Purchase Agreement for <strong>${vesselName}</strong>
+              and the deal is now binding. You can now proceed with the remaining closing documents.
+            </p>
+            <p style="text-align:center; margin: 24px 0;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+                Go to Your Deal
+              </a>
+            </p>
+          `)
+        })
+      }
+    }
+  } catch (e) {
+    console.error('notifyOnDealChange failed:', e)
   }
 }
 
@@ -58,11 +125,16 @@ export async function POST(req: Request) {
     }
 
     if (dealId) {
+      const { data: existingRow } = await admin()
+        .from('deals').select('*').eq('id', dealId).single()
+
       const { data, error } = await admin()
         .from('deals').update(payload).eq('id', dealId)
         .or(`initiator_id.eq.${userId},party_b_user_id.eq.${userId}`)
         .select().single()
       if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+      notifyOnDealChange(existingRow, data)
       return NextResponse.json({ deal: data })
     }
 
@@ -73,9 +145,14 @@ export async function POST(req: Request) {
       .order('created_at', { ascending: false }).limit(1)
 
     if (existing && existing.length) {
+      const { data: existingRow } = await admin()
+        .from('deals').select('*').eq('id', existing[0].id).single()
+
       const { data, error } = await admin()
         .from('deals').update(payload).eq('id', existing[0].id).select().single()
       if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+      notifyOnDealChange(existingRow, data)
       return NextResponse.json({ deal: data })
     }
 
