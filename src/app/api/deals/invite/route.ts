@@ -60,3 +60,13 @@ export async function POST(req: Request) {
       </p>
       <p style="color:#94a3b8; font-size:12px;">
         If you weren't expecting this, you can safely ignore this email.
+      </p>
+    `)
+  });
+
+  if (!emailResult.success) {
+    console.error('Invite email failed to send:', emailResult.error);
+  }
+
+  return NextResponse.json({ success: true, inviteUrl, token, emailSent: emailResult.success });
+}
