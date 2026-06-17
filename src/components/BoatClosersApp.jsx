@@ -3014,6 +3014,9 @@ export default function BoatClosers() {
   // The logged-in user's role ON THIS SPECIFIC DEAL (buyer or seller),
   // computed from the deal's party columns — NOT their signup choice.
   const [myDealRole, setMyDealRole] = useState(null);
+  // Holds a human-readable reason if claiming an invite fails, so the user
+  // (and we) aren't left staring at a blank deal with no explanation.
+  const [inviteError, setInviteError] = useState(null);
 
   const saveTimer = useRef(null);
 
@@ -3118,11 +3121,22 @@ export default function BoatClosers() {
     try {
       const pendingToken = sessionStorage.getItem("pendingInviteToken");
       if (pendingToken) {
-        await fetch("/api/deals/invite/accept", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: pendingToken, userId: authData.userId })
-        }).catch(() => {});
+        try {
+          const acceptRes = await fetch("/api/deals/invite/accept", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: pendingToken, userId: authData.userId })
+          });
+          const acceptData = await acceptRes.json();
+          if (!acceptRes.ok) {
+            // Surface the real reason instead of silently landing on a blank deal.
+            setInviteError(acceptData?.error || "Could not connect you to that deal.");
+            console.error("Invite accept failed:", acceptData?.error);
+          }
+        } catch (err) {
+          setInviteError("Network problem connecting you to the deal. Please try the invite link again.");
+          console.error("Invite accept network error:", err);
+        }
         sessionStorage.removeItem("pendingInviteToken");
       }
     } catch (e) {}
@@ -3185,6 +3199,11 @@ export default function BoatClosers() {
 
   return (
     <div style={S.app}>
+      {inviteError && (
+        <div style={{ background:"#fef2f2", borderBottom:"1px solid #fecaca", color:"#b91c1c", padding:"10px 16px", fontSize:13, fontFamily:"sans-serif", textAlign:"center" }}>
+          {inviteError} <span onClick={()=>setInviteError(null)} style={{ marginLeft:10, cursor:"pointer", fontWeight:700 }}>✕</span>
+        </div>
+      )}
       <style>{`
         .bc-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
         .bc-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
