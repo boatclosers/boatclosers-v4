@@ -590,13 +590,21 @@ function StepNegotiateTerms({ vessel, parties, data, setData, onNext, onBack }) 
       // opt-in deposit terms / notes
       inclDepositTerms, depositRule: inclDepositTerms ? depositRule : "", depositRuleCustom, note: verbalNote,
     };
-    setOffers(o => [...o.map(of => of.status==="pending" ? {...of, status:"countered"} : of), offer]);
+    setOffers(o => {
+      const updated = [...o.map(of => of.status==="pending" ? {...of, status:"countered"} : of), offer];
+      setData(d => ({...d, offers: updated}));
+      return updated;
+    });
     const escrowLabel = escrowPath==="escrow_com"?"Escrow.com":escrowPath==="attorney"?"Third Party Attorney":"Direct to Seller";
     const parts = [`${offerFrom==="buyer"?"Offer":"Counter"}: ${fmt(amt)}`];
     parts.push(deposit>0?`${fmt(deposit)} (${escrowPct}%) earnest via ${escrowLabel}`:"No deposit");
     if (inclContingencies && localContingencies.length) parts.push(`${localContingencies.length} contingenc${localContingencies.length>1?"ies":"y"}`);
     if (inclDates) parts.push(`DD ${ddDays}d · Close ${closingDate||"TBD"}`);
-    setMessages(m => [...m, { from:offerFrom, text:parts.join(" · "), time:new Date().toLocaleTimeString() }]);
+    setMessages(m => {
+      const updated = [...m, { from:offerFrom, text:parts.join(" · "), time:new Date().toLocaleTimeString() }];
+      setData(d => ({...d, messages: updated}));
+      return updated;
+    });
   };
 
   // Counter an offer: pre-fill the form with its terms, flip to the other party, scroll to the form.
