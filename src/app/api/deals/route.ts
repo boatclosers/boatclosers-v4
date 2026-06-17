@@ -62,6 +62,63 @@ async function notifyOnDealChange(previous: any, updated: any) {
       }
     }
 
+    // Document signing — compare which docs were signed before vs now.
+    const prevSigned = previous?.docs_data?.signedDocs || {}
+    const newSigned = updated?.docs_data?.signedDocs || {}
+    const prevSignedIds = Object.keys(prevSigned)
+    const newSignedIds = Object.keys(newSigned)
+
+    // Purchase Agreement gets its own immediate email the first time it's signed,
+    // because the PA is what makes the deal real and binding.
+    const paJustSigned = !prevSigned['purchase_agreement'] && !!newSigned['purchase_agreement']
+    if (paJustSigned) {
+      const recipients = [buyerEmail, sellerEmail].filter(Boolean)
+      for (const email of recipients) {
+        await sendEmail({
+          to: email,
+          subject: `Purchase Agreement signed — BoatClosers`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">Purchase Agreement Signed</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              The Purchase &amp; Sale Agreement for <strong>${vesselName}</strong> has been signed.
+              This is the binding contract for the deal.
+            </p>
+            <p style="text-align:center; margin: 24px 0;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+                View the Agreement
+              </a>
+            </p>
+          `)
+        })
+      }
+    }
+
+    // Any other documents getting signed → one batched email noting progress,
+    // sent at this save point (which is when the Documents step is completed).
+    const otherNewlySigned = newSignedIds.filter(id => id !== 'purchase_agreement' && !prevSignedIds.includes(id))
+    if (otherNewlySigned.length > 0) {
+      const recipients = [buyerEmail, sellerEmail].filter(Boolean)
+      const count = otherNewlySigned.length
+      for (const email of recipients) {
+        await sendEmail({
+          to: email,
+          subject: `Documents signed on your BoatClosers deal`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">Documents Signed</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              ${count} document${count > 1 ? 's have' : ' has'} been signed on your deal for
+              <strong>${vesselName}</strong>. Check your deal for the latest status.
+            </p>
+            <p style="text-align:center; margin: 24px 0;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+                View Documents
+              </a>
+            </p>
+          `)
+        })
+      }
+    }
+
     const justLocked = updated?.dealLocked && !previous?.dealLocked
     if (justLocked) {
       const recipients = [buyerEmail, sellerEmail].filter(Boolean)
