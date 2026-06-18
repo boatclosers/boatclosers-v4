@@ -978,7 +978,21 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, dealId, on
         </div>
       </div>
 
-      {/* ── BUILD YOUR OFFER ── */}
+      {/* ── BUILD YOUR OFFER (frozen once the deal is locked) ── */}
+      {acceptedOffer ? (
+        <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.green}` }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+            <div style={{ width:32, height:32, borderRadius:6, background:C.green, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>🔒</div>
+            <div>
+              <div style={{ fontSize:16, fontWeight:800, fontFamily:"sans-serif", color:C.navy }}>Terms Locked</div>
+              <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>The Purchase Agreement is signed and binding.</div>
+            </div>
+          </div>
+          <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, background:C.sandDark, borderRadius:6, padding:"12px 14px" }}>
+            The agreed terms are frozen for both parties and can't be edited here. The only change allowed now is the <b>buyer's vessel decision during due diligence</b> — accept as-is, reject, or propose a new price (which is recorded as an <b>addendum</b> to the signed Purchase Agreement, not a change to it).
+          </div>
+        </div>
+      ) : (
       <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.brass}` }}>
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
           <div style={{ width:32, height:32, borderRadius:6, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>📝</div>
@@ -1113,6 +1127,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, dealId, on
           </div>
         )}
       </div>
+      )}
 
       {/* ── NEGOTIATION LADDER ── */}
       {offers.length > 0 && (() => {
@@ -1729,14 +1744,26 @@ function StepDueDiligence({ data, setData, vessel, parties, terms, negotiate, my
 
         {outcome==="propose_price" && (
           <div style={{ background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:6, padding:"14px 16px", marginBottom:14 }}>
-            <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:6 }}>Propose a New Final Price</div>
+            <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:6 }}>Propose a New Final Price — Purchase Agreement Addendum</div>
             <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginBottom:12, lineHeight:1.5 }}>
-              Due diligence turned up something that changes the value. Proposing a new price reopens negotiation — the seller can accept, counter, or decline. The previously agreed price is no longer locked.
+              Due diligence turned up something that changes the value. This does <b>not</b> rewrite the signed Purchase Agreement — instead it creates an <b>addendum</b> proposing a price adjustment. The signed PA stays intact; the seller can accept or decline this addendum.
             </div>
             <label style={S.label}>New proposed final price</label>
             <input style={{...S.input, marginBottom:10}} type="number" value={newPrice} onChange={e=>{ setNewPrice(e.target.value); set("proposedNewPrice", e.target.value); }} placeholder="e.g. 142000" />
-            <label style={S.label}>Reason (recorded for the seller)</label>
+            <label style={S.label}>Reason (recorded on the addendum)</label>
             <textarea style={{...S.textarea, minHeight:60}} value={newPriceReason} onChange={e=>{ setNewPriceReason(e.target.value); set("proposedNewPriceReason", e.target.value); }} placeholder="e.g. Survey found soft transom requiring ~$8k repair; adjusting offer accordingly." />
+            {newPrice && (
+              <div style={{ marginTop:12, border:`1px solid ${C.mist}`, borderRadius:6, overflow:"hidden" }}>
+                <div style={{ background:C.navy, color:"#fff", padding:"8px 12px", fontSize:11, fontWeight:700, fontFamily:"sans-serif", letterSpacing:0.5 }}>ADDENDUM TO PURCHASE AGREEMENT</div>
+                <div style={{ background:"#fff", padding:"12px 14px", fontSize:11.5, fontFamily:"sans-serif", color:C.text, lineHeight:1.7 }}>
+                  <div>This addendum amends the executed Purchase Agreement for <b>{vessel.year} {vessel.make} {vessel.model}</b>.</div>
+                  <div style={{ marginTop:6 }}>Original agreed price: <b>{fmt(Number(negotiate.agreedPrice||0))}</b></div>
+                  <div>Proposed amended price: <b>{fmt(Number(newPrice))}</b></div>
+                  {newPriceReason && <div style={{ marginTop:6 }}>Basis: {newPriceReason}</div>}
+                  <div style={{ marginTop:8, fontSize:10.5, color:C.slate }}>Pending seller acceptance. All other terms of the original Purchase Agreement remain in full effect.</div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
