@@ -216,17 +216,41 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Deal not found.' }, { status: 404 })
       }
 
-      const isMember = existingRow.initiator_id === userId || existingRow.party_b_user_id === userId
+      const isInitiator = existingRow.initiator_id === userId || existingRow.party_a_user_id === userId
+      const isPartyBmember = existingRow.party_b_user_id === userId
+      const isMember = isInitiator || isPartyBmember
       if (!isMember) {
         return NextResponse.json({ error: 'You are not a party on this deal.' }, { status: 403 })
       }
 
-      // Merge parties field-by-field so one side can never erase the other's info.
-      const mergedParties = {
-        ...(existingRow.parties || {}),
-        ...(parties || {}),
-        buyer: { ...((existingRow.parties || {}).buyer || {}), ...((parties || {}).buyer || {}) },
-        seller: { ...((existingRow.parties || {}).seller || {}), ...((parties || {}).seller || {}) }
+      // Determine which side this user owns. initiator_role tells us party A's
+      // side; the other side belongs to party B.
+      const initiatorRole = existingRow.initiator_role || 'buyer'
+      const otherRole = initiatorRole === 'buyer' ? 'seller' : 'buyer'
+      const mySide = isInitiator ? initiatorRole : otherRole
+      const theirSide = mySide === 'buyer' ? 'seller' : 'buyer'
+
+      // Once the second party has joined, each side may only write its OWN
+      // contact sub-object — the other side is preserved untouched. Before the
+      // second party joins, the initiator may still pre-fill both sides.
+      const bothPresent = !!existingRow.party_b_user_id
+      const existingParties = existingRow.parties || {}
+      const incomingParties = parties || {}
+      let mergedParties
+      if (bothPresent) {
+        mergedParties = {
+          ...existingParties,
+          [mySide]: { ...(existingParties[mySide] || {}), ...(incomingParties[mySide] || {}) },
+          [theirSide]: { ...(existingParties[theirSide] || {}) } // locked: keep as-is
+        }
+      } else {
+        // Pre-join: initiator can fill either side.
+        mergedParties = {
+          ...existingParties,
+          ...incomingParties,
+          buyer: { ...(existingParties.buyer || {}), ...(incomingParties.buyer || {}) },
+          seller: { ...(existingParties.seller || {}), ...(incomingParties.seller || {}) }
+        }
       }
       const mergedPayload = { ...payload, parties: mergedParties }
 
