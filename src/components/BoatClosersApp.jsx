@@ -1722,8 +1722,33 @@ function StepDueDiligence({ data, setData, vessel, parties, terms, negotiate, my
       <div style={{...S.card, marginTop:16}}>
         <h3 style={S.h3}>Buyer's Vessel Decision</h3>
         {!isBuyer ? (
-          <div style={{ background:C.sandDark, borderRadius:6, padding:"14px 16px", fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
-            🔒 Only the buyer makes the vessel decision after due diligence. {outcome==="accept" ? "The buyer has ACCEPTED the vessel." : outcome==="reject" ? "The buyer has REJECTED the vessel." : outcome==="propose_price" ? `The buyer has PROPOSED A NEW PRICE${data.proposedNewPrice?": "+fmt(Number(data.proposedNewPrice)):""}.` : "Awaiting the buyer's decision (accept as-is, reject, or propose a new final price)."}
+          <div>
+            <div style={{ background:C.sandDark, borderRadius:6, padding:"14px 16px", fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom: outcome==="propose_price"?14:0 }}>
+              🔒 Only the buyer makes the vessel decision after due diligence. {outcome==="accept" ? "The buyer has ACCEPTED the vessel." : outcome==="reject" ? "The buyer has REJECTED the vessel." : outcome==="propose_price" ? `The buyer has PROPOSED A NEW PRICE${data.proposedNewPrice?": "+fmt(Number(data.proposedNewPrice)):""}.` : "Awaiting the buyer's decision (accept as-is, reject, or propose a new final price)."}
+            </div>
+            {outcome==="propose_price" && data.proposedNewPrice && (
+              <div style={{ border:`1px solid ${C.brass}`, borderRadius:8, overflow:"hidden" }}>
+                <div style={{ background:C.navy, color:"#fff", padding:"10px 14px", fontSize:12, fontWeight:700, fontFamily:"sans-serif", letterSpacing:0.5 }}>ADDENDUM TO PURCHASE AGREEMENT — Your Response Needed</div>
+                <div style={{ background:"#fff", padding:"14px 16px", fontFamily:"sans-serif" }}>
+                  <div style={{ fontSize:12, color:C.text, lineHeight:1.7 }}>
+                    The buyer proposes amending the agreed price on <b>{vessel.year} {vessel.make} {vessel.model}</b>.
+                  </div>
+                  <div style={{ fontSize:12, color:C.text, marginTop:6 }}>Original price: <b>{fmt(Number(negotiate.agreedPrice||0))}</b></div>
+                  <div style={{ fontSize:12, color:C.text }}>Proposed price: <b>{fmt(Number(data.proposedNewPrice))}</b></div>
+                  {data.proposedNewPriceReason && <div style={{ fontSize:12, color:C.slate, marginTop:6 }}>Basis: {data.proposedNewPriceReason}</div>}
+                  {data.addendumStatus ? (
+                    <div style={{ marginTop:12, fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", color: data.addendumStatus==="accepted"?C.green:C.red }}>
+                      {data.addendumStatus==="accepted" ? "✓ You accepted this addendum — the amended price applies." : "✗ You declined this addendum — the original price stands."}
+                    </div>
+                  ) : (
+                    <div style={{ display:"flex", gap:10, marginTop:14 }}>
+                      <button onClick={()=>set("addendumStatus","accepted")} style={{ ...S.btn, background:C.green, flex:1, fontSize:13, padding:"10px 0" }}>✓ Accept Addendum</button>
+                      <button onClick={()=>set("addendumStatus","declined")} style={{ ...S.btnOutline, flex:1, fontSize:13, padding:"10px 0", color:C.red, borderColor:C.red }}>✗ Decline</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
         <>
