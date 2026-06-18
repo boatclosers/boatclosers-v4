@@ -150,6 +150,31 @@ export async function GET(req: Request) {
   const userId = await getUserId(req)
   if (!userId) return NextResponse.json({ deal: null })
   try {
+    // If a specific dealId is requested (invited guest arriving from the join
+    // flow), load THAT deal directly and make sure this user is attached to it.
+    const url = new URL(req.url)
+    const dealId = url.searchParams.get('dealId')
+    if (dealId) {
+      const { data: row } = await admin()
+        .from('deals').select('*').eq('id', dealId).single()
+      if (row) {
+        const isInitiator = row.initiator_id === userId || row.party_a_user_id === userId
+        const isPartyB = row.party_b_user_id === userId
+        // Open second slot + not the initiator → attach this user as party B now.
+        if (!isInitiator && !isPartyB && !row.party_b_user_id) {
+          const { data: attached } = await admin()
+            .from('deals')
+            .update({ party_b_user_id: userId, invite_status: 'accepted', invite_accepted_at: new Date().toISOString() })
+            .eq('id', dealId).select().single()
+          return NextResponse.json({ deal: attached || row })
+        }
+        // Already a member → just return it.
+        if (isInitiator || isPartyB) {
+          return NextResponse.json({ deal: row })
+        }
+      }
+    }
+
     const { data } = await admin()
       .from('deals')
       .select('*')
