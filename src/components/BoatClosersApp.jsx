@@ -3044,6 +3044,9 @@ export default function BoatClosers() {
       if (stored) {
         const session = JSON.parse(stored);
         if (session?.token && session?.userId) {
+          // If the session already knows the deal (e.g. set by the invite/join
+          // flow), lock it in immediately so nothing creates a competing deal.
+          if (session.dealId) setDealId(session.dealId);
           fetch("/api/deals", {
             method: "GET",
             headers: { "Authorization": "Bearer " + session.token }
@@ -3075,6 +3078,7 @@ export default function BoatClosers() {
   // Debounced auto-save to the database (1.2s after last change)
   const scheduleSave = () => {
     if (!user?.token) return;
+    if (booting) return; // never autosave before the deal has finished loading
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaving(true);
     saveTimer.current = setTimeout(async () => {
