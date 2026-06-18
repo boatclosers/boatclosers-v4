@@ -141,6 +141,102 @@ async function notifyOnDealChange(previous: any, updated: any) {
         })
       }
     }
+
+    // ── DUE DILIGENCE OUTCOME ── the buyer's vessel decision. Notify the seller
+    // whenever the outcome changes (accept as-is, reject, or propose new price).
+    const prevOutcome = previous?.dd_data?.outcome || null
+    const newOutcome = updated?.dd_data?.outcome || null
+    const prevProposed = previous?.dd_data?.proposedNewPrice || null
+    const newProposed = updated?.dd_data?.proposedNewPrice || null
+    const outcomeChanged = newOutcome && newOutcome !== prevOutcome
+    const proposedChanged = newOutcome === 'propose_price' && newProposed && newProposed !== prevProposed
+
+    if (sellerEmail && (outcomeChanged || proposedChanged)) {
+      if (newOutcome === 'accept') {
+        await sendEmail({
+          to: sellerEmail,
+          subject: `Buyer accepted the vessel — BoatClosers`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">Buyer Accepted the Vessel</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              The buyer has completed due diligence and <strong>accepted ${vesselName} as-is</strong>.
+              The deal proceeds to closing on the agreed terms.
+            </p>
+            <p style="text-align:center; margin: 24px 0;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+                View the Deal
+              </a>
+            </p>
+          `)
+        })
+      } else if (newOutcome === 'reject') {
+        await sendEmail({
+          to: sellerEmail,
+          subject: `Buyer rejected the vessel — BoatClosers`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">Buyer Rejected the Vessel</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              After due diligence, the buyer has <strong>rejected ${vesselName}</strong>.
+              The earnest money is to be returned per your deposit terms, and the reason is
+              recorded in the Rejection Notice.
+            </p>
+            <p style="text-align:center; margin: 24px 0;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+                View the Deal
+              </a>
+            </p>
+          `)
+        })
+      } else if (newOutcome === 'propose_price') {
+        const reason = updated?.dd_data?.proposedNewPriceReason || ''
+        await sendEmail({
+          to: sellerEmail,
+          subject: `Action needed: buyer proposed a price addendum — BoatClosers`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">Buyer Proposed a Price Addendum</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              Following due diligence on <strong>${vesselName}</strong>, the buyer has proposed a
+              <strong>new final price of ${fmtMoney(newProposed)}</strong> as an addendum to the
+              signed Purchase Agreement. The original agreement stays intact${reason ? `. Reason given: "${String(reason).replace(/</g,'&lt;')}"` : ''}.
+            </p>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              Open the deal to <strong>accept or decline</strong> this addendum.
+            </p>
+            <p style="text-align:center; margin: 24px 0;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+                Review &amp; Respond
+              </a>
+            </p>
+          `)
+        })
+      }
+    }
+
+    // ── ADDENDUM RESOLUTION ── seller accepts or declines the buyer's price addendum.
+    const prevAdd = previous?.dd_data?.addendumStatus || null
+    const newAdd = updated?.dd_data?.addendumStatus || null
+    if (buyerEmail && newAdd && newAdd !== prevAdd && (newAdd === 'accepted' || newAdd === 'declined')) {
+      const accepted = newAdd === 'accepted'
+      await sendEmail({
+        to: buyerEmail,
+        subject: `Seller ${accepted ? 'accepted' : 'declined'} your price addendum — BoatClosers`,
+        html: emailLayout(`
+          <h2 style="color:#08152e; font-size:18px;">Addendum ${accepted ? 'Accepted' : 'Declined'}</h2>
+          <p style="color:#475569; font-size:14px; line-height:1.5;">
+            The seller has <strong>${accepted ? 'accepted' : 'declined'}</strong> your proposed price
+            addendum on <strong>${vesselName}</strong>.
+            ${accepted
+              ? 'The amended price now applies and the deal proceeds to closing on the updated terms.'
+              : 'The original agreed price stands. You can accept the vessel as-is, or proceed per your due-diligence options.'}
+          </p>
+          <p style="text-align:center; margin: 24px 0;">
+            <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              View the Deal
+            </a>
+          </p>
+        `)
+      })
+    }
   } catch (e) {
     console.error('notifyOnDealChange failed:', e)
   }
