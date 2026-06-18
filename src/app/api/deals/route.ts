@@ -182,12 +182,34 @@ export async function POST(req: Request) {
     }
 
     if (dealId) {
+      // Load the current row first so we can confirm this user belongs on the
+      // deal and merge instead of blindly overwriting the other side.
       const { data: existingRow } = await admin()
         .from('deals').select('*').eq('id', dealId).single()
 
+      if (!existingRow) {
+        return NextResponse.json({ error: 'Deal not found.' }, { status: 404 })
+      }
+
+      const isMember = existingRow.initiator_id === userId || existingRow.party_b_user_id === userId
+      if (!isMember) {
+        return NextResponse.json({ error: 'You are not a party on this deal.' }, { status: 403 })
+      }
+
+      // Merge parties field-by-field so one side can never erase the other's info.
+      const mergedParties = {
+        ...(existingRow.parties || {}),
+        ...(parties || {}),
+        buyer: { ...((existingRow.parties || {}).buyer || {}), ...((parties || {}).buyer || {}) },
+        seller: { ...((existingRow.parties || {}).seller || {}), ...((parties || {}).seller || {}) }
+      }
+      const mergedPayload = { ...payload, parties: mergedParties }
+
+      // Update by id ALONE — authorization already checked. The old .or() filter
+      // on the update was failing to match for the joined party, so their saves
+      // silently wrote nothing. This is the fix for "joiner's data doesn't save."
       const { data, error } = await admin()
-        .from('deals').update(payload).eq('id', dealId)
-        .or(`initiator_id.eq.${userId},party_b_user_id.eq.${userId}`)
+        .from('deals').update(mergedPayload).eq('id', dealId)
         .select().single()
       if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
