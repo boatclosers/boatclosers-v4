@@ -367,7 +367,7 @@ function StepVessel({ data, setData, onNext }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 1 — PARTIES (role-aware)
 // ─────────────────────────────────────────────────────────────────────────────
-function StepParties({ data, setData, userRole, onNext, onBack, dealId, user }) {
+function StepParties({ data, setData, userRole, partyBJoined, onNext, onBack, dealId, user }) {
   const [inviteLink, setInviteLink] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -446,37 +446,50 @@ function StepParties({ data, setData, userRole, onNext, onBack, dealId, user }) 
         </p>
       </div>
       <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-        {sides.map(side => (
+        {sides.map(side => {
+          const isMine = side === userRole;
+          // You can edit your own side always. You can edit the OTHER side only
+          // to pre-fill it before that party has joined; once they're in, it
+          // locks to them.
+          const locked = !isMine && partyBJoined;
+          return (
           <div key={side} style={{ ...S.card, border: side===userRole ? `2px solid ${C.brass}` : `0.5px solid ${C.mist}`, position:"relative" }}>
             {side===userRole && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.brass, color:C.navy }}>You</span>}
+            {locked && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.mist, color:C.slate }}>🔒 Locked</span>}
             <h3 style={S.h3}>{side==="buyer" ? "Buyer" : "Seller"}</h3>
             <Grid2>
               <Field label={`${side==="buyer"?"Buyer":"Seller"} Full Legal Name *`}>
-                <input style={S.input} value={data[side].name} onChange={e=>set(side,"name",e.target.value)} />
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].name} readOnly={locked} onChange={e=>!locked&&set(side,"name",e.target.value)} />
               </Field>
               <Field label="Email *">
-                <input style={S.input} type="email" value={data[side].email} onChange={e=>set(side,"email",e.target.value)} />
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} type="email" value={data[side].email} readOnly={locked} onChange={e=>!locked&&set(side,"email",e.target.value)} />
               </Field>
               <Field label="Phone">
-                <input style={S.input} value={data[side].phone} onChange={e=>set(side,"phone",e.target.value)} />
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].phone} readOnly={locked} onChange={e=>!locked&&set(side,"phone",e.target.value)} />
               </Field>
               <Field label="Address">
-                <input style={S.input} value={data[side].address} onChange={e=>set(side,"address",e.target.value)} />
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].address} readOnly={locked} onChange={e=>!locked&&set(side,"address",e.target.value)} />
               </Field>
               <Field label="City">
-                <input style={S.input} value={data[side].city} onChange={e=>set(side,"city",e.target.value)} />
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].city} readOnly={locked} onChange={e=>!locked&&set(side,"city",e.target.value)} />
               </Field>
               <Field label="State / Zip">
-                <input style={S.input} value={data[side].stateZip} onChange={e=>set(side,"stateZip",e.target.value)} />
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].stateZip} readOnly={locked} onChange={e=>!locked&&set(side,"stateZip",e.target.value)} />
               </Field>
             </Grid2>
-            {side!==userRole && (
+            {locked && (
               <div style={{ marginTop:12, padding:"10px 12px", background:C.sandDark, borderRadius:5, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
-                The other party can fill in their own info after you invite them by email. You can also enter it on their behalf now.
+                🔒 This is the other party's information. They control their own contact details and you can't edit them.
+              </div>
+            )}
+            {!isMine && !partyBJoined && (
+              <div style={{ marginTop:12, padding:"10px 12px", background:C.sandDark, borderRadius:5, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
+                The other party can fill in their own info after you invite them. You can also enter it on their behalf now — it locks to them once they join.
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ── INVITE OTHER PARTY ── */}
@@ -3078,6 +3091,9 @@ export default function BoatClosers() {
   // The logged-in user's role ON THIS SPECIFIC DEAL (buyer or seller),
   // computed from the deal's party columns — NOT their signup choice.
   const [myDealRole, setMyDealRole] = useState(null);
+  // Whether the invited (second) party has joined yet. Used to lock the other
+  // party's contact fields once they're in to edit their own info.
+  const [partyBJoined, setPartyBJoined] = useState(false);
   // Holds a human-readable reason if claiming an invite fails, so the user
   // (and we) aren't left staring at a blank deal with no explanation.
   const [inviteError, setInviteError] = useState(null);
@@ -3121,6 +3137,7 @@ export default function BoatClosers() {
               if (data?.deal) {
                 setDealId(data.deal.id);
                 setMyDealRole(computeDealRole(data.deal, session.userId, session.role));
+                setPartyBJoined(!!data.deal.party_b_user_id);
                 setVessel(data.deal.vessel || emptyVessel);
                 setParties(data.deal.parties || emptyParties);
                 setNegotiate(data.deal.negotiate || emptyNeg);
@@ -3227,6 +3244,7 @@ export default function BoatClosers() {
           // Returning user — restore everything from the database.
           setDealId(data.deal.id);
           setMyDealRole(claimedRole || computeDealRole(data.deal, authData.userId, authData.role));
+          setPartyBJoined(!!data.deal.party_b_user_id);
           setVessel(data.deal.vessel || emptyVessel);
           setParties(data.deal.parties || emptyParties);
           setNegotiate(data.deal.negotiate || emptyNeg);
@@ -3305,7 +3323,7 @@ export default function BoatClosers() {
       <ProgressBar step={step} setStep={setStep} maxStep={maxStep}/>
       <PreviewBanner step={step} maxStep={maxStep} setStep={setStep}/>
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} onNext={()=>goToStep(1)}/>}
-      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={user?.role||"buyer"} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user}/>}
+      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && <StepDueDiligence data={ddData} setData={setDdDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/>}
       {step===4 && <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
