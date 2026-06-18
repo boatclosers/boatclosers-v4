@@ -1,87 +1,106 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
 export default function InvitePage() {
   const params = useParams();
-const token = Array.isArray(params.token) ? params.token[0] : params.token;
+  const token = Array.isArray(params.token) ? params.token[0] : params.token;
   const router = useRouter();
-  const [status, setStatus] = useState('checking');
 
-  useEffect(() => {
-    const run = async () => {
-      let session = null;
-      try {
-        const stored = localStorage.getItem('bc_session');
-        if (stored) session = JSON.parse(stored);
-      } catch (e) {}
+  const [mode, setMode] = useState('signup'); // signup | signin
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
-      if (!session?.token || !session?.userId) {
-        try { sessionStorage.setItem('pendingInviteToken', token); } catch (e) {}
-        setStatus('needsAuth');
+  const submit = async () => {
+    setError('');
+    if (!email || !password) { setError('Email and password are required.'); return; }
+    if (mode === 'signup' && !fullName) { setError('Please enter your name.'); return; }
+    setBusy(true);
+    try {
+      const res = await fetch('/api/deals/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, email, password, fullName, mode })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.error || 'Something went wrong. Please try again.');
+        setBusy(false);
         return;
       }
-
-      setStatus('accepting');
-
+      // Write the SAME session the main app reads, so it loads us straight in.
       try {
-        const res = await fetch('/api/deals/invite/accept', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, userId: session.userId }),
-        });
-        const result = await res.json();
+        localStorage.setItem('bc_session', JSON.stringify({
+          token: data.token,
+          userId: data.user.id,
+          name: data.user.fullName,
+          email: data.user.email,
+          role: data.role
+        }));
+      } catch (e) {}
+      // Go to the app — it reads bc_session on boot and loads this deal.
+      router.push('/');
+    } catch (e) {
+      setError('Network problem. Please try again.');
+      setBusy(false);
+    }
+  };
 
-        if (!res.ok) {
-          setStatus('error');
-          return;
-        }
+  const wrap = { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:'0 1rem', fontFamily:'sans-serif', background:'#f8fafc' };
+  const card = { width:'100%', maxWidth:420, background:'#fff', border:'1px solid #e2e8f0', borderRadius:12, padding:28, boxShadow:'0 4px 24px rgba(0,0,0,0.06)' };
+  const input = { width:'100%', padding:'10px 12px', border:'1px solid #cbd5e1', borderRadius:8, fontSize:14, marginTop:6, marginBottom:14, boxSizing:'border-box' as const };
+  const label = { fontSize:12, fontWeight:600, color:'#334155' };
 
-        router.push('/');
-      } catch (e) {
-        setStatus('error');
-      }
-    };
+  return (
+    <div style={wrap}>
+      <div style={card}>
+        <div style={{ textAlign:'center', marginBottom:18 }}>
+          <div style={{ fontSize:16, fontWeight:700, letterSpacing:1, color:'#08152e' }}>BOATCLOSERS</div>
+          <div style={{ fontSize:11, color:'#94a3b8', letterSpacing:1 }}>PRIVATE VESSEL TRANSACTIONS</div>
+        </div>
 
-    run();
-  }, [token, router]);
+        <h1 style={{ fontSize:18, fontWeight:600, color:'#08152e', marginBottom:6, textAlign:'center' }}>
+          You've been invited to a deal
+        </h1>
+        <p style={{ fontSize:13, color:'#64748b', textAlign:'center', marginBottom:20 }}>
+          {mode === 'signup'
+            ? 'Create your account to join the deal. Your email will be connected automatically.'
+            : 'Sign in to join the deal.'}
+        </p>
 
-  if (status === 'checking' || status === 'accepting') {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#475569' }}>
-        Loading your invite...
-      </div>
-    );
-  }
+        {mode === 'signup' && (
+          <>
+            <div style={label}>Full Legal Name</div>
+            <input style={input} value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Your full name" />
+          </>
+        )}
 
-  if (status === 'needsAuth') {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 1rem', fontFamily: 'sans-serif' }}>
-        <div style={{ maxWidth: 420, textAlign: 'center' }}>
-          <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>You've been invited to a deal on BoatClosers</h1>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>Sign in or create an account to continue. We'll connect you to the deal automatically.</p>
-          <a href="/" style={{ display: 'inline-block', background: '#1e3a5f', color: '#fff', padding: '10px 24px', borderRadius: 8, textDecoration: 'none', fontWeight: 600 }}>
-            Go to Sign In
-          </a>
+        <div style={label}>Email</div>
+        <input style={input} type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" />
+
+        <div style={label}>Password</div>
+        <input style={input} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Choose a password" />
+
+        {error && (
+          <div style={{ background:'#fef2f2', border:'1px solid #fecaca', color:'#b91c1c', borderRadius:8, padding:'8px 12px', fontSize:13, marginBottom:14 }}>
+            {error}
+          </div>
+        )}
+
+        <button onClick={submit} disabled={busy} style={{ width:'100%', background:'#b8863a', color:'#08152e', border:'none', borderRadius:8, padding:'12px', fontSize:15, fontWeight:700, cursor: busy?'default':'pointer', opacity: busy?0.6:1 }}>
+          {busy ? 'Joining…' : (mode === 'signup' ? 'Create Account & Join Deal' : 'Sign In & Join Deal')}
+        </button>
+
+        <div style={{ textAlign:'center', marginTop:16, fontSize:13, color:'#64748b' }}>
+          {mode === 'signup'
+            ? <span>Already have an account? <span onClick={()=>{setMode('signin');setError('');}} style={{ color:'#1e3a5f', fontWeight:600, cursor:'pointer' }}>Sign in</span></span>
+            : <span>Need an account? <span onClick={()=>{setMode('signup');setError('');}} style={{ color:'#1e3a5f', fontWeight:600, cursor:'pointer' }}>Create one</span></span>}
         </div>
       </div>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 1rem', fontFamily: 'sans-serif' }}>
-        <div style={{ maxWidth: 420, textAlign: 'center' }}>
-          <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8, color: '#dc2626' }}>Invite Link Problem</h1>
-          <p style={{ color: '#64748b' }}>This invite link is invalid, expired, or already used. Ask the other party to resend it.</p>
-          <a href="/" style={{ display: 'inline-block', marginTop: 20, color: '#1e3a5f', fontWeight: 600 }}>
-            Go to BoatClosers
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
-} 
+    </div>
+  );
+}
