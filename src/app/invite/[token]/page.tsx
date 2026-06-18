@@ -39,7 +39,8 @@ export default function InvitePage() {
           userId: data.user.id,
           name: data.user.fullName,
           email: data.user.email,
-          role: data.role
+          role: data.role,
+          dealId: data.dealId
         }));
       } catch (e) {}
       // Go to the app — it reads bc_session on boot and loads this deal.
