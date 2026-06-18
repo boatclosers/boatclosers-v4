@@ -3111,7 +3111,7 @@ export default function BoatClosers() {
           // If the session already knows the deal (e.g. set by the invite/join
           // flow), lock it in immediately so nothing creates a competing deal.
           if (session.dealId) setDealId(session.dealId);
-          fetch("/api/deals", {
+          fetch("/api/deals" + (session.dealId ? ("?dealId=" + encodeURIComponent(session.dealId)) : ""), {
             method: "GET",
             headers: { "Authorization": "Bearer " + session.token }
           })
