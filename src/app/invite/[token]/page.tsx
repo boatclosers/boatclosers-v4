@@ -43,8 +43,9 @@ export default function InvitePage() {
           dealId: data.dealId
         }));
       } catch (e) {}
-      // Go to the app — it reads bc_session on boot and loads this deal.
-      router.push('/');
+      // Force a FULL page load (not client-side nav) so the app boots fresh,
+      // reads the new bc_session, and loads the deal this person just joined.
+      window.location.href = '/';
     } catch (e) {
       setError('Network problem. Please try again.');
       setBusy(false);
