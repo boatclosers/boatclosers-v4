@@ -372,12 +372,19 @@ function StepParties({ data, setData, userRole, onNext, onBack, dealId, user }) 
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [inviteError, setInviteError] = useState("");
+  const [inviteSent, setInviteSent] = useState(false);
+  // null = haven't chosen yet; "email" = initiator has the other party's email
+  // (system auto-emails the link, no link shown); "link" = no email, show a
+  // copyable link the initiator sends themselves.
+  const [inviteMode, setInviteMode] = useState(null);
 
   const otherSide = userRole === "buyer" ? "seller" : "buyer";
 
-  const generateInviteLink = async () => {
+  // Shared call: creates the token + saves it. On the email path the server
+  // also emails the join link automatically. On the link path we show the url.
+  const runInvite = async (showLinkAfter) => {
     const email = data?.[otherSide]?.email;
-    if (!email) {
+    if (showLinkAfter === false && !email) {
       setInviteError("Enter the other party's email above first.");
       return;
     }
@@ -393,18 +400,22 @@ function StepParties({ data, setData, userRole, onNext, onBack, dealId, user }) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           dealId,
-          inviteEmail: email,
+          inviteEmail: email || `link-share-${otherSide}@boatclosers.com`,
           inviteRole: otherSide,
           userId: user.userId
         })
       });
       const result = await res.json();
       if (!res.ok) {
-        setInviteError(result?.error || "Could not create invite link.");
+        setInviteError(result?.error || "Could not create the invite.");
         setInviteLoading(false);
         return;
       }
-      setInviteLink(result.inviteUrl);
+      if (showLinkAfter) {
+        setInviteLink(result.inviteUrl);
+      } else {
+        setInviteSent(true);
+      }
     } catch (e) {
       setInviteError("Network error, please try again.");
     }
@@ -473,29 +484,82 @@ function StepParties({ data, setData, userRole, onNext, onBack, dealId, user }) 
         <div style={{ fontSize:22, flexShrink:0 }}>📧</div>
         <div style={{ flex:1 }}>
           <div style={{ fontSize:13, fontWeight:700, color:C.brass, fontFamily:"sans-serif", marginBottom:4 }}>Invite the Other Party</div>
-          <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.75)", lineHeight:1.7, marginBottom:10 }}>
-            The other party needs a free BoatClosers account to receive offer notifications, respond to messages, and sign documents. Enter their email above, then send them this invite link. They create their account, your deal is pre-linked, and their info populates their side automatically.
+          <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.75)", lineHeight:1.7, marginBottom:12 }}>
+            The other party needs a free BoatClosers account to join this deal, respond to offers, and sign documents. When they join, your deal is pre-linked and they fill in their own side.
           </div>
-          <div style={{ background:"rgba(255,255,255,0.08)", borderRadius:6, padding:"9px 12px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.5)", wordBreak:"break-all", flex:1 }}>
-              {inviteLink || "Click Generate to create a link"}
+
+          {/* Step 1: the one question that decides everything */}
+          {inviteMode === null && !inviteSent && !inviteLink && (
+            <div>
+              <div style={{ fontSize:12, fontFamily:"sans-serif", color:"#fff", fontWeight:600, marginBottom:8 }}>
+                Do you have the other party's email address?
+              </div>
+              <div style={{ display:"flex", gap:10 }}>
+                <button onClick={()=>{ setInviteMode("email"); setInviteError(""); }} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer" }}>
+                  Yes — email them
+                </button>
+                <button onClick={()=>{ setInviteMode("link"); setInviteError(""); }} style={{ background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer" }}>
+                  No — give me a link to share
+                </button>
+              </div>
             </div>
-            {inviteLink ? (
-              <button onClick={copyInviteLink} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"5px 12px", fontSize:11, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", flexShrink:0 }}>
-                {inviteCopied ? "Copied!" : "Copy Link"}
-              </button>
-            ) : (
-              <button onClick={generateInviteLink} disabled={inviteLoading} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"5px 12px", fontSize:11, fontFamily:"sans-serif", fontWeight:700, cursor:inviteLoading?"default":"pointer", flexShrink:0, opacity:inviteLoading?0.6:1 }}>
-                {inviteLoading ? "Generating..." : "Generate Link"}
-              </button>
-            )}
-          </div>
-          {inviteError && (
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"#fca5a5", marginTop:6 }}>{inviteError}</div>
           )}
-          <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(255,255,255,0.35)", marginTop:8 }}>
-            💡 When they sign up using this link, their contact info auto-fills the correct side of this deal and both of you get email notifications for offers and messages.
-          </div>
+
+          {/* EMAIL PATH: enter email above, we auto-send the join link. No link shown. */}
+          {inviteMode === "email" && !inviteSent && (
+            <div>
+              <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.8)", marginBottom:8 }}>
+                Make sure the {otherSide}'s email is filled in above, then send their invite. We email them the join link directly — you don't need to copy anything.
+              </div>
+              <div style={{ display:"flex", gap:10 }}>
+                <button onClick={()=>runInvite(false)} disabled={inviteLoading} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:inviteLoading?"default":"pointer", opacity:inviteLoading?0.6:1 }}>
+                  {inviteLoading ? "Sending..." : `Email the ${otherSide} their invite`}
+                </button>
+                <button onClick={()=>{ setInviteMode(null); setInviteError(""); }} style={{ background:"transparent", color:"rgba(255,255,255,0.6)", border:"none", fontSize:11, fontFamily:"sans-serif", cursor:"pointer" }}>
+                  Back
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* EMAIL PATH success */}
+          {inviteSent && (
+            <div style={{ background:"rgba(34,197,94,0.15)", border:"1px solid rgba(34,197,94,0.4)", borderRadius:6, padding:"10px 12px", fontSize:12, fontFamily:"sans-serif", color:"#bbf7d0" }}>
+              ✓ Invite emailed to the {otherSide} at {data?.[otherSide]?.email}. They'll get a link to create their account and join this deal.
+            </div>
+          )}
+
+          {/* LINK PATH: show a copyable link they send themselves */}
+          {inviteMode === "link" && (
+            <div>
+              <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.8)", marginBottom:8 }}>
+                We'll create a link you can paste anywhere — Facebook Messenger, Craigslist reply, or a text. Anyone who opens it can create their account and join this deal as the {otherSide}.
+              </div>
+              {!inviteLink ? (
+                <div style={{ display:"flex", gap:10 }}>
+                  <button onClick={()=>runInvite(true)} disabled={inviteLoading} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:inviteLoading?"default":"pointer", opacity:inviteLoading?0.6:1 }}>
+                    {inviteLoading ? "Creating..." : "Create shareable link"}
+                  </button>
+                  <button onClick={()=>{ setInviteMode(null); setInviteError(""); }} style={{ background:"transparent", color:"rgba(255,255,255,0.6)", border:"none", fontSize:11, fontFamily:"sans-serif", cursor:"pointer" }}>
+                    Back
+                  </button>
+                </div>
+              ) : (
+                <div style={{ background:"rgba(255,255,255,0.08)", borderRadius:6, padding:"9px 12px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
+                  <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.7)", wordBreak:"break-all", flex:1 }}>
+                    {inviteLink}
+                  </div>
+                  <button onClick={copyInviteLink} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"5px 12px", fontSize:11, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", flexShrink:0 }}>
+                    {inviteCopied ? "Copied!" : "Copy Link"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {inviteError && (
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"#fca5a5", marginTop:8 }}>{inviteError}</div>
+          )}
         </div>
       </div>
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
