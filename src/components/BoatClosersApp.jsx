@@ -3118,6 +3118,7 @@ export default function BoatClosers() {
 
     // If they arrived via an invite link, claim it now that they're
     // authenticated, before we load whichever deal ends up being theirs.
+    let claimedRole = null;
     try {
       const pendingToken = sessionStorage.getItem("pendingInviteToken");
       if (pendingToken) {
@@ -3132,6 +3133,10 @@ export default function BoatClosers() {
             // Surface the real reason instead of silently landing on a blank deal.
             setInviteError(acceptData?.error || "Could not connect you to that deal.");
             console.error("Invite accept failed:", acceptData?.error);
+          } else if (acceptData?.role) {
+            // The accept route tells us the TRUE role for this deal — trust it
+            // directly rather than re-deriving from a possibly-stale deal copy.
+            claimedRole = acceptData.role;
           }
         } catch (err) {
           setInviteError("Network problem connecting you to the deal. Please try the invite link again.");
@@ -3153,13 +3158,18 @@ export default function BoatClosers() {
         if (data?.deal) {
           // Returning user — restore everything from the database.
           setDealId(data.deal.id);
-          setMyDealRole(computeDealRole(data.deal, authData.userId, authData.role));
+          setMyDealRole(claimedRole || computeDealRole(data.deal, authData.userId, authData.role));
           setVessel(data.deal.vessel || emptyVessel);
           setParties(data.deal.parties || emptyParties);
           setNegotiate(data.deal.negotiate || emptyNeg);
           setDdData(data.deal.dd_data || emptyDD);
           setDocsData(data.deal.docs_data || emptyDocs);
           if (typeof data.deal.step === "number") { setStep(data.deal.step); setMaxStep(data.deal.max_step || data.deal.step); }
+        } else if (claimedRole) {
+          // They accepted an invite but the deal didn't come back yet
+          // (timing). Use the claimed role and DON'T autosave a blank deal —
+          // a quick reload will pull the real shared deal.
+          setMyDealRole(claimedRole);
         } else {
           // Brand new user — start a fresh deal with their name pre-filled.
           setMyDealRole(authData.role || "buyer");
