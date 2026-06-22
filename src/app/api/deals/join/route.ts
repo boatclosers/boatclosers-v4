@@ -96,8 +96,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'This invite has already been claimed by someone else.' }, { status: 409 })
     }
 
-    // 4. Attach them as party B.
-    const { error: updateErr } = await sb
+    // 4. Attach them as party B. Use .select() so the update RETURNS the row —
+    // we verify from that directly, avoiding a separate re-read that can 406.
+    console.log('[JOIN] about to attach. userId:', userId, 'dealId:', deal.id, 'typeof userId:', typeof userId)
+    const { data: updRows, error: updateErr } = await sb
       .from('deals')
       .update({
         party_b_user_id: userId,
@@ -105,20 +107,16 @@ export async function POST(req: Request) {
         invite_accepted_at: new Date().toISOString()
       })
       .eq('id', deal.id)
+      .select()
+    console.log('[JOIN] update returned rows:', updRows ? updRows.length : 0, 'err:', updateErr?.message || 'none', 'party_b after:', updRows?.[0]?.party_b_user_id)
 
     if (updateErr) {
       return NextResponse.json({ error: 'Could not attach you to the deal: ' + updateErr.message }, { status: 500 })
     }
 
-    // 5. PROVE it stuck — re-read the deal and confirm party_b is now this user.
-    // This is what stops the "success but actually blank" failure for good.
-    const { data: check } = await sb
-      .from('deals')
-      .select('id, party_b_user_id, invite_status')
-      .eq('id', deal.id)
-      .single()
-
-    if (!check || check.party_b_user_id !== userId) {
+    // Verify from the row the UPDATE itself returned (no separate re-read).
+    const savedRow = updRows && updRows.length ? updRows[0] : null
+    if (!savedRow || savedRow.party_b_user_id !== userId) {
       return NextResponse.json({
         error: 'Joining did not save correctly. Please try again with a fresh email. (The deal did not record you as the second party.)'
       }, { status: 500 })
