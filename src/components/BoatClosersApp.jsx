@@ -3299,15 +3299,24 @@ export default function BoatClosers() {
 
   // On first load, restore session from localStorage and load their deal
   useEffect(() => {
+    // Email deep-links arrive as /?dealId=XXX&step=N — read them so clicking an
+    // email opens THAT deal on the right page, not a blank app.
+    let urlDealId = null, urlStep = null;
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      urlDealId = qs.get("dealId");
+      const s = qs.get("step");
+      if (s !== null && !isNaN(Number(s))) urlStep = Number(s);
+    } catch (e) {}
     try {
       const stored = localStorage.getItem("bc_session");
       if (stored) {
         const session = JSON.parse(stored);
         if (session?.token && session?.userId) {
-          // If the session already knows the deal (e.g. set by the invite/join
-          // flow), lock it in immediately so nothing creates a competing deal.
-          if (session.dealId) setDealId(session.dealId);
-          fetch("/api/deals" + (session.dealId ? ("?dealId=" + encodeURIComponent(session.dealId)) : ""), {
+          // Prefer a dealId from the URL (email link) over the session's.
+          const effectiveDealId = urlDealId || session.dealId;
+          if (effectiveDealId) setDealId(effectiveDealId);
+          fetch("/api/deals" + (effectiveDealId ? ("?dealId=" + encodeURIComponent(effectiveDealId)) : ""), {
             method: "GET",
             headers: { "Authorization": "Bearer " + session.token }
           })
@@ -3324,6 +3333,11 @@ export default function BoatClosers() {
                 setDdData(data.deal.dd_data || emptyDD);
                 setDocsData(data.deal.docs_data || emptyDocs);
                 if (typeof data.deal.step === "number") { setStep(data.deal.step); setMaxStep(data.deal.max_step || data.deal.step); }
+                // Email deep-link: jump to the task's page if it's already unlocked.
+                if (urlStep !== null) {
+                  const reachable = Math.min(urlStep, (data.deal.max_step ?? data.deal.step ?? urlStep));
+                  setStep(reachable);
+                }
               }
               setScreen("deal");
               setBooting(false);
