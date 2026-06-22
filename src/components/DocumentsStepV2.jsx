@@ -78,8 +78,11 @@ const priceToWords = (n) => {
   return out.trim();
 };
 
-export default function DocumentsStepV2({ data, setData, vessel, parties, terms, negotiate, onNext, onBack }) {
-  const [paid, setPaid] = useState(data.paid || (negotiate && (negotiate.paid || negotiate.dealLocked)) || false);
+export default function DocumentsStepV2({ data, setData, vessel, parties, terms, negotiate, myRole, amInitiator, onNext, onBack }) {
+  // Single payment happens at the PA-lock step in Negotiate. Once an offer is
+  // accepted (PA locked), the deal is paid — Documents shows NO second paywall.
+  const paLocked = !!((negotiate?.offers || []).find(o => o.status === "accepted")) || !!(negotiate && (negotiate.paid || negotiate.dealLocked)) || !!data.paid;
+  const [paid, setPaid] = useState(paLocked);
   const [payDisc, setPayDisc] = useState(false);
   const [agreedTos, setAgreedTos] = useState(false);
   const [signed, setSigned] = useState(data.signedDocs||{});
