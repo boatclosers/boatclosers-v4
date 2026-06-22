@@ -586,7 +586,7 @@ function StepParties({ data, setData, userRole, partyBJoined, onNext, onBack, de
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 2 — NEGOTIATE + TERMS (combined)
 // ─────────────────────────────────────────────────────────────────────────────
-function StepNegotiateTerms({ vessel, parties, data, setData, myRole, dealId, onNext, onBack }) {
+function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiator, dealId, onNext, onBack }) {
   const [newMsg, setNewMsg] = useState("");
   const [offerAmt, setOfferAmt] = useState(data.currentOffer || vessel.askingPrice || "");
   const [escrowPct, setEscrowPct] = useState(data.escrowPct!==undefined ? String(data.escrowPct) : "0");
@@ -846,17 +846,27 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, dealId, on
                 Paying the one-time fee unlocks the Purchase Agreement for signing and all {DOCUMENTS.length} closing documents. You and the other party sign on the next screen to make the agreement binding.
               </div>
 
-              {/* Price + pay button */}
-              <div style={{ textAlign:"center", marginBottom:14 }}>
-                <span style={{ fontSize:40, fontWeight:800, color:C.navy, fontFamily:"sans-serif" }}>$249</span>
-                <span style={{ fontSize:13, color:C.slate, fontFamily:"sans-serif" }}> &nbsp;flat fee · one deal</span>
-              </div>
-              <button style={{ ...S.btnBrass, width:"100%", fontSize:15, padding:"13px" }} onClick={()=>{ setPaPaid(true); setPaStage("review"); }}>
-                Pay $249 &amp; Continue to Sign →
-              </button>
-              <div style={{ textAlign:"center", fontSize:10, color:C.slate, fontFamily:"sans-serif", marginTop:10, lineHeight:1.5 }}>
-                Demo mode — no real charge yet. Secure card payment via Stripe will be enabled before launch.
-              </div>
+              {/* Price + pay button — ONLY the initiator pays */}
+              {amInitiator ? (
+                <>
+                  <div style={{ textAlign:"center", marginBottom:14 }}>
+                    <span style={{ fontSize:40, fontWeight:800, color:C.navy, fontFamily:"sans-serif" }}>$249</span>
+                    <span style={{ fontSize:13, color:C.slate, fontFamily:"sans-serif" }}> &nbsp;flat fee · one deal</span>
+                  </div>
+                  <button style={{ ...S.btnBrass, width:"100%", fontSize:15, padding:"13px" }} onClick={()=>{ setPaPaid(true); setPaStage("review"); }}>
+                    Pay $249 &amp; Continue to Sign →
+                  </button>
+                  <div style={{ textAlign:"center", fontSize:10, color:C.slate, fontFamily:"sans-serif", marginTop:10, lineHeight:1.5 }}>
+                    Demo mode — no real charge yet. Secure card payment via Stripe will be enabled before launch.
+                  </div>
+                </>
+              ) : (
+                <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8, padding:"18px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", color:"#166534", lineHeight:1.6 }}>
+                  <div style={{ fontSize:26, marginBottom:8 }}>🎉</div>
+                  <b>Price agreed — your deal is moving forward!</b><br/>
+                  The party who started this deal is finalizing the paperwork now. You'll be ready to sign the Purchase Agreement in a moment — <b>nothing for you to pay</b>.
+                </div>
+              )}
               <div style={{ textAlign:"center", marginTop:14 }}>
                 <button style={{ background:"transparent", border:"none", color:C.slate, fontSize:12, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }} onClick={()=>{ setPaModal(null); setPaStage("pay"); }}>← Cancel</button>
               </div>
@@ -3302,6 +3312,9 @@ export default function BoatClosers() {
   // Whether the invited (second) party has joined yet. Used to lock the other
   // party's contact fields once they're in to edit their own info.
   const [partyBJoined, setPartyBJoined] = useState(false);
+  // True if the current user started this deal (party A). Only the initiator
+  // is prompted to pay the $249; the invited party sees a waiting message.
+  const [amInitiator, setAmInitiator] = useState(true);
   // Holds a human-readable reason if claiming an invite fails, so the user
   // (and we) aren't left staring at a blank deal with no explanation.
   const [inviteError, setInviteError] = useState(null);
@@ -3355,6 +3368,7 @@ export default function BoatClosers() {
                 setDealId(data.deal.id);
                 setMyDealRole(computeDealRole(data.deal, session.userId, session.role));
                 setPartyBJoined(!!data.deal.party_b_user_id);
+                setAmInitiator(data.deal.party_a_user_id === session.userId || data.deal.initiator_id === session.userId);
                 setVessel(data.deal.vessel || emptyVessel);
                 setParties(data.deal.parties || emptyParties);
                 setNegotiate(data.deal.negotiate || emptyNeg);
@@ -3467,6 +3481,7 @@ export default function BoatClosers() {
           setDealId(data.deal.id);
           setMyDealRole(claimedRole || computeDealRole(data.deal, authData.userId, authData.role));
           setPartyBJoined(!!data.deal.party_b_user_id);
+          setAmInitiator(data.deal.party_a_user_id === authData.userId || data.deal.initiator_id === authData.userId);
           setVessel(data.deal.vessel || emptyVessel);
           setParties(data.deal.parties || emptyParties);
           setNegotiate(data.deal.negotiate || emptyNeg);
@@ -3546,7 +3561,7 @@ export default function BoatClosers() {
       <PreviewBanner step={step} maxStep={maxStep} setStep={setStep}/>
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} onNext={()=>goToStep(1)}/>}
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user}/>}
-      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} dealId={dealId} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
+      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && <StepDueDiligence data={ddData} setData={setDdDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/>}
       {step===4 && <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
       {step===5 && <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} onBack={()=>setStep(4)}/>}
