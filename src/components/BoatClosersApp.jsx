@@ -3409,7 +3409,7 @@ export default function BoatClosers() {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + user.token },
           body: JSON.stringify({
-            dealId,
+            dealId, role: user?.role,
             vessel: s.vessel, parties: s.parties, negotiate: s.negotiate,
             dd_data: s.ddData, docs_data: s.docsData, step: s.step, max_step: s.maxStep
           })
