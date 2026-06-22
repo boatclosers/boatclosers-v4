@@ -1928,8 +1928,12 @@ function StepDueDiligence({ data, setData, vessel, parties, terms, negotiate, my
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 4 — PAYWALL + DOCUMENTS
 // ─────────────────────────────────────────────────────────────────────────────
-function StepDocuments({ data, setData, vessel, parties, terms, negotiate, onNext, onBack }) {
-  const [paid, setPaid] = useState(data.paid||false);
+function StepDocuments({ data, setData, vessel, parties, terms, negotiate, myRole, amInitiator, onNext, onBack }) {
+  // Payment happens once, at the PA-lock step in Negotiate. By the time the PA
+  // is locked (an accepted offer exists), the deal is paid — so Documents must
+  // NOT show a second paywall. Treat a locked deal as already paid.
+  const paLocked = !!(negotiate?.offers || []).find(o => o.status === "accepted") || !!data.paid;
+  const [paid, setPaid] = useState(paLocked || data.paid || false);
   const [payDisc, setPayDisc] = useState(false);
   const [agreedTos, setAgreedTos] = useState(false);
   const [signed, setSigned] = useState(data.signedDocs||{});
@@ -3563,7 +3567,7 @@ export default function BoatClosers() {
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && <StepDueDiligence data={ddData} setData={setDdDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/>}
-      {step===4 && <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
+      {step===4 && <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
       {step===5 && <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} onBack={()=>setStep(4)}/>}
       <AIAssistant open={aiOpen} setOpen={setAiOpen} step={step} vessel={vessel} parties={parties}/>
     </div>
