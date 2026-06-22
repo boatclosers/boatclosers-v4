@@ -362,6 +362,36 @@ export async function POST(req: Request) {
       }
       const mergedPayload = { ...payload, parties: mergedParties }
 
+      // Protect the negotiation offers the same way we protect parties: a save
+      // coming from one side must never wipe offers the other side already made.
+      // Offers only ever GROW during a negotiation, so keep whichever side has
+      // the most complete list and never let an incoming save shrink it.
+      const existingNeg = existingRow.negotiate || {}
+      const incomingNeg = negotiate || {}
+      const existingOffers = Array.isArray(existingNeg.offers) ? existingNeg.offers : []
+      const incomingOffers = Array.isArray(incomingNeg.offers) ? incomingNeg.offers : []
+      // Build a union of offers by id so neither side loses one, newest status wins.
+      const offerById: any = {}
+      for (const o of existingOffers) { if (o && o.id != null) offerById[o.id] = o }
+      for (const o of incomingOffers) {
+        if (o && o.id != null) {
+          // Incoming wins for an existing id (captures status changes like accept/counter),
+          // but we never drop an id that only exists on the server side.
+          offerById[o.id] = { ...(offerById[o.id] || {}), ...o }
+        }
+      }
+      const mergedOffers = Object.values(offerById).sort((a: any, b: any) => Number(a.id) - Number(b.id))
+      // Same protection for the message thread.
+      const existingMsgs = Array.isArray(existingNeg.messages) ? existingNeg.messages : []
+      const incomingMsgs = Array.isArray(incomingNeg.messages) ? incomingNeg.messages : []
+      const mergedMsgs = incomingMsgs.length >= existingMsgs.length ? incomingMsgs : existingMsgs
+      mergedPayload.negotiate = {
+        ...existingNeg,
+        ...incomingNeg,
+        offers: mergedOffers,
+        messages: mergedMsgs
+      }
+
       // Update by id ALONE — authorization already checked. The old .or() filter
       // on the update was failing to match for the joined party, so their saves
       // silently wrote nothing. This is the fix for "joiner's data doesn't save."
