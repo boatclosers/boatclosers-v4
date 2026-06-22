@@ -34,6 +34,11 @@ async function notifyOnDealChange(previous: any, updated: any) {
     const sellerEmail = updated?.parties?.seller?.email
     const vesselName = updated?.vessel?.name || updated?.vessel?.makeModel || 'the vessel'
 
+    // Build a deep-link that opens THIS deal on the page for the task.
+    // step: 2 = Negotiate, 3 = Due Diligence, 4 = Documents, 5 = Closing.
+    const base = process.env.NEXT_PUBLIC_APP_URL || ''
+    const dealLink = (step: number) => `${base}/?dealId=${updated?.id}&step=${step}`
+
     const prevOffers = previous?.negotiate?.offers || []
     const newOffers = updated?.negotiate?.offers || []
 
@@ -53,7 +58,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               <strong>${vesselName}</strong>.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(2)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 Review the Offer
               </a>
             </p>
@@ -84,7 +89,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               This is the binding contract for the deal.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(4)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 View the Agreement
               </a>
             </p>
@@ -110,7 +115,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               <strong>${vesselName}</strong>. Check your deal for the latest status.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(4)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 View Documents
               </a>
             </p>
@@ -133,7 +138,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               and the deal is now binding. You can now proceed with the remaining closing documents.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(4)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 Go to Your Deal
               </a>
             </p>
@@ -163,7 +168,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               The deal proceeds to closing on the agreed terms.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(3)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 View the Deal
               </a>
             </p>
@@ -181,7 +186,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               recorded in the Rejection Notice.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(3)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 View the Deal
               </a>
             </p>
@@ -203,7 +208,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               Open the deal to <strong>accept or decline</strong> this addendum.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(3)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 Review &amp; Respond
               </a>
             </p>
@@ -230,7 +235,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               : 'The original agreed price stands. You can accept the vessel as-is, or proceed per your due-diligence options.'}
           </p>
           <p style="text-align:center; margin: 24px 0;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+            <a href="${dealLink(3)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
               View the Deal
             </a>
           </p>
