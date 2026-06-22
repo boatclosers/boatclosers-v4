@@ -779,6 +779,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, dealId, on
   };
 
   const acceptedOffer = offers.find(o => o.status==="accepted");
+  // The latest still-pending offer, and whether *I* am the one who made it
+  // (if so, I'm waiting on the other party and can't send another).
+  const latestPendingTop = [...offers].reverse().find(o => o.status==="pending");
+  const myOfferAwaiting = latestPendingTop && latestPendingTop.from === myRole;
 
   // Can proceed without accepted offer — just need some data
   const canProceed = offerAmt || acceptedOffer;
@@ -1013,6 +1017,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, dealId, on
           </div>
         </div>
 
+        {myRole==="seller" && (
+          <div style={{ marginBottom:14, padding:"11px 14px", background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:6, fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+            <b style={{ color:C.navy }}>The buyer authors the offer terms.</b> You can see everything that's on the table below, and you can <b>counter the price</b> (Offer Amount). To request changes to dates, deposit, or contingencies, use <b>Flag a conflict</b> at the bottom — the buyer makes the actual edits.
+          </div>
+        )}
+
         {/* 💵 Price & Deposit — always shown */}
         <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px", marginBottom:10, background:"#fff" }}>
           <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>💵 Price &amp; Deposit</div>
@@ -1020,6 +1030,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, dealId, on
           <Field label="Offer Amount ($)">
             <input style={S.input} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder={vessel.askingPrice||"85000"} />
           </Field>
+          <div style={ myRole==="seller" ? { pointerEvents:"none", opacity:0.6 } : undefined }>
           <Field label="Earnest Money Deposit">
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:5 }}>
               {["0","5","7.5","10"].map(p => (
@@ -1033,7 +1044,11 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, dealId, on
           <Field label="Escrow Method">
             <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
           </Field>
+          </div>
         </div>
+
+        {/* Terms below are authored by the buyer — read-only for the seller. */}
+        <div style={ myRole==="seller" ? { pointerEvents:"none", opacity:0.6 } : undefined }>
 
         {/* 🛡️ Contingencies — opt-in */}
         <OfferSection icon="🛡️" title="Contingencies" desc="Conditions that must be met or you can walk away with your deposit back — like a passing survey or sea trial. Most serious offers include at least a survey contingency." checked={inclContingencies} onToggle={()=>setInclContingencies(v=>!v)}>
@@ -1080,14 +1095,21 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, dealId, on
           <div style={{ height:10 }}/>
           <Field label="Notes (optional — appears in the Purchase Agreement)"><textarea style={{...S.textarea, minHeight:48}} value={verbalNote} onChange={e=>setVerbalNote(e.target.value)} placeholder="e.g. Includes trailer and electronics. Closing at seller's marina." /></Field>
         </OfferSection>
+        </div>
 
         {/* Submit */}
-        <button style={{...S.btnBrass, width:"100%", marginTop:6, fontSize:15, padding:"12px"}} onClick={makeOffer} disabled={!offerAmt}>
+        <button style={{...S.btnBrass, width:"100%", marginTop:6, fontSize:15, padding:"12px", opacity:(!offerAmt||myOfferAwaiting)?0.5:1}} onClick={makeOffer} disabled={!offerAmt||myOfferAwaiting}>
           {myRole==="buyer" ? "Send Offer to Seller" : "Send Counter-Offer to Buyer"} →
         </button>
-        <div style={{ textAlign:"center", fontSize:10.5, color:C.slate, fontFamily:"sans-serif", marginTop:8, lineHeight:1.5 }}>
-          Free to send and negotiate. You only pay $249 when a full offer is accepted and you're ready to sign.
-        </div>
+        {myOfferAwaiting ? (
+          <div style={{ textAlign:"center", fontSize:11, color:C.slate, fontFamily:"sans-serif", marginTop:8, lineHeight:1.5 }}>
+            ⏳ Your offer is on the table — waiting for the {myRole==="buyer" ? "seller" : "buyer"} to respond. You'll be able to send a new offer if they counter or reject.
+          </div>
+        ) : (
+          <div style={{ textAlign:"center", fontSize:10.5, color:C.slate, fontFamily:"sans-serif", marginTop:8, lineHeight:1.5 }}>
+            Free to send and negotiate. You only pay $249 when a full offer is accepted and you're ready to sign.
+          </div>
+        )}
 
         {/* SELLER-ONLY: flag a conflict on dates/deposit terms (emails the buyer) */}
         {myRole==="seller" && (
@@ -1196,11 +1218,17 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, dealId, on
                       {o.status==="rejected" && <span style={{...S.pill, background:C.red, color:"#fff"}}>Rejected</span>}
                       {o.status==="countered" && <span style={{...S.pill, background:C.mist, color:C.slate}}>Countered — see newer offer below</span>}
                       {isLatestPending && (
-                        <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
-                          <button style={{...S.btn, background:C.green, fontSize:12, padding:"7px 16px"}} onClick={()=>acceptOffer(o.id)}>Accept & Sign</button>
-                          <button style={{...S.btn, background:accent, fontSize:12, padding:"7px 16px"}} onClick={()=>counterOffer(o.id)}>Counter</button>
-                          <button style={{...S.btnOutline, fontSize:12, padding:"7px 16px", color:C.red, borderColor:C.red}} onClick={()=>rejectOffer(o.id)}>Reject</button>
-                        </div>
+                        o.from === myRole ? (
+                          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, fontStyle:"italic", background:C.sandDark, borderRadius:6, padding:"8px 12px" }}>
+                            ⏳ Sent — waiting for the {myRole==="buyer" ? "seller" : "buyer"} to accept, counter, or reject. You can't respond to your own offer.
+                          </div>
+                        ) : (
+                          <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
+                            <button style={{...S.btn, background:C.green, fontSize:12, padding:"7px 16px"}} onClick={()=>acceptOffer(o.id)}>Accept &amp; Sign</button>
+                            <button style={{...S.btn, background:accent, fontSize:12, padding:"7px 16px"}} onClick={()=>counterOffer(o.id)}>Counter</button>
+                            <button style={{...S.btnOutline, fontSize:12, padding:"7px 16px", color:C.red, borderColor:C.red}} onClick={()=>rejectOffer(o.id)}>Reject</button>
+                          </div>
+                        )
                       )}
                     </div>
                   </div>
