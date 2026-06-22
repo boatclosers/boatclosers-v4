@@ -422,7 +422,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ deal: data })
     }
 
-    const role = (parties && parties.seller && parties.seller.name) ? 'seller' : 'buyer'
+    // Use the initiator's OWN chosen role (from signup), not a guess based on
+    // which name field happens to be filled. Guessing produced inverted roles.
+    const role = (body.role === 'seller' || body.role === 'buyer')
+      ? body.role
+      : ((parties && parties.seller && parties.seller.name && !(parties.buyer && parties.buyer.name)) ? 'seller' : 'buyer')
     const { data, error } = await admin()
       .from('deals')
       .insert({ initiator_id: userId, party_a_user_id: userId, initiator_role: role, status: 'active', paid: false, ...payload })
