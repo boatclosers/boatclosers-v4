@@ -9,12 +9,13 @@ function admin() {
   })
 }
 
-// One call does everything for a joining (invited) party:
-// 1. validate the invite token -> find the deal
-// 2. create their account (or sign them in if it already exists)
-// 3. attach them to the deal as party B
-// 4. return a session token + their role, so the client is ready immediately
-// This removes the multi-page/sessionStorage handoff that kept desyncing.
+// ONE call joins an invited party to a deal:
+//  1. find the deal by its invite token
+//  2. create their account (or sign in if it already exists)
+//  3. attach them to the deal as the second party
+//  4. RE-READ the deal to PROVE the attach stuck, and only then return success
+// The re-read is the key fix: we never tell the client "joined" unless the
+// database actually shows them attached, so the app can never land on a blank deal.
 export async function POST(req: Request) {
   const sb = admin()
   try {
@@ -39,11 +40,15 @@ export async function POST(req: Request) {
     let accessToken: string | null = null
     let resolvedName = fullName || ''
 
-    if (mode === 'signin') {
+    const signIn = async () => {
       const { data: session, error: signErr } = await sb.auth.signInWithPassword({ email, password })
-      if (signErr || !session?.session) {
-        return NextResponse.json({ error: 'Sign in failed. Check your email and password.' }, { status: 401 })
-      }
+      if (signErr || !session?.session) return null
+      return session
+    }
+
+    if (mode === 'signin') {
+      const session = await signIn()
+      if (!session) return NextResponse.json({ error: 'Sign in failed. Check your email and password.' }, { status: 401 })
       userId = session.user.id
       accessToken = session.session.access_token
       resolvedName = session.user.user_metadata?.full_name || resolvedName
@@ -53,11 +58,15 @@ export async function POST(req: Request) {
         user_metadata: { full_name: fullName || '', role: deal.invite_role || 'seller' }
       })
       if (createErr) {
-        // If the account already exists, fall back to signing them in.
-        if ((createErr.message || '').toLowerCase().includes('already')) {
-          const { data: session, error: signErr } = await sb.auth.signInWithPassword({ email, password })
-          if (signErr || !session?.session) {
-            return NextResponse.json({ error: 'An account with this email exists. Please sign in instead.' }, { status: 409 })
+        // Account already exists for this email — this is the common cause of
+        // the "blank deal" confusion. Be explicit instead of silently proceeding.
+        const msg = (createErr.message || '').toLowerCase()
+        if (msg.includes('already') || msg.includes('exists') || msg.includes('registered')) {
+          const session = await signIn()
+          if (!session) {
+            return NextResponse.json({
+              error: 'An account already exists for this email, and the password did not match. Use a different email to join this deal, or sign in with the correct password.'
+            }, { status: 409 })
           }
           userId = session.user.id
           accessToken = session.session.access_token
@@ -66,10 +75,8 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: 'Could not create account: ' + createErr.message }, { status: 400 })
         }
       } else {
-        const { data: session, error: signErr } = await sb.auth.signInWithPassword({ email, password })
-        if (signErr || !session?.session) {
-          return NextResponse.json({ error: 'Account created but sign in failed. Try signing in.' }, { status: 400 })
-        }
+        const session = await signIn()
+        if (!session) return NextResponse.json({ error: 'Account created but sign in failed. Please try signing in.' }, { status: 400 })
         userId = created.user.id
         accessToken = session.session.access_token
       }
@@ -79,16 +86,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Could not establish a session.' }, { status: 500 })
     }
 
-    // 3. Guard: the initiator cannot join their own deal as the second party.
+    // 3. Guards — explicit so the joiner always knows WHY if it won't attach.
     if (deal.party_a_user_id === userId) {
-      return NextResponse.json({ error: 'This is your own deal — you are already the initiator.' }, { status: 400 })
+      return NextResponse.json({
+        error: 'This email is the person who STARTED the deal. The other party must join with a DIFFERENT email than the initiator used.'
+      }, { status: 400 })
     }
-    // Guard: already claimed by someone else.
     if (deal.party_b_user_id && deal.party_b_user_id !== userId) {
       return NextResponse.json({ error: 'This invite has already been claimed by someone else.' }, { status: 409 })
     }
 
-    // 4. Attach them to the deal as party B.
+    // 4. Attach them as party B.
     const { error: updateErr } = await sb
       .from('deals')
       .update({
@@ -102,6 +110,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Could not attach you to the deal: ' + updateErr.message }, { status: 500 })
     }
 
+    // 5. PROVE it stuck — re-read the deal and confirm party_b is now this user.
+    // This is what stops the "success but actually blank" failure for good.
+    const { data: check } = await sb
+      .from('deals')
+      .select('id, party_b_user_id, invite_status')
+      .eq('id', deal.id)
+      .single()
+
+    if (!check || check.party_b_user_id !== userId) {
+      return NextResponse.json({
+        error: 'Joining did not save correctly. Please try again with a fresh email. (The deal did not record you as the second party.)'
+      }, { status: 500 })
+    }
+
+    // Success — and verified true in the database.
     return NextResponse.json({
       success: true,
       dealId: deal.id,
