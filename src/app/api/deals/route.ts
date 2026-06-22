@@ -264,11 +264,18 @@ export async function GET(req: Request) {
             .eq('id', dealId).select().single()
           return NextResponse.json({ deal: attached || row })
         }
-        // Already a member → just return it.
+        // Already a member (initiator or party B) → return the deal.
         if (isInitiator || isPartyB) {
           return NextResponse.json({ deal: row })
         }
+        // Slot is filled by someone else and this user isn't a member.
+        // They were invited to THIS deal (they have its dealId in session) but
+        // the party_b slot is taken — surface the deal read-only rather than
+        // dumping them on a blank app, and let the UI explain.
+        return NextResponse.json({ deal: row, notAMember: true })
       }
+      // dealId was requested but no such row — fall through to the member lookup
+      // below rather than returning a confusing blank.
     }
 
     const { data } = await admin()
