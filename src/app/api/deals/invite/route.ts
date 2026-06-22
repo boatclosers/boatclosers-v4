@@ -53,10 +53,19 @@ export async function POST(req: Request) {
         Someone has invited you to join a private vessel transaction on BoatClosers
         for <strong>${vesselName}</strong> as the <strong>${inviteRole}</strong>.
       </p>
+      <p style="color:#475569; font-size:14px; line-height:1.5;">
+        Click below to open the deal. You'll set up your sign-in and confirm your
+        details, then you'll see the deal with the information already entered — no
+        searching or re-typing.
+      </p>
       <p style="text-align:center; margin: 24px 0;">
-        <a href="${inviteUrl}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
-          View the Deal
+        <a href="${inviteUrl}" style="background:#b8863a; color:#08152e; padding:14px 28px; border-radius:8px; text-decoration:none; font-weight:700; font-size:15px;">
+          Go to the Deal &rarr;
         </a>
+      </p>
+      <p style="color:#94a3b8; font-size:12px;">
+        If the button doesn't work, copy and paste this link into your browser:<br/>
+        <span style="color:#475569; word-break:break-all;">${inviteUrl}</span>
       </p>
       <p style="color:#94a3b8; font-size:12px;">
         If you weren't expecting this, you can safely ignore this email.
