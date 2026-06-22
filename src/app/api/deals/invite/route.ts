@@ -4,15 +4,15 @@ import { sendEmail, emailLayout } from '@/lib/sendEmail';
 import crypto from 'crypto';
 
 export async function POST(req: Request) {
-  const { dealId, inviteEmail, inviteRole, userId } = await req.json();
+  const { dealId, inviteEmail, userId } = await req.json();
 
-  if (!dealId || !inviteEmail || !inviteRole || !userId) {
+  if (!dealId || !inviteEmail || !userId) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
   const { data: deal, error: fetchError } = await supabaseAdmin
     .from('deals')
-    .select('id, party_a_user_id, vessel')
+    .select('id, party_a_user_id, initiator_role, vessel')
     .eq('id', dealId)
     .single();
 
@@ -24,6 +24,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Not authorized to invite for this deal' }, { status: 403 });
   }
 
+  // The invited party is ALWAYS the opposite role of the initiator. Don't trust
+  // a client-sent role — derive it from the deal so the two sides can never end
+  // up with the same role (which broke negotiation: nobody could respond).
+  const derivedInviteRole = (deal.initiator_role === 'seller') ? 'buyer' : 'seller';
+
   const token = crypto.randomBytes(32).toString('hex');
 
   const { error: updateError } = await supabaseAdmin
@@ -31,7 +36,7 @@ export async function POST(req: Request) {
     .update({
       invite_token: token,
       invite_email: inviteEmail,
-      invite_role: inviteRole,
+      invite_role: derivedInviteRole,
       invite_status: 'pending',
       invite_sent_at: new Date().toISOString(),
     })
@@ -51,7 +56,7 @@ export async function POST(req: Request) {
       <h2 style="color:#08152e; font-size:18px;">You're invited to a deal</h2>
       <p style="color:#475569; font-size:14px; line-height:1.5;">
         Someone has invited you to join a private vessel transaction on BoatClosers
-        for <strong>${vesselName}</strong> as the <strong>${inviteRole}</strong>.
+        for <strong>${vesselName}</strong> as the <strong>${derivedInviteRole}</strong>.
       </p>
       <p style="color:#475569; font-size:14px; line-height:1.5;">
         Click below to open the deal. You'll set up your sign-in and confirm your
