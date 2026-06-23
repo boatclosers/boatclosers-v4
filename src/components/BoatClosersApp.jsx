@@ -812,6 +812,27 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
     // ── STAGE 2: PAY TO LOCK ──
     if (paStage === "pay") {
+      // The invited (non-initiator) party never sees the pay UI — just a friendly
+      // status so they know the deal is progressing and they owe nothing.
+      if (!amInitiator) {
+        return (
+          <div style={{ minHeight:"100vh", background:"rgba(8,21,46,0.85)", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"2rem 1rem" }}>
+            <div style={{ background:C.white, borderRadius:10, width:"100%", maxWidth:480, border:`2px solid ${C.green}`, overflow:"hidden" }}>
+              <div style={{ background:C.navy, padding:"1.25rem 1.5rem", textAlign:"center" }}>
+                <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:"sans-serif", textTransform:"uppercase" }}>BoatClosers.com</div>
+                <div style={{ fontSize:18, fontWeight:800, color:"#fff", marginTop:4 }}>🎉 Price Agreed</div>
+              </div>
+              <div style={{ padding:"1.75rem 1.5rem", textAlign:"center" }}>
+                <div style={{ fontSize:14, fontFamily:"sans-serif", color:C.navy, fontWeight:700, marginBottom:10 }}>Your deal is moving forward!</div>
+                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, marginBottom:18 }}>
+                  The party who started this deal is finalizing the paperwork now. You'll be able to sign the Purchase Agreement in a moment — <b>nothing for you to pay</b>.
+                </div>
+                <button style={{ ...S.btnOutline, width:"100%", fontSize:14, padding:"11px" }} onClick={()=>{ setPaModal(null); setPaStage("pay"); }}>Back to Deal</button>
+              </div>
+            </div>
+          </div>
+        )
+      }
       return (
         <div style={{ minHeight:"100vh", background:"rgba(8,21,46,0.85)", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"2rem 1rem" }}>
           <div style={{ background:C.white, borderRadius:10, width:"100%", maxWidth:520, border:`2px solid ${C.brass}`, overflow:"hidden" }}>
@@ -3370,6 +3391,7 @@ export default function BoatClosers() {
               setUser({ name: session.name, email: session.email, role: session.role, userId: session.userId, token: session.token });
               if (data?.deal) {
                 setDealId(data.deal.id);
+                console.log('[ROLE] boot. userId:', session.userId, 'party_a:', data.deal.party_a_user_id, 'party_b:', data.deal.party_b_user_id, 'initiator_role:', data.deal.initiator_role, 'invite_role:', data.deal.invite_role, '=> computed:', computeDealRole(data.deal, session.userId, session.role));
                 setMyDealRole(computeDealRole(data.deal, session.userId, session.role));
                 setPartyBJoined(!!data.deal.party_b_user_id);
                 setAmInitiator(data.deal.party_a_user_id === session.userId || data.deal.initiator_id === session.userId);
