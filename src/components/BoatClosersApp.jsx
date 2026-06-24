@@ -745,6 +745,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     if (o.depositRule) setDepositRule(o.depositRule);
     setOfferFrom(myRole==="seller" ? "seller" : "buyer");
     setNegMode("negotiate");
+    setShowBuilder(true);
     setTimeout(() => offerFormRef.current?.scrollIntoView({ behavior:"smooth", block:"center" }), 60);
   };
 
@@ -802,7 +803,13 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   };
 
   const rejectOffer = (id) => {
-    setOffers(o => o.map(of => of.id===id ? {...of, status:"rejected"} : of));
+    const updatedOffers = offers.map(of => of.id===id ? {...of, status:"rejected"} : of);
+    const note = { from: myRole, text:`✗ I've rejected the ${fmt(offers.find(o=>o.id===id)?.amount||0)} offer.`, time:new Date().toLocaleTimeString() };
+    const updatedMsgs = [...messages, note];
+    setOffers(updatedOffers);
+    setMessages(updatedMsgs);
+    // Persist so the other party sees the rejection and the email fires.
+    setData(d => ({ ...d, offers: updatedOffers, messages: updatedMsgs }));
   };
 
   const acceptedOffer = offers.find(o => o.status==="accepted");
