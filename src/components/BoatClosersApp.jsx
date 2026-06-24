@@ -518,12 +518,19 @@ function StepParties({ data, setData, userRole, partyBJoined, onNext, onBack, de
             </div>
           )}
 
-          {/* EMAIL PATH: enter email above, we auto-send the join link. No link shown. */}
+          {/* EMAIL PATH: enter email right here, we auto-send the join link. */}
           {inviteMode === "email" && !inviteSent && (
             <div>
               <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.8)", marginBottom:8 }}>
-                Make sure the {otherSide}'s email is filled in above, then send their invite. We email them the join link directly — you don't need to copy anything.
+                Enter the {otherSide}'s email and we'll send them the join link directly — you don't need to copy anything.
               </div>
+              <input
+                style={{ ...S.input, marginBottom:10 }}
+                type="email"
+                value={(data?.[otherSide]?.email) || ""}
+                onChange={e=>set(otherSide, "email", e.target.value)}
+                placeholder={`${otherSide==="seller"?"Seller":"Buyer"}'s email address`}
+              />
               <div style={{ display:"flex", gap:10 }}>
                 <button onClick={()=>runInvite(false)} disabled={inviteLoading} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:inviteLoading?"default":"pointer", opacity:inviteLoading?0.6:1 }}>
                   {inviteLoading ? "Sending..." : `Email the ${otherSide} their invite`}
@@ -601,6 +608,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const [inclDates, setInclDates] = useState(data.inclDates ?? false);
   const [inclDepositTerms, setInclDepositTerms] = useState(data.inclDepositTerms ?? false);
   const [showMessages, setShowMessages] = useState(true);
+  // In Deal Room mode (offers already exist) the builder starts collapsed so the
+  // negotiation conversation is the focus; expand it to make a new offer/counter.
+  const [showBuilder, setShowBuilder] = useState(false);
   const [localContingencies, setLocalContingencies] = useState(data.selectedContingencies || []);
   const [messages, setMessages] = useState(data.messages || [
     { from:"seller", text:`Asking price is ${fmt(vessel.askingPrice||0)}. Let's talk!`, time: new Date().toLocaleTimeString() }
@@ -1020,8 +1030,19 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     <div style={S.page}>
       <TipBox tips={TIPS.negotiate} />
       <div style={{ marginBottom:"1.5rem" }}>
-        <h1 style={S.h1}>Build Your Offer</h1>
-        <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Put together your price, deposit, and terms, send it to the other party, and negotiate until you agree. Free until you lock the deal.</p>
+        {offers.length > 0 ? (
+          <>
+            <h1 style={S.h1}>Deal Room</h1>
+            <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>
+              {vessel.year} {vessel.make} {vessel.model} — negotiate here until you both agree, then lock the deal. Offers, counters, and messages all live in this room.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 style={S.h1}>Build Your Offer</h1>
+            <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Put together your price, deposit, and terms, send it to the other party, and negotiate until you agree. Free until you lock the deal.</p>
+          </>
+        )}
       </div>
 
       {/* ── DEAL ROOM STATUS BAR ── live snapshot of where the negotiation stands */}
@@ -1112,8 +1133,19 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             The agreed terms are frozen for both parties and can't be edited here. The only change allowed now is the <b>buyer's vessel decision during due diligence</b> — accept as-is, reject, or propose a new price (which is recorded as an <b>addendum</b> to the signed Purchase Agreement, not a change to it).
           </div>
         </div>
-      ) : (
+      ) : (offers.length > 0 && !showBuilder && !myOfferAwaiting && myTurn) ? (
+        <button onClick={()=>setShowBuilder(true)} style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.brass}`, width:"100%", textAlign:"left", cursor:"pointer", display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ width:32, height:32, borderRadius:6, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>＋</div>
+          <div>
+            <div style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif", color:C.navy }}>{myRole==="seller" ? "Counter the price" : "Make a new offer"}</div>
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>It's your move — tap to open the offer builder.</div>
+          </div>
+        </button>
+      ) : (offers.length > 0 && !showBuilder && (myOfferAwaiting || !myTurn)) ? null : (
       <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.brass}` }}>
+        {offers.length > 0 && (
+          <button onClick={()=>setShowBuilder(false)} style={{ background:"transparent", border:"none", color:C.slate, fontSize:11, fontFamily:"sans-serif", cursor:"pointer", float:"right", padding:0 }}>✕ collapse</button>
+        )}
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
           <div style={{ width:32, height:32, borderRadius:6, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>📝</div>
           <div>
