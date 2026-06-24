@@ -600,7 +600,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const [inclContingencies, setInclContingencies] = useState(data.inclContingencies ?? false);
   const [inclDates, setInclDates] = useState(data.inclDates ?? false);
   const [inclDepositTerms, setInclDepositTerms] = useState(data.inclDepositTerms ?? false);
-  const [showMessages, setShowMessages] = useState(false);
+  const [showMessages, setShowMessages] = useState(true);
   const [localContingencies, setLocalContingencies] = useState(data.selectedContingencies || []);
   const [messages, setMessages] = useState(data.messages || [
     { from:"seller", text:`Asking price is ${fmt(vessel.askingPrice||0)}. Let's talk!`, time: new Date().toLocaleTimeString() }
@@ -672,8 +672,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
   const sendMsg = () => {
     if (!newMsg.trim()) return;
-    setMessages(m => [...m, {from:"buyer", text:newMsg, time:new Date().toLocaleTimeString()}]);
+    const msg = { from: myRole, text: newMsg, time: new Date().toLocaleTimeString() };
+    const updated = [...messages, msg];
+    setMessages(updated);
     setNewMsg("");
+    // Persist to the deal so the other party receives it (server merges messages).
+    setData(d => ({ ...d, messages: updated, offers }));
   };
 
   const makeOffer = () => {
@@ -737,7 +741,20 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // Accepting an offer opens the modal — pay first, then sign the PA.
   const acceptOffer = (id) => {
     const acc = offers.find(o => o.id===id);
-    if (acc) { setPaModal(acc); setPaStage("pay"); setPaPaid(false); }
+    if (!acc) return;
+    if (amInitiator) {
+      // The initiator pays to lock — go straight to the pay/sign flow.
+      setPaModal(acc); setPaStage("pay"); setPaPaid(false);
+    } else {
+      // The non-initiator accepts the price, but payment routes to the initiator.
+      // Mark the offer "agreed" and persist so the initiator is prompted to pay.
+      const updatedOffers = offers.map(of => of.id===id ? {...of, status:"agreed", agreedBy:myRole} : of);
+      const note = { from: myRole, text:`✓ I accept ${fmt(acc.amount)}. Waiting on the deal initiator to complete the one-time fee and lock the Purchase Agreement.`, time:new Date().toLocaleTimeString() };
+      const updatedMsgs = [...messages, note];
+      setOffers(updatedOffers);
+      setMessages(updatedMsgs);
+      setData(d => ({ ...d, offers: updatedOffers, messages: updatedMsgs, priceAgreed: true, agreedOfferId: id }));
+    }
   };
 
   // Final step: payment locks the deal — records the binding PA, marks paid, unlocks documents.
@@ -745,7 +762,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const lockDeal = () => {
     if (!paModal) return;
     const updatedOffers = offers.map(of => of.id===paModal.id ? {...of, status:"accepted", paBuyerSig:paBuyerName, paSellerSig:paSellerName, paDate:today()} : of);
-    const lockMsg = { from:"seller", text:`✓ Deal locked — ${fmt(paModal.amount)}. Purchase Agreement signed by both parties and payment received on ${today()}. This deal is now binding.`, time:new Date().toLocaleTimeString() };
+    const lockMsg = { from:"system", text:`✓ Deal locked — ${fmt(paModal.amount)}. Purchase Agreement signed and payment received on ${today()}. This deal is now binding.`, time:new Date().toLocaleTimeString() };
     const updatedMsgs = [...messages, lockMsg];
     setOffers(updatedOffers);
     setMessages(updatedMsgs);
@@ -779,10 +796,25 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   };
 
   const acceptedOffer = offers.find(o => o.status==="accepted");
+  // An offer the OTHER party accepted, now awaiting the initiator's payment to lock.
+  const agreedOffer = offers.find(o => o.status==="agreed");
   // The latest still-pending offer, and whether *I* am the one who made it
   // (if so, I'm waiting on the other party and can't send another).
   const latestPendingTop = [...offers].reverse().find(o => o.status==="pending");
   const myOfferAwaiting = latestPendingTop && latestPendingTop.from === myRole;
+
+  // ── DEAL ROOM status: gap between sides + whose turn it is ──
+  const _lastBuyerOffer = [...offers].reverse().find(o => o.from==="buyer");
+  const _lastSellerOffer = [...offers].reverse().find(o => o.from==="seller");
+  const dealGap = (_lastBuyerOffer && _lastSellerOffer)
+    ? Math.abs(Number(_lastSellerOffer.amount) - Number(_lastBuyerOffer.amount))
+    : null;
+  // Whose move: if there's a pending offer, it's the OTHER party's turn to respond.
+  // If no pending offer at all, it's the buyer's turn to open.
+  const whoseTurn = acceptedOffer ? "done"
+    : latestPendingTop ? (latestPendingTop.from === "buyer" ? "seller" : "buyer")
+    : "buyer";
+  const myTurn = whoseTurn === myRole;
 
   // Can proceed without accepted offer — just need some data
   const canProceed = offerAmt || acceptedOffer;
@@ -991,6 +1023,59 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         <h1 style={S.h1}>Build Your Offer</h1>
         <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Put together your price, deposit, and terms, send it to the other party, and negotiate until you agree. Free until you lock the deal.</p>
       </div>
+
+      {/* ── DEAL ROOM STATUS BAR ── live snapshot of where the negotiation stands */}
+      {offers.length > 0 && !acceptedOffer && (
+        <div style={{ background:C.navy, borderRadius:10, padding:"14px 18px", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
+          <div>
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", letterSpacing:0.5 }}>CURRENT GAP</div>
+            <div style={{ fontSize:22, fontWeight:800, fontFamily:"sans-serif", color:"#fff" }}>
+              {dealGap !== null ? `${fmt(dealGap)} apart` : "Awaiting response"}
+            </div>
+          </div>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", letterSpacing:0.5 }}>WHOSE TURN</div>
+            <div style={{ fontSize:15, fontWeight:700, fontFamily:"sans-serif", color: myTurn ? C.brass : "rgba(255,255,255,0.7)" }}>
+              {myTurn ? "Your move" : `Waiting on ${whoseTurn}`}
+            </div>
+          </div>
+          <div style={{ textAlign:"right" }}>
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", letterSpacing:0.5 }}>ROUNDS</div>
+            <div style={{ fontSize:15, fontWeight:700, fontFamily:"sans-serif", color:"#fff" }}>{offers.length} offer{offers.length>1?"s":""}</div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ASKING PRICE ANCHOR — the seller's starting number the buyer offers against ── */}
+      {vessel.askingPrice && !acceptedOffer && !agreedOffer && (
+        <div style={{ background:C.sandDark, border:`1px solid ${C.mist}`, borderRadius:8, padding:"10px 16px", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
+            <b style={{ color:C.navy }}>Seller's asking price</b> — the starting anchor{myRole==="buyer" ? "; build your offer against it below" : ""}
+          </div>
+          <div style={{ fontSize:17, fontWeight:800, fontFamily:"sans-serif", color:C.navy }}>{fmt(Number(vessel.askingPrice))}</div>
+        </div>
+      )}
+
+      {/* ── PRICE AGREED — awaiting initiator payment to lock ── */}
+      {agreedOffer && !acceptedOffer && (
+        <div style={{ background:"#f0fdf4", border:`2px solid ${C.green}`, borderRadius:10, padding:"16px 20px", marginBottom:16 }}>
+          <div style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif", color:"#166534", marginBottom:6 }}>🎉 Price Agreed — {fmt(agreedOffer.amount)}</div>
+          {amInitiator ? (
+            <>
+              <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:12 }}>
+                The other party accepted this price. Complete the one-time $249 fee to unlock and sign the Purchase Agreement and lock the deal.
+              </div>
+              <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 22px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("pay"); setPaPaid(false); }}>
+                Pay $249 &amp; Lock the Deal →
+              </button>
+            </>
+          ) : (
+            <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+              You accepted this price. The party who started this deal is completing the paperwork to lock it — <b>nothing for you to pay</b>. You'll be notified to sign the Purchase Agreement next.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── DEAL LOCKED BANNER ── */}
       {acceptedOffer && (
@@ -1246,6 +1331,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                     {/* status / actions */}
                     <div style={{ marginTop:9 }}>
                       {o.status==="accepted" && <span style={{...S.pill, background:C.green, color:"#fff"}}>Accepted ✓ — Purchase Agreement signed</span>}
+                      {o.status==="agreed" && <span style={{...S.pill, background:"#166534", color:"#fff"}}>Price agreed ✓ — awaiting lock</span>}
                       {o.status==="rejected" && <span style={{...S.pill, background:C.red, color:"#fff"}}>Rejected</span>}
                       {o.status==="countered" && <span style={{...S.pill, background:C.mist, color:C.slate}}>Countered — see newer offer below</span>}
                       {isLatestPending && (
@@ -1272,7 +1358,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
       {/* ââ MESSAGES (collapsible) ââ */}
       <div style={{ ...S.card, marginBottom:16 }}>
-        <button onClick={()=>setShowMessages(v=>!v)} style={{ display:"flex", width:"100%", justifyContent:"space-between", alignItems:"center", background:"transparent", border:"none", cursor:"pointer", padding:0 }}>
+        <button onClick={()=>setShowMessages(true)} style={{ display:"flex", width:"100%", justifyContent:"space-between", alignItems:"center", background:"transparent", border:"none", cursor:"pointer", padding:0 }}>
           <div style={{ textAlign:"left" }}>
             <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>ð¬ Messages {messages.length>0 && <span style={{ fontSize:11, fontWeight:400, color:C.slate }}>({messages.length})</span>}</div>
             <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:2 }}>Chat with the other party alongside your offers.</div>
@@ -1283,12 +1369,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ marginTop:12 }}>
             <div style={{ height:200, overflowY:"auto", display:"flex", flexDirection:"column", border:`1px solid ${C.mist}`, borderRadius:5, padding:"8px", marginBottom:8 }}>
               {messages.length===0 && <div style={{ fontSize:12, color:C.slate, fontFamily:"sans-serif", textAlign:"center", margin:"auto" }}>No messages yet. Send an offer or a note to start.</div>}
-              {messages.map((m,i) => (
-                <div key={i} style={{ alignSelf:m.from==="buyer"?"flex-end":"flex-start", maxWidth:"88%", background:m.from==="buyer"?C.navy:C.sandDark, color:m.from==="buyer"?"#fff":C.text, borderRadius:m.from==="buyer"?"12px 12px 2px 12px":"12px 12px 12px 2px", padding:"8px 12px", fontSize:12, fontFamily:"sans-serif", lineHeight:1.5, marginBottom:5 }}>
-                  <div style={{ fontSize:10, color:m.from==="buyer"?"rgba(255,255,255,0.5)":C.slate, marginBottom:2 }}>{m.from==="buyer"?(parties.buyer.name||"Buyer"):(parties.seller.name||"Seller")} · {m.time}</div>
+              {messages.map((m,i) => {
+                const mine = m.from === myRole;
+                return (
+                <div key={i} style={{ alignSelf:mine?"flex-end":"flex-start", maxWidth:"88%", background:mine?C.navy:C.sandDark, color:mine?"#fff":C.text, borderRadius:mine?"12px 12px 2px 12px":"12px 12px 12px 2px", padding:"8px 12px", fontSize:12, fontFamily:"sans-serif", lineHeight:1.5, marginBottom:5 }}>
+                  <div style={{ fontSize:10, color:mine?"rgba(255,255,255,0.5)":C.slate, marginBottom:2 }}>{m.from==="buyer"?(parties.buyer?.name||"Buyer"):(parties.seller?.name||"Seller")} · {m.time}</div>
                   {m.text}
                 </div>
-              ))}
+                );
+              })}
               <div ref={messagesEnd}/>
             </div>
             <div style={{ display:"flex", gap:8 }}>
