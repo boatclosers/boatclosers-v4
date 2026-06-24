@@ -67,7 +67,58 @@ async function notifyOnDealChange(previous: any, updated: any) {
       }
     }
 
-    // Document signing — compare which docs were signed before vs now.
+    // Detect an offer that just changed to REJECTED or AGREED (status change, not a new offer).
+    const statusById: any = {}
+    for (const o of prevOffers) { if (o && o.id != null) statusById[o.id] = o.status }
+    for (const o of newOffers) {
+      if (!o || o.id == null) continue
+      const before = statusById[o.id]
+      if (before === o.status) continue
+      // Notify the party who did NOT make this offer of the status change.
+      const recipientEmail = o.from === 'buyer' ? buyerEmail : sellerEmail
+      // (the maker hears the outcome of their own offer)
+      if (o.status === 'rejected' && recipientEmail) {
+        await sendEmail({
+          to: recipientEmail,
+          subject: `Your offer was rejected — BoatClosers`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">Your offer was declined</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              The other party rejected the <strong>${fmtMoney(o.amount)}</strong> offer on
+              <strong>${vesselName}</strong>. You can send a new offer to keep the deal alive.
+            </p>
+            <p style="text-align:center; margin: 24px 0;">
+              <a href="${dealLink(2)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+                Open the Deal Room
+              </a>
+            </p>
+          `)
+        })
+      }
+      if (o.status === 'agreed') {
+        // The initiator needs to pay to lock — notify both, with the action link.
+        const recips = [buyerEmail, sellerEmail].filter(Boolean)
+        for (const email of recips) {
+          await sendEmail({
+            to: email,
+            subject: `Price agreed — time to lock your BoatClosers deal`,
+            html: emailLayout(`
+              <h2 style="color:#08152e; font-size:18px;">Price agreed: ${fmtMoney(o.amount)}</h2>
+              <p style="color:#475569; font-size:14px; line-height:1.5;">
+                Both sides have agreed on the price for <strong>${vesselName}</strong>. The party who
+                started the deal completes the one-time fee to unlock and sign the Purchase Agreement.
+              </p>
+              <p style="text-align:center; margin: 24px 0;">
+                <a href="${dealLink(2)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+                  Open the Deal Room
+                </a>
+              </p>
+            `)
+          })
+        }
+      }
+    }
+
     const prevSigned = previous?.docs_data?.signedDocs || {}
     const newSigned = updated?.docs_data?.signedDocs || {}
     const prevSignedIds = Object.keys(prevSigned)
