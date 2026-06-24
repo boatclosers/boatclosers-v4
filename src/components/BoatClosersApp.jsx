@@ -379,6 +379,27 @@ function StepParties({ data, setData, userRole, partyBJoined, onNext, onBack, de
   const [inviteMode, setInviteMode] = useState(null);
 
   const otherSide = userRole === "buyer" ? "seller" : "buyer";
+  const mySide = userRole === "seller" ? "seller" : "buyer";
+
+  // Carry the signed-in user's name/email onto THEIR own side of the deal if it's
+  // not filled yet (e.g. an invited party who just joined). This makes their name
+  // transfer through from signup and unblocks the Continue button.
+  useEffect(() => {
+    if (!user) return;
+    const side = data?.[mySide] || {};
+    const needsName = !side.name && user.name;
+    const needsEmail = !side.email && user.email;
+    if (needsName || needsEmail) {
+      setData(d => ({
+        ...d,
+        [mySide]: {
+          ...d[mySide],
+          name: side.name || user.name || "",
+          email: side.email || user.email || "",
+        }
+      }));
+    }
+  }, [user, mySide]);
 
   // Shared call: creates the token + saves it. On the email path the server
   // also emails the join link automatically. On the link path we show the url.
@@ -582,9 +603,16 @@ function StepParties({ data, setData, userRole, partyBJoined, onNext, onBack, de
           )}
         </div>
       </div>
-      <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
-        <button style={S.btnBrass} disabled={!canContinue} onClick={onNext}>Continue to Negotiate & Terms →</button>
+        <div style={{ textAlign:"right" }}>
+          {!canContinue && (
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.red, marginBottom:6 }}>
+              Add your {mySide==="seller"?"seller":"buyer"} full legal name and email to continue.
+            </div>
+          )}
+          <button style={S.btnBrass} disabled={!canContinue} onClick={onNext}>Continue to Negotiate & Terms →</button>
+        </div>
       </div>
     </div>
   );
