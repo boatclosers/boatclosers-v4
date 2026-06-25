@@ -30,14 +30,22 @@ function fmtMoney(n: number) {
 
 async function notifyOnDealChange(previous: any, updated: any) {
   try {
+    // Only notify about offer/counter/reject changes once BOTH parties have
+    // joined (party_b has an account). Before that there's no real account to
+    // sign in as, so a "Review the Offer" link would dead-end. The invite email
+    // (sent from the invite route) is what brings the second party in first.
+    if (!updated?.party_b_user_id) return
+
     const buyerEmail = updated?.parties?.buyer?.email
     const sellerEmail = updated?.parties?.seller?.email
     const vesselName = updated?.vessel?.name || updated?.vessel?.makeModel || 'the vessel'
 
-    // Build a deep-link that opens THIS deal on the page for the task.
+    // Build a deep-link that opens THIS deal on the page for the task, tied to
+    // the RECIPIENT so the app makes them sign in as the right account instead
+    // of showing the deal as whoever happens to be logged in on that browser.
     // step: 2 = Negotiate, 3 = Due Diligence, 4 = Documents, 5 = Closing.
     const base = process.env.NEXT_PUBLIC_APP_URL || ''
-    const dealLink = (step: number) => `${base}/?dealId=${updated?.id}&step=${step}`
+    const dealLink = (step: number, to?: string) => `${base}/?dealId=${updated?.id}&step=${step}${to ? `&to=${encodeURIComponent(to)}` : ''}`
 
     const prevOffers = previous?.negotiate?.offers || []
     const newOffers = updated?.negotiate?.offers || []
@@ -58,7 +66,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               <strong>${vesselName}</strong>.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${dealLink(2)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(2, recipientEmail)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 Review the Offer
               </a>
             </p>
@@ -88,7 +96,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               <strong>${vesselName}</strong>. You can send a new offer to keep the deal alive.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${dealLink(2)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(2, recipientEmail)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 Open the Deal Room
               </a>
             </p>
@@ -109,7 +117,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
                 started the deal completes the one-time fee to unlock and sign the Purchase Agreement.
               </p>
               <p style="text-align:center; margin: 24px 0;">
-                <a href="${dealLink(2)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+                <a href="${dealLink(2, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                   Open the Deal Room
                 </a>
               </p>
@@ -140,7 +148,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               This is the binding contract for the deal.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${dealLink(4)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(4, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 View the Agreement
               </a>
             </p>
@@ -166,7 +174,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               <strong>${vesselName}</strong>. Check your deal for the latest status.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${dealLink(4)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(4, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 View Documents
               </a>
             </p>
@@ -189,7 +197,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               and the deal is now binding. You can now proceed with the remaining closing documents.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${dealLink(4)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(4, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 Go to Your Deal
               </a>
             </p>
@@ -219,7 +227,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               The deal proceeds to closing on the agreed terms.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${dealLink(3)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(3, sellerEmail)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 View the Deal
               </a>
             </p>
@@ -237,7 +245,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               recorded in the Rejection Notice.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${dealLink(3)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(3, sellerEmail)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 View the Deal
               </a>
             </p>
@@ -259,7 +267,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               Open the deal to <strong>accept or decline</strong> this addendum.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${dealLink(3)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+              <a href="${dealLink(3, sellerEmail)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 Review &amp; Respond
               </a>
             </p>
@@ -286,7 +294,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               : 'The original agreed price stands. You can accept the vessel as-is, or proceed per your due-diligence options.'}
           </p>
           <p style="text-align:center; margin: 24px 0;">
-            <a href="${dealLink(3)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+            <a href="${dealLink(3, buyerEmail)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
               View the Deal
             </a>
           </p>
