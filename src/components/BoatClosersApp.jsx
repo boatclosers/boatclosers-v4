@@ -3701,6 +3701,54 @@ export default function BoatClosers() {
   const setDdDataAndSave = withSave(setDdData);
   const setDocsDataAndSave = withSave(setDocsData);
 
+  // ── LIVE SYNC ───────────────────────────────────────────────────────────
+  // While a deal is open, quietly poll the server so each party sees the other
+  // side's new offers, counters, and messages without reloading. This is what
+  // keeps the negotiation flowing round after round (and unlocks the next steps
+  // the moment the other party pays). Polling uses the raw setters so it never
+  // triggers a save loop, and it union-merges so it never wipes an offer or
+  // message you just made that hasn't finished saving yet.
+  useEffect(() => {
+    if (screen !== "deal" || !dealId || !user?.token) return;
+
+    const mergeFromServer = (serverDeal) => {
+      if (!serverDeal) return;
+      const sNeg = serverDeal.negotiate || {};
+      setNegotiate(prev => {
+        const byId = {};
+        for (const o of (prev?.offers || [])) if (o && o.id != null) byId[o.id] = o;
+        for (const o of (sNeg.offers || [])) if (o && o.id != null) byId[o.id] = { ...(byId[o.id] || {}), ...o };
+        const offers = Object.values(byId).sort((a, b) => (a.id || 0) - (b.id || 0));
+        const prevMsgs = prev?.messages || [];
+        const srvMsgs = sNeg.messages || [];
+        const messages = srvMsgs.length >= prevMsgs.length ? srvMsgs : prevMsgs;
+        return { ...prev, offers, messages, paid: prev?.paid || sNeg.paid, dealLocked: prev?.dealLocked || sNeg.dealLocked };
+      });
+    };
+
+    const poll = async () => {
+      if (document.hidden) return;
+      try {
+        const res = await fetch("/api/deals?dealId=" + encodeURIComponent(dealId), {
+          headers: { "Authorization": "Bearer " + user.token }
+        });
+        const data = await res.json();
+        mergeFromServer(data?.deal);
+      } catch (e) {}
+    };
+
+    const id = setInterval(poll, 5000);
+    const onFocus = () => poll();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    poll();
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [screen, dealId, user?.token]);
+
   // Everything past the negotiation — due diligence, documents, closing — is
   // locked until the deal is finalized: both sign the PA and the $249 is paid.
   const dealPaid = !!(negotiate?.paid || negotiate?.dealLocked || (negotiate?.offers || []).some(o => o && o.status === "accepted"));
