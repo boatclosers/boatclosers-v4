@@ -205,20 +205,21 @@ function DataWarning({ vessel, parties }) {
 
 // ── PROGRESS BAR ─────────────────────────────────────────────────────────────
 const STEPS = ["Vessel","Parties","Price & Terms","Due Diligence","Documents","Closing"];
-function ProgressBar({ step, setStep, maxStep }) {
+function ProgressBar({ step, setStep, maxStep, dealPaid }) {
   return (
     <div style={{ background:C.white, borderBottom:`1px solid ${C.mist}`, padding:"0.85rem 2rem" }}>
       <div style={{ maxWidth:820, margin:"0 auto", display:"flex", alignItems:"center" }}>
         {STEPS.map((s,i) => {
           const done    = i < step;
           const current = i === step;
-          const preview = i > step; // ahead — always clickable as preview
+          const locked  = i >= 3 && !dealPaid; // DD / Documents / Closing stay locked until paid
+          const preview = i > step && !locked; // ahead — clickable as preview only if unlocked
           return (
             <div key={i} style={{ display:"flex", alignItems:"center", flex: i<STEPS.length-1 ? 1 : 0 }}>
               <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
                 <div
-                  onClick={() => setStep(i)}
-                  title={preview ? `Preview ${s}` : done ? `Go back to ${s}` : s}
+                  onClick={() => { if (!locked) setStep(i); }}
+                  title={locked ? `${s} unlocks once the deal is paid` : preview ? `Preview ${s}` : done ? `Go back to ${s}` : s}
                   style={{
                     width:28, height:28, borderRadius:"50%",
                     background: done ? C.green : current ? C.brass : "transparent",
@@ -226,27 +227,27 @@ function ProgressBar({ step, setStep, maxStep }) {
                     display:"flex", alignItems:"center", justifyContent:"center",
                     fontSize:11, fontWeight:700, fontFamily:"sans-serif", flexShrink:0,
                     border: current ? `2px solid ${C.navy}` : preview ? `2px dashed ${C.mist}` : "none",
-                    cursor:"pointer",
-                    opacity: preview ? 0.65 : 1,
+                    cursor: locked ? "not-allowed" : "pointer",
+                    opacity: locked ? 0.4 : preview ? 0.65 : 1,
                     transition:"all 0.15s",
                   }}
                 >
-                  {done ? "✓" : i+1}
+                  {locked ? "🔒" : done ? "✓" : i+1}
                 </div>
                 <div
-                  onClick={() => setStep(i)}
+                  onClick={() => { if (!locked) setStep(i); }}
                   style={{
                     fontSize:9, fontFamily:"sans-serif",
                     color: current ? C.navy : done ? C.teal : C.slate,
                     marginTop:3, whiteSpace:"nowrap",
                     fontWeight: current ? 700 : 400,
-                    cursor:"pointer",
-                    textDecoration: done ? "underline" : preview ? "none" : "none",
+                    cursor: locked ? "not-allowed" : "pointer",
+                    textDecoration: done ? "underline" : "none",
                     textDecorationColor: C.teal,
-                    opacity: preview ? 0.6 : 1,
+                    opacity: locked ? 0.4 : preview ? 0.6 : 1,
                   }}
                 >
-                  {s}{preview ? " 👁" : ""}
+                  {s}{locked ? " 🔒" : preview ? " 👁" : ""}
                 </div>
               </div>
               {i<STEPS.length-1 && (
@@ -284,6 +285,22 @@ function PreviewBanner({ step, maxStep, setStep }) {
   );
 }
 
+
+// ── LOCKED STEP — shown for DD / Documents / Closing before the deal is paid ──
+function LockedStep({ stepName, onBack }) {
+  return (
+    <div style={S.page}>
+      <div style={{ ...S.card, textAlign:"center", padding:"3rem 2rem", borderTop:`3px solid ${C.brass}`, maxWidth:560, margin:"2rem auto" }}>
+        <div style={{ fontSize:42, marginBottom:14 }}>🔒</div>
+        <div style={{ fontSize:20, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>{stepName} is locked</div>
+        <div style={{ fontSize:14, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, maxWidth:440, margin:"0 auto 22px" }}>
+          This opens once the deal is finalized — both parties sign the Purchase Agreement and the one-time $249 fee is paid to make it binding. Until then, due diligence, documents, and closing stay locked for both sides.
+        </div>
+        <button style={S.btnBrass} onClick={onBack}>← Back to the Deal Room</button>
+      </div>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 function StepVessel({ data, setData, onNext }) {
@@ -893,7 +910,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const myTurn = whoseTurn === myRole;
 
   // Can proceed without accepted offer — just need some data
-  const canProceed = offerAmt || acceptedOffer;
+  const canProceed = !!acceptedOffer;
 
   const proceed = () => {
     const agreed = acceptedOffer || { amount:Number(offerAmt), escrowPct:Number(escrowPct), escrowPath, deposit:Math.round(Number(offerAmt)*Number(escrowPct)/100), ddDays, closingDate, status:"working" };
@@ -1523,8 +1540,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
-        <button style={S.btnBrass} disabled={!canProceed} onClick={proceed}>
-          Continue to Due Diligence →
+        <button style={{...S.btnBrass, opacity:canProceed?1:0.5}} disabled={!canProceed} onClick={proceed}>
+          {canProceed ? "Continue to Due Diligence →" : "🔒 Finalize the deal to continue"}
         </button>
       </div>
     </div>
@@ -3684,7 +3701,10 @@ export default function BoatClosers() {
   const setDdDataAndSave = withSave(setDdData);
   const setDocsDataAndSave = withSave(setDocsData);
 
-  const goToStep = (n) => { setStep(n); if (n > maxStep) setMaxStep(n); scheduleSave(); };
+  // Everything past the negotiation — due diligence, documents, closing — is
+  // locked until the deal is finalized: both sign the PA and the $249 is paid.
+  const dealPaid = !!(negotiate?.paid || negotiate?.dealLocked || (negotiate?.offers || []).some(o => o && o.status === "accepted"));
+  const goToStep = (n) => { if (n >= 3 && !dealPaid) { setStep(2); return; } setStep(n); if (n > maxStep) setMaxStep(n); scheduleSave(); };
 
   const handleAuth = async (authData) => {
     setUser(authData);
@@ -3822,14 +3842,14 @@ export default function BoatClosers() {
           <button style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }} onClick={handleSignOut}>Sign Out</button>
         </div>
       </nav>
-      <ProgressBar step={step} setStep={setStep} maxStep={maxStep}/>
+      <ProgressBar step={step} setStep={setStep} maxStep={maxStep} dealPaid={dealPaid}/>
       <PreviewBanner step={step} maxStep={maxStep} setStep={setStep}/>
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} onNext={()=>goToStep(1)}/>}
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
-      {step===3 && <StepDueDiligence data={ddData} setData={setDdDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/>}
-      {step===4 && <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/>}
-      {step===5 && <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} onBack={()=>setStep(4)}/>}
+      {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
+      {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
+      {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} onBack={()=>setStep(4)}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
       <AIAssistant open={aiOpen} setOpen={setAiOpen} step={step} vessel={vessel} parties={parties}/>
     </div>
   );
