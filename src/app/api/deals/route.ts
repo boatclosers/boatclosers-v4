@@ -436,7 +436,15 @@ export async function POST(req: Request) {
         if (o && o.id != null) {
           // Incoming wins for an existing id (captures status changes like accept/counter),
           // but we never drop an id that only exists on the server side.
-          offerById[o.id] = { ...(offerById[o.id] || {}), ...o }
+          const ex = offerById[o.id] || {}
+          const merged: any = { ...ex, ...o }
+          // PA signatures are sticky: once a party has signed their own line, a
+          // later save from the OTHER party (whose copy may not have that
+          // signature yet) must never erase it.
+          for (const k of ['paBuyerSig','paBuyerDisc','paBuyerDate','paSellerSig','paSellerDisc','paSellerDate']) {
+            if (!merged[k] && ex[k]) merged[k] = ex[k]
+          }
+          offerById[o.id] = merged
         }
       }
       const mergedOffers = Object.values(offerById).sort((a: any, b: any) => Number(a.id) - Number(b.id))
@@ -450,6 +458,12 @@ export async function POST(req: Request) {
         offers: mergedOffers,
         messages: mergedMsgs
       }
+      // Deposit proof and the "ended" flag are sticky once set, and the deadline
+      // only ever moves later (a seller extension), so one party's stale save
+      // can't undo the other's deposit action.
+      if (!mergedPayload.negotiate.depositProof && existingNeg.depositProof) mergedPayload.negotiate.depositProof = existingNeg.depositProof
+      if (!mergedPayload.negotiate.depositEnded && existingNeg.depositEnded) mergedPayload.negotiate.depositEnded = existingNeg.depositEnded
+      if ((Number(existingNeg.depositDeadline)||0) > (Number(mergedPayload.negotiate.depositDeadline)||0)) mergedPayload.negotiate.depositDeadline = existingNeg.depositDeadline
 
       // Update by id ALONE — authorization already checked. The old .or() filter
       // on the update was failing to match for the joined party, so their saves
