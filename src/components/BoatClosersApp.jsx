@@ -1469,7 +1469,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       <div style={{ ...S.card, marginBottom:16 }}>
         <button onClick={()=>setShowMessages(true)} style={{ display:"flex", width:"100%", justifyContent:"space-between", alignItems:"center", background:"transparent", border:"none", cursor:"pointer", padding:0 }}>
           <div style={{ textAlign:"left" }}>
-            <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>ð¬ Messages {messages.length>0 && <span style={{ fontSize:11, fontWeight:400, color:C.slate }}>({messages.length})</span>}</div>
+            <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>💬 Messages {messages.length>0 && <span style={{ fontSize:11, fontWeight:400, color:C.slate }}>({messages.length})</span>}</div>
             <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:2 }}>Chat with the other party alongside your offers.</div>
           </div>
           <span style={{ fontSize:13, color:C.slate }}>{showMessages?"▲":"▼"}</span>
