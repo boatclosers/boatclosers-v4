@@ -451,7 +451,7 @@ export async function POST(req: Request) {
         .select().single()
       if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-      notifyOnDealChange(existingRow, data)
+      await notifyOnDealChange(existingRow, data)
       return NextResponse.json({ deal: data })
     }
 
@@ -469,7 +469,7 @@ export async function POST(req: Request) {
         .from('deals').update(payload).eq('id', existing[0].id).select().single()
       if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-      notifyOnDealChange(existingRow, data)
+      await notifyOnDealChange(existingRow, data)
       return NextResponse.json({ deal: data })
     }
 
