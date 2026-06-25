@@ -306,13 +306,18 @@ function LockedStep({ stepName, onBack }) {
 function StepVessel({ data, setData, onNext }) {
   const set = (k,v) => setData(d => ({...d,[k]:v}));
   // Only year, make, model required — rest optional until paywall
-  const canContinue = data.year && data.make && data.model;
+  const canContinue = data.year && data.make && data.model && data.askingPrice;
   return (
     <div style={S.page}>
       <TipBox tips={TIPS.vessel} />
       <div style={{ marginBottom:"1.5rem" }}>
         <h1 style={S.h1}>Vessel Information</h1>
-        <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Fill in what you have now. You can complete remaining fields before signing. Year, make, and model are required to continue.</p>
+        <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Fill in what you have now. You can complete remaining fields before signing. Asking price, year, make, and model are required to continue.</p>
+      </div>
+      <div style={{ ...S.card, borderTop:`3px solid ${C.brass}` }}>
+        <h3 style={S.h3}>Asking Price</h3>
+        <p style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginTop:-6, marginBottom:12 }}>The seller's starting number — buyers build their offer against this anchor. Required to continue.</p>
+        <Field label="Asking Price ($) *"><input style={S.input} type="number" value={data.askingPrice} onChange={e=>set("askingPrice",e.target.value)} placeholder="85000" /></Field>
       </div>
       <div style={S.card}>
         <h3 style={S.h3}>Identification</h3>
@@ -367,7 +372,6 @@ function StepVessel({ data, setData, onNext }) {
         </Grid2>
         <hr style={S.divider}/>
         <Grid2>
-          <Field label="Asking Price ($)"><input style={S.input} type="number" value={data.askingPrice} onChange={e=>set("askingPrice",e.target.value)} placeholder="85000" /></Field>
           <Field label="Vessel Location (City, State)"><input style={S.input} value={data.location} onChange={e=>set("location",e.target.value)} placeholder="Palm Beach, FL" /></Field>
         </Grid2>
         <Field label="Description / Notable Features" span2>
@@ -649,9 +653,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const [offers, setOffers] = useState(data.offers || []);
   const [offerFrom, setOfferFrom] = useState(myRole==="seller" ? "seller" : "buyer"); // who is making the current offer
   // Opt-in sections of the offer — the customer chooses what to include.
-  const [inclContingencies, setInclContingencies] = useState(data.inclContingencies ?? false);
-  const [inclDates, setInclDates] = useState(data.inclDates ?? false);
-  const [inclDepositTerms, setInclDepositTerms] = useState(data.inclDepositTerms ?? false);
+  const [inclContingencies, setInclContingencies] = useState(data.inclContingencies ?? true);
+  const [inclDates, setInclDates] = useState(data.inclDates ?? true);
+  const [inclDepositTerms, setInclDepositTerms] = useState(data.inclDepositTerms ?? true);
   const [showMessages, setShowMessages] = useState(true);
   // In Deal Room mode (offers already exist) the builder starts collapsed so the
   // negotiation conversation is the focus; expand it to make a new offer/counter.
@@ -717,6 +721,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // Deposit rule
   const [depositRule, setDepositRule] = useState(data.depositRule||"fully_returnable");
   const [depositRuleCustom, setDepositRuleCustom] = useState(data.depositRuleCustom||"");
+  const [depositHours, setDepositHours] = useState(data.depositHours ? String(data.depositHours) : "24");
 
   // Payment type + financing
   const [paymentType, setPaymentType] = useState(data.paymentType||"cash");
@@ -755,6 +760,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       ddExtension: inclDates ? ddExtension : false, ddExtDays, ddExtDepositRule,
       // opt-in deposit terms / notes
       inclDepositTerms, depositRule: inclDepositTerms ? depositRule : "", depositRuleCustom, note: verbalNote,
+      depositHours: Number(depositHours) || 24,
     };
     setOffers(o => {
       const updated = [...o.map(of => of.status==="pending" ? {...of, status:"countered"} : of), offer];
@@ -800,27 +806,43 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const acceptOffer = (id) => {
     const acc = offers.find(o => o.id===id);
     if (!acc) return;
-    if (amInitiator) {
-      // The initiator pays to lock — go straight to the pay/sign flow.
-      setPaModal(acc); setPaStage("pay"); setPaPaid(false);
-    } else {
-      // The non-initiator accepts the price, but payment routes to the initiator.
-      // Mark the offer "agreed" and persist so the initiator is prompted to pay.
-      const updatedOffers = offers.map(of => of.id===id ? {...of, status:"agreed", agreedBy:myRole} : of);
-      const note = { from: myRole, text:`✓ I accept ${fmt(acc.amount)}. Waiting on the deal initiator to complete the one-time fee and lock the Purchase Agreement.`, time:new Date().toLocaleTimeString() };
-      const updatedMsgs = [...messages, note];
-      setOffers(updatedOffers);
-      setMessages(updatedMsgs);
-      setData(d => ({ ...d, offers: updatedOffers, messages: updatedMsgs, priceAgreed: true, agreedOfferId: id }));
-    }
+    // Either party accepting the other's number means the PRICE is agreed.
+    // Both then sign the Purchase Agreement (free) before the initiator pays.
+    const updatedOffers = offers.map(of => of.id===id ? {...of, status:"agreed", agreedBy:myRole} : of);
+    const note = { from: myRole, text:`✓ I accept ${fmt(acc.amount)}. Let's both sign the Purchase Agreement.`, time:new Date().toLocaleTimeString() };
+    const updatedMsgs = [...messages, note];
+    setOffers(updatedOffers);
+    setMessages(updatedMsgs);
+    setData(d => ({ ...d, offers: updatedOffers, messages: updatedMsgs, priceAgreed: true, agreedOfferId: id }));
+  };
+
+  // Each party signs ONLY their own line, from their own login. The signature
+  // saves onto the agreed offer so the other party sees it via live sync.
+  const signMyLine = (offerId) => {
+    const myName = (myRole === "buyer" ? paBuyerName : paSellerName).trim();
+    if (!myName) return;
+    const patch = myRole === "buyer"
+      ? { paBuyerSig: myName, paBuyerDisc: true, paBuyerDate: today() }
+      : { paSellerSig: myName, paSellerDisc: true, paSellerDate: today() };
+    setOffers(o => {
+      const updated = o.map(of => of.id===offerId ? {...of, ...patch} : of);
+      setData(d => ({ ...d, offers: updated }));
+      return updated;
+    });
+    setMessages(m => {
+      const updated = [...m, { from: myRole, text:`✍️ ${myName} signed the Purchase Agreement as the ${myRole}.`, time:new Date().toLocaleTimeString() }];
+      setData(d => ({ ...d, messages: updated }));
+      return updated;
+    });
   };
 
   // Final step: payment locks the deal — records the binding PA, marks paid, unlocks documents.
   // NOTE: payment is SIMULATED for now. Wire Stripe Checkout to this handler as the final task.
   const lockDeal = () => {
     if (!paModal) return;
-    const updatedOffers = offers.map(of => of.id===paModal.id ? {...of, status:"accepted", paBuyerSig:paBuyerName, paSellerSig:paSellerName, paDate:today()} : of);
-    const lockMsg = { from:"system", text:`✓ Deal locked — ${fmt(paModal.amount)}. Purchase Agreement signed and payment received on ${today()}. This deal is now binding.`, time:new Date().toLocaleTimeString() };
+    const live = offers.find(o => o.id===paModal.id) || paModal;
+    const updatedOffers = offers.map(of => of.id===paModal.id ? {...of, status:"accepted", paBuyerSig:live.paBuyerSig, paSellerSig:live.paSellerSig, paDate:today()} : of);
+    const lockMsg = { from:"system", text:`✓ Deal locked — ${fmt(paModal.amount)}. Purchase Agreement signed by both parties and the fee paid on ${today()}. This deal is now binding.`, time:new Date().toLocaleTimeString() };
     const updatedMsgs = [...messages, lockMsg];
     setOffers(updatedOffers);
     setMessages(updatedMsgs);
@@ -842,10 +864,13 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       paymentType: paModal.paymentType || paymentType,
       financeContingency: paModal.financeContingency || financeContingency,
       depositRule: paModal.depositRule || depositRule, depositRuleCustom,
+      depositHours: paModal.depositHours || 24,
+      depositDeadline: Date.now() + (Number(paModal.depositHours) || 24) * 3600 * 1000,
+      depositProof: null,
       ddExtension: paModal.ddExtension ?? ddExtension, ddExtDays, ddExtDepositRule,
       verbalDeal, verbalNote: paModal.note || verbalNote,
     }));
-    setPaModal(null); setPaStage("pay"); setPaPaid(false);
+    setPaModal(null); setPaStage("sign"); setPaPaid(false);
     setPaBuyerName(""); setPaSellerName(""); setPaBuyerDisc(false); setPaSellerDisc(false);
   };
 
@@ -934,114 +959,33 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // ── PURCHASE AGREEMENT MODAL ─────────────────────────────────────────────
   if (paModal) {
     const esc = paModal.escrowPath==="escrow_com"?"Escrow.com":paModal.escrowPath==="attorney"?"Third Party Attorney":"Direct to Seller";
+    const live = offers.find(o => o.id===paModal.id) || paModal;
+    const buyerSigned = !!(live.paBuyerSig && live.paBuyerDisc);
+    const sellerSigned = !!(live.paSellerSig && live.paSellerDisc);
+    const bothSigned = buyerSigned && sellerSigned;
+    const iAmBuyer = myRole === "buyer";
+    const mySigned = iAmBuyer ? buyerSigned : sellerSigned;
+    const otherRole = iAmBuyer ? "seller" : "buyer";
 
-    // ── STAGE 2: PAY TO LOCK ──
-    if (paStage === "pay") {
-      // The invited (non-initiator) party never sees the pay UI — just a friendly
-      // status so they know the deal is progressing and they owe nothing.
-      if (!amInitiator) {
-        return (
-          <div style={{ minHeight:"100vh", background:"rgba(8,21,46,0.85)", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"2rem 1rem" }}>
-            <div style={{ background:C.white, borderRadius:10, width:"100%", maxWidth:480, border:`2px solid ${C.green}`, overflow:"hidden" }}>
-              <div style={{ background:C.navy, padding:"1.25rem 1.5rem", textAlign:"center" }}>
-                <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:"sans-serif", textTransform:"uppercase" }}>BoatClosers.com</div>
-                <div style={{ fontSize:18, fontWeight:800, color:"#fff", marginTop:4 }}>🎉 Price Agreed</div>
-              </div>
-              <div style={{ padding:"1.75rem 1.5rem", textAlign:"center" }}>
-                <div style={{ fontSize:14, fontFamily:"sans-serif", color:C.navy, fontWeight:700, marginBottom:10 }}>Your deal is moving forward!</div>
-                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, marginBottom:18 }}>
-                  The party who started this deal is finalizing the paperwork now. You'll be able to sign the Purchase Agreement in a moment — <b>nothing for you to pay</b>.
-                </div>
-                <button style={{ ...S.btnOutline, width:"100%", fontSize:14, padding:"11px" }} onClick={()=>{ setPaModal(null); setPaStage("pay"); }}>Back to Deal</button>
-              </div>
-            </div>
-          </div>
-        )
-      }
-      return (
-        <div style={{ minHeight:"100vh", background:"rgba(8,21,46,0.85)", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"2rem 1rem" }}>
-          <div style={{ background:C.white, borderRadius:10, width:"100%", maxWidth:520, border:`2px solid ${C.brass}`, overflow:"hidden" }}>
-            <div style={{ background:C.navy, padding:"1.25rem 1.5rem", textAlign:"center" }}>
-              <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:"sans-serif", textTransform:"uppercase" }}>BoatClosers.com</div>
-              <div style={{ fontSize:18, fontWeight:800, color:"#fff", marginTop:4 }}>🔒 Lock This Deal</div>
-              <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"sans-serif", marginTop:4 }}>Price agreed. Pay to unlock the Purchase Agreement for signing.</div>
-            </div>
-            <div style={{ padding:"1.5rem" }}>
-              {/* Agreed terms summary */}
-              <div style={{ fontSize:11, letterSpacing:2, color:C.brass, textTransform:"uppercase", fontFamily:"sans-serif", fontWeight:700, marginBottom:10 }}>Agreed Terms</div>
-              <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, overflow:"hidden", marginBottom:18 }}>
-                {[
-                  ["Vessel", `${vessel.year||""} ${vessel.make||""} ${vessel.model||""}`.trim()||"—"],
-                  ["Purchase Price", fmt(paModal.amount)],
-                  ["Earnest Money", `${fmt(paModal.deposit)} (${paModal.escrowPct}%)`],
-                  ["Escrow Method", esc],
-                  ["Due Diligence", `${paModal.ddDays||"10"} days`],
-                  ["Closing Date", paModal.closingDate||"To be agreed"],
-                  ["Buyer", paBuyerName||parties.buyer.name||"Buyer"],
-                  ["Seller", paSellerName||parties.seller.name||"Seller"],
-                ].map(([k,v],i)=>(
-                  <div key={k} style={{ display:"flex", justifyContent:"space-between", gap:12, padding:"9px 14px", background:i%2?C.white:C.sandDark, fontFamily:"sans-serif" }}>
-                    <span style={{ fontSize:12, color:C.slate }}>{k}</span>
-                    <span style={{ fontSize:12, fontWeight:700, color:C.navy, textAlign:"right" }}>{v}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* What paying does */}
-              <div style={{ background:C.sandDark, borderRadius:8, padding:"12px 14px", marginBottom:18, fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
-                Paying the one-time fee unlocks the Purchase Agreement for signing and all {DOCUMENTS.length} closing documents. You and the other party sign on the next screen to make the agreement binding.
-              </div>
-
-              {/* Price + pay button — ONLY the initiator pays */}
-              {amInitiator ? (
-                <>
-                  <div style={{ textAlign:"center", marginBottom:14 }}>
-                    <span style={{ fontSize:40, fontWeight:800, color:C.navy, fontFamily:"sans-serif" }}>$249</span>
-                    <span style={{ fontSize:13, color:C.slate, fontFamily:"sans-serif" }}> &nbsp;flat fee · one deal</span>
-                  </div>
-                  <button style={{ ...S.btnBrass, width:"100%", fontSize:15, padding:"13px" }} onClick={()=>{ setPaPaid(true); setPaStage("review"); }}>
-                    Pay $249 &amp; Continue to Sign →
-                  </button>
-                  <div style={{ textAlign:"center", fontSize:10, color:C.slate, fontFamily:"sans-serif", marginTop:10, lineHeight:1.5 }}>
-                    Demo mode — no real charge yet. Secure card payment via Stripe will be enabled before launch.
-                  </div>
-                </>
-              ) : (
-                <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8, padding:"18px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", color:"#166534", lineHeight:1.6 }}>
-                  <div style={{ fontSize:26, marginBottom:8 }}>🎉</div>
-                  <b>Price agreed — your deal is moving forward!</b><br/>
-                  The party who started this deal is finalizing the paperwork now. You'll be ready to sign the Purchase Agreement in a moment — <b>nothing for you to pay</b>.
-                </div>
-              )}
-              <div style={{ textAlign:"center", marginTop:14 }}>
-                <button style={{ background:"transparent", border:"none", color:C.slate, fontSize:12, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }} onClick={()=>{ setPaModal(null); setPaStage("pay"); }}>← Cancel</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // ── STAGE 1: REVIEW & SIGN ──
     return (
       <div style={{ minHeight:"100vh", background:"rgba(8,21,46,0.85)", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"2rem 1rem" }}>
         <div style={{ background:C.white, borderRadius:10, width:"100%", maxWidth:680, border:`2px solid ${C.brass}` }}>
-          {/* Header */}
-          <div style={{ background:C.navy, padding:"1rem 1.5rem", borderRadius:"8px 8px 0 0", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <div>
-              <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:"sans-serif", textTransform:"uppercase" }}>BoatClosers.com</div>
-              <div style={{ fontSize:16, fontWeight:700, color:C.white, letterSpacing:0.5 }}>PURCHASE & SALE AGREEMENT</div>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", marginTop:2 }}>This document is generated upon acceptance of offer · {today()}</div>
-            </div>
+          <div style={{ background:C.navy, padding:"1rem 1.5rem", borderRadius:"8px 8px 0 0" }}>
+            <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:"sans-serif", textTransform:"uppercase" }}>BoatClosers.com</div>
+            <div style={{ fontSize:16, fontWeight:700, color:C.white, letterSpacing:0.5 }}>PURCHASE &amp; SALE AGREEMENT</div>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", marginTop:2 }}>Sign your own line free · the initiator pays $249 to make it binding · {today()}</div>
           </div>
 
           <div style={{ padding:"1.5rem", overflowY:"auto", maxHeight:"65vh" }}>
-            {/* Paid — sign to make binding */}
-            <div style={{ background:C.greenLight, border:`1.5px solid ${C.green}`, borderRadius:6, padding:"10px 14px", marginBottom:16, textAlign:"center" }}>
-              <div style={{ fontSize:12, fontWeight:800, color:C.green, fontFamily:"sans-serif", letterSpacing:1 }}>✓ PAID — SIGN TO MAKE BINDING</div>
-              <div style={{ fontSize:11, color:"#0d7a4f", fontFamily:"sans-serif", marginTop:2 }}>Both parties type their names and agree below to execute the Purchase Agreement.</div>
+            <div style={{ background: bothSigned ? C.greenLight : "#fff8e6", border:`1.5px solid ${bothSigned ? C.green : C.brass}`, borderRadius:6, padding:"10px 14px", marginBottom:16, textAlign:"center" }}>
+              <div style={{ fontSize:12, fontWeight:800, color: bothSigned ? C.green : "#7a5500", fontFamily:"sans-serif", letterSpacing:1 }}>
+                {bothSigned ? "✓ BOTH PARTIES SIGNED" : "SIGN YOUR OWN LINE TO PROCEED"}
+              </div>
+              <div style={{ fontSize:11, color: bothSigned ? "#0d7a4f" : "#7a5500", fontFamily:"sans-serif", marginTop:2 }}>
+                {bothSigned ? "The initiator now pays the one-time $249 fee to make this agreement binding." : "You can only sign your own line. The agreement becomes binding once both sign and the fee is paid."}
+              </div>
             </div>
-            {/* Agreement body */}
+
             <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.text, lineHeight:1.8, marginBottom:16 }}>
               <p>This Purchase and Sale Agreement ("Agreement") is entered into as of <strong>{today()}</strong> between:</p>
               <div style={{ background:C.sandDark, borderRadius:5, padding:"10px 14px", margin:"10px 0" }}>
@@ -1068,41 +1012,65 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
             <hr style={S.divider}/>
 
-            {/* Disclaimer checkboxes */}
             <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:5, padding:"10px 14px", fontSize:11, fontFamily:"sans-serif", color:"#7a5500", marginBottom:16 }}>
               By signing, both parties agree to the terms above and acknowledge that BoatClosers provides document facilitation only — not legal advice, brokerage, or escrow services.
             </div>
 
             <div className="bc-grid2" style={{ gap:20 }}>
-              {/* Buyer */}
-              <div style={{ background:C.sandDark, borderRadius:6, padding:"14px" }}>
-                <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>Buyer: {parties.buyer.name||"Buyer"}</div>
-                <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
-                  <input type="checkbox" checked={paBuyerDisc} onChange={e=>setPaBuyerDisc(e.target.checked)} style={{ marginTop:1, accentColor:C.navy, flexShrink:0 }} />
-                  I have read and agree to all terms above
-                </label>
-                <label style={S.label}>Type full name to sign</label>
-                <input style={S.input} placeholder="Buyer full legal name" value={paBuyerName} onChange={e=>setPaBuyerName(e.target.value)} />
+              <div style={{ background:C.sandDark, borderRadius:6, padding:"14px", border: buyerSigned ? `1.5px solid ${C.green}` : `1px solid ${C.mist}` }}>
+                <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>Buyer: {parties.buyer.name||"Buyer"}{iAmBuyer ? " (you)" : ""}</div>
+                {buyerSigned ? (
+                  <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Signed — {live.paBuyerSig}</div>
+                ) : iAmBuyer ? (
+                  <>
+                    <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
+                      <input type="checkbox" checked={paBuyerDisc} onChange={e=>setPaBuyerDisc(e.target.checked)} style={{ marginTop:1, accentColor:C.navy, flexShrink:0 }} />
+                      I have read and agree to all terms above
+                    </label>
+                    <label style={S.label}>Type your full name to sign</label>
+                    <input style={S.input} placeholder="Your full legal name" value={paBuyerName} onChange={e=>setPaBuyerName(e.target.value)} />
+                    <button style={{ ...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"9px", opacity:(paBuyerName.trim()&&paBuyerDisc)?1:0.4 }} disabled={!(paBuyerName.trim()&&paBuyerDisc)} onClick={()=>signMyLine(paModal.id)}>Sign as buyer</button>
+                  </>
+                ) : (
+                  <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, fontStyle:"italic" }}>⏳ Awaiting the buyer's signature</div>
+                )}
               </div>
-              {/* Seller */}
-              <div style={{ background:C.sandDark, borderRadius:6, padding:"14px" }}>
-                <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>Seller: {parties.seller.name||"Seller"}</div>
-                <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
-                  <input type="checkbox" checked={paSellerDisc} onChange={e=>setPaSellerDisc(e.target.checked)} style={{ marginTop:1, accentColor:C.navy, flexShrink:0 }} />
-                  I have read and agree to all terms above
-                </label>
-                <label style={S.label}>Type full name to sign</label>
-                <input style={S.input} placeholder="Seller full legal name" value={paSellerName} onChange={e=>setPaSellerName(e.target.value)} />
+              <div style={{ background:C.sandDark, borderRadius:6, padding:"14px", border: sellerSigned ? `1.5px solid ${C.green}` : `1px solid ${C.mist}` }}>
+                <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>Seller: {parties.seller.name||"Seller"}{!iAmBuyer ? " (you)" : ""}</div>
+                {sellerSigned ? (
+                  <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Signed — {live.paSellerSig}</div>
+                ) : !iAmBuyer ? (
+                  <>
+                    <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
+                      <input type="checkbox" checked={paSellerDisc} onChange={e=>setPaSellerDisc(e.target.checked)} style={{ marginTop:1, accentColor:C.navy, flexShrink:0 }} />
+                      I have read and agree to all terms above
+                    </label>
+                    <label style={S.label}>Type your full name to sign</label>
+                    <input style={S.input} placeholder="Your full legal name" value={paSellerName} onChange={e=>setPaSellerName(e.target.value)} />
+                    <button style={{ ...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"9px", opacity:(paSellerName.trim()&&paSellerDisc)?1:0.4 }} disabled={!(paSellerName.trim()&&paSellerDisc)} onClick={()=>signMyLine(paModal.id)}>Sign as seller</button>
+                  </>
+                ) : (
+                  <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, fontStyle:"italic" }}>⏳ Awaiting the seller's signature</div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Footer actions */}
-          <div style={{ padding:"1rem 1.5rem", borderTop:`1px solid ${C.mist}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <button style={S.btnOutline} onClick={()=>setPaStage("pay")}>← Back</button>
-            <button style={{ ...S.btnBrass, opacity: paBothSigned?1:0.4, cursor:paBothSigned?"pointer":"not-allowed" }} disabled={!paBothSigned} onClick={lockDeal}>
-              Sign &amp; Lock the Deal →
-            </button>
+          <div style={{ padding:"1rem 1.5rem", borderTop:`1px solid ${C.mist}`, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+            <button style={S.btnOutline} onClick={()=>setPaModal(null)}>← Back to deal</button>
+            {!bothSigned ? (
+              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, textAlign:"right" }}>
+                {mySigned ? `✓ You've signed — waiting for the ${otherRole} to sign.` : "Sign your line above to continue."}
+              </div>
+            ) : amInitiator ? (
+              <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 20px" }} onClick={lockDeal}>
+                Pay $249 &amp; make binding →
+              </button>
+            ) : (
+              <div style={{ fontSize:12, fontFamily:"sans-serif", color:"#166534", textAlign:"right", fontWeight:700 }}>
+                ✓ Both signed — waiting for the initiator to pay $249 to finalize.
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1164,20 +1132,16 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       {agreedOffer && !acceptedOffer && (
         <div style={{ background:"#f0fdf4", border:`2px solid ${C.green}`, borderRadius:10, padding:"16px 20px", marginBottom:16 }}>
           <div style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif", color:"#166534", marginBottom:6 }}>🎉 Price Agreed — {fmt(agreedOffer.amount)}</div>
-          {amInitiator ? (
-            <>
-              <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:12 }}>
-                The other party accepted this price. Complete the one-time $249 fee to unlock and sign the Purchase Agreement and lock the deal.
-              </div>
-              <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 22px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("pay"); setPaPaid(false); }}>
-                Pay $249 &amp; Lock the Deal →
-              </button>
-            </>
-          ) : (
-            <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
-              You accepted this price. The party who started this deal is completing the paperwork to lock it — <b>nothing for you to pay</b>. You'll be notified to sign the Purchase Agreement next.
-            </div>
-          )}
+          <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:12 }}>
+            Both parties sign the Purchase Agreement for free — each signs only their own line. {amInitiator ? "Once both have signed, you pay the one-time $249 to make it binding." : "Once both have signed, the party who started the deal pays the $249 — nothing for you to pay."}
+          </div>
+          <div style={{ display:"flex", gap:16, fontSize:12, fontFamily:"sans-serif", color:C.slate, marginBottom:12 }}>
+            <span>{(agreedOffer.paBuyerSig && agreedOffer.paBuyerDisc) ? "✅" : "⬜"} Buyer signed</span>
+            <span>{(agreedOffer.paSellerSig && agreedOffer.paSellerDisc) ? "✅" : "⬜"} Seller signed</span>
+          </div>
+          <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 22px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>
+            {(myRole==="buyer" ? (agreedOffer.paBuyerSig && agreedOffer.paBuyerDisc) : (agreedOffer.paSellerSig && agreedOffer.paSellerDisc)) ? "View Purchase Agreement →" : "Sign the Purchase Agreement →"}
+          </button>
         </div>
       )}
 
@@ -1339,6 +1303,16 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             <option value="custom">Custom — describe below</option>
           </select>
           {depositRule==="custom" && (<textarea style={{...S.textarea, minHeight:54, marginTop:8}} value={depositRuleCustom} onChange={e=>setDepositRuleCustom(e.target.value)} placeholder="Describe your agreed deposit terms…" />)}
+          <div style={{ height:14 }}/>
+          <label style={S.label}>Earnest money must be deposited within…</label>
+          <select style={S.select} value={depositHours} onChange={e=>setDepositHours(e.target.value)}>
+            <option value="12">12 hours of the deal locking</option>
+            <option value="24">24 hours of the deal locking</option>
+            <option value="36">36 hours of the deal locking</option>
+          </select>
+          <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.5 }}>
+            After the deal locks, the buyer uploads proof of the earnest-money deposit within this window. If proof isn't provided in time the deal can expire — the seller may grant an extension or end it.
+          </div>
           <div style={{ height:10 }}/>
           <Field label="Notes (optional — appears in the Purchase Agreement)"><textarea style={{...S.textarea, minHeight:48}} value={verbalNote} onChange={e=>setVerbalNote(e.target.value)} placeholder="e.g. Includes trailer and electronics. Closing at seller's marina." /></Field>
         </OfferSection>
@@ -1702,9 +1676,19 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate }) {
   );
 }
 
-function StepDueDiligence({ data, setData, vessel, parties, terms, negotiate, myRole, onNext, onBack }) {
+function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms, negotiate, myRole, onNext, onBack }) {
   const set = (k,v) => setData(d => ({...d,[k]:v}));
   const isBuyer = myRole !== "seller";
+  // ── Earnest-money deposit timeline: set at lock, buyer proves, seller may extend ──
+  const [proofRef, setProofRef] = useState("");
+  const [proofNote, setProofNote] = useState("");
+  const dep = negotiate || {};
+  const depHasProof = !!(dep.depositProof && dep.depositProof.ref);
+  const depDeadline = Number(dep.depositDeadline) || 0;
+  const depEnded = !!dep.depositEnded;
+  const submitProof = () => { if (proofRef.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositProof: { ref: proofRef.trim(), note: proofNote.trim(), at: Date.now(), by: "buyer" } })); };
+  const extendDeposit = (h) => { if (setNegotiate) setNegotiate(n => ({ ...n, depositDeadline: Date.now() + h*3600*1000, depositEnded: false })); };
+  const endDealForDeposit = () => { if (setNegotiate) setNegotiate(n => ({ ...n, depositEnded: true })); };
   // Buyer-only DD price-reopen: propose a new final price after inspection.
   const [newPrice, setNewPrice] = useState(data.proposedNewPrice || "");
   const [newPriceReason, setNewPriceReason] = useState(data.proposedNewPriceReason || "");
@@ -1779,6 +1763,45 @@ function StepDueDiligence({ data, setData, vessel, parties, terms, negotiate, my
       <EarnestReceiptModal open={showReceipt} onClose={()=>setShowReceipt(false)} vessel={vessel} parties={parties} negotiate={negotiate} />
       <TipBox tips={TIPS.diligence}/>
 <VesselLookup />
+      {depDeadline > 0 && (() => {
+        const msLeft = depDeadline - Date.now();
+        const expired = !depHasProof && msLeft <= 0;
+        const hoursLeft = Math.max(0, Math.floor(msLeft/3600000));
+        const minsLeft = Math.max(0, Math.floor((msLeft%3600000)/60000));
+        return (
+          <div style={{ ...S.card, borderTop:`3px solid ${(depEnded || expired) ? C.red : depHasProof ? C.green : C.brass}`, marginBottom:16 }}>
+            <h3 style={S.h3}>Earnest Money Deposit</h3>
+            {depEnded ? (
+              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700 }}>✗ The seller ended this deal — the deposit window passed without proof.</div>
+            ) : depHasProof ? (
+              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Deposit proof submitted — ref {dep.depositProof.ref}{dep.depositProof.note ? ` · ${dep.depositProof.note}` : ""}</div>
+            ) : expired ? (
+              <>
+                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700, marginBottom:8 }}>⏰ Deposit window expired — no proof was submitted in time.</div>
+                {isBuyer ? (
+                  <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate }}>The seller can grant an extension or end the deal. If they extend, submit your proof below.</div>
+                ) : (
+                  <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:4 }}>
+                    {[12,24,36].map(h => (<button key={h} style={{...S.btnOutline, fontSize:12, padding:"8px 12px"}} onClick={()=>extendDeposit(h)}>Extend {h}h</button>))}
+                    <button style={{...S.btn, background:C.red, fontSize:12, padding:"8px 14px"}} onClick={endDealForDeposit}>End the deal</button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, fontWeight:700 }}>⏳ Proof of deposit due in {hoursLeft}h {minsLeft}m</div>
+            )}
+            {isBuyer && !depHasProof && !depEnded && (
+              <div style={{ marginTop:12 }}>
+                <label style={S.label}>Deposit confirmation / reference #</label>
+                <input style={S.input} value={proofRef} onChange={e=>setProofRef(e.target.value)} placeholder="Escrow.com or wire confirmation #" />
+                <div style={{ height:8 }}/>
+                <Field label="Note (optional)"><input style={S.input} value={proofNote} onChange={e=>setProofNote(e.target.value)} placeholder="e.g. Wired $7,500 to Escrow.com" /></Field>
+                <button style={{...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"10px", opacity:proofRef.trim()?1:0.5}} disabled={!proofRef.trim()} onClick={submitProof}>Submit deposit proof</button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
       {/* Header bar */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"1.5rem" }}>
         <div>
@@ -3722,7 +3745,15 @@ export default function BoatClosers() {
         const prevMsgs = prev?.messages || [];
         const srvMsgs = sNeg.messages || [];
         const messages = srvMsgs.length >= prevMsgs.length ? srvMsgs : prevMsgs;
-        return { ...prev, offers, messages, paid: prev?.paid || sNeg.paid, dealLocked: prev?.dealLocked || sNeg.dealLocked };
+        return {
+          ...prev, offers, messages,
+          paid: prev?.paid || sNeg.paid,
+          dealLocked: prev?.dealLocked || sNeg.dealLocked,
+          depositHours: sNeg.depositHours ?? prev?.depositHours,
+          depositDeadline: Math.max(Number(sNeg.depositDeadline)||0, Number(prev?.depositDeadline)||0) || prev?.depositDeadline || sNeg.depositDeadline,
+          depositProof: sNeg.depositProof || prev?.depositProof,
+          depositEnded: prev?.depositEnded || sNeg.depositEnded,
+        };
       });
     };
 
@@ -3895,7 +3926,7 @@ export default function BoatClosers() {
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} onNext={()=>goToStep(1)}/>}
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
-      {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
+      {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
       {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} onBack={()=>setStep(4)}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
       <AIAssistant open={aiOpen} setOpen={setAiOpen} step={step} vessel={vessel} parties={parties}/>
