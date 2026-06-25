@@ -85,7 +85,13 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [paid, setPaid] = useState(paLocked);
   const [payDisc, setPayDisc] = useState(false);
   const [agreedTos, setAgreedTos] = useState(false);
-  const [signed, setSigned] = useState(data.signedDocs||{});
+  // The Purchase Agreement is signed during the deal (sign-before-pay). Carry those
+  // signatures in so it shows as already complete here — no need to re-sign it.
+  const _accOffer = (negotiate?.offers || []).find(o => o.status === "accepted");
+  const _paPrefill = (_accOffer && (_accOffer.paBuyerSig || _accOffer.paSellerSig))
+    ? { purchase_agreement: { name: `${_accOffer.paBuyerSig || parties.buyer.name || "Buyer"} & ${_accOffer.paSellerSig || parties.seller.name || "Seller"}`, date: _accOffer.paDate || today(), prefilled: true } }
+    : {};
+  const [signed, setSigned] = useState({ ..._paPrefill, ...(data.signedDocs||{}) });
   const [sigName, setSigName] = useState({});
 
   const [docAction, setDocAction] = useState({});
@@ -463,10 +469,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                     </div>
                     <div className="bc-docbtns">
                       <ActionBtn docId={doc.id} action="view"   icon="👁" label="View"   />
-                      {doc.kind !== "upload" && !needsNotary && <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />}
-                      {doc.kind !== "upload" && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
+                      {doc.kind !== "upload" && !needsNotary && !doc.viewOnly && <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />}
+                      {doc.kind !== "upload" && !doc.viewOnly && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
                       <ActionBtn docId={doc.id} action="send"   icon="📤" label="Send"   color={C.brass} />
-                      <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />
+                      {!doc.viewOnly && <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />}
                       <button onClick={printDoc} title="Print" style={{ fontSize:13, padding:"7px 11px", borderRadius:20, cursor:"pointer", border:`1.5px solid #e3ddd0`, background:C.white, color:C.slate }}>🖨️</button>
                     </div>
                   </div>
