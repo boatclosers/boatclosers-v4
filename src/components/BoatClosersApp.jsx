@@ -3113,11 +3113,11 @@ Help with: HIN location, engine serial numbers, USCG vs state registration, earn
 // ─────────────────────────────────────────────────────────────────────────────
 // AUTH SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
-function AuthScreen({ onAuth }) {
-  const [mode, setMode] = useState("signup");
+function AuthScreen({ onAuth, prefillEmail, notice, defaultMode }) {
+  const [mode, setMode] = useState(defaultMode || "signup");
   const [role, setRole] = useState(null);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(prefillEmail || "");
   const [pw, setPw] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -3168,6 +3168,11 @@ function AuthScreen({ onAuth }) {
       </div>
       <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:"2rem" }}>
         <div style={{ background:"#fff", borderRadius:10, padding:"2.5rem", width:"100%", maxWidth:420, border:`1px solid rgba(184,134,58,0.2)` }}>
+          {notice && (
+            <div style={{ background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:8, padding:"11px 14px", marginBottom:18, fontSize:13, fontFamily:"sans-serif", color:"#7a5500", lineHeight:1.5 }}>
+              🔐 {notice}
+            </div>
+          )}
           <div style={{ display:"flex", borderRadius:6, overflow:"hidden", border:`1px solid ${C.mist}`, marginBottom:24 }}>
             {[["signup","Create Account"],["login","Sign In"]].map(([m,l])=>(
               <button key={m} onClick={()=>{ setMode(m); setError(""); }} style={{ flex:1, padding:"9px", fontSize:13, fontFamily:"sans-serif", fontWeight:600, cursor:"pointer", background:mode===m?C.navy:"transparent", color:mode===m?"#fff":C.slate, border:"none" }}>{l}</button>
@@ -3526,6 +3531,7 @@ const emptyDocs = {paid:false,signedDocs:{}};
 
 export default function BoatClosers() {
   const [screen, setScreen] = useState("landing");
+  const [deepLink, setDeepLink] = useState(null);
   const [user, setUser] = useState(null);
   const [dealId, setDealId] = useState(null);
   const [step, setStep] = useState(0);
@@ -3574,13 +3580,33 @@ export default function BoatClosers() {
   useEffect(() => {
     // Email deep-links arrive as /?dealId=XXX&step=N — read them so clicking an
     // email opens THAT deal on the right page, not a blank app.
-    let urlDealId = null, urlStep = null;
+    let urlDealId = null, urlStep = null, urlTo = null;
     try {
       const qs = new URLSearchParams(window.location.search);
       urlDealId = qs.get("dealId");
+      urlTo = qs.get("to");
       const s = qs.get("step");
       if (s !== null && !isNaN(Number(s))) urlStep = Number(s);
     } catch (e) {}
+
+    // A deep link (e.g. the "Review the Offer" email) is addressed to ONE
+    // recipient. If this browser isn't signed in as that person, don't show the
+    // deal as whoever happens to be logged in — route them to sign in as the
+    // intended account first, then drop them on the right deal.
+    try {
+      if (urlDealId && urlTo) {
+        let sess = null;
+        try { const s = localStorage.getItem("bc_session"); if (s) sess = JSON.parse(s); } catch (e) {}
+        const sessEmail = (sess?.email || "").trim().toLowerCase();
+        if (sessEmail !== urlTo.trim().toLowerCase()) {
+          setDeepLink({ dealId: urlDealId, step: urlStep, email: urlTo });
+          setScreen("auth");
+          setBooting(false);
+          return;
+        }
+      }
+    } catch (e) {}
+
     try {
       const stored = localStorage.getItem("bc_session");
       if (stored) {
@@ -3703,7 +3729,7 @@ export default function BoatClosers() {
     // Load their existing deal from the database FIRST, so we never
     // overwrite saved work with a blank screen. This now also picks up
     // a deal they were just invited into (see /api/deals GET).
-    fetch("/api/deals", {
+    fetch("/api/deals" + (deepLink?.dealId ? ("?dealId=" + encodeURIComponent(deepLink.dealId)) : ""), {
       method: "GET",
       headers: { "Authorization": "Bearer " + authData.token }
     })
@@ -3721,6 +3747,10 @@ export default function BoatClosers() {
           setDdData(data.deal.dd_data || emptyDD);
           setDocsData(data.deal.docs_data || emptyDocs);
           if (typeof data.deal.step === "number") { setStep(data.deal.step); setMaxStep(data.deal.max_step || data.deal.step); }
+          if (deepLink && typeof deepLink.step === "number") {
+            const reachable = Math.min(deepLink.step, (data.deal.max_step ?? data.deal.step ?? deepLink.step));
+            setStep(reachable);
+          }
         } else if (claimedRole) {
           // They accepted an invite but the deal didn't come back yet
           // (timing). Use the claimed role and DON'T autosave a blank deal —
@@ -3732,10 +3762,12 @@ export default function BoatClosers() {
           setParties(p => ({ ...p, [authData.role]: { ...p[authData.role], name: authData.name, email: authData.email } }));
           setTimeout(() => scheduleSave(), 150);
         }
+        setDeepLink(null);
         setScreen("deal");
         setBooting(false);
       })
       .catch(() => {
+        setDeepLink(null);
         setScreen("deal");
         setBooting(false);
       });
@@ -3761,7 +3793,7 @@ export default function BoatClosers() {
   }
 
   if (screen==="landing") return <Landing onStart={()=>setScreen("auth")}/>;
-  if (screen==="auth") return <AuthScreen onAuth={handleAuth}/>;
+  if (screen==="auth") return <AuthScreen onAuth={handleAuth} prefillEmail={deepLink?.email} notice={deepLink ? `Sign in as ${deepLink.email} to review this deal.` : null} defaultMode={deepLink ? "login" : "signup"} />;
 
   return (
     <div style={S.app}>
