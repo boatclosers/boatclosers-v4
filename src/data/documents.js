@@ -148,12 +148,45 @@ export const DOCUMENTS = [
 </div>
 
 <div class="notary">
-  <div class="nt">Notary Acknowledgment</div>
+  <div class="nt">Notary Acknowledgment — Seller (the Seller signs this before a notary)</div>
   <p>State of __________________ \u00b7 County of __________________</p>
   <p>The foregoing instrument was acknowledged before me by means of \u2610 physical presence or \u2610 online notarization, this ______ day of __________, 20____, by {{sellerName}}, who is personally known to me or who produced ____________________ as identification.</p>
   <p style="margin-top:14px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
   <p class="recital" style="font-size:11.5px">Notarization is included for jurisdictions and lenders that require it; complete it where applicable.</p>
 </div>`
+  },
+
+  {
+    id: "bos_plain",
+    group: "Closing Instruments",
+    tab: "Bill of Sale (No Price)",
+    eyebrow: "Transfer of Ownership",
+    title: "Vessel Bill of Sale \u2014 No Price, No Notary",
+    viewOnly: true,
+    body: `
+<p class="lead recital">{{sellerName}}, of {{sellerAddress}} (the \u201cSeller\u201d), hereby sells, transfers, and conveys to {{buyerName}}, of {{buyerAddress}} (the \u201cBuyer\u201d), all right, title, and interest in the following vessel. This version intentionally omits the sale price.</p>
+
+<h3>Vessel Described</h3>
+<ol>
+  <li>Year / Make / Model: {{vesselYear}} {{vesselMake}} {{vesselModel}}</li>
+  <li>Length &amp; Hull: {{vesselLength}}, {{hullMaterial}}</li>
+  <li>Hull Identification Number (HIN): {{hin}}</li>
+  <li>U.S. Coast Guard Official Number: {{uscgOfficialNo}}</li>
+  <li>Title No. / Registration: {{titleNo}} / {{regNo}}</li>
+  <li>Propulsion: {{engineDesc}}</li>
+</ol>
+
+<h3>Warranties</h3>
+<p>Seller warrants lawful ownership; that the Vessel is sold free of all liens except as disclosed in writing; and that Seller will defend the title against the lawful claims of all persons. The Vessel is otherwise sold \u201cAS-IS, WHERE-IS.\u201d</p>
+
+<p>Executed this {{effectiveDate}}.</p>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer</small></div>
+</div>
+
+<p class="recital" style="font-size:11.5px">No sale price and no notary acknowledgment appear on this version. View, print, or send it to be signed by hand \u2014 it is not e-signable in the app.</p>`
   },
 
   {
