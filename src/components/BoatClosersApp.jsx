@@ -639,6 +639,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // In Deal Room mode (offers already exist) the builder starts collapsed so the
   // negotiation conversation is the focus; expand it to make a new offer/counter.
   const [showBuilder, setShowBuilder] = useState(false);
+  const [quickAmt, setQuickAmt] = useState("");
   const [localContingencies, setLocalContingencies] = useState(data.selectedContingencies || []);
   const [messages, setMessages] = useState(data.messages || [
     { from:"seller", text:`Asking price is ${fmt(vessel.askingPrice||0)}. Let's talk!`, time: new Date().toLocaleTimeString() }
@@ -753,6 +754,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       setData(d => ({...d, messages: updated}));
       return updated;
     });
+    setShowBuilder(false);
   };
 
   // Counter an offer: pre-fill the form with its terms, flip to the other party, scroll to the form.
@@ -840,6 +842,29 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     setData(d => ({ ...d, offers: updatedOffers, messages: updatedMsgs }));
   };
 
+  // Quick price counter straight from the offer ladder — copies the latest
+  // offer's terms and swaps ONLY the price, then sends it back. Keeps the
+  // "buyer authors terms / seller counters price" rule intact because nothing
+  // but the amount changes.
+  const sendQuickCounter = (baseOffer) => {
+    const amt = Number(String(quickAmt).replace(/[^0-9.]/g, ""));
+    if (!amt || !baseOffer) return;
+    const fromRole = myRole === "seller" ? "seller" : "buyer";
+    const deposit = Math.round(amt * Number(baseOffer.escrowPct || 0) / 100);
+    const offer = { ...baseOffer, id: Date.now(), from: fromRole, amount: amt, deposit, status: "pending", time: new Date().toLocaleTimeString() };
+    setOffers(o => {
+      const updated = [...o.map(of => of.status === "pending" ? { ...of, status: "countered" } : of), offer];
+      setData(d => ({ ...d, offers: updated }));
+      return updated;
+    });
+    setMessages(m => {
+      const updated = [...m, { from: fromRole, text: `Counter: ${fmt(amt)}`, time: new Date().toLocaleTimeString() }];
+      setData(d => ({ ...d, messages: updated }));
+      return updated;
+    });
+    setQuickAmt("");
+  };
+
   const acceptedOffer = offers.find(o => o.status==="accepted");
   // An offer the OTHER party accepted, now awaiting the initiator's payment to lock.
   const agreedOffer = offers.find(o => o.status==="agreed");
@@ -847,6 +872,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // (if so, I'm waiting on the other party and can't send another).
   const latestPendingTop = [...offers].reverse().find(o => o.status==="pending");
   const myOfferAwaiting = latestPendingTop && latestPendingTop.from === myRole;
+
+  // Pre-fill the quick-counter box with the other party's latest number so the
+  // user only has to nudge it, not retype from scratch.
+  useEffect(() => {
+    if (latestPendingTop && latestPendingTop.from !== myRole) setQuickAmt(String(latestPendingTop.amount));
+  }, [latestPendingTop?.id]);
 
   // ── DEAL ROOM status: gap between sides + whose turn it is ──
   const _lastBuyerOffer = [...offers].reverse().find(o => o.from==="buyer");
@@ -1146,13 +1177,40 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         </div>
       )}
 
-      {/* ── HOW IT WORKS (brief) ── */}
+      {/* ── HOW IT WORKS (brief) — only while building the first offer ── */}
+      {offers.length === 0 && (
       <div style={{ background:C.navy, borderRadius:8, padding:"13px 16px", marginBottom:16, display:"flex", gap:12, alignItems:"flex-start" }}>
         <div style={{ fontSize:20, flexShrink:0 }}>🤝</div>
         <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.78)", lineHeight:1.65 }}>
           <b style={{ color:C.brass }}>Build your complete offer below</b> — price and deposit, plus contingencies and dates if your deal needs them. Send it to the other party; they can accept, counter, or reject. <b style={{ color:"#fff" }}>It's all free</b> — you only pay $249 once a full offer is accepted and you're ready to sign the Purchase Agreement.
         </div>
       </div>
+      )}
+
+      {/* ── YOUR POSITION + WHAT TO DO (Deal Room) ── */}
+      {offers.length > 0 && !acceptedOffer && (
+        <div style={{ background: myRole==="seller" ? "#fff9ee" : C.navy, border: myRole==="seller" ? `1px solid ${C.brass}` : "none", borderRadius:10, padding:"14px 18px", marginBottom:16, display:"flex", gap:12, alignItems:"flex-start" }}>
+          <div style={{ fontSize:24, flexShrink:0 }}>{myRole==="seller" ? "⚓" : "🧑‍💼"}</div>
+          <div>
+            <div style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif", color: myRole==="seller" ? "#7a5500" : "#fff" }}>
+              You are the {myRole==="seller" ? "seller" : "buyer"}{myTurn && !agreedOffer ? " — it's your move" : ""}
+            </div>
+            <div style={{ fontSize:13, fontFamily:"sans-serif", color: myRole==="seller" ? C.slate : "rgba(255,255,255,0.85)", lineHeight:1.55, marginTop:2 }}>
+              {agreedOffer ? "Price agreed — finish at the lock step below." :
+               myTurn && latestPendingTop ? `The ${latestPendingTop.from==="buyer" ? "buyer" : "seller"} offered ${fmt(latestPendingTop.amount)}. Accept it, counter the price, or reject — all below.` :
+               myOfferAwaiting ? `Your offer of ${fmt(latestPendingTop.amount)} is on the table — waiting for the ${myRole==="buyer" ? "seller" : "buyer"} to respond.` :
+               "Review the latest offer below."}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── EDIT FULL TERMS — opens the builder for contingencies, dates, deposit ── */}
+      {offers.length > 0 && !acceptedOffer && (
+        <button onClick={()=>{ if(!showBuilder && latestPendingTop && latestPendingTop.from!==myRole && myRole!=="seller"){ counterOffer(latestPendingTop.id); } else { setShowBuilder(v=>!v); } }} style={{ ...S.btnOutline, width:"100%", fontSize:13, padding:"10px 0", fontWeight:700, marginBottom:16 }}>
+          {showBuilder ? "✕ Close full offer builder" : (myRole==="seller" ? "⚙️ View full terms / flag a conflict" : "✏️ Edit full terms (contingencies, dates, deposit)")}
+        </button>
+      )}
 
       {/* ── BUILD YOUR OFFER (frozen once the deal is locked) ── */}
       {acceptedOffer ? (
@@ -1168,7 +1226,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             The agreed terms are frozen for both parties and can't be edited here. The only change allowed now is the <b>buyer's vessel decision during due diligence</b> — accept as-is, reject, or propose a new price (which is recorded as an <b>addendum</b> to the signed Purchase Agreement, not a change to it).
           </div>
         </div>
-      ) : (
+      ) : (offers.length === 0 || showBuilder) ? (
       <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.brass}` }}>
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
           <div style={{ width:32, height:32, borderRadius:6, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>📝</div>
@@ -1321,7 +1379,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </div>
         )}
       </div>
-      )}
+      ) : null}
 
       {/* ── NEGOTIATION LADDER ── */}
       {offers.length > 0 && (() => {
@@ -1396,10 +1454,14 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                             ⏳ Sent — waiting for the {myRole==="buyer" ? "seller" : "buyer"} to accept, counter, or reject. You can't respond to your own offer.
                           </div>
                         ) : (
-                          <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
-                            <button style={{...S.btn, background:C.green, fontSize:12, padding:"7px 16px"}} onClick={()=>acceptOffer(o.id)}>Accept &amp; Sign</button>
-                            <button style={{...S.btn, background:accent, fontSize:12, padding:"7px 16px"}} onClick={()=>counterOffer(o.id)}>Counter</button>
-                            <button style={{...S.btnOutline, fontSize:12, padding:"7px 16px", color:C.red, borderColor:C.red}} onClick={()=>rejectOffer(o.id)}>Reject</button>
+                          <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+                            <button style={{...S.btn, background:C.green, fontSize:12, padding:"8px 16px"}} onClick={()=>acceptOffer(o.id)}>Accept {fmt(o.amount)} &amp; Sign</button>
+                            <div style={{ display:"flex", alignItems:"center", gap:6, background:C.sandDark, borderRadius:6, padding:"5px 8px" }}>
+                              <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, whiteSpace:"nowrap" }}>Counter&nbsp;$</span>
+                              <input style={{...S.input, width:104, padding:"6px 8px", fontSize:13}} type="number" value={quickAmt} onChange={e=>setQuickAmt(e.target.value)} placeholder={String(o.amount)} />
+                              <button style={{...S.btn, background:C.navy, fontSize:12, padding:"8px 12px"}} onClick={()=>sendQuickCounter(o)}>Send →</button>
+                            </div>
+                            <button style={{...S.btnOutline, fontSize:12, padding:"8px 14px", color:C.red, borderColor:C.red}} onClick={()=>rejectOffer(o.id)}>Reject</button>
                           </div>
                         )
                       )}
