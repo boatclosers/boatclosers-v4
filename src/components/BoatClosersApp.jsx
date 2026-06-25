@@ -1168,19 +1168,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             The agreed terms are frozen for both parties and can't be edited here. The only change allowed now is the <b>buyer's vessel decision during due diligence</b> — accept as-is, reject, or propose a new price (which is recorded as an <b>addendum</b> to the signed Purchase Agreement, not a change to it).
           </div>
         </div>
-      ) : (offers.length > 0 && !showBuilder && !myOfferAwaiting && myTurn) ? (
-        <button onClick={()=>setShowBuilder(true)} style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.brass}`, width:"100%", textAlign:"left", cursor:"pointer", display:"flex", alignItems:"center", gap:12 }}>
-          <div style={{ width:32, height:32, borderRadius:6, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>＋</div>
-          <div>
-            <div style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif", color:C.navy }}>{myRole==="seller" ? "Counter the price" : "Make a new offer"}</div>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>It's your move — tap to open the offer builder.</div>
-          </div>
-        </button>
-      ) : (offers.length > 0 && !showBuilder && (myOfferAwaiting || !myTurn)) ? null : (
+      ) : (
       <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.brass}` }}>
-        {offers.length > 0 && (
-          <button onClick={()=>setShowBuilder(false)} style={{ background:"transparent", border:"none", color:C.slate, fontSize:11, fontFamily:"sans-serif", cursor:"pointer", float:"right", padding:0 }}>✕ collapse</button>
-        )}
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
           <div style={{ width:32, height:32, borderRadius:6, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>📝</div>
           <div>
