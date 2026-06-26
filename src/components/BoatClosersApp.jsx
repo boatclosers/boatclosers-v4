@@ -838,11 +838,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
   // Final step: payment locks the deal — records the binding PA, marks paid, unlocks documents.
   // NOTE: payment is SIMULATED for now. Wire Stripe Checkout to this handler as the final task.
-  const lockDeal = () => {
-    if (!paModal) return;
-    const live = offers.find(o => o.id===paModal.id) || paModal;
-    const updatedOffers = offers.map(of => of.id===paModal.id ? {...of, status:"accepted", paBuyerSig:live.paBuyerSig, paSellerSig:live.paSellerSig, paDate:today()} : of);
-    const lockMsg = { from:"system", text:`✓ Deal locked — ${fmt(paModal.amount)}. Purchase Agreement signed by both parties and the fee paid on ${today()}. This deal is now binding.`, time:new Date().toLocaleTimeString() };
+  const lockDeal = (offerArg) => {
+    const target = (offerArg && offerArg.id) ? offerArg : paModal;
+    if (!target) return;
+    const live = offers.find(o => o.id===target.id) || target;
+    const updatedOffers = offers.map(of => of.id===target.id ? {...of, status:"accepted", paBuyerSig:live.paBuyerSig, paSellerSig:live.paSellerSig, paDate:today()} : of);
+    const lockMsg = { from:"system", text:`✓ Deal locked — ${fmt(target.amount)}. Purchase Agreement signed by both parties and the fee paid on ${today()}. This deal is now binding.`, time:new Date().toLocaleTimeString() };
     const updatedMsgs = [...messages, lockMsg];
     setOffers(updatedOffers);
     setMessages(updatedMsgs);
@@ -853,22 +854,22 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       paid: true,            // unlocks the Documents step (no second paywall)
       dealLocked: true,
       dealStatus: "locked",
-      agreedPrice: paModal.amount,
-      escrowPct: paModal.escrowPct,
-      escrowPath: paModal.escrowPath,
-      deposit: paModal.deposit,
-      selectedContingencies: paModal.contingencies || [],
-      dueDiligenceDays: paModal.ddDays || ddDays,
-      ddStartDate: paModal.ddStart || ddStart,
-      closingDate: paModal.closingDate || closingDate,
-      paymentType: paModal.paymentType || paymentType,
-      financeContingency: paModal.financeContingency || financeContingency,
-      depositRule: paModal.depositRule || depositRule, depositRuleCustom,
-      depositHours: paModal.depositHours || 24,
-      depositDeadline: Date.now() + (Number(paModal.depositHours) || 24) * 3600 * 1000,
+      agreedPrice: target.amount,
+      escrowPct: target.escrowPct,
+      escrowPath: target.escrowPath,
+      deposit: target.deposit,
+      selectedContingencies: target.contingencies || [],
+      dueDiligenceDays: target.ddDays || ddDays,
+      ddStartDate: target.ddStart || ddStart,
+      closingDate: target.closingDate || closingDate,
+      paymentType: target.paymentType || paymentType,
+      financeContingency: target.financeContingency || financeContingency,
+      depositRule: target.depositRule || depositRule, depositRuleCustom,
+      depositHours: target.depositHours || 24,
+      depositDeadline: Date.now() + (Number(target.depositHours) || 24) * 3600 * 1000,
       depositProof: null,
-      ddExtension: paModal.ddExtension ?? ddExtension, ddExtDays, ddExtDepositRule,
-      verbalDeal, verbalNote: paModal.note || verbalNote,
+      ddExtension: target.ddExtension ?? ddExtension, ddExtDays, ddExtDepositRule,
+      verbalDeal, verbalNote: target.note || verbalNote,
     }));
     setPaModal(null); setPaStage("sign"); setPaPaid(false);
     setPaBuyerName(""); setPaSellerName(""); setPaBuyerDisc(false); setPaSellerDisc(false);
@@ -1097,7 +1098,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       </div>
 
       {/* ── DEAL ROOM STATUS BAR ── live snapshot of where the negotiation stands */}
-      {offers.length > 0 && !acceptedOffer && (
+      {offers.length > 0 && !acceptedOffer && !agreedOffer && (
         <div style={{ background:C.navy, borderRadius:10, padding:"14px 18px", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
           <div>
             <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", letterSpacing:0.5 }}>CURRENT GAP</div>
@@ -1129,21 +1130,52 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       )}
 
       {/* ── PRICE AGREED — awaiting initiator payment to lock ── */}
-      {agreedOffer && !acceptedOffer && (
-        <div style={{ background:"#f0fdf4", border:`2px solid ${C.green}`, borderRadius:10, padding:"16px 20px", marginBottom:16 }}>
-          <div style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif", color:"#166534", marginBottom:6 }}>🎉 Price Agreed — {fmt(agreedOffer.amount)}</div>
-          <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:12 }}>
-            Both parties sign the Purchase Agreement for free — each signs only their own line. {amInitiator ? "Once both have signed, you pay the one-time $249 to make it binding." : "Once both have signed, the party who started the deal pays the $249 — nothing for you to pay."}
+      {agreedOffer && !acceptedOffer && (() => {
+        const buyerSigned = !!(agreedOffer.paBuyerSig && agreedOffer.paBuyerDisc);
+        const sellerSigned = !!(agreedOffer.paSellerSig && agreedOffer.paSellerDisc);
+        const bothSigned = buyerSigned && sellerSigned;
+        const iSigned = myRole==="buyer" ? buyerSigned : sellerSigned;
+        return (
+        <div style={{ background: bothSigned ? "linear-gradient(135deg,#fff7e6,#f0fdf4)" : "#f0fdf4", border:`2px solid ${bothSigned ? C.brass : C.green}`, borderRadius:10, padding:"18px 20px", marginBottom:16, boxShadow: bothSigned ? "0 6px 22px rgba(184,134,58,0.20)" : "none" }}>
+          <div style={{ fontSize:17, fontWeight:800, fontFamily:"sans-serif", color:"#166534", marginBottom:8 }}>
+            {bothSigned ? "🎉 Both parties have signed!" : `🤝 Price Agreed — ${fmt(agreedOffer.amount)}`}
           </div>
-          <div style={{ display:"flex", gap:16, fontSize:12, fontFamily:"sans-serif", color:C.slate, marginBottom:12 }}>
-            <span>{(agreedOffer.paBuyerSig && agreedOffer.paBuyerDisc) ? "✅" : "⬜"} Buyer signed</span>
-            <span>{(agreedOffer.paSellerSig && agreedOffer.paSellerDisc) ? "✅" : "⬜"} Seller signed</span>
+          <div style={{ display:"flex", gap:16, fontSize:12.5, fontFamily:"sans-serif", color:C.slate, marginBottom:12, flexWrap:"wrap" }}>
+            <span>{buyerSigned ? "✅" : "⬜"} Buyer signed</span>
+            <span>{sellerSigned ? "✅" : "⬜"} Seller signed</span>
+            <span style={{ fontWeight:700, color:C.navy }}>· {fmt(agreedOffer.amount)}</span>
           </div>
-          <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 22px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>
-            {(myRole==="buyer" ? (agreedOffer.paBuyerSig && agreedOffer.paBuyerDisc) : (agreedOffer.paSellerSig && agreedOffer.paSellerDisc)) ? "View Purchase Agreement →" : "Sign the Purchase Agreement →"}
-          </button>
+
+          {!bothSigned ? (
+            <>
+              <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:12 }}>
+                Both parties sign the Purchase Agreement for free — each signs only their own line. {amInitiator ? "Once both have signed, you pay the one-time $249 to make it binding." : "Once both have signed, the party who started the deal pays the $249 — nothing for you to pay."}
+              </div>
+              <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 22px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>
+                {iSigned ? "View Purchase Agreement →" : "Sign the Purchase Agreement →"}
+              </button>
+            </>
+          ) : amInitiator ? (
+            <>
+              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:14, fontWeight:600 }}>
+                The Purchase Agreement is fully signed. Pay the one-time <b>$249</b> to make the deal binding and unlock Due Diligence, Documents, and Closing for both parties.
+              </div>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+                <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>lockDeal(agreedOffer)}>💳 Pay $249 &amp; unlock the deal →</button>
+                <button style={{ ...S.btnOutline, fontSize:13, padding:"13px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize:13, fontFamily:"sans-serif", color:"#166534", lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
+                ✓ All signed! Waiting for the party who started this deal to pay the one-time $249 and make it binding — <b>nothing for you to pay</b>. You'll be unlocked automatically the moment they do.
+              </div>
+              <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
+            </>
+          )}
         </div>
-      )}
+        );
+      })()}
 
       {/* ── DEAL LOCKED BANNER ── */}
       {acceptedOffer && (
