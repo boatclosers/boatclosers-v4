@@ -182,6 +182,169 @@ function TipBox({ tips }) {
   );
 }
 
+// ── DEAL ASSISTANT ────────────────────────────────────────────────────────────
+// A guided, role- and step-aware walkthrough. Sits alongside the rotating TipBox
+// and explains, in plain language, what this step is, what THIS party should do,
+// what happens next, and the common questions. (Free-form AI answers come later.)
+const ASSISTANT = {
+  vessel: {
+    title: "Step 1 · The Vessel",
+    summary: "This first step describes the boat itself — the details that legally identify it on every document you'll generate. Get these right and your contracts fill themselves in correctly.",
+    todo: [
+      "Enter the year, make, model, and length",
+      "Add the HIN — the 12-character Hull ID stamped on the starboard side of the transom",
+      "Add engine, registration, and title details if you have them",
+      "Set your asking price (just a starting number — the real price is negotiated next)",
+    ],
+    next: "You'll set up the two parties and invite the other side into the deal.",
+    faqs: [
+      { q:"Why does the HIN matter so much?", a:"It's the boat's fingerprint, like a car's VIN. It ties the title, bill of sale, and registration to this exact hull, so it shows up on nearly every document." },
+      { q:"What if I don't have every detail yet?", a:"Fill in what you know and keep going. You can come back and complete the rest before the documents are finalized." },
+      { q:"Is the asking price the final price?", a:"No. It's just the starting number. The real price is settled in the Deal Room, where both sides negotiate." },
+    ],
+  },
+  parties: {
+    title: "Step 2 · Parties",
+    buyer: {
+      summary: "Here you set who's who. As the buyer, your details came from your sign-up — now you bring the seller into the deal.",
+      todo: ["Confirm your own details are correct", "Invite the seller by email, or copy a private link to send them", "Wait for them to join — their info appears once they do"],
+      next: "Once the seller joins, you'll both move into the Deal Room to negotiate price and terms.",
+      faqs: [
+        { q:"Does the seller need an account?", a:"They'll create a quick login when they open your invite. It's how the app keeps each side's actions separate and secure." },
+        { q:"Can I start before they join?", a:"You can fill in the vessel and your own details, but negotiating needs both parties present." },
+      ],
+    },
+    seller: {
+      summary: "Here you set who's who. As the seller, your details came from your sign-up. If you started the deal you invite the buyer; if they invited you, you're already attached.",
+      todo: ["Confirm your own details are correct", "If you started the deal, invite the buyer by email or private link", "If the buyer invited you, just confirm and continue"],
+      next: "Once both sides are in, you'll move to the Deal Room to negotiate.",
+      faqs: [
+        { q:"The buyer invited me — what do I do?", a:"Confirm your details are right and continue. You're already attached to their deal." },
+        { q:"Who pays the $249 fee?", a:"Whoever started the deal pays it, once — and only after a price is agreed and both sign. The other party pays nothing." },
+      ],
+    },
+  },
+  negotiate: {
+    title: "Step 3 · The Deal Room",
+    buyer: {
+      summary: "This is the Deal Room. As the buyer you build the offer — price, deposit, and any contingencies or dates — and send it. The seller can accept, counter the price, or flag a conflict. It's all free until a full offer is accepted.",
+      todo: ["Build your offer (price and deposit at minimum)", "Send it, then watch for the seller's response", "Accept their number, counter, or adjust terms — as many rounds as you need", "When you both agree, sign the Purchase Agreement on your line"],
+      next: "Once both sign, the party who started the deal pays the one-time $249 to lock it, which unlocks Due Diligence.",
+      faqs: [
+        { q:"What's a contingency?", a:"A condition that must be met or you can walk away — like a satisfactory survey, sea trial, or financing. They protect you during due diligence." },
+        { q:"When do I actually pay anything?", a:"Nothing until a full offer is accepted and both parties sign. Then the deal initiator pays $249, once." },
+        { q:"Can I change my mind after agreeing on price?", a:"Until both sign the Purchase Agreement, yes. After signing, the price is set — though due diligence can still produce a price addendum." },
+      ],
+    },
+    seller: {
+      summary: "This is the Deal Room. The buyer authors the offer; as the seller you set your asking anchor, then accept, counter the price, or flag a conflict on the terms. It's free until a full offer is accepted.",
+      todo: ["Review the buyer's offer when it arrives", "Accept it, counter the price, or flag a conflict on contingencies or dates", "Negotiate back and forth as needed", "When you agree, sign the Purchase Agreement on your line"],
+      next: "Once both sign, the deal initiator pays the $249 to lock it and unlock Due Diligence.",
+      faqs: [
+        { q:"Why does the buyer write the terms?", a:"The buyer authors the contingencies and dates; you control the price (accept or counter) and can flag any term you disagree with. It keeps one clean version of the offer." },
+        { q:"Do I pay the $249?", a:"Only if you started the deal. If the buyer started it, they pay — you pay nothing." },
+      ],
+    },
+  },
+  diligence: {
+    title: "Step 4 · Due Diligence",
+    buyer: {
+      summary: "Due diligence is your chance to verify the boat before closing. You arrange the survey, sea trial, and title check, then make your decision: accept as-is, propose a new price, or walk away.",
+      todo: ["Schedule and complete the marine survey and sea trial", "Verify clear title with no liens", "Submit your earnest-money deposit proof before the timer runs out", "Make your vessel decision: accept, propose a new price, or reject"],
+      next: "Accepting (or agreeing a new price) moves you to the closing documents.",
+      faqs: [
+        { q:"What if the survey finds problems?", a:"You can propose a new price — that creates an addendum to the Purchase Agreement — or reject the vessel and recover your deposit per your terms." },
+        { q:"Why is there a deposit timer?", a:"Earnest money shows you're serious and holds the boat. If proof isn't provided in time, the deal can be voided — including the signed Purchase Agreement." },
+        { q:"Do I need to haul the boat out?", a:"Not to move forward. A haul-out is only needed if your surveyor wants a bottom inspection." },
+      ],
+    },
+    seller: {
+      summary: "While the buyer inspects, your job is to have the boat and paperwork ready. Your checklist walks you through it. Each side only sees their own due-diligence list.",
+      todo: ["Get title, registration, records, and manuals ready", "Make the vessel accessible for survey and sea trial", "Follow the safety items — especially: do NOT start the engines before the surveyor arrives", "Watch for the buyer's decision (accept, new price, or reject)"],
+      next: "Once the buyer accepts (or you agree on a price addendum), you both move to closing documents.",
+      faqs: [
+        { q:"Why can't I start the engines first?", a:"Surveyors need to inspect a cold start. Warming them up first can mask problems and undermine the survey." },
+        { q:"What if the buyer proposes a lower price?", a:"You can accept or decline the addendum. The original signed Purchase Agreement stays intact either way." },
+        { q:"Do I have to haul the boat out?", a:"Only if the buyer's surveyor requests a bottom inspection. It's not required to proceed." },
+      ],
+    },
+  },
+  documents: {
+    title: "Step 5 · Documents",
+    summary: "These are the closing documents. Some you fill and sign right in the app; documents that need a notary must be printed, notarized, and uploaded — the app can't verify notarization. The Purchase Agreement and your due-diligence acceptance already show as signed.",
+    todo: [
+      "Open each required document",
+      "Fill in any blanks and check boxes (each is locked to the party who should complete it)",
+      "E-sign the ones that allow it; print, notarize, and upload the ones that need a notary",
+      "When everything's handled, proceed to closing",
+    ],
+    next: "The closing step wraps up the transfer and gives you both a record.",
+    faqs: [
+      { q:"Why isn't the Bill of Sale e-signable?", a:"It often needs notarization, an in-person act the app can't verify. Print it, sign before a notary, and upload the copy." },
+      { q:"Why is the Purchase Agreement already signed?", a:"You signed it back when the price was agreed. It carries over here so you don't sign twice." },
+      { q:"Can I proceed if a notarized document isn't done?", a:"Yes — you'll get a warning and acknowledge it. The app won't trap you, but completing those correctly is your responsibility." },
+    ],
+  },
+};
+
+function DealAssistant({ step, role }) {
+  const [open, setOpen] = useState(true);
+  const [faqOpen, setFaqOpen] = useState(null);
+  const c = ASSISTANT[step];
+  if (!c) return null;
+  const r = role === "seller" ? "seller" : "buyer";
+  const g = c[r] || c;
+  const faqs = g.faqs || c.faqs || [];
+  return (
+    <div style={{ border:`1px solid ${C.navy}`, borderRadius:8, marginBottom:20, overflow:"hidden", background:"#fff" }}>
+      <div onClick={()=>setOpen(o=>!o)} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"11px 14px", background:C.navy }}>
+        <span style={{ fontSize:18 }}>🧭</span>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:"#fff" }}>Deal Assistant</div>
+          <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.6)" }}>{c.title} — what to do and why</div>
+        </div>
+        <span style={{ color:C.brass, fontSize:12, fontFamily:"sans-serif", fontWeight:700 }}>{open ? "▲ Hide" : "▼ Guide me"}</span>
+      </div>
+      {open && (
+        <div style={{ padding:"14px 16px" }}>
+          <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.text, lineHeight:1.65, marginBottom:12 }}>{g.summary}</div>
+          {g.todo && (
+            <div style={{ marginBottom:12 }}>
+              <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.4, textTransform:"uppercase", color:C.navy, fontFamily:"sans-serif", marginBottom:6 }}>What to do now</div>
+              {g.todo.map((t,i)=>(
+                <div key={i} style={{ display:"flex", gap:8, fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.55, marginBottom:5 }}>
+                  <span style={{ color:C.brass, fontWeight:700, flexShrink:0 }}>{i+1}.</span><span>{t}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {g.next && (
+            <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, background:C.sandDark, borderRadius:6, padding:"9px 12px", marginBottom: faqs.length?12:0 }}>
+              <b style={{ color:C.navy }}>What happens next:</b> {g.next}
+            </div>
+          )}
+          {faqs.length>0 && (
+            <div>
+              <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.4, textTransform:"uppercase", color:C.navy, fontFamily:"sans-serif", marginBottom:4 }}>Common questions</div>
+              {faqs.map((f,i)=>(
+                <div key={i} style={{ borderBottom:`1px solid ${C.mist}` }}>
+                  <div onClick={()=>setFaqOpen(faqOpen===i?null:i)} style={{ display:"flex", justifyContent:"space-between", gap:10, cursor:"pointer", padding:"9px 0", fontSize:12.5, fontFamily:"sans-serif", fontWeight:600, color:C.navy }}>
+                    <span>{f.q}</span><span style={{ color:C.brass, flexShrink:0 }}>{faqOpen===i?"–":"+"}</span>
+                  </div>
+                  {faqOpen===i && <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, padding:"0 0 10px" }}>{f.a}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ marginTop:12, fontSize:11, fontFamily:"sans-serif", color:C.teal, background:C.tealLight, borderRadius:6, padding:"8px 11px", lineHeight:1.5 }}>
+            💬 Have a different question? Live answers from the assistant are coming soon — for now these cover the common ones at this step.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── MISSING DATA WARNING ──────────────────────────────────────────────────────
 function DataWarning({ vessel, parties }) {
   const missing = [];
@@ -310,6 +473,7 @@ function StepVessel({ data, setData, onNext }) {
   return (
     <div style={S.page}>
       <TipBox tips={TIPS.vessel} />
+      <DealAssistant step="vessel" />
       <div style={{ marginBottom:"1.5rem" }}>
         <h1 style={S.h1}>Vessel Information</h1>
         <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Fill in what you have now. You can complete remaining fields before signing. Asking price, year, make, and model are required to continue.</p>
@@ -481,6 +645,7 @@ function StepParties({ data, setData, userRole, partyBJoined, onNext, onBack, de
   return (
     <div style={S.page}>
       <TipBox tips={TIPS.parties} />
+      <DealAssistant step="parties" role={userRole} />
       <div style={{ marginBottom:"1.5rem" }}>
         <h1 style={S.h1}>Buyer & Seller Information</h1>
         <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>
@@ -1131,6 +1296,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   return (
     <div style={S.page}>
       <TipBox tips={TIPS.negotiate} />
+      <DealAssistant step="negotiate" role={myRole} />
       <div style={{ marginBottom:"1.5rem" }}>
         {offers.length > 0 ? (
           <>
@@ -1830,6 +1996,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
     <div style={S.page}>
       <EarnestReceiptModal open={showReceipt} onClose={()=>setShowReceipt(false)} vessel={vessel} parties={parties} negotiate={negotiate} />
       <TipBox tips={TIPS.diligence}/>
+      <DealAssistant step="diligence" role={myRole} />
 <VesselLookup />
       {depDeadline > 0 && (() => {
         const msLeft = depDeadline - Date.now();
@@ -2473,6 +2640,7 @@ function StepDocuments({ data, setData, vessel, parties, terms, negotiate, myRol
   return (
     <div style={S.page}>
       <TipBox tips={TIPS.documents}/>
+      <DealAssistant step="documents" role={myRole} />
       <div style={{ marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div>
           <h1 style={S.h1}>Documents</h1>
