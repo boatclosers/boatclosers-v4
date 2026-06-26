@@ -159,12 +159,13 @@ export const DOCUMENTS = [
   {
     id: "bos_plain",
     group: "Closing Instruments",
-    tab: "Bill of Sale (No Price)",
+    tab: "Bill of Sale (Quick)",
     eyebrow: "Transfer of Ownership",
-    title: "Vessel Bill of Sale \u2014 No Price, No Notary",
+    title: "Vessel Bill of Sale",
+    desc: "Quick-sale version \u2014 fill the price in the app or write it in by hand. No notary block.",
     viewOnly: true,
     body: `
-<p class="lead recital">{{sellerName}}, of {{sellerAddress}} (the \u201cSeller\u201d), hereby sells, transfers, and conveys to {{buyerName}}, of {{buyerAddress}} (the \u201cBuyer\u201d), all right, title, and interest in the following vessel. This version intentionally omits the sale price.</p>
+<p class="lead recital">{{sellerName}}, of {{sellerAddress}} (the \u201cSeller\u201d), hereby sells, transfers, and conveys to {{buyerName}}, of {{buyerAddress}} (the \u201cBuyer\u201d), all right, title, and interest in the following vessel:</p>
 
 <h3>Vessel Described</h3>
 <ol>
@@ -176,6 +177,9 @@ export const DOCUMENTS = [
   <li>Propulsion: {{engineDesc}}</li>
 </ol>
 
+<h3>Sale Price</h3>
+<div class="field"><span class="k">Sale Price</span><span class="v">$________________</span></div>
+
 <h3>Warranties</h3>
 <p>Seller warrants lawful ownership; that the Vessel is sold free of all liens except as disclosed in writing; and that Seller will defend the title against the lawful claims of all persons. The Vessel is otherwise sold \u201cAS-IS, WHERE-IS.\u201d</p>
 
@@ -184,9 +188,7 @@ export const DOCUMENTS = [
 <div class="sig">
   <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller</small></div>
   <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer</small></div>
-</div>
-
-<p class="recital" style="font-size:11.5px">No sale price and no notary acknowledgment appear on this version. View, print, or send it to be signed by hand \u2014 it is not e-signable in the app.</p>`
+</div>`
   },
 
   {
@@ -348,18 +350,20 @@ export const DOCUMENTS = [
     tab: "Termination",
     eyebrow: "Contingency Not Met",
     title: "Notice of Termination & Deposit Refund",
+    editRole: "buyer",
+    checklist: [
+      { label:"Marine survey disclosed material defects unacceptable to Buyer" },
+      { label:"Sea trial was unsatisfactory" },
+      { label:"Marine financing was denied or not obtained by the deadline" },
+      { label:"Insurance binder could not be obtained" },
+      { label:"Seller could not deliver clear title" },
+    ],
     body: `
 <p class="lead recital">Reference: Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d) for the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}.</p>
 
 <h3>1. Notice of Termination</h3>
 <p>Buyer hereby gives written notice of termination of the Agreement pursuant to a contingency permitted therein. Buyer selected the following contingencies: {{contList}}. Termination is based on the contingency checked below not being satisfied:</p>
-<ol>
-  <li>\u2610 Marine survey disclosed material defects unacceptable to Buyer</li>
-  <li>\u2610 Sea trial was unsatisfactory</li>
-  <li>\u2610 Marine financing was denied or not obtained by the deadline</li>
-  <li>\u2610 Insurance binder could not be obtained</li>
-  <li>\u2610 Seller could not deliver clear title</li>
-</ol>
+<!--CHECKLIST-->
 
 <h3>2. Refund of Earnest Money</h3>
 <p>Because termination is made under a permitted contingency, the earnest money deposit of {{depositAmount}} shall be refunded to Buyer in full, and neither Party shall have further obligation under the Agreement.</p>
@@ -755,6 +759,7 @@ export const DOCUMENTS = [
     tab: "Trade-In Addendum",
     eyebrow: "Partial Payment",
     title: "Trade-In Addendum",
+    editRole: "buyer",
     body: `
 <p class="lead">This addendum to the Purchase &amp; Sale Agreement records property the Buyer, {{buyerName}}, is trading to the Seller, {{sellerName}}, as partial payment toward the {{vesselYear}} {{vesselMake}} {{vesselModel}}.</p>
 
@@ -785,6 +790,7 @@ export const DOCUMENTS = [
     tab: "Trailer Bill of Sale",
     eyebrow: "Separate Title",
     title: "Trailer Bill of Sale",
+    editRole: "seller",
     body: `
 <p class="lead">A boat trailer is titled and registered separately from the vessel. This bill of sale transfers the trailer below from {{sellerName}} to {{buyerName}}.</p>
 
@@ -1337,6 +1343,7 @@ export const DOCUMENTS = [
     tab: "Defect Disclosure",
     eyebrow: "Seller's Disclosure",
     title: "Seller's Disclosure of Known Defects",
+    editRole: "seller",
     checklist: [
       { label:"Hull damage, blistering, or prior structural repair" },
       { label:"Engine, transmission, or drive issues" },
