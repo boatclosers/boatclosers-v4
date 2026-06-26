@@ -142,9 +142,19 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // The Purchase Agreement is signed during the deal (sign-before-pay). Carry those
   // signatures in so it shows as already complete here — no need to re-sign it.
   const _accOffer = (negotiate?.offers || []).find(o => o.status === "accepted");
-  const _paPrefill = (_accOffer && (_accOffer.paBuyerSig || _accOffer.paSellerSig))
-    ? { purchase_agreement: { name: `${_accOffer.paBuyerSig || parties.buyer.name || "Buyer"} & ${_accOffer.paSellerSig || parties.seller.name || "Seller"}`, date: _accOffer.paDate || today(), prefilled: true } }
-    : {};
+  const _va = negotiate?.vesselAcceptance;
+  const _ad = negotiate?.addendum;
+  const _paPrefill = {
+    ...((_accOffer && (_accOffer.paBuyerSig || _accOffer.paSellerSig))
+      ? { purchase_agreement: { name: `${_accOffer.paBuyerSig || parties.buyer.name || "Buyer"} & ${_accOffer.paSellerSig || parties.seller.name || "Seller"}`, date: _accOffer.paDate || today(), prefilled: true } }
+      : {}),
+    ...((_va && _va.sig)
+      ? { acceptance: { name: _va.sig, date: _va.date || today(), prefilled: true } }
+      : {}),
+    ...((_ad && (_ad.newPrice || _ad.buyer))
+      ? { renegotiation: { name: _ad.buyer || parties.buyer.name || "Buyer", date: _ad.date || today(), prefilled: true } }
+      : {}),
+  };
   const [signed, setSigned] = useState({ ..._paPrefill, ...(data.signedDocs||{}) });
   const [sigName, setSigName] = useState({});
 
@@ -261,10 +271,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
   // ── Map curated docs onto app IDs so the Closing step stays in sync ──
   const ID_MAP = { psa:"purchase_agreement", bos:"bill_of_sale", dep:"deposit_receipt", asis:"as_is_acknowledgment", stmt:"closing_statement", accept:"acceptance", amend:"renegotiation", term:"rejection" };
-  const REQUIRED = new Set(["purchase_agreement","bill_of_sale","deposit_receipt","as_is_acknowledgment","closing_statement"]);
+  const REQUIRED = new Set(["purchase_agreement","bill_of_sale","deposit_receipt","as_is_acknowledgment","closing_statement","acceptance"]);
+  const hasAddendum = !!(negotiate?.addendum && (negotiate.addendum.newPrice || negotiate.addendum.buyer));
   const DOC_SET = DOCUMENTS
     .filter(d => typeof d.showIf !== "function" || d.showIf(deal))
-    .map(d => ({ ...d, id: ID_MAP[d.id]||d.id, required: REQUIRED.has(ID_MAP[d.id]||d.id) }));
+    .map(d => { const mid = ID_MAP[d.id]||d.id; return { ...d, id: mid, required: REQUIRED.has(mid) || (mid==="renegotiation" && hasAddendum) }; });
   const GROUPS = [...new Set(DOC_SET.map(d=>d.group))];
 
   const requiredDocs = DOC_SET.filter(d => d.required);
