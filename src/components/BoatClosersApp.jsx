@@ -935,6 +935,56 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     : "buyer";
   const myTurn = whoseTurn === myRole;
 
+  // Price-Agreed / celebration box. Rendered in TWO spots in the Deal Room (top,
+  // and again down in the negotiation area) so a user who lands lower on the page
+  // after signing in can't miss the sign / pay action.
+  const agreedBanner = (!(agreedOffer && !acceptedOffer)) ? null : (() => {
+    const buyerSigned = !!(agreedOffer.paBuyerSig && agreedOffer.paBuyerDisc);
+    const sellerSigned = !!(agreedOffer.paSellerSig && agreedOffer.paSellerDisc);
+    const bothSigned = buyerSigned && sellerSigned;
+    const iSigned = myRole==="buyer" ? buyerSigned : sellerSigned;
+    return (
+        <div style={{ background: bothSigned ? "linear-gradient(135deg,#fff7e6,#f0fdf4)" : "#f0fdf4", border:`2px solid ${bothSigned ? C.brass : C.green}`, borderRadius:10, padding:"18px 20px", marginBottom:16, boxShadow: bothSigned ? "0 6px 22px rgba(184,134,58,0.20)" : "none" }}>
+          <div style={{ fontSize:17, fontWeight:800, fontFamily:"sans-serif", color:"#166534", marginBottom:8 }}>
+            {bothSigned ? "🎉 Both parties have signed!" : `🤝 Price Agreed — ${fmt(agreedOffer.amount)}`}
+          </div>
+          <div style={{ display:"flex", gap:16, fontSize:12.5, fontFamily:"sans-serif", color:C.slate, marginBottom:12, flexWrap:"wrap" }}>
+            <span>{buyerSigned ? "✅" : "⬜"} Buyer signed</span>
+            <span>{sellerSigned ? "✅" : "⬜"} Seller signed</span>
+            <span style={{ fontWeight:700, color:C.navy }}>· {fmt(agreedOffer.amount)}</span>
+          </div>
+
+          {!bothSigned ? (
+            <>
+              <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:12 }}>
+                Both parties sign the Purchase Agreement for free — each signs only their own line. {amInitiator ? "Once both have signed, you pay the one-time $249 to make it binding." : "Once both have signed, the party who started the deal pays the $249 — nothing for you to pay."}
+              </div>
+              <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 22px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>
+                {iSigned ? "View Purchase Agreement →" : "Sign the Purchase Agreement →"}
+              </button>
+            </>
+          ) : amInitiator ? (
+            <>
+              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:14, fontWeight:600 }}>
+                The Purchase Agreement is fully signed. Pay the one-time <b>$249</b> to make the deal binding and unlock Due Diligence, Documents, and Closing for both parties.
+              </div>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+                <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>lockDeal(agreedOffer)}>💳 Pay $249 &amp; unlock the deal →</button>
+                <button style={{ ...S.btnOutline, fontSize:13, padding:"13px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize:13, fontFamily:"sans-serif", color:"#166534", lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
+                ✓ All signed! Waiting for the party who started this deal to pay the one-time $249 and make it binding — <b>nothing for you to pay</b>. You'll be unlocked automatically the moment they do.
+              </div>
+              <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
+            </>
+          )}
+        </div>
+    );
+  })();
+
   // Can proceed without accepted offer — just need some data
   const canProceed = !!acceptedOffer;
 
@@ -1130,52 +1180,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       )}
 
       {/* ── PRICE AGREED — awaiting initiator payment to lock ── */}
-      {agreedOffer && !acceptedOffer && (() => {
-        const buyerSigned = !!(agreedOffer.paBuyerSig && agreedOffer.paBuyerDisc);
-        const sellerSigned = !!(agreedOffer.paSellerSig && agreedOffer.paSellerDisc);
-        const bothSigned = buyerSigned && sellerSigned;
-        const iSigned = myRole==="buyer" ? buyerSigned : sellerSigned;
-        return (
-        <div style={{ background: bothSigned ? "linear-gradient(135deg,#fff7e6,#f0fdf4)" : "#f0fdf4", border:`2px solid ${bothSigned ? C.brass : C.green}`, borderRadius:10, padding:"18px 20px", marginBottom:16, boxShadow: bothSigned ? "0 6px 22px rgba(184,134,58,0.20)" : "none" }}>
-          <div style={{ fontSize:17, fontWeight:800, fontFamily:"sans-serif", color:"#166534", marginBottom:8 }}>
-            {bothSigned ? "🎉 Both parties have signed!" : `🤝 Price Agreed — ${fmt(agreedOffer.amount)}`}
-          </div>
-          <div style={{ display:"flex", gap:16, fontSize:12.5, fontFamily:"sans-serif", color:C.slate, marginBottom:12, flexWrap:"wrap" }}>
-            <span>{buyerSigned ? "✅" : "⬜"} Buyer signed</span>
-            <span>{sellerSigned ? "✅" : "⬜"} Seller signed</span>
-            <span style={{ fontWeight:700, color:C.navy }}>· {fmt(agreedOffer.amount)}</span>
-          </div>
-
-          {!bothSigned ? (
-            <>
-              <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:12 }}>
-                Both parties sign the Purchase Agreement for free — each signs only their own line. {amInitiator ? "Once both have signed, you pay the one-time $249 to make it binding." : "Once both have signed, the party who started the deal pays the $249 — nothing for you to pay."}
-              </div>
-              <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 22px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>
-                {iSigned ? "View Purchase Agreement →" : "Sign the Purchase Agreement →"}
-              </button>
-            </>
-          ) : amInitiator ? (
-            <>
-              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:14, fontWeight:600 }}>
-                The Purchase Agreement is fully signed. Pay the one-time <b>$249</b> to make the deal binding and unlock Due Diligence, Documents, and Closing for both parties.
-              </div>
-              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-                <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>lockDeal(agreedOffer)}>💳 Pay $249 &amp; unlock the deal →</button>
-                <button style={{ ...S.btnOutline, fontSize:13, padding:"13px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div style={{ fontSize:13, fontFamily:"sans-serif", color:"#166534", lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
-                ✓ All signed! Waiting for the party who started this deal to pay the one-time $249 and make it binding — <b>nothing for you to pay</b>. You'll be unlocked automatically the moment they do.
-              </div>
-              <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
-            </>
-          )}
-        </div>
-        );
-      })()}
+      {agreedBanner}
 
       {/* ── DEAL LOCKED BANNER ── */}
       {acceptedOffer && (
@@ -1217,6 +1222,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </div>
         </div>
       )}
+
+      {/* Second copy of the Price-Agreed box, right where the user's attention is */}
+      {agreedBanner}
 
       {/* ── EDIT FULL TERMS — opens the builder for contingencies, dates, deposit ── */}
       {offers.length > 0 && !acceptedOffer && (
@@ -1708,6 +1716,31 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate }) {
   );
 }
 
+// Seller's side of due diligence — preparing the vessel and paperwork for the
+// buyer's survey and sea trial. Items flagged `warn` are safety-critical.
+const SELLER_PREP = [
+  { section: "Paperwork to have ready", items: [
+    { key:"docs_title",     label:"Title, state registration, and USCG documentation (if applicable)" },
+    { key:"docs_ownership", label:"Proof of ownership / prior bill of sale" },
+    { key:"docs_records",   label:"Maintenance & service records and engine-hour log" },
+    { key:"docs_manuals",   label:"Owner's manuals for engines, electronics, and onboard systems" },
+    { key:"docs_lien",      label:"Lien payoff or loan details, if there's a lien on the vessel" },
+  ]},
+  { section: "Make the vessel available", items: [
+    { key:"avail_schedule", label:"Confirm a date, time, and location for the survey and sea trial" },
+    { key:"avail_access",   label:"Clear access to the engine room, bilges, lockers, and all compartments" },
+    { key:"avail_power",    label:"Shore power connected / batteries charged so every system can be tested" },
+    { key:"avail_fuel",     label:"Enough fuel aboard for the sea trial" },
+  ]},
+  { section: "Safety & readiness — please read", warn:true, items: [
+    { key:"safe_coldstart",  label:"Do NOT start the engines before the surveyor arrives — they need to inspect a cold start", warn:true },
+    { key:"safe_engineroom", label:"Engine room accessible and ready to run up to operating temperature during the trial" },
+    { key:"safe_gear",       label:"Required safety gear aboard for the sea trial — PFDs, fire extinguishers, flares, horn (a captain or surveyor may refuse to run without it)", warn:true },
+    { key:"safe_seaworthy",  label:"Vessel is in safe operating condition — through-hulls/seacocks work, steering and nav are functional" },
+    { key:"safe_haulout",    label:"A haul-out (hull-out) is NOT required to move forward — but be ready to arrange one if the buyer's surveyor requests a bottom inspection" },
+  ]},
+];
+
 function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms, negotiate, myRole, onNext, onBack }) {
   const set = (k,v) => setData(d => ({...d,[k]:v}));
   const isBuyer = myRole !== "seller";
@@ -1721,6 +1754,9 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const submitProof = () => { if (proofRef.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositProof: { ref: proofRef.trim(), note: proofNote.trim(), at: Date.now(), by: "buyer" } })); };
   const extendDeposit = (h) => { if (setNegotiate) setNegotiate(n => ({ ...n, depositDeadline: Date.now() + h*3600*1000, depositEnded: false })); };
   const endDealForDeposit = () => { if (setNegotiate) setNegotiate(n => ({ ...n, depositEnded: true })); };
+  // Seller readiness checklist (each party only sees/edits their own DD).
+  const sellerPrep = data.sellerPrep || {};
+  const toggleSellerPrep = (key) => setData(d => ({ ...d, sellerPrep: { ...(d.sellerPrep||{}), [key]: !(d.sellerPrep||{})[key] } }));
   // Buyer-only DD price-reopen: propose a new final price after inspection.
   const [newPrice, setNewPrice] = useState(data.proposedNewPrice || "");
   const [newPriceReason, setNewPriceReason] = useState(data.proposedNewPriceReason || "");
@@ -1804,23 +1840,26 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           <div style={{ ...S.card, borderTop:`3px solid ${(depEnded || expired) ? C.red : depHasProof ? C.green : C.brass}`, marginBottom:16 }}>
             <h3 style={S.h3}>Earnest Money Deposit</h3>
             {depEnded ? (
-              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700 }}>✗ The seller ended this deal — the deposit window passed without proof.</div>
+              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700, lineHeight:1.5 }}>✗ Deal void — the deposit window passed without proof. The agreement, including the signed Purchase Agreement, is no longer binding.</div>
             ) : depHasProof ? (
               <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Deposit proof submitted — ref {dep.depositProof.ref}{dep.depositProof.note ? ` · ${dep.depositProof.note}` : ""}</div>
             ) : expired ? (
               <>
-                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700, marginBottom:8 }}>⏰ Deposit window expired — no proof was submitted in time.</div>
+                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700, marginBottom:8, lineHeight:1.5 }}>⏰ Deposit window expired — no proof submitted. Without earnest money this deal can be declared <b>null and void, including the signed Purchase Agreement</b>.</div>
                 {isBuyer ? (
-                  <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate }}>The seller can grant an extension or end the deal. If they extend, submit your proof below.</div>
+                  <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate }}>The seller can grant an extension or declare the deal void. If they extend, submit your proof below.</div>
                 ) : (
                   <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:4 }}>
                     {[12,24,36].map(h => (<button key={h} style={{...S.btnOutline, fontSize:12, padding:"8px 12px"}} onClick={()=>extendDeposit(h)}>Extend {h}h</button>))}
-                    <button style={{...S.btn, background:C.red, fontSize:12, padding:"8px 14px"}} onClick={endDealForDeposit}>End the deal</button>
+                    <button style={{...S.btn, background:C.red, fontSize:12, padding:"8px 14px"}} onClick={endDealForDeposit}>Void the deal (no deposit)</button>
                   </div>
                 )}
               </>
             ) : (
-              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, fontWeight:700 }}>⏳ Proof of deposit due in {hoursLeft}h {minsLeft}m</div>
+              <>
+                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, fontWeight:700 }}>⏳ Proof of deposit due in {hoursLeft}h {minsLeft}m</div>
+                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>Earnest money keeps this deal alive. If proof isn't provided before the timer runs out, the deal can be declared <b>null and void — including the signed Purchase Agreement</b>.</div>
+              </>
             )}
             {isBuyer && !depHasProof && !depEnded && (
               <div style={{ marginTop:12 }}>
@@ -1852,6 +1891,13 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         )}
       </div>
 
+      {/* Role note — explains the lock-out to both parties */}
+      <div style={{ background:C.sandDark, borderRadius:6, padding:"9px 13px", marginBottom:16, fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.5 }}>
+        {isBuyer ? "You handle the inspections below. The seller has their own checklist to prepare the vessel and paperwork — you won't see theirs, and they won't see yours." : "You prepare the vessel and paperwork below. The buyer runs the survey, sea trial, and title checks on their side — each of you only sees your own due-diligence list."}
+      </div>
+
+      {/* Buyer's hands-on due diligence — hidden from the seller */}
+      {isBuyer && (<>
       {/* ── MARINE SURVEY ── */}
       <div style={S.card}>
         <SectionHeader icon="🔍" title="Marine Survey" subtitle={surveyFile ? `Uploaded: ${surveyFile.name}` : "Upload survey, record findings, send to lender/insurer"} open={surveyOpen} onToggle={()=>setSurveyOpen(v=>!v)} done={!!data.survey} />
@@ -2055,6 +2101,41 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           <textarea style={{...S.textarea, minHeight:64}} value={data.ddNotes} onChange={e=>set("ddNotes",e.target.value)} placeholder="Survey found minor blistering. Both parties agreed to reduce price by $2,000 to $70,000. Seller agrees to repair starboard rub rail before closing…" />
         </div>
       </div>
+      </>)}
+
+      {/* Seller's readiness checklist — hidden from the buyer */}
+      {!isBuyer && (
+        <div style={S.card}>
+          <h2 style={{ ...S.h1, fontSize:21, marginBottom:6 }}>Prepare Your Vessel</h2>
+          <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:18 }}>
+            This is your side of due diligence. The buyer arranges the survey, sea trial, and title checks — your job is to have the paperwork ready and the vessel prepared so the inspection goes smoothly. Check items off as you complete them.
+          </p>
+          {SELLER_PREP.map(sec => (
+            <div key={sec.section} style={{ marginBottom:20 }}>
+              <div style={{ fontSize:12.5, fontWeight:800, fontFamily:"sans-serif", color: sec.warn ? "#a23a14" : C.navy, textTransform:"uppercase", letterSpacing:0.4, marginBottom:8, display:"flex", alignItems:"center", gap:6 }}>
+                {sec.warn && <span>⚠️</span>}{sec.section}
+              </div>
+              {sec.warn && (
+                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"#a23a14", background:"#fdf0e9", border:"1px solid #e8c3b0", borderRadius:6, padding:"8px 11px", marginBottom:10, lineHeight:1.5 }}>
+                  These protect the deal and everyone's safety. A botched cold-start or a sea trial without safety gear can sink a survey day — and the deal.
+                </div>
+              )}
+              {sec.items.map(it => {
+                const on = !!sellerPrep[it.key];
+                return (
+                  <div key={it.key} onClick={()=>toggleSellerPrep(it.key)} style={{ display:"flex", gap:11, alignItems:"flex-start", padding:"9px 0", borderBottom:`1px solid ${C.mist}`, cursor:"pointer" }}>
+                    <span style={{ width:19, height:19, borderRadius:5, flexShrink:0, marginTop:1, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:"#fff", background:on?C.green:"transparent", border:on?"none":`1.5px solid ${it.warn?"#c2611f":C.mist}` }}>{on?"✓":""}</span>
+                    <span style={{ flex:1, fontSize:13, fontFamily:"sans-serif", lineHeight:1.5, color: it.warn ? "#8a3a1a" : C.text, fontWeight: it.warn ? 600 : 400 }}>{it.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+          <div style={{ background:C.navy, borderRadius:8, padding:"13px 16px", marginTop:4, fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.85)", lineHeight:1.6 }}>
+            <b style={{ color:C.brass }}>From the captain's chair:</b> a vessel that starts cold, runs clean, and has its papers in order builds buyer confidence and keeps the deal moving. Surprises during survey are where deals stall.
+          </div>
+        </div>
+      )}
 
       {/* ── VESSEL DECISION (buyer-only) ── */}
       <div style={{...S.card, marginTop:16}}>
