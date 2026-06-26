@@ -1765,8 +1765,8 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const [rejectionNotes, setRejectionNotes] = useState(data.rejectionNotes||"");
   const [buyerDisc, setBuyerDisc] = useState(false);
   const [buyerSigned, setBuyerSigned] = useState(false);
-  const [vaSigName, setVaSigName] = useState("");
-  const [vaSigned, setVaSigned] = useState(false);
+  const [vaSigName, setVaSigName] = useState(negotiate?.vesselAcceptance?.sig || "");
+  const [vaSigned, setVaSigned] = useState(!!negotiate?.vesselAcceptance);
   const [showReceipt, setShowReceipt] = useState(false);
 
   // Survey upload state
@@ -2266,7 +2266,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                       <label style={S.label}>Type your full legal name to sign</label>
                       <input style={S.input} placeholder="Buyer full legal name" value={vaSigName} onChange={e=>setVaSigName(e.target.value)} disabled={!buyerDisc} />
                     </div>
-                    <button style={{ ...S.btnBrass, whiteSpace:"nowrap", opacity:(!buyerDisc||!vaSigName.trim())?0.4:1 }} disabled={!buyerDisc||!vaSigName.trim()} onClick={()=>{ setVaSigned(true); setBuyerSigned(true); }}>Sign Acceptance</button>
+                    <button style={{ ...S.btnBrass, whiteSpace:"nowrap", opacity:(!buyerDisc||!vaSigName.trim())?0.4:1 }} disabled={!buyerDisc||!vaSigName.trim()} onClick={()=>{ setVaSigned(true); setBuyerSigned(true); if(setNegotiate) setNegotiate(n=>({...n, vesselAcceptance:{ sig:vaSigName.trim(), date:today() }})); }}>Sign Acceptance</button>
                   </div>
                 ) : (
                   <div style={{ fontSize:12, color:C.green, fontFamily:"sans-serif" }}>✓ Signed by {vaSigName} on {today()}</div>
@@ -2298,7 +2298,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
 
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
-        <button style={S.btnBrass} disabled={!canProceed} onClick={()=>{ setData(d=>({...d,outcome,rejectionReason,rejectionNotes,vaSigName,vaSigned,surveyFile:surveyFile?.name,surveyCompany,surveyorName})); onNext(); }}>
+        <button style={S.btnBrass} disabled={!canProceed} onClick={()=>{ setData(d=>({...d,outcome,rejectionReason,rejectionNotes,vaSigName,vaSigned,surveyFile:surveyFile?.name,surveyCompany,surveyorName})); if(setNegotiate){ if(outcome==="propose_price" && newPrice){ setNegotiate(n=>({...n, addendum:{ newPrice:Number(newPrice), reason:newPriceReason||"", buyer:parties.buyer.name||"Buyer", date:(n.addendum&&n.addendum.date)||today() }, vesselAcceptance: n.vesselAcceptance || { sig:parties.buyer.name||"Buyer", date:today() } })); } if(outcome==="accept" && vaSigName.trim()){ setNegotiate(n=>({...n, vesselAcceptance: n.vesselAcceptance || { sig:vaSigName.trim(), date:today() }})); } } onNext(); }}>
           {outcome==="reject" ? "Proceed to Close (Rejected)" : "Continue to Documents →"}
         </button>
       </div>
@@ -3866,6 +3866,8 @@ export default function BoatClosers() {
           depositDeadline: Math.max(Number(sNeg.depositDeadline)||0, Number(prev?.depositDeadline)||0) || prev?.depositDeadline || sNeg.depositDeadline,
           depositProof: sNeg.depositProof || prev?.depositProof,
           depositEnded: prev?.depositEnded || sNeg.depositEnded,
+          vesselAcceptance: sNeg.vesselAcceptance || prev?.vesselAcceptance,
+          addendum: sNeg.addendum || prev?.addendum,
         };
       });
     };
