@@ -9,7 +9,7 @@
 // in place of <StepDocuments ...> on the step===4 line. Nothing else changes.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
 
 // ── palette (matches the main app) ──
@@ -78,6 +78,60 @@ const priceToWords = (n) => {
   return out.trim();
 };
 
+// Renders a filled document. Checkbox lists (doc.checklist) and "____" blanks
+// become interactive in-app when `editable` is true; otherwise read-only.
+function DocPaper({ doc, html, editable, checkState, toggleCheck, savedFields, onField }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const blanks = root.querySelectorAll(".bc-fill-in");
+    const handlers = [];
+    blanks.forEach((el) => {
+      const fk = el.getAttribute("data-fk");
+      const saved = savedFields[fk];
+      if (editable) {
+        el.setAttribute("contenteditable", "true");
+        el.classList.add("editable");
+        el.textContent = (saved != null && saved !== "") ? saved : "";
+        const onBlur = () => onField(fk, (el.textContent || "").trim());
+        el.addEventListener("blur", onBlur);
+        handlers.push([el, onBlur]);
+      } else {
+        el.textContent = (saved != null && saved !== "") ? saved : "________";
+      }
+    });
+    return () => handlers.forEach(([el, h]) => el.removeEventListener("blur", h));
+  }, [html, editable]); // eslint-disable-line
+
+  if (doc.checklist && html.includes("<!--CHECKLIST-->")) {
+    const [before, after] = html.split("<!--CHECKLIST-->");
+    let lastSec = null;
+    return (
+      <div className="bc-doc" ref={ref}>
+        <div dangerouslySetInnerHTML={{ __html: before }} />
+        <div className="bc-checklist">
+          {doc.checklist.map((it, idx) => {
+            const secHeader = it.section && it.section !== lastSec ? (lastSec = it.section, <div key={"s"+idx} className="bc-cl-sec">{it.section}</div>) : null;
+            const on = !!(checkState[doc.id]||{})[idx];
+            return (
+              <div key={idx}>
+                {secHeader}
+                <div className={"bc-cl-item"+(editable?"":" locked")} onClick={editable ? ()=>toggleCheck(doc.id, idx) : undefined}>
+                  <span className={"bc-cl-box"+(on?" on":"")}>{on ? "✓" : ""}</span>
+                  <span className="bc-cl-text"><b>{it.label}</b>{it.desc ? <span className="bc-cl-desc">{it.desc}</span> : null}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div dangerouslySetInnerHTML={{ __html: after }} />
+      </div>
+    );
+  }
+  return <div className="bc-doc" ref={ref} dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
 export default function DocumentsStepV2({ data, setData, vessel, parties, terms, negotiate, myRole, amInitiator, onNext, onBack }) {
   // Single payment happens at the PA-lock step in Negotiate. Once an offer is
   // accepted (PA locked), the deal is paid — Documents shows NO second paywall.
@@ -105,7 +159,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [uploadedFile, setUploadedFile] = useState({});
   const [manualSig, setManualSig] = useState({});
   const [manualFields, setManualFields] = useState({});
-  const [checkState, setCheckState] = useState({}); // docId -> { itemIndex: true }
+  const [checkState, setCheckState] = useState(data.docChecks || {}); // docId -> { itemIndex: true }
+  const [fieldState, setFieldState] = useState(data.docFields || {}); // docId -> { fieldKey: text }
+  const [closeAck, setCloseAck] = useState(false); // acknowledge offline/notary docs before closing
 
   // One-line "is this section for me?" descriptions under each group header.
   const GROUP_DESC = {
@@ -120,9 +176,29 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     "Closing-Day": "Sign these at the handoff — delivery and possession receipt, the seller's disclosure of known defects, and the engine-hours statement.",
   };
 
-  const toggleCheck = (docId, idx) => setCheckState(s => ({
-    ...s, [docId]: { ...(s[docId]||{}), [idx]: !(s[docId]||{})[idx] }
-  }));
+  const toggleCheck = (docId, idx) => setCheckState(s => {
+    const next = { ...s, [docId]: { ...(s[docId]||{}), [idx]: !(s[docId]||{})[idx] } };
+    setData(d => ({ ...d, docChecks: next }));
+    return next;
+  });
+  const setField = (docId, key, val) => setFieldState(s => {
+    const next = { ...s, [docId]: { ...(s[docId]||{}), [key]: val } };
+    setData(d => ({ ...d, docFields: next }));
+    return next;
+  });
+  // A document can be locked to one role with editRole. Only that role fills it
+  // in-app; the other party prints/uploads instead.
+  const canEditDoc = (doc) => !doc.editRole || doc.editRole === myRole;
+  // Turn the "____" blanks in a document (outside the signature block) into
+  // fillable spans the right party can type into.
+  const prepHtml = (rawHtml, docId) => {
+    const sigAt = rawHtml.indexOf('<div class="sig"');
+    const head = sigAt >= 0 ? rawHtml.slice(0, sigAt) : rawHtml;
+    const tail = sigAt >= 0 ? rawHtml.slice(sigAt) : "";
+    let n = 0;
+    const head2 = head.replace(/_{4,}/g, () => `<span class="bc-fill-in" data-fk="${docId}:${n++}">________</span>`);
+    return head2 + tail;
+  };
 
   // Jump to a document from the required-docs tracker: open it and scroll to it.
   const jumpToDoc = (docId) => {
@@ -193,6 +269,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
   const requiredDocs = DOC_SET.filter(d => d.required);
   const allRequiredSigned = requiredDocs.every(d => signed[d.id]);
+  const reqMissing = requiredDocs.filter(d => !signed[d.id]);
+  const reqNotaryMissing = reqMissing.filter(d => (d.body||"").includes("Notary Acknowledgment"));
   const signedCount = Object.keys(signed).length;
 
   // ── PAYWALL ──
@@ -333,6 +411,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 .bc-notary-flag{background:#fbf4e3;border:1px solid #8a6d1a;border-radius:6px;padding:10px 13px;margin-bottom:16px;font-size:11.5px;line-height:1.55;color:#6b540f;font-family:sans-serif}
 .bc-notary-flag strong{color:#8a6d1a}
 .bc-checklist{margin:6px 0 14px}
+.bc-fill-in.editable{display:inline-block;min-width:90px;border-bottom:1.5px solid ${C.brass};padding:0 5px;outline:none;color:${C.navy};font-weight:600;line-height:1.7}
+.bc-fill-in.editable:focus{background:#fffaf0}
+.bc-fill-hint{background:${C.tealLight};border:1px solid ${C.teal};border-radius:6px;padding:9px 13px;margin-bottom:14px;font-size:11.5px;line-height:1.5;color:${C.teal};font-family:sans-serif}
+.bc-lock-note{background:#fbf4e3;border:1px solid #8a6d1a;border-radius:6px;padding:9px 13px;margin-bottom:14px;font-size:11.5px;line-height:1.5;color:#6b540f;font-family:sans-serif}
+.bc-cl-item.locked{opacity:.7;cursor:default}
 .bc-cl-sec{font-family:Georgia,serif;color:${C.navy};font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 6px}
 .bc-cl-item{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid ${C.mist};cursor:pointer}
 .bc-cl-box{width:18px;height:18px;border:1.5px solid ${C.slate};border-radius:4px;flex:none;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-family:sans-serif}
@@ -406,17 +489,18 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
           </span>
         </div>
         <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, lineHeight:1.5 }}>
-          Open and sign each one — they're the core documents the sale needs. Tap to jump to a document.
+          The core documents a sale needs. Tap any one to open it. Documents that require a notary must be printed, notarized, and uploaded — the app can't verify notarization, so those are completed offline.
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
           {requiredDocs.map(doc => {
             const done = !!signed[doc.id];
+            const rowNotary = (doc.body||"").includes("Notary Acknowledgment");
             return (
               <button key={doc.id} onClick={()=>jumpToDoc(doc.id)}
                 style={{ display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left", background:"transparent", border:"none", borderBottom:`1px solid ${allRequiredSigned ? "#cfe6d8" : "#f0e2c4"}`, padding:"8px 2px", cursor:"pointer", fontFamily:"sans-serif" }}>
                 <span style={{ width:18, height:18, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, background: done ? C.green : "transparent", color: done ? "#fff" : C.slate, border: done ? "none" : `1.5px solid ${C.mist}` }}>{done ? "✓" : ""}</span>
-                <span style={{ flex:1, fontSize:12.5, color:C.navy, fontWeight: done ? 400 : 600, textDecoration: done ? "line-through" : "none", opacity: done ? 0.7 : 1 }}>{doc.title}</span>
-                <span style={{ fontSize:11, color: done ? C.green : C.brass, fontWeight:600, whiteSpace:"nowrap" }}>{done ? "Signed" : "Sign →"}</span>
+                <span style={{ flex:1, fontSize:12.5, color:C.navy, fontWeight: done ? 400 : 600, textDecoration: done ? "line-through" : "none", opacity: done ? 0.7 : 1 }}>{doc.title}{rowNotary && !done ? <span style={{ fontSize:10.5, color:"#8a6d1a", fontWeight:600 }}> · needs notary</span> : null}</span>
+                <span style={{ fontSize:11, color: done ? C.green : C.brass, fontWeight:600, whiteSpace:"nowrap" }}>{done ? "Done" : rowNotary ? "Notarize offline" : "Sign →"}</span>
               </button>
             );
           })}
@@ -457,10 +541,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                       </div>
                       <div style={{ minWidth:0 }}>
                         <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:600, color:C.navy }}>{doc.title}</div>
+                        {doc.desc && <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:1, lineHeight:1.4 }}>{doc.desc}</div>}
                         <div style={{ display:"flex", gap:5, marginTop:2, flexWrap:"wrap" }}>
                           {doc.required && <span style={{...S.tag, background:"#fff3cd", color:"#7a5500"}}>Required</span>}
                           {!doc.required && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Optional</span>}
                           {needsNotary && <span style={{...S.tag, background:"#fbf4e3", color:"#8a6d1a"}}>Notary required</span>}
+                          {(doc.checklist || /_{4,}/.test(doc.body||"")) && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>{doc.editRole ? `Fill in app · ${doc.editRole} only` : "Fill in app"}</span>}
                           {signed[doc.id] && <span style={{...S.tag, background:C.greenLight, color:C.green}}>✓ {signed[doc.id].date} · {signed[doc.id].name}</span>}
                           {sentLog[doc.id]?.length > 0 && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Sent ×{sentLog[doc.id].length}</span>}
                           {uploadedFile[doc.id] && !signed[doc.id]?.uploaded && <span style={{...S.tag}}>📎 {uploadedFile[doc.id]}</span>}
@@ -508,33 +594,26 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                             </div>
                           )}
                           {(() => {
-                            const html = fillDocument(doc, deal);
-                            if (doc.checklist && html.includes("<!--CHECKLIST-->")) {
-                              const [before, after] = html.split("<!--CHECKLIST-->");
-                              let lastSec = null;
-                              return (
-                                <div className="bc-doc">
-                                  <div dangerouslySetInnerHTML={{ __html: before }} />
-                                  <div className="bc-checklist">
-                                    {doc.checklist.map((it, idx) => {
-                                      const secHeader = it.section && it.section !== lastSec ? (lastSec = it.section, <div key={"s"+idx} className="bc-cl-sec">{it.section}</div>) : null;
-                                      const on = !!(checkState[doc.id]||{})[idx];
-                                      return (
-                                        <div key={idx}>
-                                          {secHeader}
-                                          <div className="bc-cl-item" onClick={()=>toggleCheck(doc.id, idx)}>
-                                            <span className={"bc-cl-box"+(on?" on":"")}>{on ? "✓" : ""}</span>
-                                            <span className="bc-cl-text"><b>{it.label}</b>{it.desc ? <span className="bc-cl-desc">{it.desc}</span> : null}</span>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                  <div dangerouslySetInnerHTML={{ __html: after }} />
-                                </div>
-                              );
-                            }
-                            return <div className="bc-doc" dangerouslySetInnerHTML={{ __html: html }} />;
+                            const editable = canEditDoc(doc);
+                            const interactive = !!doc.checklist || /_{4,}/.test(doc.body||"");
+                            return (
+                              <>
+                                {interactive && (editable ? (
+                                  <div className="bc-fill-hint">✏️ Tap the boxes and blank lines to fill this in right here, then print or send it — no need to print and scan.</div>
+                                ) : (
+                                  <div className="bc-lock-note">🔒 Only the {doc.editRole} fills this one in here. If you need to change it, print it and upload a signed copy.</div>
+                                ))}
+                                <DocPaper
+                                  doc={doc}
+                                  html={prepHtml(fillDocument(doc, deal), doc.id)}
+                                  editable={editable}
+                                  checkState={checkState}
+                                  toggleCheck={toggleCheck}
+                                  savedFields={fieldState[doc.id]||{}}
+                                  onField={(fk,val)=>setField(doc.id, fk, val)}
+                                />
+                              </>
+                            );
                           })()}
                         </div>
                       )}
@@ -655,11 +734,26 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         );
       })}
 
-      <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
-        <button style={S.btnOutline} onClick={onBack}>← Back</button>
-        <button style={S.btnBrass} disabled={!allRequiredSigned} onClick={()=>{setData(d=>({...d,signedDocs:signed}));onNext();}}>
-          {allRequiredSigned ? "Proceed to Closing →" : `Sign required docs to continue (${requiredDocs.filter(d=>signed[d.id]).length}/${requiredDocs.length})`}
-        </button>
+      <div style={{ marginTop:"1.5rem" }}>
+        {!allRequiredSigned && (
+          <div style={{ border:`1.5px solid ${C.brass}`, background:"#fff9ee", borderRadius:8, padding:"14px 16px", marginBottom:14 }}>
+            <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, color:"#7a5500", marginBottom:6 }}>⚠️ A few documents still need finishing before this sale is truly closed</div>
+            <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:10 }}>
+              Still outstanding: {reqMissing.map(d=>d.title).join(", ")}.
+              {reqNotaryMissing.length > 0 && <> Note that <b>{reqNotaryMissing.map(d=>d.title).join(", ")}</b> must be printed, signed in front of a notary, and uploaded. <b>BoatClosers can't verify notarization</b> — completing that correctly is your responsibility.</>}
+            </div>
+            <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", fontSize:12, fontFamily:"sans-serif", color:C.navy, lineHeight:1.5 }}>
+              <input type="checkbox" checked={closeAck} onChange={e=>setCloseAck(e.target.checked)} style={{ marginTop:1, accentColor:C.brass, flexShrink:0 }} />
+              I understand these documents still need to be completed{reqNotaryMissing.length>0?" and notarized":""} outside the app, that BoatClosers does not verify or notarize them, and I'm choosing to proceed.
+            </label>
+          </div>
+        )}
+        <div style={{ display:"flex", justifyContent:"space-between" }}>
+          <button style={S.btnOutline} onClick={onBack}>← Back</button>
+          <button style={{...S.btnBrass, opacity:(allRequiredSigned||closeAck)?1:0.45, cursor:(allRequiredSigned||closeAck)?"pointer":"not-allowed"}} disabled={!allRequiredSigned && !closeAck} onClick={()=>{setData(d=>({...d,signedDocs:signed}));onNext();}}>
+            {allRequiredSigned ? "Proceed to Closing →" : "Proceed to Closing anyway →"}
+          </button>
+        </div>
       </div>
     </div>
   );
