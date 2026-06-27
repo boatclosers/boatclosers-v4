@@ -936,7 +936,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     const parts = [`${fromRole==="buyer"?"Offer":"Counter"}: ${fmt(amt)}`];
     parts.push(deposit>0?`${fmt(deposit)} (${escrowPct}%) earnest via ${escrowLabel}`:"No deposit");
     if (inclContingencies && localContingencies.length) parts.push(`${localContingencies.length} contingenc${localContingencies.length>1?"ies":"y"}`);
-    if (inclDates) parts.push(`DD ${ddDays}d · Close ${closingDate||"TBD"}`);
+    if (inclDates) parts.push(`Due Diligence ${ddDays} days · Close ${closingDate||"TBD"}`);
     setMessages(m => {
       const updated = [...m, { from:fromRole, text:parts.join(" · "), time:new Date().toLocaleTimeString() }];
       setData(d => ({...d, messages: updated}));
@@ -1151,7 +1151,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   })();
 
   // Can proceed without accepted offer — just need some data
-  const canProceed = !!acceptedOffer;
+  const canProceed = !!acceptedOffer || !!(data.dealLocked || data.paid);
 
   const proceed = () => {
     const agreed = acceptedOffer || { amount:Number(offerAmt), escrowPct:Number(escrowPct), escrowPath, deposit:Math.round(Number(offerAmt)*Number(escrowPct)/100), ddDays, closingDate, status:"working" };
@@ -1355,7 +1355,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ flex:1 }}>
             <div style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif" }}>Deal Locked — {fmt(acceptedOffer.amount)}</div>
             <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.85)", marginTop:2, lineHeight:1.5 }}>
-              The Purchase Agreement is signed and binding. Earnest money: {fmt(acceptedOffer.deposit)} · DD: {acceptedOffer.ddDays||"10"} days · Closing: {acceptedOffer.closingDate||"TBD"}. All documents are unlocked.
+              The Purchase Agreement is signed and binding. Earnest money: {fmt(acceptedOffer.deposit)} · Due Diligence: {acceptedOffer.ddDays||"10"} days · Closing: {acceptedOffer.closingDate||"TBD"}. All documents are unlocked.
             </div>
           </div>
         </div>
@@ -1388,9 +1388,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </div>
         </div>
       )}
-
-      {/* Second copy of the Price-Agreed box, right where the user's attention is */}
-      {agreedBanner}
 
       {/* ── EDIT FULL TERMS — opens the builder for contingencies, dates, deposit ── */}
       {offers.length > 0 && !acceptedOffer && (
@@ -1503,7 +1500,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <select style={S.select} value={depositRule} onChange={e=>setDepositRule(e.target.value)}>
             <option value="fully_returnable">Fully returnable if buyer rejects during due diligence</option>
             <option value="returnable_cause">Returnable only for cause (survey / title / financing)</option>
-            <option value="nonrefundable_after_dd">Non-refundable after DD if buyer backs out without cause</option>
+            <option value="nonrefundable_after_dd">Non-refundable after Due Diligence if buyer backs out without cause</option>
             <option value="split">Split 50/50 if buyer backs out</option>
             <option value="seller_default">If seller defaults, returned plus equal penalty to buyer</option>
             <option value="custom">Custom — describe below</option>
@@ -1636,7 +1633,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                     <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:4, lineHeight:1.5 }}>
                       Deposit: {o.escrowPct}% ({fmt(o.deposit)}) · {o.escrowPath==="escrow_com"?"Escrow.com":o.escrowPath==="attorney"?"Attorney":"Direct"}
                       {o.inclContingencies && o.contingencies?.length ? ` · ${o.contingencies.length} contingenc${o.contingencies.length>1?"ies":"y"}` : " · no contingencies"}
-                      {o.inclDates ? ` · DD ${o.ddDays}d · Close ${o.closingDate||"TBD"}` : " · dates open"}
+                      {o.inclDates ? ` · Due Diligence ${o.ddDays} days · Close ${o.closingDate||"TBD"}` : " · dates open"}
                     </div>
 
                     {/* status / actions */}
@@ -1717,6 +1714,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </div>
         </div>
       )}
+
+      {/* Mirrored Price-Agreed box at the BOTTOM, so a user who reads down the
+          page lands on the sign / pay action without scrolling back up. */}
+      {agreedBanner}
 
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
@@ -2509,7 +2510,7 @@ function StepDocuments({ data, setData, vessel, parties, terms, negotiate, myRol
     deposit: fmt(negotiate.deposit||0),
     escrow: negotiate.escrowPath==="escrow_com"?"Escrow.com":negotiate.escrowPath==="attorney"?"Third Party Attorney":"Direct to Seller",
     closing: terms.closingDate||"[Closing Date]",
-    ddDays: terms.dueDiligenceDays||"[DD Days]",
+    ddDays: terms.dueDiligenceDays||"[Due Diligence Days]",
     ddEnd: terms.ddStartDate && terms.dueDiligenceDays ? addDays(terms.ddStartDate, Number(terms.dueDiligenceDays)) : "[DD End]",
     date: today(),
   };
