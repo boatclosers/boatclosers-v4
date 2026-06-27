@@ -270,7 +270,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
       }
     }
 
-    const justLocked = updated?.dealLocked && !previous?.dealLocked
+    const justLocked = updated?.negotiate?.dealLocked && !previous?.negotiate?.dealLocked
     if (justLocked) {
       const recipients = [buyerEmail, sellerEmail].filter(Boolean)
       const paPdf = await buildPaPdfBase64(updated)
@@ -562,6 +562,10 @@ export async function POST(req: Request) {
           for (const k of ['paBuyerSig','paBuyerDisc','paBuyerDate','paSellerSig','paSellerDisc','paSellerDate']) {
             if (!merged[k] && ex[k]) merged[k] = ex[k]
           }
+          // Status only advances (pending → agreed → accepted). A stale save from
+          // the other party must never knock an offer back from accepted to agreed.
+          const rank: any = { pending: 1, rejected: 1, agreed: 2, accepted: 3 }
+          if ((rank[ex.status] || 0) > (rank[merged.status] || 0)) merged.status = ex.status
           offerById[o.id] = merged
         }
       }
@@ -583,6 +587,8 @@ export async function POST(req: Request) {
       if (!mergedPayload.negotiate.depositEnded && existingNeg.depositEnded) mergedPayload.negotiate.depositEnded = existingNeg.depositEnded
       if (!mergedPayload.negotiate.vesselAcceptance && existingNeg.vesselAcceptance) mergedPayload.negotiate.vesselAcceptance = existingNeg.vesselAcceptance
       if (!mergedPayload.negotiate.addendum && existingNeg.addendum) mergedPayload.negotiate.addendum = existingNeg.addendum
+      if (!mergedPayload.negotiate.dealLocked && existingNeg.dealLocked) mergedPayload.negotiate.dealLocked = existingNeg.dealLocked
+      if (!mergedPayload.negotiate.paid && existingNeg.paid) mergedPayload.negotiate.paid = existingNeg.paid
       if ((Number(existingNeg.depositDeadline)||0) > (Number(mergedPayload.negotiate.depositDeadline)||0)) mergedPayload.negotiate.depositDeadline = existingNeg.depositDeadline
 
       // Update by id ALONE — authorization already checked. The old .or() filter
