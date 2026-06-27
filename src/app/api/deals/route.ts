@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail, emailLayout } from '@/lib/sendEmail'
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 
 const SUPABASE_URL = 'https://xoihnmkgncuocxiknvgs.supabase.co'
 
@@ -27,6 +28,89 @@ function fmtMoney(n: number) {
   if (typeof n !== 'number') return ''
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
 }
+
+// Build a clean PDF of the signed Purchase Agreement from the deal record so it
+// can ride along as an attachment on the confirmation emails. Pure-JS (pdf-lib),
+// no native binaries — safe to run inside the serverless email path. Returns a
+// base64 string, or null if there's nothing signed yet to render.
+async function buildPaPdfBase64(updated: any): Promise<string | null> {
+  try {
+    const offers = updated?.negotiate?.offers || []
+    const o = offers.find((x: any) => x?.status === 'accepted') || offers.find((x: any) => x?.status === 'agreed')
+    if (!o) return null
+    const v = updated?.vessel || {}
+    const p = updated?.parties || {}
+    const buyer = p?.buyer || {}
+    const seller = p?.seller || {}
+    const vesselName = v?.name || v?.makeModel || [v?.year, v?.make, v?.model].filter(Boolean).join(' ') || 'Vessel'
+    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+
+    const pdf = await PDFDocument.create()
+    const font = await pdf.embedFont(StandardFonts.Helvetica)
+    const bold = await pdf.embedFont(StandardFonts.HelveticaBold)
+    const navy = rgb(0.031, 0.082, 0.18)
+    const brass = rgb(0.722, 0.525, 0.227)
+    const body = rgb(0.13, 0.16, 0.22)
+    const W = 612, H = 792, M = 56, MAXW = W - M * 2
+    let page = pdf.addPage([W, H])
+    let y = H - M
+
+    const ensure = (need = 60) => { if (y < M + need) { page = pdf.addPage([W, H]); y = H - M } }
+    const text = (s: string, opts: { size?: number; f?: any; color?: any; gap?: number; indent?: number } = {}) => {
+      const size = opts.size ?? 10.5, f = opts.f ?? font, color = opts.color ?? body, gap = opts.gap ?? 5, indent = opts.indent ?? 0
+      const words = String(s ?? '').split(/\s+/)
+      let cur = ''
+      const flush = () => { ensure(size + gap + 8); page.drawText(cur, { x: M + indent, y, size, font: f, color }); y -= size + gap; cur = '' }
+      for (const w of words) {
+        const t = cur ? cur + ' ' + w : w
+        if (f.widthOfTextAtSize(t, size) > MAXW - indent) { flush(); cur = w } else cur = t
+      }
+      if (cur) flush()
+    }
+    const gapY = (n: number) => { y -= n }
+    const rule = () => { ensure(14); page.drawRectangle({ x: M, y, width: MAXW, height: 0.8, color: rgb(0.85, 0.87, 0.9) }); y -= 12 }
+
+    // Header
+    text('BOATCLOSERS.COM', { size: 9, f: bold, color: brass, gap: 3 })
+    text('PURCHASE & SALE AGREEMENT', { size: 17, f: bold, color: navy, gap: 4 })
+    text(`Executed ${today}`, { size: 9, color: rgb(0.45, 0.5, 0.58), gap: 8 })
+    rule()
+
+    text(`This Purchase and Sale Agreement is entered into between the parties below for the vessel described herein.`, { gap: 8 })
+    text('PARTIES', { size: 11, f: bold, color: navy, gap: 5 })
+    text(`Buyer:  ${buyer?.name || '—'}${buyer?.email ? '   |   ' + buyer.email : ''}`)
+    text(`Seller: ${seller?.name || '—'}${seller?.email ? '   |   ' + seller.email : ''}`, { gap: 8 })
+
+    text('VESSEL', { size: 11, f: bold, color: navy, gap: 5 })
+    text(`${[v?.year, v?.make, v?.model].filter(Boolean).join(' ') || vesselName}`)
+    text(`HIN: ${v?.hin || '—'}    Length: ${v?.length || v?.loa || '—'}    Reg/Title: ${v?.regNumber || v?.titleNo || '—'}`, { gap: 8 })
+
+    text('PRICE & TERMS', { size: 11, f: bold, color: navy, gap: 5 })
+    text(`Purchase Price:  ${fmtMoney(Number(o?.amount)) || '—'}`)
+    text(`Earnest Money Deposit:  ${fmtMoney(Number(o?.deposit)) || '—'}`)
+    if (o?.closingDate) text(`Closing Date:  ${o.closingDate}`)
+    if (o?.ddDays) text(`Due Diligence Period:  ${o.ddDays} days`)
+    gapY(4)
+    text(`The vessel is sold "as-is, where-is" with no warranties except as stated herein. Seller represents lawful ownership and authority to convey clear title free of liens and encumbrances. BoatClosers.com is a document facilitation platform only — not a broker, escrow agent, attorney, or party to this agreement.`, { size: 9.5, color: rgb(0.32, 0.37, 0.45), gap: 8 })
+    rule()
+
+    text('SIGNATURES', { size: 11, f: bold, color: navy, gap: 8 })
+    text(`Buyer:  ${o?.paBuyerSig || '________________________'}`, { f: bold })
+    text(`Signed ${o?.paBuyerSig ? (o?.paBuyerDate || o?.paDate || today) : '(pending)'}`, { size: 9, color: rgb(0.45, 0.5, 0.58), gap: 10 })
+    text(`Seller: ${o?.paSellerSig || '________________________'}`, { f: bold })
+    text(`Signed ${o?.paSellerSig ? (o?.paSellerDate || o?.paDate || today) : '(pending)'}`, { size: 9, color: rgb(0.45, 0.5, 0.58), gap: 10 })
+
+    gapY(6)
+    text(`This copy was generated by BoatClosers.com on ${today} and reflects the agreement as signed in the app.`, { size: 8.5, color: rgb(0.55, 0.59, 0.65) })
+
+    const bytes = await pdf.save()
+    return Buffer.from(bytes).toString('base64')
+  } catch (e) {
+    console.error('buildPaPdfBase64 failed:', e)
+    return null
+  }
+}
+
 
 async function notifyOnDealChange(previous: any, updated: any) {
   try {
@@ -137,15 +221,18 @@ async function notifyOnDealChange(previous: any, updated: any) {
     const paJustSigned = !prevSigned['purchase_agreement'] && !!newSigned['purchase_agreement']
     if (paJustSigned) {
       const recipients = [buyerEmail, sellerEmail].filter(Boolean)
+      const paPdf = await buildPaPdfBase64(updated)
+      const attachments = paPdf ? [{ filename: 'Purchase-Agreement.pdf', content: paPdf }] : undefined
       for (const email of recipients) {
         await sendEmail({
           to: email,
           subject: `Purchase Agreement signed — BoatClosers`,
+          attachments,
           html: emailLayout(`
             <h2 style="color:#08152e; font-size:18px;">Purchase Agreement Signed</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
               The Purchase &amp; Sale Agreement for <strong>${vesselName}</strong> has been signed.
-              This is the binding contract for the deal.
+              This is the binding contract for the deal.${paPdf ? ' A signed copy is attached to this email as a PDF.' : ''}
             </p>
             <p style="text-align:center; margin: 24px 0;">
               <a href="${dealLink(4, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
@@ -186,15 +273,18 @@ async function notifyOnDealChange(previous: any, updated: any) {
     const justLocked = updated?.dealLocked && !previous?.dealLocked
     if (justLocked) {
       const recipients = [buyerEmail, sellerEmail].filter(Boolean)
+      const paPdf = await buildPaPdfBase64(updated)
+      const attachments = paPdf ? [{ filename: 'Purchase-Agreement.pdf', content: paPdf }] : undefined
       for (const email of recipients) {
         await sendEmail({
           to: email,
           subject: `Your BoatClosers deal is locked`,
+          attachments,
           html: emailLayout(`
             <h2 style="color:#08152e; font-size:18px;">Deal Locked</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
               Both parties have signed the Purchase Agreement for <strong>${vesselName}</strong>
-              and the deal is now binding. You can now proceed with the remaining closing documents.
+              and the deal is now binding. You can now proceed with the remaining closing documents.${paPdf ? ' A signed copy of the Purchase Agreement is attached as a PDF.' : ''}
             </p>
             <p style="text-align:center; margin: 24px 0;">
               <a href="${dealLink(4, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
@@ -300,6 +390,34 @@ async function notifyOnDealChange(previous: any, updated: any) {
           </p>
         `)
       })
+    }
+    // ── GET READY TO FINALIZE ── due diligence cleared (vessel accepted, or the
+    // price addendum accepted) → nudge BOTH parties to complete the closing docs.
+    const ddCleared = (newOutcome === 'accept' && newOutcome !== prevOutcome)
+      || (newAdd === 'accepted' && newAdd !== prevAdd)
+    if (ddCleared) {
+      const recips = [buyerEmail, sellerEmail].filter(Boolean)
+      for (const email of recips) {
+        await sendEmail({
+          to: email,
+          subject: `Due diligence cleared — time to finalize your BoatClosers deal`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">Get Ready to Finalize</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              Due diligence on <strong>${vesselName}</strong> is complete and the vessel has been
+              accepted${newAdd === 'accepted' ? ' on the amended terms' : ''}. The next step is to complete and sign the closing documents.
+            </p>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              Open your deal to review what's left, finish the remaining documents, and finalize the sale.
+            </p>
+            <p style="text-align:center; margin: 24px 0;">
+              <a href="${dealLink(4, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+                Finalize the Deal
+              </a>
+            </p>
+          `)
+        })
+      }
     }
   } catch (e) {
     console.error('notifyOnDealChange failed:', e)
