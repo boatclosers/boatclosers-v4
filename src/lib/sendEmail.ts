@@ -5,7 +5,7 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const FROM_ADDRESS = 'BoatClosers <notifications@boatclosers.com>';
 
-export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
+export async function sendEmail({ to, subject, html, attachments }: { to: string; subject: string; html: string; attachments?: { filename: string; content: string }[] }) {
   if (!RESEND_API_KEY) {
     console.error('RESEND_API_KEY is missing — email not sent.');
     return { success: false, error: 'Email service not configured.' };
@@ -26,7 +26,8 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
         from: FROM_ADDRESS,
         to: [to],
         subject,
-        html
+        html,
+        ...(attachments && attachments.length ? { attachments } : {})
       })
     });
 
