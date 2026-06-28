@@ -188,20 +188,37 @@ function TipBox({ tips }) {
 // what happens next, and the common questions. (Free-form AI answers come later.)
 const ASSISTANT = {
   vessel: {
-    title: "Step 1 · The Vessel",
-    summary: "This first step describes the boat itself — the details that legally identify it on every document you'll generate. Get these right and your contracts fill themselves in correctly.",
-    todo: [
-      "Enter the year, make, model, and length",
-      "Add the HIN — the 12-character Hull ID stamped on the starboard side of the transom",
-      "Add engine, registration, and title details if you have them",
-      "Set your asking price (just a starting number — the real price is negotiated next)",
-    ],
-    next: "You'll set up the two parties and invite the other side into the deal.",
-    faqs: [
-      { q:"Why does the HIN matter so much?", a:"It's the boat's fingerprint, like a car's VIN. It ties the title, bill of sale, and registration to this exact hull, so it shows up on nearly every document." },
-      { q:"What if I don't have every detail yet?", a:"Fill in what you know and keep going. You can come back and complete the rest before the documents are finalized." },
-      { q:"Is the asking price the final price?", a:"No. It's just the starting number. The real price is settled in the Deal Room, where both sides negotiate." },
-    ],
+    title: "Step 1 \u00b7 The Vessel",
+    seller: {
+      summary: "This is where your boat gets described \u2014 the details that legally identify it on every document. As the seller, you're the source of truth here, so getting these right saves headaches later.",
+      todo: [
+        "Enter the year, make, model, and length",
+        "Add the HIN \u2014 the 12-character Hull ID stamped on the starboard side of the transom",
+        "Add engine, registration, and title details",
+        "Set your asking price (your starting number \u2014 the real price is negotiated next)",
+      ],
+      next: "You'll bring the buyer into the deal, then negotiate price and terms.",
+      faqs: [
+        { q:"Why does the HIN matter so much?", a:"It's the boat's fingerprint, like a car's VIN. It ties the title, bill of sale, and registration to this exact hull, so it shows up on nearly every document." },
+        { q:"What if I don't have every detail handy?", a:"Fill in what you know and keep going. You can complete the rest before the documents are finalized." },
+        { q:"Is the asking price the final price?", a:"No \u2014 it's just your starting number. The real price is settled in the Deal Room, where both sides negotiate." },
+      ],
+    },
+    buyer: {
+      summary: "Describe the boat you're making an offer on \u2014 the details that identify it on every document. Fill in what you know from the listing; the seller confirms and corrects their details when they join.",
+      todo: [
+        "Enter the year, make, model, and length from the listing",
+        "Add the HIN if you have it \u2014 you can confirm it with the seller later",
+        "Add any engine or registration details you know",
+        "Set a reference price \u2014 your actual, negotiable offer is built in the Deal Room",
+      ],
+      next: "You'll set up the parties, then build and send your offer.",
+      faqs: [
+        { q:"Why am I describing a boat I don't own yet?", a:"Because you're starting the deal. You enter what you know; the seller confirms and fills in the rest when they review it." },
+        { q:"What if I don't have the HIN?", a:"Enter what you can. The seller can add the HIN and registration when they join the deal." },
+        { q:"Is this price my offer?", a:"No \u2014 this is just a reference. Your real, negotiable offer is built in the Deal Room." },
+      ],
+    },
   },
   parties: {
     title: "Step 2 · Parties",
@@ -270,20 +287,37 @@ const ASSISTANT = {
     },
   },
   documents: {
-    title: "Step 5 · Documents",
-    summary: "These are the closing documents. Some you fill and sign right in the app; documents that need a notary must be printed, notarized, and uploaded — the app can't verify notarization. The Purchase Agreement and your due-diligence acceptance already show as signed.",
-    todo: [
-      "Open each required document",
-      "Fill in any blanks and check boxes (each is locked to the party who should complete it)",
-      "E-sign the ones that allow it; print, notarize, and upload the ones that need a notary",
-      "When everything's handled, proceed to closing",
-    ],
-    next: "The closing step wraps up the transfer and gives you both a record.",
-    faqs: [
-      { q:"Why isn't the Bill of Sale e-signable?", a:"It often needs notarization, an in-person act the app can't verify. Print it, sign before a notary, and upload the copy." },
-      { q:"Why is the Purchase Agreement already signed?", a:"You signed it back when the price was agreed. It carries over here so you don't sign twice." },
-      { q:"Can I proceed if a notarized document isn't done?", a:"Yes — you'll get a warning and acknowledge it. The app won't trap you, but completing those correctly is your responsibility." },
-    ],
+    title: "Step 5 \u00b7 Documents",
+    buyer: {
+      summary: "These are the closing documents. Some you fill and sign right in the app; the ones that need a notary (like the Bill of Sale) the seller handles before a notary. Your Purchase Agreement and due-diligence acceptance already show as signed.",
+      todo: [
+        "Open each required document",
+        "Fill in any blanks and check the boxes assigned to you",
+        "E-sign the documents that allow it",
+        "When everything's handled, proceed to closing",
+      ],
+      next: "The closing step wraps up the transfer and gives you both a record.",
+      faqs: [
+        { q:"Why isn't the Bill of Sale e-signable?", a:"It often needs notarization, an in-person act the app can't verify. The seller prints it, signs before a notary, and uploads the copy." },
+        { q:"Why is the Purchase Agreement already signed?", a:"You signed it when the price was agreed. It carries over here so you don't sign twice." },
+        { q:"Can I proceed if a notarized document isn't done?", a:"Yes \u2014 you'll get a warning and acknowledge it. The app won't trap you, but completing those correctly is the responsibility of whoever signs them." },
+      ],
+    },
+    seller: {
+      summary: "These are the closing documents. Some you fill and sign right in the app. The Bill of Sale typically needs your signature before a notary \u2014 print it, get it notarized, and upload the copy. The Purchase Agreement already shows as signed.",
+      todo: [
+        "Open each required document",
+        "Fill in any blanks and check the boxes assigned to you",
+        "E-sign what you can; print, notarize, and upload the Bill of Sale and any notary documents",
+        "When everything's handled, proceed to closing",
+      ],
+      next: "The closing step wraps up the transfer and gives you both a record.",
+      faqs: [
+        { q:"Which documents do I have to notarize?", a:"The Bill of Sale usually needs a notary. Print it, sign in front of a notary, then upload the signed copy \u2014 the app can't verify notarization for you." },
+        { q:"Why is the Purchase Agreement already signed?", a:"You signed it when the price was agreed. It carries over here so you don't sign twice." },
+        { q:"Can I proceed if a notarized document isn't done?", a:"Yes \u2014 you'll get a warning and acknowledge it. The app won't trap you, but completing notarization correctly is your responsibility." },
+      ],
+    },
   },
 };
 
@@ -466,14 +500,14 @@ function LockedStep({ stepName, onBack }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-function StepVessel({ data, setData, onNext }) {
+function StepVessel({ data, setData, userRole, onNext }) {
   const set = (k,v) => setData(d => ({...d,[k]:v}));
   // Only year, make, model required — rest optional until paywall
   const canContinue = data.year && data.make && data.model && data.askingPrice;
   return (
     <div style={S.page}>
       <TipBox tips={TIPS.vessel} />
-      <DealAssistant step="vessel" />
+      <DealAssistant step="vessel" role={userRole} />
       <div style={{ marginBottom:"1.5rem" }}>
         <h1 style={S.h1}>Vessel Information</h1>
         <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Fill in what you have now. You can complete remaining fields before signing. Asking price, year, make, and model are required to continue.</p>
@@ -4207,7 +4241,7 @@ export default function BoatClosers() {
       </nav>
       <ProgressBar step={step} setStep={setStep} maxStep={maxStep} dealPaid={dealPaid}/>
       <PreviewBanner step={step} maxStep={maxStep} setStep={setStep}/>
-      {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} onNext={()=>goToStep(1)}/>}
+      {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} userRole={myDealRole || user?.role || "seller"} onNext={()=>goToStep(1)}/>}
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
