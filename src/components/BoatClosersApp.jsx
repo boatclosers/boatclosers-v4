@@ -508,6 +508,14 @@ function StepVessel({ data, setData, userRole, onNext }) {
     <div style={S.page}>
       <TipBox tips={TIPS.vessel} />
       <DealAssistant step="vessel" role={userRole} />
+      {userRole==="seller" && (
+        <div style={{ background:"#eef4fb", border:`1px solid ${C.navy}`, borderRadius:8, padding:"13px 16px", marginBottom:18 }}>
+          <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>📋 You're the seller — just confirm the details</div>
+          <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+            You don't need to build anything here. Since you know this boat best, please make sure every detail below is accurate and complete — and fill in anything the buyer couldn't. Once it's correct, your only job is to <b>wait for the buyer's offer</b>. We'll bring it to you and email you the moment it arrives.
+          </div>
+        </div>
+      )}
       <div style={{ marginBottom:"1.5rem" }}>
         <h1 style={S.h1}>Vessel Information</h1>
         <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Fill in what you have now. You can complete remaining fields before signing. Asking price, year, make, and model are required to continue.</p>
@@ -1339,6 +1347,11 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               {vessel.year} {vessel.make} {vessel.model} — negotiate here until you both agree, then lock the deal. Offers, counters, and messages all live in this room.
             </p>
           </>
+        ) : myRole==="seller" ? (
+          <>
+            <h1 style={S.h1}>Deal Room</h1>
+            <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>You're all set for {vessel.year} {vessel.make} {vessel.model}. The next step is the buyer's offer — sit tight and we'll bring it to you right here.</p>
+          </>
         ) : (
           <>
             <h1 style={S.h1}>Build Your Offer</h1>
@@ -1396,7 +1409,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       )}
 
       {/* ── HOW IT WORKS (brief) — only while building the first offer ── */}
-      {offers.length === 0 && (
+      {offers.length === 0 && myRole!=="seller" && (
       <div style={{ background:C.navy, borderRadius:8, padding:"13px 16px", marginBottom:16, display:"flex", gap:12, alignItems:"flex-start" }}>
         <div style={{ fontSize:20, flexShrink:0 }}>🤝</div>
         <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.78)", lineHeight:1.65 }}>
@@ -1443,6 +1456,35 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, background:C.sandDark, borderRadius:6, padding:"12px 14px" }}>
             The agreed terms are frozen for both parties and can't be edited here. The only change allowed now is the <b>buyer's vessel decision during due diligence</b> — accept as-is, reject, or propose a new price (which is recorded as an <b>addendum</b> to the signed Purchase Agreement, not a change to it).
           </div>
+        </div>
+      ) : (myRole === "seller" && offers.length === 0 && !showBuilder) ? (
+        <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.navy}`, textAlign:"center" }}>
+          <div style={{ fontSize:34, marginBottom:6 }}>📭</div>
+          <div style={{ fontSize:17, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:6 }}>Waiting for the buyer's offer</div>
+          <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, maxWidth:460, margin:"0 auto 16px" }}>
+            You're all set — there's nothing you need to build. The buyer puts together the offer (price, deposit, and terms) and sends it to you. The moment it arrives you'll be able to <b>accept it, counter the price, or flag a conflict</b> right here, and we'll email you so you don't have to keep checking.
+          </div>
+          <div style={{ background:C.sandDark, borderRadius:8, padding:"14px 16px", textAlign:"left", maxWidth:460, margin:"0 auto" }}>
+            <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.4, textTransform:"uppercase", color:C.navy, fontFamily:"sans-serif", marginBottom:10 }}>What happens next</div>
+            {[
+              ["1","The buyer sends an offer","You'll get an email and see it appear here"],
+              ["2","You respond","Accept it, counter the price, or flag a conflict"],
+              ["3","You both sign","Once you agree, you each sign the Purchase Agreement"],
+              ["4","Due diligence & closing","Survey, documents, and the handover"],
+            ].map(([n,t,d])=>(
+              <div key={n} style={{ display:"flex", gap:10, marginBottom:9, alignItems:"flex-start" }}>
+                <span style={{ width:20, height:20, borderRadius:"50%", background:C.brass, color:C.navy, fontSize:11, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontFamily:"sans-serif" }}>{n}</span>
+                <div>
+                  <div style={{ fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>{t}</div>
+                  <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.4 }}>{d}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:14, lineHeight:1.55, maxWidth:460, margin:"14px auto 0" }}>
+            Your asking price of <b>{fmt(Number(vessel.askingPrice)) || "—"}</b> is set as the buyer's anchor. If you want to review or pre-set the full terms a buyer can offer against, you can open them below.
+          </div>
+          <button onClick={()=>setShowBuilder(true)} style={{ ...S.btnOutline, fontSize:12.5, padding:"9px 18px", marginTop:12 }}>View / set full terms &amp; conflicts</button>
         </div>
       ) : (offers.length === 0 || showBuilder) ? (
       <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.brass}` }}>
