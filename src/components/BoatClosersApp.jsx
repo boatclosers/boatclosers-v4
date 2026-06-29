@@ -1118,6 +1118,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const acceptedOffer = offers.find(o => o.status==="accepted");
   // An offer the OTHER party accepted, now awaiting the initiator's payment to lock.
   const agreedOffer = offers.find(o => o.status==="agreed");
+  // Once price is agreed, the offer is accepted, or the deal is locked/paid, the
+  // negotiation is closed — no more accept / counter / reject on the ladder.
+  const frozen = !!acceptedOffer || !!agreedOffer || !!(data.dealLocked || data.paid);
   // The latest still-pending offer, and whether *I* am the one who made it
   // (if so, I'm waiting on the other party and can't send another).
   const latestPendingTop = [...offers].reverse().find(o => o.status==="pending");
@@ -1437,7 +1440,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       )}
 
       {/* ── EDIT FULL TERMS — opens the builder for contingencies, dates, deposit ── */}
-      {offers.length > 0 && !acceptedOffer && (
+      {offers.length > 0 && !frozen && (
         <button onClick={()=>{ if(!showBuilder && latestPendingTop && latestPendingTop.from!==myRole && myRole!=="seller"){ counterOffer(latestPendingTop.id); } else { setShowBuilder(v=>!v); } }} style={{ ...S.btnOutline, width:"100%", fontSize:13, padding:"10px 0", fontWeight:700, marginBottom:16 }}>
           {showBuilder ? "✕ Close full offer builder" : (myRole==="seller" ? "⚙️ View full terms / flag a conflict" : "✏️ Edit full terms (contingencies, dates, deposit)")}
         </button>
@@ -1486,7 +1489,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </div>
           <button onClick={()=>setShowBuilder(true)} style={{ ...S.btnOutline, fontSize:12.5, padding:"9px 18px", marginTop:12 }}>View / set full terms &amp; conflicts</button>
         </div>
-      ) : (offers.length === 0 || showBuilder) ? (
+      ) : (!frozen && (offers.length === 0 || showBuilder)) ? (
       <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.brass}` }}>
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
           <div style={{ width:32, height:32, borderRadius:6, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>📝</div>
@@ -1718,7 +1721,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                       {o.status==="agreed" && <span style={{...S.pill, background:"#166534", color:"#fff"}}>Price agreed ✓ — awaiting lock</span>}
                       {o.status==="rejected" && <span style={{...S.pill, background:C.red, color:"#fff"}}>Rejected</span>}
                       {o.status==="countered" && <span style={{...S.pill, background:C.mist, color:C.slate}}>Countered — see newer offer below</span>}
-                      {isLatestPending && (
+                      {isLatestPending && !frozen && (
                         o.from === myRole ? (
                           <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, fontStyle:"italic", background:C.sandDark, borderRadius:6, padding:"8px 12px" }}>
                             ⏳ Sent — waiting for the {myRole==="buyer" ? "seller" : "buyer"} to accept, counter, or reject. You can't respond to your own offer.
