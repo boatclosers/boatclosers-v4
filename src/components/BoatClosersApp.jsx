@@ -273,6 +273,7 @@ const ASSISTANT = {
         { q:"What if the survey finds problems?", a:"You can propose a new price — that creates an addendum to the Purchase Agreement — or reject the vessel and recover your deposit per your terms." },
         { q:"Why is there a deposit timer?", a:"Earnest money shows you're serious and holds the boat. If proof isn't provided in time, the deal can be voided — including the signed Purchase Agreement." },
         { q:"Do I need to haul the boat out?", a:"Not to move forward. A haul-out is only needed if your surveyor wants a bottom inspection." },
+        { q:"How do I verify the title is clear?", a:"Confirm the seller's name matches the title and check for liens. In the Documents step there's a ready-to-send 'Title & Lien Search Request Letter' you can fill and mail to the state titling office (or the U.S. Coast Guard for a documented vessel) to get a certified record." },
       ],
     },
     seller: {
@@ -321,7 +322,7 @@ const ASSISTANT = {
   },
 };
 
-function DealAssistant({ step, role }) {
+function DealAssistant({ step, role, vessel }) {
   const [open, setOpen] = useState(true);
   const [faqOpen, setFaqOpen] = useState(null);
   const c = ASSISTANT[step];
@@ -329,6 +330,7 @@ function DealAssistant({ step, role }) {
   const r = role === "seller" ? "seller" : "buyer";
   const g = c[r] || c;
   const faqs = g.faqs || c.faqs || [];
+  const hasVessel = vessel && (vessel.year || vessel.make || vessel.model);
   return (
     <div style={{ border:`1px solid ${C.navy}`, borderRadius:8, marginBottom:20, overflow:"hidden", background:"#fff" }}>
       <div onClick={()=>setOpen(o=>!o)} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"11px 14px", background:C.navy }}>
@@ -341,6 +343,14 @@ function DealAssistant({ step, role }) {
       </div>
       {open && (
         <div style={{ padding:"14px 16px" }}>
+          {hasVessel && (
+            <div style={{ background:C.sandDark, borderRadius:6, padding:"9px 12px", marginBottom:12, fontSize:11.5, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6 }}>
+              <b>This deal:</b> {[vessel.year, vessel.make, vessel.model].filter(Boolean).join(" ")}
+              {vessel.length ? ` · ${vessel.length}` : ""}
+              {vessel.hin ? ` · HIN ${vessel.hin}` : ""}
+              {vessel.askingPrice ? ` · Asking ${fmt(Number(vessel.askingPrice))}` : ""}
+            </div>
+          )}
           <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.text, lineHeight:1.65, marginBottom:12 }}>{g.summary}</div>
           {g.todo && (
             <div style={{ marginBottom:12 }}>
@@ -507,7 +517,7 @@ function StepVessel({ data, setData, userRole, onNext }) {
   return (
     <div style={S.page}>
       <TipBox tips={TIPS.vessel} />
-      <DealAssistant step="vessel" role={userRole} />
+      <DealAssistant step="vessel" role={userRole} vessel={data} />
       {userRole==="seller" && (
         <div style={{ background:"#eef4fb", border:`1px solid ${C.navy}`, borderRadius:8, padding:"13px 16px", marginBottom:18 }}>
           <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>📋 You're the seller — just confirm the details</div>
@@ -594,7 +604,7 @@ function StepVessel({ data, setData, userRole, onNext }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 1 — PARTIES (role-aware)
 // ─────────────────────────────────────────────────────────────────────────────
-function StepParties({ data, setData, userRole, partyBJoined, onNext, onBack, dealId, user }) {
+function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, onBack, dealId, user }) {
   const [inviteLink, setInviteLink] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -687,7 +697,7 @@ function StepParties({ data, setData, userRole, partyBJoined, onNext, onBack, de
   return (
     <div style={S.page}>
       <TipBox tips={TIPS.parties} />
-      <DealAssistant step="parties" role={userRole} />
+      <DealAssistant step="parties" role={userRole} vessel={vessel} />
       <div style={{ marginBottom:"1.5rem" }}>
         <h1 style={S.h1}>Buyer & Seller Information</h1>
         <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>
@@ -1341,7 +1351,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   return (
     <div style={S.page}>
       <TipBox tips={TIPS.negotiate} />
-      <DealAssistant step="negotiate" role={myRole} />
+      <DealAssistant step="negotiate" role={myRole} vessel={vessel} />
       <div style={{ marginBottom:"1.5rem" }}>
         {offers.length > 0 ? (
           <>
@@ -1516,15 +1526,21 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </div>
         )}
 
-        {/* 💵 Price & Deposit — always shown */}
+        {/* 💵 Price — always shown */}
         <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px", marginBottom:10, background:"#fff" }}>
-          <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>💵 Price &amp; Deposit</div>
-          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, margin:"3px 0 12px", lineHeight:1.55 }}>What you're offering, plus the earnest-money deposit that shows you're serious — the deposit is what secures the boat.</div>
+          <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>💵 Price</div>
+          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, margin:"3px 0 12px", lineHeight:1.55 }}>The amount you're offering for the vessel.</div>
           <Field label="Offer Amount ($)">
             <input style={S.input} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder={vessel.askingPrice||"85000"} />
           </Field>
+        </div>
+
+        {/* 🤝 Deposit — always shown */}
+        <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px", marginBottom:10, background:"#fff" }}>
+          <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>🤝 Earnest-Money Deposit</div>
+          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, margin:"3px 0 12px", lineHeight:1.55 }}>The good-faith deposit that shows you're serious — it's what secures the boat. Held via your chosen escrow method, never by BoatClosers.</div>
           <div style={ myRole==="seller" ? { pointerEvents:"none", opacity:0.6 } : undefined }>
-          <Field label="Earnest Money Deposit">
+          <Field label="Deposit Amount">
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:5 }}>
               {["0","5","7.5","10"].map(p => (
                 <button key={p} onClick={()=>setEscrowPct(p)} style={{ ...S.btnOutline, background:escrowPct===p?C.navy:"transparent", color:escrowPct===p?"#fff":C.navy, fontSize:11, padding:"7px 0", textAlign:"center" }}>
@@ -1987,6 +2003,48 @@ const SELLER_PREP = [
   ]},
 ];
 
+// Shared rejection notice + deposit-refund walkthrough. Shown to the seller in
+// due diligence, and to both parties at closing, from the synced negotiate data.
+function RejectionNotice({ rejection, escrowPath, viewerRole, vessel }) {
+  if (!rejection) return null;
+  const reasons = (rejection.reasons||[]).map(id => REJECTION_REASONS.find(r=>r.id===id)).filter(Boolean);
+  const pathLabel = escrowPath==="escrow_com" ? "Escrow.com" : escrowPath==="attorney" ? "a closing attorney's trust account" : "a direct party-to-party deposit";
+  const refundSteps = escrowPath==="escrow_com"
+    ? ["Open your Escrow.com transaction for this deal.", "Either party requests cancellation; Escrow.com returns the buyer's deposit through their standard cancellation process.", "Make sure both parties receive Escrow.com's written cancellation confirmation."]
+    : escrowPath==="attorney"
+    ? ["Contact the closing attorney holding the deposit in trust.", "Both parties instruct the attorney in writing to return the deposit to the buyer.", "Keep the attorney's written confirmation of the return for your records."]
+    : ["Whoever is holding the deposit returns it directly to the buyer, by the same method it was paid.", "Both parties confirm the return in writing (a simple email is fine).", "Keep that written confirmation for your records."];
+  return (
+    <div style={{ border:`1px solid ${C.red}`, borderRadius:8, overflow:"hidden", marginTop:4 }}>
+      <div style={{ background:C.red, color:"#fff", padding:"10px 14px", fontSize:12, fontWeight:700, fontFamily:"sans-serif", letterSpacing:0.5 }}>VESSEL REJECTION NOTICE — DEAL ENDED</div>
+      <div style={{ background:"#fff", padding:"14px 16px", fontFamily:"sans-serif" }}>
+        <div style={{ fontSize:12, color:C.text, lineHeight:1.7 }}>The buyer has formally rejected <b>{vessel?.year} {vessel?.make} {vessel?.model}</b> after due diligence. This ends the deal.</div>
+        <div style={{ marginTop:10, fontSize:11, fontWeight:700, color:C.navy, textTransform:"uppercase", letterSpacing:0.4 }}>Reasons</div>
+        <ul style={{ margin:"4px 0 0", paddingLeft:18, fontSize:12, color:C.text, lineHeight:1.6 }}>
+          {reasons.map(r => <li key={r.id}>{r.label}</li>)}
+        </ul>
+        {rejection.notes && <div style={{ marginTop:8, fontSize:12, color:C.slate }}><b>Notes:</b> {rejection.notes}</div>}
+        {rejection.solution && (
+          <div style={{ marginTop:10, background:"#eef4fb", border:`1px solid ${C.navy}`, borderRadius:6, padding:"9px 12px" }}>
+            <div style={{ fontSize:11, fontWeight:700, color:C.navy }}>Buyer's proposed path forward</div>
+            <div style={{ fontSize:12, color:C.text, marginTop:3, lineHeight:1.6 }}>{rejection.solution}</div>
+            {viewerRole==="seller" && <div style={{ fontSize:10.5, color:C.slate, marginTop:5 }}>If you want to pursue this, contact the buyer directly — this deal is closed, so you'd start a new one.</div>}
+          </div>
+        )}
+        <div style={{ fontSize:11, color:C.slate, marginTop:10 }}>Signed: <b>{rejection.sig}</b> · {rejection.date}</div>
+        <div style={{ marginTop:14, background:C.sandDark, borderRadius:6, padding:"12px 14px" }}>
+          <div style={{ fontSize:11, fontWeight:800, color:C.navy, textTransform:"uppercase", letterSpacing:0.4, marginBottom:6 }}>Returning the earnest-money deposit</div>
+          <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginBottom:8 }}>This deal used <b>{pathLabel}</b>. BoatClosers never holds or moves money — the deposit is returned outside the app. Steps:</div>
+          <ol style={{ margin:0, paddingLeft:18, fontSize:11.5, color:C.text, lineHeight:1.7 }}>
+            {refundSteps.map((s,i)=><li key={i}>{s}</li>)}
+          </ol>
+          <div style={{ fontSize:10.5, color:C.slate, marginTop:8, fontStyle:"italic" }}>Trouble getting a deposit returned? Reply to your BoatClosers notification email and we'll help you work it out.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms, negotiate, myRole, onNext, onBack }) {
   const set = (k,v) => setData(d => ({...d,[k]:v}));
   const isBuyer = myRole !== "seller";
@@ -2007,8 +2065,11 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const [newPrice, setNewPrice] = useState(data.proposedNewPrice || "");
   const [newPriceReason, setNewPriceReason] = useState(data.proposedNewPriceReason || "");
   const [outcome, setOutcome] = useState(data.outcome||null);
-  const [rejectionReason, setRejectionReason] = useState(data.rejectionReason||"");
+  const [rejectionReasons, setRejectionReasons] = useState(data.rejectionReasons || (data.rejectionReason ? [data.rejectionReason] : []));
   const [rejectionNotes, setRejectionNotes] = useState(data.rejectionNotes||"");
+  const [rejSolution, setRejSolution] = useState(data.rejSolution||"");
+  const [rejSigName, setRejSigName] = useState(data.rejSigName||"");
+  const toggleRejReason = (id) => setRejectionReasons(rs => rs.includes(id) ? rs.filter(x=>x!==id) : [...rs, id]);
   const [buyerDisc, setBuyerDisc] = useState(false);
   const [buyerSigned, setBuyerSigned] = useState(false);
   const [vaSigName, setVaSigName] = useState(negotiate?.vesselAcceptance?.sig || "");
@@ -2051,7 +2112,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
     : outcome==="accept"
     ? (buyerDisc && buyerSigned && vaSigned)
     : outcome==="reject"
-      ? (buyerDisc && buyerSigned && rejectionReason)
+      ? (buyerDisc && buyerSigned && rejectionReasons.length>0 && rejSigName.trim())
     : outcome==="propose_price"
       ? !!newPrice
     : false;
@@ -2076,7 +2137,13 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
     <div style={S.page}>
       <EarnestReceiptModal open={showReceipt} onClose={()=>setShowReceipt(false)} vessel={vessel} parties={parties} negotiate={negotiate} />
       <TipBox tips={TIPS.diligence}/>
-      <DealAssistant step="diligence" role={myRole} />
+      <DealAssistant step="diligence" role={myRole} vessel={vessel} />
+      {negotiate.vesselRejection && (
+        <div style={{ background:C.redLight, border:`1px solid ${C.red}`, borderRadius:8, padding:"13px 16px", marginBottom:16 }}>
+          <div style={{ fontSize:13.5, fontWeight:800, fontFamily:"sans-serif", color:C.red, marginBottom:3 }}>🚫 This deal has ended</div>
+          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>The buyer rejected the vessel after due diligence. The full notice and the deposit-return steps are below{myRole==="seller" ? "" : " and on the closing page"}. No further action moves this deal forward.</div>
+        </div>
+      )}
 <VesselLookup />
       {depDeadline > 0 && (() => {
         const msLeft = depDeadline - Date.now();
@@ -2092,7 +2159,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
               <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Deposit proof submitted — ref {dep.depositProof.ref}{dep.depositProof.note ? ` · ${dep.depositProof.note}` : ""}</div>
             ) : expired ? (
               <>
-                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700, marginBottom:8, lineHeight:1.5 }}>⏰ Deposit window expired — no proof submitted. Without earnest money this deal can be declared <b>null and void, including the signed Purchase Agreement</b>.</div>
+                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700, marginBottom:8, lineHeight:1.5 }}>⏰ Deposit window expired — no proof submitted. Without earnest money this deal can be declared <b>null and void, including the signed Purchase Agreement</b>, leaving the seller free to accept other offers.</div>
                 {isBuyer ? (
                   <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate }}>The seller can grant an extension or declare the deal void. If they extend, submit your proof below.</div>
                 ) : (
@@ -2105,7 +2172,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             ) : (
               <>
                 <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, fontWeight:700 }}>⏳ Proof of deposit due in {hoursLeft}h {minsLeft}m</div>
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>Earnest money keeps this deal alive. If proof isn't provided before the timer runs out, the deal can be declared <b>null and void — including the signed Purchase Agreement</b>.</div>
+                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>Earnest money keeps this deal alive. If proof isn't provided before the timer runs out, the deal can be declared <b>null and void — including the signed Purchase Agreement</b>, and the <b>seller is then free to accept other offers</b>.</div>
               </>
             )}
             {isBuyer && !depHasProof && !depEnded && (
@@ -2390,7 +2457,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         {!isBuyer ? (
           <div>
             <div style={{ background:C.sandDark, borderRadius:6, padding:"14px 16px", fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom: negotiate.addendum?14:0 }}>
-              🔒 Only the buyer makes the vessel decision after due diligence. {negotiate.addendum ? `The buyer has PROPOSED A NEW PRICE: ${fmt(Number(negotiate.addendum.newPrice))}.` : negotiate.vesselAcceptance ? "The buyer has ACCEPTED the vessel." : outcome==="reject" ? "The buyer has REJECTED the vessel." : "Awaiting the buyer's decision (accept as-is, reject, or propose a new final price)."}
+              🔒 Only the buyer makes the vessel decision after due diligence. {negotiate.addendum ? `The buyer has PROPOSED A NEW PRICE: ${fmt(Number(negotiate.addendum.newPrice))}.` : negotiate.vesselAcceptance ? "The buyer has ACCEPTED the vessel." : negotiate.vesselRejection ? "The buyer has REJECTED the vessel — see the notice below." : "Awaiting the buyer's decision (accept as-is, reject, or propose a new final price)."}
             </div>
             {negotiate.addendum && (
               <div style={{ border:`1px solid ${C.brass}`, borderRadius:8, overflow:"hidden" }}>
@@ -2414,6 +2481,9 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                   )}
                 </div>
               </div>
+            )}
+            {negotiate.vesselRejection && (
+              <RejectionNotice rejection={negotiate.vesselRejection} escrowPath={(negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.escrowPath} viewerRole="seller" vessel={vessel} />
             )}
           </div>
         ) : (
@@ -2481,10 +2551,10 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
 
         {outcome==="reject" && (
           <div style={{ background:C.redLight, border:`1px solid #e8c0c0`, borderRadius:6, padding:"14px 16px", marginBottom:14 }}>
-            <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.red, marginBottom:10 }}>Reason for Rejection — Required for Rejection Notice Document</div>
+            <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.red, marginBottom:10 }}>Reasons for Rejection — select all that apply (required for the Rejection Notice)</div>
             {REJECTION_REASONS.map(r => (
               <label key={r.id} style={{ display:"flex", gap:10, alignItems:"flex-start", marginBottom:10, cursor:"pointer" }}>
-                <input type="radio" name="rejReason" value={r.id} checked={rejectionReason===r.id} onChange={()=>setRejectionReason(r.id)} style={{ marginTop:2, accentColor:C.red, flexShrink:0 }} />
+                <input type="checkbox" checked={rejectionReasons.includes(r.id)} onChange={()=>toggleRejReason(r.id)} style={{ marginTop:2, accentColor:C.red, flexShrink:0 }} />
                 <div>
                   <div style={{ fontSize:12, fontWeight:600, fontFamily:"sans-serif", color:C.text }}>{r.label}</div>
                   <div style={{ fontSize:11, color:C.slate, fontFamily:"sans-serif" }}>{r.desc}</div>
@@ -2494,6 +2564,11 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             <div style={{ marginTop:10 }}>
               <label style={S.label}>Additional Notes (appears in Rejection Notice)</label>
               <textarea style={{...S.textarea, minHeight:60}} value={rejectionNotes} onChange={e=>setRejectionNotes(e.target.value)} placeholder="Describe the specific issues that led to rejection..." />
+            </div>
+            <div style={{ marginTop:10 }}>
+              <label style={S.label}>Propose a path forward to the seller (optional)</label>
+              <textarea style={{...S.textarea, minHeight:55}} value={rejSolution} onChange={e=>setRejSolution(e.target.value)} placeholder="e.g. I'd still buy at $X given the survey findings, or: if you repair the transom I'll continue. This is sent to the seller with the rejection." />
+              <div style={{ fontSize:10.5, color:C.slate, fontFamily:"sans-serif", marginTop:4 }}>If you'd rather keep negotiating on price, use <b>Propose a New Price</b> above instead — that keeps the deal alive as an addendum. A rejection ends the deal.</div>
             </div>
           </div>
         )}
@@ -2544,20 +2619,23 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           </div>
         )}
 
-        {outcome==="reject" && rejectionReason && (
+        {outcome==="reject" && rejectionReasons.length>0 && (
           <div style={{ background:C.sandDark, borderRadius:5, padding:"12px 14px", marginTop:8 }}>
             <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>Buyer: {parties.buyer.name||"Buyer"} — Formal Rejection</div>
             <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:4, padding:"9px 12px", fontSize:10, color:"#7a5500", marginBottom:10 }}>
-              BoatClosers is not a party to this transaction. By signing, you accept full responsibility for the rejection and confirm the earnest money return process.
+              BoatClosers is not a party to this transaction. By signing, you accept full responsibility for the rejection and for arranging the return of any earnest-money deposit.
             </div>
             <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
               <input type="checkbox" checked={buyerDisc} onChange={e=>setBuyerDisc(e.target.checked)} style={{ marginTop:1, accentColor:C.navy, flexShrink:0 }} />
               I agree to the disclaimer above
             </label>
-            <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:"sans-serif", color:C.slate, cursor:"pointer", alignItems:"flex-start" }}>
+            <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
               <input type="checkbox" checked={buyerSigned} onChange={e=>setBuyerSigned(e.target.checked)} style={{ marginTop:1, accentColor:C.navy, flexShrink:0 }} />
-              I formally reject this vessel for the reason stated above
+              I formally reject this vessel for the reasons stated above
             </label>
+            <label style={S.label}>Type your full legal name to sign the Rejection Notice</label>
+            <input style={S.input} placeholder="Buyer full legal name" value={rejSigName} onChange={e=>setRejSigName(e.target.value)} disabled={!buyerDisc||!buyerSigned} />
+            {rejSigName.trim() && buyerDisc && buyerSigned && <div style={{ fontSize:11, color:C.green, fontFamily:"sans-serif", marginTop:8 }}>✓ Ready to sign — press "Proceed to Close (Rejected)" below to record the rejection and notify the seller.</div>}
           </div>
         )}
         </>
@@ -2566,7 +2644,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
 
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
-        <button style={S.btnBrass} disabled={!canProceed} onClick={()=>{ setData(d=>({...d,outcome,rejectionReason,rejectionNotes,vaSigName,vaSigned,surveyFile:surveyFile?.name,surveyCompany,surveyorName})); if(setNegotiate){ if(outcome==="propose_price" && newPrice){ setNegotiate(n=>({...n, addendum:{ newPrice:Number(newPrice), reason:newPriceReason||"", buyer:parties.buyer.name||"Buyer", date:(n.addendum&&n.addendum.date)||today() }, vesselAcceptance: n.vesselAcceptance || { sig:parties.buyer.name||"Buyer", date:today() } })); } if(outcome==="accept" && vaSigName.trim()){ setNegotiate(n=>({...n, vesselAcceptance: n.vesselAcceptance || { sig:vaSigName.trim(), date:today() }})); } } onNext(); }}>
+        <button style={S.btnBrass} disabled={!canProceed} onClick={()=>{ setData(d=>({...d,outcome,rejectionReasons,rejectionNotes,rejSolution,rejSigName,vaSigName,vaSigned,surveyFile:surveyFile?.name,surveyCompany,surveyorName})); if(setNegotiate){ if(outcome==="propose_price" && newPrice){ setNegotiate(n=>({...n, addendum:{ newPrice:Number(newPrice), reason:newPriceReason||"", buyer:parties.buyer.name||"Buyer", date:(n.addendum&&n.addendum.date)||today() }, vesselAcceptance: n.vesselAcceptance || { sig:parties.buyer.name||"Buyer", date:today() } })); } if(outcome==="accept" && vaSigName.trim()){ setNegotiate(n=>({...n, vesselAcceptance: n.vesselAcceptance || { sig:vaSigName.trim(), date:today() }})); } if(outcome==="reject" && rejectionReasons.length>0){ setNegotiate(n=>({...n, vesselRejection:{ reasons:rejectionReasons, notes:rejectionNotes, solution:rejSolution, sig:(rejSigName.trim()||parties.buyer.name||"Buyer"), date:today() }})); } } onNext(); }}>
           {outcome==="reject" ? "Proceed to Close (Rejected)" : "Continue to Documents →"}
         </button>
       </div>
@@ -2741,7 +2819,7 @@ function StepDocuments({ data, setData, vessel, parties, terms, negotiate, myRol
   return (
     <div style={S.page}>
       <TipBox tips={TIPS.documents}/>
-      <DealAssistant step="documents" role={myRole} />
+      <DealAssistant step="documents" role={myRole} vessel={vessel} />
       <div style={{ marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div>
           <h1 style={S.h1}>Documents</h1>
@@ -3222,11 +3300,14 @@ function StepClosing({ vessel, parties, terms, negotiate, ddData, docsData, myRo
         </div>
       )}
 
-      {isRejected && rejReason && (
-        <div style={{ background:C.redLight, border:`1px solid #e8c0c0`, borderRadius:6, padding:"12px 14px", marginBottom:20, fontSize:12, fontFamily:"sans-serif" }}>
-          <strong style={{ color:C.red }}>Rejection Reason:</strong> {rejReason.label}<br/>
-          <span style={{ color:C.slate }}>{rejReason.desc}</span>
-          {ddData.rejectionNotes && <div style={{ marginTop:6, color:C.slate }}><strong>Buyer Notes:</strong> {ddData.rejectionNotes}</div>}
+      {isRejected && (
+        <div style={{ marginBottom:20 }}>
+          <RejectionNotice
+            rejection={negotiate.vesselRejection || { reasons: ddData.rejectionReasons || (ddData.rejectionReason?[ddData.rejectionReason]:[]), notes: ddData.rejectionNotes, solution: ddData.rejSolution, sig: ddData.rejSigName || parties.buyer.name || "Buyer", date: today() }}
+            escrowPath={(negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.escrowPath}
+            viewerRole={isBuyer?"buyer":"seller"}
+            vessel={vessel}
+          />
         </div>
       )}
 
@@ -3948,7 +4029,7 @@ function Landing({ onStart }) {
 const emptyVessel = {name:"",year:"",make:"",model:"",hin:"",hullType:"",loa:"",beam:"",engineCount:"1",engineMake:"",engineModel:"",engineHours:"",engineSerial:"",fuelType:"Gasoline",regNumber:"",regState:"",uscgNumber:"",trailerIncluded:"no",trailerVin:"",trailerState:"",askingPrice:"",location:"",description:""};
 const emptyParties = {buyer:{name:"",email:"",phone:"",address:"",city:"",stateZip:""},seller:{name:"",email:"",phone:"",address:"",city:"",stateZip:""}};
 const emptyNeg = {offers:[],messages:[],agreedPrice:"",escrowPct:0,escrowPath:"escrow_com",deposit:0,dueDiligenceDays:"10",ddStartDate:"",closingDate:""};
-const emptyDD = {survey:false,title:false,insurance:false,seatrial:false,engines:false,electronics:false,ddNotes:"",outcome:null,rejectionReason:"",rejectionNotes:""};
+const emptyDD = {survey:false,title:false,insurance:false,seatrial:false,engines:false,electronics:false,ddNotes:"",outcome:null,rejectionReason:"",rejectionReasons:[],rejectionNotes:"",rejSolution:"",rejSigName:""};
 const emptyDocs = {paid:false,signedDocs:{}};
 
 export default function BoatClosers() {
@@ -3958,6 +4039,9 @@ export default function BoatClosers() {
   const [dealId, setDealId] = useState(null);
   const [step, setStep] = useState(0);
   const [maxStep, setMaxStep] = useState(0);
+  // Every step change starts at the top of the page, not wherever the last one
+  // was scrolled to.
+  useEffect(() => { try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); } }, [step]);
   const [vessel, setVessel] = useState(emptyVessel);
   const [parties, setParties] = useState(emptyParties);
   const [negotiate, setNegotiate] = useState(emptyNeg);
@@ -4307,8 +4391,17 @@ export default function BoatClosers() {
       </nav>
       <ProgressBar step={step} setStep={setStep} maxStep={maxStep} dealPaid={dealPaid}/>
       <PreviewBanner step={step} maxStep={maxStep} setStep={setStep}/>
+      {step >= 3 && step <= maxStep && (
+        <div style={{ background:C.white, borderBottom:`1px solid ${C.mist}`, padding:"8px 2rem" }}>
+          <div style={{ maxWidth:820, margin:"0 auto" }}>
+            <button onClick={()=>goToStep(2)} style={{ background:"transparent", border:`1px solid ${C.mist}`, borderRadius:6, padding:"6px 14px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, cursor:"pointer", display:"inline-flex", alignItems:"center", gap:6 }}>
+              ← Back to Deal Room
+            </button>
+          </div>
+        </div>
+      )}
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} userRole={myDealRole || user?.role || "seller"} onNext={()=>goToStep(1)}/>}
-      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user}/>}
+      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
