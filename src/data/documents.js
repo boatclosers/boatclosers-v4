@@ -345,6 +345,43 @@ export const DOCUMENTS = [
   },
 
   {
+    id: "title_search_letter",
+    group: "Title & Lien Check",
+    tab: "Title Search Letter",
+    eyebrow: "Recommended \u2014 Verify Clear Title",
+    title: "Title & Lien Search Request Letter",
+    body: `
+<p class="recital">Before closing, BoatClosers recommends confirming the vessel carries a clean, lien-free title. Send this letter to the titling authority where the vessel is registered (your state\u2019s DMV or DNR titling office) and, for a federally documented vessel, to the U.S. Coast Guard National Vessel Documentation Center. Fill the bracketed lines and address it to the correct agency.</p>
+
+<p>{{effectiveDate}}</p>
+<p><b>From (Buyer):</b><br>{{buyerName}}<br>{{buyerAddress}}</p>
+<p><b>To:</b> Titling / Records Office<br>[ State DMV / DNR titling office \u2014 or \u2014 USCG National Vessel Documentation Center, 792 T J Jackson Dr, Falling Waters, WV 25419 ]</p>
+
+<h3>Re: Title and Lien Search Request</h3>
+<p>I am the prospective buyer of the vessel described below and respectfully request a certified record of its current title status and any recorded liens or encumbrances:</p>
+<table class="stmt">
+  <tr><td>Vessel</td><td class="r">{{vesselYear}} {{vesselMake}} {{vesselModel}}</td></tr>
+  <tr><td>Length</td><td class="r">{{vesselLength}}</td></tr>
+  <tr><td>Hull Identification No. (HIN)</td><td class="r">{{hin}}</td></tr>
+  <tr><td>State Registration No.</td><td class="r">{{regNo}}</td></tr>
+  <tr><td>State Title No.</td><td class="r">{{titleNo}}</td></tr>
+  <tr><td>USCG Official No. (if documented)</td><td class="r">{{uscgOfficialNo}}</td></tr>
+  <tr><td>Titling State</td><td class="r">{{vesselState}}</td></tr>
+  <tr><td>Seller / Owner of record</td><td class="r">{{sellerName}}</td></tr>
+</table>
+
+<p>Specifically, I request confirmation of: (1) the current titled owner of record; (2) any open liens, security interests, or encumbrances, and the lienholder of record; (3) any reported theft, salvage, or title brand; and (4) any outstanding registration or fees. I have enclosed any required search fee and a copy of my identification.</p>
+
+<p>Please send the certified results to the address above. Thank you for your assistance.</p>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Prospective Buyer<br>Date: ____________</small></div>
+</div>
+
+<div class="note">Template letter. The correct office, fees, and requirements vary by state and by whether the vessel is state-titled or U.S. Coast Guard documented. BoatClosers provides this for convenience only and does not perform the search or verify title.</div>`
+  },
+
+  {
     id: "term",
     group: "Due-Diligence Outcomes",
     tab: "Termination",
