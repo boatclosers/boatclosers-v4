@@ -405,7 +405,24 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     reader.onerror = () => { setUploadErr(e => ({ ...e, [docId]: "Couldn't read that file — please try a different one." })); };
     reader.readAsDataURL(file);
   };
-  const printDoc = () => window.print();
+  const printDoc = (docId, title) => {
+    const node = docId != null ? document.getElementById("bc-print-" + docId) : null;
+    if (!node) { window.print(); return; }
+    const w = window.open("", "_blank", "width=820,height=1040");
+    if (!w) { alert("Please allow pop-ups for this site to print the document."); return; }
+    w.document.write(
+      '<!doctype html><html><head><title>' + (title || "Document") + '</title>' +
+      '<meta charset="utf-8"><style>' + docCSS +
+      '\n.bc-doc-paper{max-height:none;overflow:visible;border:none;border-top:none;padding:0}' +
+      '\nbody{margin:0;padding:28px;background:#fff}' +
+      '\n.bc-fill-hint,.bc-lock-note{display:none}' +
+      '\n@page{margin:0.6in}' +
+      '</style></head><body>' + node.innerHTML + '</body></html>'
+    );
+    w.document.close();
+    w.focus();
+    setTimeout(function(){ try { w.print(); } catch (e) {} }, 300);
+  };
 
   const ActionBtn = ({ docId, action, icon, label, color }) => {
     const active = docAction[docId] === action;
@@ -602,7 +619,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                       {doc.kind !== "upload" && !doc.viewOnly && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
                       <ActionBtn docId={doc.id} action="send"   icon="📤" label="Send"   color={C.brass} />
                       {!doc.viewOnly && <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />}
-                      <button onClick={printDoc} title="Print" style={{ fontSize:13, padding:"7px 11px", borderRadius:20, cursor:"pointer", border:`1.5px solid #e3ddd0`, background:C.white, color:C.slate }}>🖨️</button>
+                      <button onClick={()=>printDoc(doc.id, doc.title)} title="Print" style={{ fontSize:13, padding:"7px 11px", borderRadius:20, cursor:"pointer", border:`1.5px solid #e3ddd0`, background:C.white, color:C.slate }}>🖨️</button>
                     </div>
                   </div>
 
@@ -639,7 +656,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                           <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:10 }}>Accepted: {doc.accept}</div>
                         </div>
                       ) : (
-                        <div className="bc-doc-paper">
+                        <div className="bc-doc-paper" id={"bc-print-"+doc.id}>
                           <div className="bc-doc-eyebrow">{doc.eyebrow}</div>
                           <div className="bc-doc-title">{doc.title}</div>
                           <div className="bc-doc-ref">Ref {deal.dealRef} · {deal.vesselYear} {deal.vesselMake} {deal.vesselModel}</div>
