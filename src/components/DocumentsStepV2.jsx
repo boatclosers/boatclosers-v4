@@ -132,7 +132,7 @@ function DocPaper({ doc, html, editable, checkState, toggleCheck, savedFields, o
   return <div className="bc-doc" ref={ref} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
-export default function DocumentsStepV2({ data, setData, vessel, parties, terms, negotiate, myRole, amInitiator, onNext, onBack }) {
+export default function DocumentsStepV2({ data, setData, vessel, parties, terms, negotiate, myRole, amInitiator, dealId, onNext, onBack }) {
   // Single payment happens at the PA-lock step in Negotiate. Once an offer is
   // accepted (PA locked), the deal is paid — Documents shows NO second paywall.
   const paLocked = !!((negotiate?.offers || []).find(o => o.status === "accepted")) || !!(negotiate && (negotiate.paid || negotiate.dealLocked)) || !!data.paid;
@@ -166,6 +166,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [sendEmail, setSendEmail] = useState({});
   const [sendNote, setSendNote] = useState({});
   const [sentLog, setSentLog] = useState({});
+  const [sending, setSending] = useState({});
+  const [sendErr, setSendErr] = useState({});
   const [uploadedFile, setUploadedFile] = useState({});
   const [manualSig, setManualSig] = useState({});
   const [manualFields, setManualFields] = useState({});
@@ -357,10 +359,25 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
   // ── helpers ──
   const setAction = (id, action) => setDocAction(d => ({ ...d, [id]: d[id] === action ? null : action }));
-  const sendDoc = (docId) => {
+  const sendDoc = async (docId, docName) => {
     const to = sendEmail[docId]?.trim(); if (!to) return;
-    setSentLog(s => ({ ...s, [docId]: [...(s[docId]||[]), { to, time: new Date().toLocaleTimeString(), note: sendNote[docId]||"" }] }));
-    setSendEmail(e => ({ ...e, [docId]: "" })); setSendNote(n => ({ ...n, [docId]: "" }));
+    setSendErr(e => ({ ...e, [docId]: "" }));
+    setSending(s => ({ ...s, [docId]: true }));
+    try {
+      const res = await fetch("/api/deals/send-doc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dealId, to, docName: docName || "Document", note: sendNote[docId] || "", fromName: parties?.[myRole]?.name || "" })
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.success) throw new Error(j.error || "Send failed — please try again.");
+      setSentLog(s => ({ ...s, [docId]: [...(s[docId]||[]), { to, time: new Date().toLocaleTimeString(), note: sendNote[docId]||"" }] }));
+      setSendEmail(e => ({ ...e, [docId]: "" })); setSendNote(n => ({ ...n, [docId]: "" }));
+    } catch (err) {
+      setSendErr(e => ({ ...e, [docId]: err?.message || "Send failed — please try again." }));
+    } finally {
+      setSending(s => ({ ...s, [docId]: false }));
+    }
   };
   const confirmManualSig = (docId) => {
     const b = manualFields[docId]?.buyer?.trim(); const s = manualFields[docId]?.seller?.trim();
@@ -705,7 +722,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                         <Field label="Recipient email"><input style={S.input} type="email" placeholder="recipient@email.com" value={sendEmail[doc.id]||""} onChange={e=>setSendEmail(s=>({...s,[doc.id]:e.target.value}))}/></Field>
                         <Field label="Optional note"><input style={S.input} placeholder="Please review and sign…" value={sendNote[doc.id]||""} onChange={e=>setSendNote(n=>({...n,[doc.id]:e.target.value}))}/></Field>
                       </Grid2>
-                      <button style={S.btnBrass} disabled={!sendEmail[doc.id]?.trim()} onClick={()=>{ sendDoc(doc.id); setAction(doc.id,"send"); }}>Send Document →</button>
+                      <button style={S.btnBrass} disabled={!sendEmail[doc.id]?.trim() || sending[doc.id]} onClick={()=>{ sendDoc(doc.id, doc.title); }}>{sending[doc.id] ? "Sending…" : "Send Document →"}</button>
+                      {sendErr[doc.id] && <div style={{ color:C.red, fontSize:12, marginTop:8, fontFamily:"sans-serif", fontWeight:600 }}>⚠️ {sendErr[doc.id]}</div>}
                       {sentLog[doc.id]?.length > 0 && (
                         <div style={{ marginTop:10, fontSize:11, fontFamily:"sans-serif", color:C.slate }}>
                           <strong>Sent log:</strong>
