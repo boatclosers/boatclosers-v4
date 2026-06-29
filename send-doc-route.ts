@@ -8,7 +8,7 @@ import { sendEmail, emailLayout } from '@/lib/sendEmail';
 // looks the deal up by id for vessel context, then sends via the Resend wrapper.
 export async function POST(req: Request) {
   try {
-    const { dealId, to, docName, note, fromName } = await req.json();
+    const { dealId, to, docName, note, fromName, attachment } = await req.json();
     if (!dealId || !to) {
       return NextResponse.json({ error: 'Missing dealId or recipient email.' }, { status: 400 });
     }
@@ -33,10 +33,11 @@ export async function POST(req: Request) {
     const result = await sendEmail({
       to,
       subject: `Document to review: ${safeDoc} (${vesselName})`,
+      attachments: attachment && attachment.content ? [{ filename: attachment.filename || `${safeDoc}.pdf`, content: attachment.content }] : undefined,
       html: emailLayout(`
         <h2 style="color:#08152e; font-size:18px;">A document was shared with you</h2>
         <p style="color:#475569; font-size:14px; line-height:1.5;">
-          ${fromName ? String(fromName).replace(/</g, '&lt;') + ' has' : 'Someone has'} shared a document with you on the BoatClosers deal for <strong>${vesselName}</strong>: <strong>${safeDoc}</strong>.
+          ${fromName ? String(fromName).replace(/</g, '&lt;') + ' has' : 'Someone has'} shared a document with you on the BoatClosers deal for <strong>${vesselName}</strong>: <strong>${safeDoc}</strong>.${attachment && attachment.content ? ' The file is attached to this email.' : ''}
         </p>
         ${safeNote ? `<p style="background:#f8fafc;border-left:3px solid #b8863a;padding:12px 14px;margin:16px 0;color:#334155;font-size:13px;">${safeNote}</p>` : ''}
         <p style="color:#475569; font-size:14px; line-height:1.5;">Open the deal to review, fill in, and sign the document right in the app.</p>
