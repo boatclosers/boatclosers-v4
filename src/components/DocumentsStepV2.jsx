@@ -169,6 +169,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [sending, setSending] = useState({});
   const [sendErr, setSendErr] = useState({});
   const [uploadedFile, setUploadedFile] = useState({});
+  const [uploadedData, setUploadedData] = useState({}); // { docId: { name, type, dataURL } } — actual file bytes
+  const [uploadErr, setUploadErr] = useState({});
   const [manualSig, setManualSig] = useState({});
   const [manualFields, setManualFields] = useState({});
   const [checkState, setCheckState] = useState(data.docChecks || {}); // docId -> { itemIndex: true }
@@ -364,10 +366,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     setSendErr(e => ({ ...e, [docId]: "" }));
     setSending(s => ({ ...s, [docId]: true }));
     try {
+      const att = uploadedData[docId];
+      const attachment = att?.dataURL ? { filename: att.name, content: String(att.dataURL).split(",")[1] || "" } : null;
       const res = await fetch("/api/deals/send-doc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dealId, to, docName: docName || "Document", note: sendNote[docId] || "", fromName: parties?.[myRole]?.name || "" })
+        body: JSON.stringify({ dealId, to, docName: docName || "Document", note: sendNote[docId] || "", fromName: parties?.[myRole]?.name || "", attachment })
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j.success) throw new Error(j.error || "Send failed — please try again.");
@@ -387,8 +391,19 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   };
   const handleUpload = (docId, file) => {
     if (!file) return;
-    setUploadedFile(u => ({ ...u, [docId]: file.name }));
-    setSigned(sg => ({ ...sg, [docId]: { name: `Uploaded: ${file.name}`, date: today(), uploaded: true } }));
+    setUploadErr(e => ({ ...e, [docId]: "" }));
+    if (file.size > 8 * 1024 * 1024) {
+      setUploadErr(e => ({ ...e, [docId]: "That file is larger than 8MB. Please upload a smaller PDF or image." }));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setUploadedFile(u => ({ ...u, [docId]: file.name }));
+      setUploadedData(d => ({ ...d, [docId]: { name: file.name, type: file.type, dataURL: reader.result } }));
+      setSigned(sg => ({ ...sg, [docId]: { name: `Uploaded: ${file.name}`, date: today(), uploaded: true } }));
+    };
+    reader.onerror = () => { setUploadErr(e => ({ ...e, [docId]: "Couldn't read that file — please try a different one." })); };
+    reader.readAsDataURL(file);
   };
   const printDoc = () => window.print();
 
@@ -601,13 +616,26 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                           <div style={{ display:"inline-block", fontSize:10, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".08em", textTransform:"uppercase", color:C.teal, background:C.tealLight, padding:"3px 10px", borderRadius:20, marginBottom:12 }}>{doc.issued}</div>
                           <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.text, lineHeight:1.7, maxWidth:460, margin:"0 auto 14px", textAlign:"left" }} dangerouslySetInnerHTML={{ __html: doc.guide }} />
                           {uploadedFile[doc.id] ? (
-                            <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Uploaded: <strong>{uploadedFile[doc.id]}</strong></div>
+                            <div>
+                              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Uploaded: <strong>{uploadedFile[doc.id]}</strong></div>
+                              {uploadedData[doc.id]?.dataURL && (
+                                <div style={{ marginTop:10, display:"flex", gap:12, alignItems:"center", justifyContent:"center", flexWrap:"wrap" }}>
+                                  <a href={uploadedData[doc.id].dataURL} target="_blank" rel="noopener noreferrer" download={uploadedData[doc.id].name} style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, textDecoration:"underline" }}>⬇ View / download</a>
+                                  <label style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.slate, cursor:"pointer", textDecoration:"underline" }}>
+                                    ↻ Replace file
+                                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
+                                  </label>
+                                </div>
+                              )}
+                              <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:8 }}>To send this file to the other party, use the <strong>Send</strong> button — it will be attached to the email.</div>
+                            </div>
                           ) : (
                             <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:6, padding:"10px 22px", fontSize:13, fontFamily:"sans-serif", fontWeight:700 }}>
                               📎 Upload {doc.tab}
                               <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
                             </label>
                           )}
+                          {uploadErr[doc.id] && <div style={{ color:C.red, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, marginTop:10 }}>⚠️ {uploadErr[doc.id]}</div>}
                           <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:10 }}>Accepted: {doc.accept}</div>
                         </div>
                       ) : (
