@@ -284,7 +284,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
             <h2 style="color:#08152e; font-size:18px;">Deal Locked</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
               Both parties have signed the Purchase Agreement for <strong>${vesselName}</strong>
-              and the deal is now binding. You can now proceed with the remaining closing documents.${paPdf ? ' A signed copy of the Purchase Agreement is attached as a PDF.' : ''}
+              and the deal is now binding. Your closing documents are unlocked — open the deal to review and sign them.${paPdf ? ' A signed copy of the Purchase Agreement is attached as a PDF.' : ''}
             </p>
             <p style="text-align:center; margin: 24px 0;">
               <a href="${dealLink(4, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
@@ -390,6 +390,47 @@ async function notifyOnDealChange(previous: any, updated: any) {
           </p>
         `)
       })
+    }
+    // ── VESSEL REJECTED ── buyer formally rejected after due diligence → notify
+    // BOTH parties with reasons / notes / proposed path, plus refund guidance.
+    const newRej = updated?.negotiate?.vesselRejection
+    const prevRej = previous?.negotiate?.vesselRejection
+    if (newRej && !prevRej) {
+      const REJECTION_LABELS: any = {
+        survey_failed: 'Survey revealed unacceptable defects',
+        engine_failed: 'Engine or mechanical failure',
+        title_issue: 'Title or lien issue discovered',
+        sea_trial_failed: 'Sea trial failed',
+        price_disagreement: 'Could not agree on price adjustment',
+        insurance_denied: 'Insurance could not be obtained',
+        other: 'Other — see notes',
+      }
+      const reasonList = (newRej.reasons || []).map((id: string) => REJECTION_LABELS[id] || id)
+      const reasonsHtml = reasonList.length
+        ? `<ul style="margin:8px 0;padding-left:20px;color:#334155;font-size:13px;">${reasonList.map((r: string) => `<li>${r}</li>`).join('')}</ul>`
+        : ''
+      const rejRecips = [buyerEmail, sellerEmail].filter(Boolean)
+      for (const email of rejRecips) {
+        await sendEmail({
+          to: email,
+          subject: `Deal ended — vessel rejected (${vesselName})`,
+          html: emailLayout(`
+            <h2 style="color:#7a1c1c; font-size:18px;">Vessel Rejected — Deal Ended</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              The buyer has formally rejected <strong>${vesselName}</strong> after due diligence. This ends the deal.
+            </p>
+            ${reasonsHtml ? `<p style="color:#334155;font-size:13px;margin-bottom:0;"><strong>Reasons given:</strong></p>${reasonsHtml}` : ''}
+            ${newRej.notes ? `<p style="background:#f8fafc;border-left:3px solid #b8863a;padding:12px 14px;margin:12px 0;color:#334155;font-size:13px;"><strong>Notes:</strong> ${String(newRej.notes).replace(/</g, '&lt;')}</p>` : ''}
+            ${newRej.solution ? `<p style="background:#eef4fb;border-left:3px solid #08152e;padding:12px 14px;margin:12px 0;color:#334155;font-size:13px;"><strong>Buyer's proposed path forward:</strong> ${String(newRej.solution).replace(/</g, '&lt;')}</p>` : ''}
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              If an earnest-money deposit was paid, it should be returned to the buyer. BoatClosers never holds or moves funds — please arrange the return directly (through your escrow provider, attorney, or the original payment method) and keep written confirmation. Open the deal for step-by-step guidance.
+            </p>
+            <p style="text-align:center; margin: 24px 0;">
+              <a href="${dealLink(5, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">View the Rejection Notice</a>
+            </p>
+          `)
+        })
+      }
     }
     // ── GET READY TO FINALIZE ── due diligence cleared (vessel accepted, or the
     // price addendum accepted) → nudge BOTH parties to complete the closing docs.
@@ -586,6 +627,7 @@ export async function POST(req: Request) {
       if (!mergedPayload.negotiate.depositProof && existingNeg.depositProof) mergedPayload.negotiate.depositProof = existingNeg.depositProof
       if (!mergedPayload.negotiate.depositEnded && existingNeg.depositEnded) mergedPayload.negotiate.depositEnded = existingNeg.depositEnded
       if (!mergedPayload.negotiate.vesselAcceptance && existingNeg.vesselAcceptance) mergedPayload.negotiate.vesselAcceptance = existingNeg.vesselAcceptance
+      if (!mergedPayload.negotiate.vesselRejection && existingNeg.vesselRejection) mergedPayload.negotiate.vesselRejection = existingNeg.vesselRejection
       if (!mergedPayload.negotiate.addendum && existingNeg.addendum) mergedPayload.negotiate.addendum = existingNeg.addendum
       if (mergedPayload.negotiate.addendum && existingNeg.addendum && existingNeg.addendum.status && !mergedPayload.negotiate.addendum.status) {
         mergedPayload.negotiate.addendum.status = existingNeg.addendum.status
