@@ -2386,10 +2386,10 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         <h3 style={S.h3}>Buyer's Vessel Decision</h3>
         {!isBuyer ? (
           <div>
-            <div style={{ background:C.sandDark, borderRadius:6, padding:"14px 16px", fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom: outcome==="propose_price"?14:0 }}>
-              🔒 Only the buyer makes the vessel decision after due diligence. {outcome==="accept" ? "The buyer has ACCEPTED the vessel." : outcome==="reject" ? "The buyer has REJECTED the vessel." : outcome==="propose_price" ? `The buyer has PROPOSED A NEW PRICE${data.proposedNewPrice?": "+fmt(Number(data.proposedNewPrice)):""}.` : "Awaiting the buyer's decision (accept as-is, reject, or propose a new final price)."}
+            <div style={{ background:C.sandDark, borderRadius:6, padding:"14px 16px", fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom: negotiate.addendum?14:0 }}>
+              🔒 Only the buyer makes the vessel decision after due diligence. {negotiate.addendum ? `The buyer has PROPOSED A NEW PRICE: ${fmt(Number(negotiate.addendum.newPrice))}.` : negotiate.vesselAcceptance ? "The buyer has ACCEPTED the vessel." : outcome==="reject" ? "The buyer has REJECTED the vessel." : "Awaiting the buyer's decision (accept as-is, reject, or propose a new final price)."}
             </div>
-            {outcome==="propose_price" && data.proposedNewPrice && (
+            {negotiate.addendum && (
               <div style={{ border:`1px solid ${C.brass}`, borderRadius:8, overflow:"hidden" }}>
                 <div style={{ background:C.navy, color:"#fff", padding:"10px 14px", fontSize:12, fontWeight:700, fontFamily:"sans-serif", letterSpacing:0.5 }}>ADDENDUM TO PURCHASE AGREEMENT — Your Response Needed</div>
                 <div style={{ background:"#fff", padding:"14px 16px", fontFamily:"sans-serif" }}>
@@ -2397,16 +2397,16 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                     The buyer proposes amending the agreed price on <b>{vessel.year} {vessel.make} {vessel.model}</b>.
                   </div>
                   <div style={{ fontSize:12, color:C.text, marginTop:6 }}>Original price: <b>{fmt(Number(negotiate.agreedPrice||0))}</b></div>
-                  <div style={{ fontSize:12, color:C.text }}>Proposed price: <b>{fmt(Number(data.proposedNewPrice))}</b></div>
-                  {data.proposedNewPriceReason && <div style={{ fontSize:12, color:C.slate, marginTop:6 }}>Basis: {data.proposedNewPriceReason}</div>}
-                  {data.addendumStatus ? (
-                    <div style={{ marginTop:12, fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", color: data.addendumStatus==="accepted"?C.green:C.red }}>
-                      {data.addendumStatus==="accepted" ? "✓ You accepted this addendum — the amended price applies." : "✗ You declined this addendum — the original price stands."}
+                  <div style={{ fontSize:12, color:C.text }}>Proposed price: <b>{fmt(Number(negotiate.addendum.newPrice))}</b></div>
+                  {negotiate.addendum.reason && <div style={{ fontSize:12, color:C.slate, marginTop:6 }}>Basis: {negotiate.addendum.reason}</div>}
+                  {negotiate.addendum.status ? (
+                    <div style={{ marginTop:12, fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", color: negotiate.addendum.status==="accepted"?C.green:C.red }}>
+                      {negotiate.addendum.status==="accepted" ? "✓ You accepted this addendum — the amended price applies." : "✗ You declined this addendum — the original price stands."}
                     </div>
                   ) : (
                     <div style={{ display:"flex", gap:10, marginTop:14 }}>
-                      <button onClick={()=>set("addendumStatus","accepted")} style={{ ...S.btn, background:C.green, flex:1, fontSize:13, padding:"10px 0" }}>✓ Accept Addendum</button>
-                      <button onClick={()=>set("addendumStatus","declined")} style={{ ...S.btnOutline, flex:1, fontSize:13, padding:"10px 0", color:C.red, borderColor:C.red }}>✗ Decline</button>
+                      <button onClick={()=>{ if(setNegotiate) setNegotiate(n=>({...n, addendum:{...n.addendum, status:"accepted"}})); }} style={{ ...S.btn, background:C.green, flex:1, fontSize:13, padding:"10px 0" }}>✓ Accept Addendum</button>
+                      <button onClick={()=>{ if(setNegotiate) setNegotiate(n=>({...n, addendum:{...n.addendum, status:"declined"}})); }} style={{ ...S.btnOutline, flex:1, fontSize:13, padding:"10px 0", color:C.red, borderColor:C.red }}>✗ Decline</button>
                     </div>
                   )}
                 </div>
@@ -2451,6 +2451,27 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                   <div style={{ marginTop:8, fontSize:10.5, color:C.slate }}>Pending seller acceptance. All other terms of the original Purchase Agreement remain in full effect.</div>
                 </div>
               </div>
+            )}
+            {newPrice && (
+              (negotiate.addendum && negotiate.addendum.status) ? (
+                <div style={{ marginTop:12, padding:"12px 14px", borderRadius:6, background: negotiate.addendum.status==="accepted"?"#eaf6ee":C.redLight, border:`1px solid ${negotiate.addendum.status==="accepted"?"#a8d8b8":"#e8c0c0"}`, fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color: negotiate.addendum.status==="accepted"?C.green:C.red, lineHeight:1.6 }}>
+                  {negotiate.addendum.status==="accepted" ? "✓ The seller ACCEPTED your proposed price. The amended price applies — continue to the documents to finalize." : "✗ The seller DECLINED your proposed price. The original agreed price stands. You can accept the vessel as-is or reject it."}
+                </div>
+              ) : negotiate.addendum ? (
+                <div style={{ marginTop:12, padding:"12px 14px", borderRadius:6, background:"#eef4fb", border:`1px solid ${C.navy}`, fontSize:12.5, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6 }}>
+                  <b>✓ Proposed price sent to the seller.</b> They'll accept or decline this addendum, and we'll email you when they respond. You can wait here or move on — your proposal is saved.
+                </div>
+              ) : (
+                <button
+                  onClick={()=>{
+                    set("outcome","propose_price"); set("proposedNewPrice",newPrice); set("proposedNewPriceReason",newPriceReason||"");
+                    if(setNegotiate) setNegotiate(n=>({...n, addendum:{ newPrice:Number(newPrice), reason:newPriceReason||"", buyer:parties.buyer.name||"Buyer", date:(n.addendum&&n.addendum.date)||today(), status:null }, vesselAcceptance: n.vesselAcceptance || { sig:parties.buyer.name||"Buyer", date:today() } }));
+                  }}
+                  style={{ ...S.btnBrass, width:"100%", marginTop:12, fontSize:13.5, padding:"12px 0" }}
+                >
+                  Send proposed price to the seller →
+                </button>
+              )
             )}
           </div>
         )}
