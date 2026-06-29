@@ -1441,8 +1441,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
       {/* ── EDIT FULL TERMS — opens the builder for contingencies, dates, deposit ── */}
       {offers.length > 0 && !frozen && (
-        <button onClick={()=>{ if(!showBuilder && latestPendingTop && latestPendingTop.from!==myRole && myRole!=="seller"){ counterOffer(latestPendingTop.id); } else { setShowBuilder(v=>!v); } }} style={{ ...S.btnOutline, width:"100%", fontSize:13, padding:"10px 0", fontWeight:700, marginBottom:16 }}>
-          {showBuilder ? "✕ Close full offer builder" : (myRole==="seller" ? "⚙️ View full terms / flag a conflict" : "✏️ Edit full terms (contingencies, dates, deposit)")}
+        <button onClick={()=>{ if(!showBuilder && latestPendingTop){ counterOffer(latestPendingTop.id); } else { setShowBuilder(v=>!v); } }} style={{ ...S.btnOutline, width:"100%", fontSize:13, padding:"10px 0", fontWeight:700, marginBottom:16 }}>
+          {showBuilder ? "✕ Close" : (myRole==="seller" ? "⚙️ View full terms / flag a conflict" : "✏️ Counter with full terms (contingencies, dates, deposit)")}
         </button>
       )}
 
@@ -1494,8 +1494,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
           <div style={{ width:32, height:32, borderRadius:6, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>📝</div>
           <div>
-            <div style={{ fontSize:16, fontWeight:800, fontFamily:"sans-serif", color:C.navy }}>Build Your Offer</div>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>Assemble the full package, then send it across.</div>
+            <div style={{ fontSize:16, fontWeight:800, fontFamily:"sans-serif", color:C.navy }}>{offers.length>0 ? "Counter-Offer" : "Build Your Offer"}</div>
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>{offers.length>0 ? "Adjust the terms and send your counter — it replaces the current offer on the table." : "Assemble the full package, then send it across."}</div>
           </div>
         </div>
 
@@ -1602,7 +1602,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
         {/* Submit */}
         <button style={{...S.btnBrass, width:"100%", marginTop:6, fontSize:15, padding:"12px", opacity:(!offerAmt||myOfferAwaiting)?0.5:1}} onClick={makeOffer} disabled={!offerAmt||myOfferAwaiting}>
-          {myRole==="buyer" ? "Send Offer to Seller" : "Send Counter-Offer to Buyer"} →
+          {(offers.length===0 && myRole!=="seller") ? "Send Offer to Seller" : (myRole==="seller" ? "Send Counter-Offer to Buyer" : "Send Counter-Offer to Seller")} →
         </button>
         {myOfferAwaiting ? (
           <div style={{ textAlign:"center", fontSize:11, color:C.slate, fontFamily:"sans-serif", marginTop:8, lineHeight:1.5 }}>
