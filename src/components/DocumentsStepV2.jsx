@@ -171,6 +171,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [uploadedFile, setUploadedFile] = useState({});
   const [uploadedData, setUploadedData] = useState({}); // { docId: { name, type, dataURL } } — actual file bytes
   const [uploadErr, setUploadErr] = useState({});
+  const [uploading, setUploading] = useState({});
   const [manualSig, setManualSig] = useState({});
   const [manualFields, setManualFields] = useState({});
   const [checkState, setCheckState] = useState(data.docChecks || {}); // docId -> { itemIndex: true }
@@ -397,10 +398,22 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
+      const dataURL = reader.result;
       setUploadedFile(u => ({ ...u, [docId]: file.name }));
-      setUploadedData(d => ({ ...d, [docId]: { name: file.name, type: file.type, dataURL: reader.result } }));
+      setUploadedData(d => ({ ...d, [docId]: { name: file.name, type: file.type, dataURL } }));
       setSigned(sg => ({ ...sg, [docId]: { name: `Uploaded: ${file.name}`, date: today(), uploaded: true } }));
+      setUploading(s => ({ ...s, [docId]: true }));
+      try {
+        const b64 = String(dataURL).split(",")[1] || "";
+        const res = await fetch("/api/deals/upload-doc", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dealId, docId, filename: file.name, contentType: file.type, base64: b64 }) });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || !j.success) throw new Error(j.error || "Could not store the file.");
+      } catch (err) {
+        setUploadErr(e => ({ ...e, [docId]: "Saved on your screen, but storing it for the other party failed: " + (err?.message || "") + " You can still Send it by email." }));
+      } finally {
+        setUploading(s => ({ ...s, [docId]: false }));
+      }
     };
     reader.onerror = () => { setUploadErr(e => ({ ...e, [docId]: "Couldn't read that file — please try a different one." })); };
     reader.readAsDataURL(file);
@@ -632,26 +645,34 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                           <div style={{ fontFamily:"Georgia,serif", fontSize:17, fontWeight:700, color:C.navy, margin:"8px 0 4px" }}>{doc.title}</div>
                           <div style={{ display:"inline-block", fontSize:10, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".08em", textTransform:"uppercase", color:C.teal, background:C.tealLight, padding:"3px 10px", borderRadius:20, marginBottom:12 }}>{doc.issued}</div>
                           <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.text, lineHeight:1.7, maxWidth:460, margin:"0 auto 14px", textAlign:"left" }} dangerouslySetInnerHTML={{ __html: doc.guide }} />
-                          {uploadedFile[doc.id] ? (
-                            <div>
-                              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Uploaded: <strong>{uploadedFile[doc.id]}</strong></div>
-                              {uploadedData[doc.id]?.dataURL && (
-                                <div style={{ marginTop:10, display:"flex", gap:12, alignItems:"center", justifyContent:"center", flexWrap:"wrap" }}>
-                                  <a href={uploadedData[doc.id].dataURL} target="_blank" rel="noopener noreferrer" download={uploadedData[doc.id].name} style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, textDecoration:"underline" }}>⬇ View / download</a>
-                                  <label style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.slate, cursor:"pointer", textDecoration:"underline" }}>
-                                    ↻ Replace file
-                                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
-                                  </label>
-                                </div>
-                              )}
-                              <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:8 }}>To send this file to the other party, use the <strong>Send</strong> button — it will be attached to the email.</div>
-                            </div>
-                          ) : (
-                            <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:6, padding:"10px 22px", fontSize:13, fontFamily:"sans-serif", fontWeight:700 }}>
-                              📎 Upload {doc.tab}
-                              <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
-                            </label>
-                          )}
+                          {(() => {
+                            const up = negotiate?.uploads?.[doc.id];
+                            const localUrl = uploadedData[doc.id]?.dataURL;
+                            const name = uploadedFile[doc.id] || up?.name;
+                            const viewUrl = localUrl || up?.url;
+                            const has = !!(uploadedFile[doc.id] || up);
+                            if (uploading[doc.id] && !up) return <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>Saving file…</div>;
+                            return has ? (
+                              <div>
+                                <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Uploaded: <strong>{name}</strong></div>
+                                {viewUrl && (
+                                  <div style={{ marginTop:10, display:"flex", gap:12, alignItems:"center", justifyContent:"center", flexWrap:"wrap" }}>
+                                    <a href={viewUrl} target="_blank" rel="noopener noreferrer" download={name} style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, textDecoration:"underline" }}>⬇ View / download</a>
+                                    <label style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.slate, cursor:"pointer", textDecoration:"underline" }}>
+                                      ↻ Replace file
+                                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
+                                    </label>
+                                  </div>
+                                )}
+                                <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:8 }}>{up ? "Stored on the deal — both parties can see it." : "Saved on your screen."} To email a copy, use the <strong>Send</strong> button.</div>
+                              </div>
+                            ) : (
+                              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:6, padding:"10px 22px", fontSize:13, fontFamily:"sans-serif", fontWeight:700 }}>
+                                📎 Upload {doc.tab}
+                                <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
+                              </label>
+                            );
+                          })()}
                           {uploadErr[doc.id] && <div style={{ color:C.red, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, marginTop:10 }}>⚠️ {uploadErr[doc.id]}</div>}
                           <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:10 }}>Accepted: {doc.accept}</div>
                         </div>
