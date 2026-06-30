@@ -518,11 +518,18 @@ function StepVessel({ data, setData, userRole, onNext }) {
     <div style={S.page}>
       <TipBox tips={TIPS.vessel} />
       <DealAssistant step="vessel" role={userRole} vessel={data} />
-      {userRole==="seller" && (
+      {userRole==="seller" ? (
         <div style={{ background:"#eef4fb", border:`1px solid ${C.navy}`, borderRadius:8, padding:"13px 16px", marginBottom:18 }}>
-          <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>📋 You're the seller — just confirm the details</div>
+          <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>📋 You're the seller — you know this boat best</div>
           <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
-            You don't need to build anything here. Since you know this boat best, please make sure every detail below is accurate and complete — and fill in anything the buyer couldn't. Once it's correct, your only job is to <b>wait for the buyer's offer</b>. We'll bring it to you and email you the moment it arrives.
+            Please review every detail below and complete anything that's missing or that the buyer couldn't fill in — the closing documents depend on this being accurate. You won't build the offer here; that's the buyer's part. Once the details are right, just <b>wait for the buyer's offer</b> — we'll bring it to you and email you the moment it arrives.
+          </div>
+        </div>
+      ) : (
+        <div style={{ background:"#eef4fb", border:`1px solid ${C.navy}`, borderRadius:8, padding:"13px 16px", marginBottom:18 }}>
+          <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>📋 You're the buyer — enter what you know</div>
+          <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+            Fill in the boat's details from the listing as best you can. You may not have everything — HIN, engine hours, title numbers — and that's fine. The <b>seller knows the boat best and will confirm and complete the details</b> when they join. Enter what you have, then move on to set up the parties and build your offer.
           </div>
         </div>
       )}
@@ -2457,9 +2464,9 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         {!isBuyer ? (
           <div>
             <div style={{ background:C.sandDark, borderRadius:6, padding:"14px 16px", fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom: negotiate.addendum?14:0 }}>
-              🔒 Only the buyer makes the vessel decision after due diligence. {negotiate.addendum ? `The buyer has PROPOSED A NEW PRICE: ${fmt(Number(negotiate.addendum.newPrice))}.` : negotiate.vesselAcceptance ? "The buyer has ACCEPTED the vessel." : negotiate.vesselRejection ? "The buyer has REJECTED the vessel — see the notice below." : "Awaiting the buyer's decision (accept as-is, reject, or propose a new final price)."}
+              🔒 Only the buyer makes the vessel decision after due diligence. {negotiate.vesselRejection ? "The buyer has REJECTED the vessel — see the notice below." : negotiate.addendum ? `The buyer has PROPOSED A NEW PRICE: ${fmt(Number(negotiate.addendum.newPrice))}.` : negotiate.vesselAcceptance ? "The buyer has ACCEPTED the vessel." : "Awaiting the buyer's decision (accept as-is, reject, or propose a new final price)."}
             </div>
-            {negotiate.addendum && (
+            {negotiate.addendum && !negotiate.vesselRejection && (
               <div style={{ border:`1px solid ${C.brass}`, borderRadius:8, overflow:"hidden" }}>
                 <div style={{ background:C.navy, color:"#fff", padding:"10px 14px", fontSize:12, fontWeight:700, fontFamily:"sans-serif", letterSpacing:0.5 }}>ADDENDUM TO PURCHASE AGREEMENT — Your Response Needed</div>
                 <div style={{ background:"#fff", padding:"14px 16px", fontFamily:"sans-serif" }}>
@@ -2475,7 +2482,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                     </div>
                   ) : (
                     <div style={{ display:"flex", gap:10, marginTop:14 }}>
-                      <button onClick={()=>{ if(setNegotiate) setNegotiate(n=>({...n, addendum:{...n.addendum, status:"accepted"}})); }} style={{ ...S.btn, background:C.green, flex:1, fontSize:13, padding:"10px 0" }}>✓ Accept Addendum</button>
+                      <button onClick={()=>{ if(setNegotiate) setNegotiate(n=>{ const amt=Number(n.addendum?.newPrice); const offers=(n.offers||[]).map(o=> (amt && (o.status==="accepted"||o.status==="agreed")) ? {...o, origAmount: (o.origAmount ?? o.amount), amount: amt} : o); return {...n, offers, addendum:{...n.addendum, status:"accepted"}}; }); }} style={{ ...S.btn, background:C.green, flex:1, fontSize:13, padding:"10px 0" }}>✓ Accept Addendum</button>
                       <button onClick={()=>{ if(setNegotiate) setNegotiate(n=>({...n, addendum:{...n.addendum, status:"declined"}})); }} style={{ ...S.btnOutline, flex:1, fontSize:13, padding:"10px 0", color:C.red, borderColor:C.red }}>✗ Decline</button>
                     </div>
                   )}
@@ -3075,7 +3082,6 @@ function StepClosing({ vessel, parties, terms, negotiate, ddData, docsData, myRo
   const [payMethod, setPayMethod] = useState(negotiate.paymentType || "wire");
   const [payMethodOpen, setPayMethodOpen] = useState(true);
   const isRejected = ddData.outcome==="reject";
-  const rejReason = REJECTION_REASONS.find(r=>r.id===ddData.rejectionReason);
   const toggleManual = (k) => setManualChecks(c => ({...c,[k]:!c[k]}));
 
   const balanceDue = Math.max(0, Number(negotiate.agreedPrice||0) - Number(negotiate.deposit||0));
@@ -4220,7 +4226,9 @@ export default function BoatClosers() {
           depositProof: sNeg.depositProof || prev?.depositProof,
           depositEnded: prev?.depositEnded || sNeg.depositEnded,
           vesselAcceptance: sNeg.vesselAcceptance || prev?.vesselAcceptance,
+          vesselRejection: sNeg.vesselRejection || prev?.vesselRejection,
           addendum: sNeg.addendum || prev?.addendum,
+          uploads: { ...(prev?.uploads || {}), ...(sNeg.uploads || {}) },
         };
       });
     };
