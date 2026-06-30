@@ -323,7 +323,10 @@ const ASSISTANT = {
 };
 
 function DealAssistant({ step, role, vessel }) {
-  const [open, setOpen] = useState(true);
+  // Open by default on the early steps where guidance is most needed; collapsed
+  // by default on the later steps (due diligence, documents) where the panel is
+  // mostly noise — the user can still expand it anytime.
+  const [open, setOpen] = useState(() => !["diligence", "documents"].includes(step));
   const [faqOpen, setFaqOpen] = useState(null);
   const c = ASSISTANT[step];
   if (!c) return null;
@@ -3626,6 +3629,48 @@ Help with: HIN location, engine serial numbers, USCG vs state registration, earn
 // ─────────────────────────────────────────────────────────────────────────────
 // AUTH SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
+function Welcome({ name, onStart, onSignOut }) {
+  const steps = [
+    ["1", "Describe the boat", "Add the vessel details — make, model, year, hull number."],
+    ["2", "Invite the other party", "Send the buyer or seller a link to join the deal."],
+    ["3", "Negotiate", "Trade offers and counters in the Deal Room until you agree."],
+    ["4", "Sign", "Both parties e-sign the Purchase Agreement and required documents."],
+    ["5", "Close", "Handle the deposit, balance, and title transfer — deal done."],
+  ];
+  return (
+    <div style={{ minHeight:"100vh", background:C.navy, display:"flex", flexDirection:"column" }}>
+      <div style={{ padding:"1.5rem 2rem", display:"flex", alignItems:"center", justifyContent:"space-between", borderBottom:"1px solid rgba(184,134,58,0.2)" }}>
+        <div>
+          <div style={{ ...S.logo, fontSize:20 }}>BOATCLOSERS</div>
+          <div style={{ ...S.logoSub }}>PRIVATE VESSEL TRANSACTIONS</div>
+        </div>
+        {onSignOut && <button onClick={onSignOut} style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }}>Sign Out</button>}
+      </div>
+      <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:"2rem" }}>
+        <div style={{ background:"#fff", borderRadius:10, padding:"2.5rem", width:"100%", maxWidth:520, border:"1px solid rgba(184,134,58,0.2)" }}>
+          <h1 style={{ fontFamily:"'Georgia',serif", fontSize:25, color:C.navy, margin:"0 0 6px" }}>Welcome{name ? `, ${String(name).split(" ")[0]}` : ""}.</h1>
+          <p style={{ fontFamily:"sans-serif", fontSize:14, color:C.slate, lineHeight:1.6, margin:"0 0 22px" }}>
+            BoatClosers walks you and the other party through a private boat sale — start to finish — for one flat fee. Here's the path:
+          </p>
+          <div style={{ display:"flex", flexDirection:"column", gap:14, marginBottom:26 }}>
+            {steps.map(([n, title, desc]) => (
+              <div key={n} style={{ display:"flex", gap:13, alignItems:"flex-start" }}>
+                <div style={{ flexShrink:0, width:26, height:26, borderRadius:"50%", background:C.navy, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700 }}>{n}</div>
+                <div>
+                  <div style={{ fontFamily:"sans-serif", fontSize:14, fontWeight:700, color:C.navy }}>{title}</div>
+                  <div style={{ fontFamily:"sans-serif", fontSize:12.5, color:C.slate, lineHeight:1.5 }}>{desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button onClick={onStart} style={{ ...S.btn, width:"100%", padding:"13px 0", fontSize:15, fontWeight:700 }}>Start your deal →</button>
+          <p style={{ fontFamily:"sans-serif", fontSize:11.5, color:C.slate, textAlign:"center", margin:"14px 0 0" }}>You can revisit any step at any time — nothing is locked until you sign.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AuthScreen({ onAuth, prefillEmail, notice, defaultMode }) {
   const [mode, setMode] = useState(defaultMode || "signup");
   const [role, setRole] = useState(null);
@@ -4064,6 +4109,7 @@ export default function BoatClosers() {
   const [aiOpen, setAiOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [booting, setBooting] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
   // The logged-in user's role ON THIS SPECIFIC DEAL (buyer or seller),
   // computed from the deal's party columns — NOT their signup choice.
   const [myDealRole, setMyDealRole] = useState(null);
@@ -4159,6 +4205,9 @@ export default function BoatClosers() {
                   const reachable = Math.min(urlStep, (data.deal.max_step ?? data.deal.step ?? urlStep));
                   setStep(reachable);
                 }
+                setShowWelcome(false);
+              } else {
+                setShowWelcome(true);
               }
               setScreen("deal");
               setBooting(false);
@@ -4391,16 +4440,19 @@ export default function BoatClosers() {
             const reachable = Math.min(deepLink.step, (data.deal.max_step ?? data.deal.step ?? deepLink.step));
             setStep(reachable);
           }
+          setShowWelcome(false);
         } else if (claimedRole) {
           // They accepted an invite but the deal didn't come back yet
           // (timing). Use the claimed role and DON'T autosave a blank deal —
           // a quick reload will pull the real shared deal.
           setMyDealRole(claimedRole);
+          setShowWelcome(false);
         } else {
           // Brand new user — start a fresh deal with their name pre-filled.
           setMyDealRole(authData.role || "buyer");
           setParties(p => ({ ...p, [authData.role]: { ...p[authData.role], name: authData.name, email: authData.email } }));
           setTimeout(() => scheduleSave(), 150);
+          setShowWelcome(true);
         }
         setDeepLink(null);
         setScreen("deal");
@@ -4434,6 +4486,7 @@ export default function BoatClosers() {
 
   if (screen==="landing") return <Landing onStart={()=>setScreen("auth")}/>;
   if (screen==="auth") return <AuthScreen onAuth={handleAuth} prefillEmail={deepLink?.email} notice={deepLink ? `Sign in as ${deepLink.email} to review this deal.` : null} defaultMode={deepLink ? "login" : "signup"} />;
+  if (screen==="deal" && showWelcome) return <Welcome name={user?.name} onStart={()=>setShowWelcome(false)} onSignOut={handleSignOut} />;
 
   return (
     <div style={S.app}>
