@@ -236,42 +236,48 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     selectedContingencies = ["survey","seaTrial","title"];
     if (negotiate.paymentType === "finance") selectedContingencies.push("financing");
   }
+  // Any user-fillable field that has no data yet renders as an editable blank line
+  // (prepHtml turns 4+ underscores into a tap-to-type box) instead of dead "[label]"
+  // text — so a missing buyer name, HIN, closing date, etc. can be filled right in
+  // the document. Fields that are entered elsewhere simply convey their value.
+  const BLANK = "____________________";
+  const engineParts = `${vessel.engineMake||""} ${vessel.engineModel||""}`.trim();
   const deal = {
     dealRef: data.dealRef || ("BC-" + String(Date.now()).slice(-5)),
     effectiveDate: today(),
-    sellerName: parties.seller.name || "[Seller Name]",
-    sellerAddress: `${parties.seller.address||""} ${parties.seller.city||""} ${parties.seller.stateZip||""}`.trim() || "[Seller Address]",
+    sellerName: parties.seller.name || _accOffer?.paSellerSig || BLANK,
+    sellerAddress: `${parties.seller.address||""} ${parties.seller.city||""} ${parties.seller.stateZip||""}`.trim() || BLANK,
     sellerCitizen: "United States",
-    buyerName: parties.buyer.name || "[Buyer Name]",
-    buyerAddress: `${parties.buyer.address||""} ${parties.buyer.city||""} ${parties.buyer.stateZip||""}`.trim() || "[Buyer Address]",
+    buyerName: parties.buyer.name || _accOffer?.paBuyerSig || BLANK,
+    buyerAddress: `${parties.buyer.address||""} ${parties.buyer.city||""} ${parties.buyer.stateZip||""}`.trim() || BLANK,
     buyerCitizen: "United States",
     vesselYear: vessel.year||"[Year]", vesselMake: vessel.make||"[Make]", vesselModel: vessel.model||"[Model]",
-    vesselLength: vessel.loa ? vessel.loa+" ft" : "[Length]",
-    hullMaterial: vessel.hullType || "[Hull]",
-    hin: vessel.hin || "[HIN]",
+    vesselLength: vessel.loa ? vessel.loa+" ft" : BLANK,
+    hullMaterial: vessel.hullType || BLANK,
+    hin: vessel.hin || BLANK,
     uscgOfficialNo: vessel.uscgNumber || "N/A",
-    titleNo: vessel.regNumber || "[Title No.]",
-    regNo: vessel.regNumber || "[Reg]",
-    vesselState: vessel.regState || vessel.location || "[State]",
-    engineDesc: `${vessel.engineCount||"1"} × ${vessel.engineMake||""} ${vessel.engineModel||""}`.trim() || "[Engine]",
+    titleNo: vessel.regNumber || BLANK,
+    regNo: vessel.regNumber || BLANK,
+    vesselState: vessel.regState || vessel.location || BLANK,
+    engineDesc: engineParts ? `${vessel.engineCount||"1"} × ${engineParts}` : BLANK,
     salePrice: fmt(agreed), salePriceWords: priceToWords(agreed),
     depositAmount: fmt(dep), depositPct: (negotiate.escrowPct||0)+"%",
     balanceDue: fmt(Math.max(0, agreed-dep)),
     reducedPrice: "", reduction: "",
-    closingDate: terms.closingDate || "[Closing Date]",
+    closingDate: terms.closingDate || negotiate.closingDate || _accOffer?.closingDate || BLANK,
     closingLocation: vessel.location || "the location where the Vessel is moored",
-    surveyDeadline: ddEndCalc || "[Survey Deadline]",
-    seaTrialDeadline: ddEndCalc || "[Sea Trial Deadline]",
-    financingDeadline: ddEndCalc || "[Financing Deadline]",
+    surveyDeadline: ddEndCalc || BLANK,
+    seaTrialDeadline: ddEndCalc || BLANK,
+    financingDeadline: ddEndCalc || BLANK,
     brokerFee: "$249.00",
     selectedContingencies,
     paymentType: negotiate.paymentType || "",
     docStatus: signed,
     // Title & Government pack signals + fillable fields
     hasLien: !!(negotiate.sellerHasLien || data.hasLien),
-    lienholderName: negotiate.lienholderName || "[Lienholder]",
-    lienAcctNo: negotiate.lienAcctNo || "[Loan / Account No.]",
-    lienAmount: negotiate.lienAmount ? fmt(Number(negotiate.lienAmount)) : "[Payoff Amount]",
+    lienholderName: negotiate.lienholderName || BLANK,
+    lienAcctNo: negotiate.lienAcctNo || BLANK,
+    lienAmount: negotiate.lienAmount ? fmt(Number(negotiate.lienAmount)) : BLANK,
   };
 
   // ── Map curated docs onto app IDs so the Closing step stays in sync ──
@@ -619,7 +625,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                           {doc.required && <span style={{...S.tag, background:"#fff3cd", color:"#7a5500"}}>Required</span>}
                           {!doc.required && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Optional</span>}
                           {needsNotary && <span style={{...S.tag, background:"#fbf4e3", color:"#8a6d1a"}}>Notary required</span>}
-                          {(doc.checklist || /_{4,}/.test(doc.body||"")) && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>{doc.editRole ? `Fill in app · ${doc.editRole} only` : "Fill in app"}</span>}
+                          {(doc.checklist || prepHtml(fillDocument(doc, deal), doc.id).includes("bc-fill-in")) && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>{doc.editRole ? `Fill in app · ${doc.editRole} only` : "Fill in app"}</span>}
                           {signed[doc.id] && <span style={{...S.tag, background:C.greenLight, color:C.green}}>✓ {signed[doc.id].date} · {signed[doc.id].name}</span>}
                           {sentLog[doc.id]?.length > 0 && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Sent ×{sentLog[doc.id].length}</span>}
                           {uploadedFile[doc.id] && !signed[doc.id]?.uploaded && <span style={{...S.tag}}>📎 {uploadedFile[doc.id]}</span>}
@@ -688,8 +694,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                             </div>
                           )}
                           {(() => {
+                            const filledHtml = prepHtml(fillDocument(doc, deal), doc.id);
                             const editable = canEditDoc(doc);
-                            const interactive = !!doc.checklist || /_{4,}/.test(doc.body||"");
+                            const interactive = !!doc.checklist || filledHtml.includes("bc-fill-in");
                             return (
                               <>
                                 {interactive && (editable ? (
@@ -699,7 +706,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                                 ))}
                                 <DocPaper
                                   doc={doc}
-                                  html={prepHtml(fillDocument(doc, deal), doc.id)}
+                                  html={filledHtml}
                                   editable={editable}
                                   checkState={checkState}
                                   toggleCheck={toggleCheck}
