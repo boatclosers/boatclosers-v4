@@ -1359,6 +1359,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     <div style={S.page}>
       <TipBox tips={TIPS.negotiate} />
       <DealAssistant step="negotiate" role={myRole} vessel={vessel} />
+      <div style={{ display:"flex", alignItems:"center", gap:7, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12 }}>
+        <span style={{ width:8, height:8, borderRadius:"50%", background:"#22a06b", display:"inline-block", flexShrink:0 }} />
+        Live — new offers, counters, and messages appear here automatically. No need to refresh or check email.
+      </div>
       <div style={{ marginBottom:"1.5rem" }}>
         {offers.length > 0 ? (
           <>
@@ -4040,6 +4044,10 @@ const emptyDocs = {paid:false,signedDocs:{}};
 
 export default function BoatClosers() {
   const [screen, setScreen] = useState("landing");
+  const [toast, setToast] = useState(null);
+  const seenRef = useRef({ offers: 0, msgs: 0, init: false });
+  const stepSyncRef = useRef({ dd: "", docs: "" });
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 6000); return () => clearTimeout(t); }, [toast]);
   const [deepLink, setDeepLink] = useState(null);
   const [user, setUser] = useState(null);
   const [dealId, setDealId] = useState(null);
@@ -4205,10 +4213,36 @@ export default function BoatClosers() {
   // message you just made that hasn't finished saving yet.
   useEffect(() => {
     if (screen !== "deal" || !dealId || !user?.token) return;
+    seenRef.current = { offers: 0, msgs: 0, rejected: false, init: false };
+    stepSyncRef.current = { dd: "", docs: "" };
 
     const mergeFromServer = (serverDeal) => {
       if (!serverDeal) return;
       const sNeg = serverDeal.negotiate || {};
+      // Notice new activity from the OTHER party so we can flag it on screen,
+      // instead of the user having to refresh or check email to find out.
+      try {
+        const myR = myDealRole || user?.role || "buyer";
+        const sOffers = sNeg.offers || [];
+        const sMsgs = sNeg.messages || [];
+        const seen = seenRef.current;
+        if (seen.init) {
+          if (sOffers.length > seen.offers) {
+            const newest = [...sOffers].sort((a, b) => (a.id || 0) - (b.id || 0)).pop();
+            if (newest && newest.from !== myR && newest.from !== "system") {
+              setToast({ k: Date.now(), text: "📨 New offer from the other party — it's on your deal now" });
+            }
+          } else if (sMsgs.length > seen.msgs) {
+            const newest = sMsgs[sMsgs.length - 1];
+            if (newest && newest.from !== myR && newest.from !== "system") {
+              setToast({ k: Date.now(), text: "💬 New message in your deal" });
+            }
+          } else if (sNeg.vesselRejection && !seen.rejected) {
+            setToast({ k: Date.now(), text: "🚫 The buyer ended the deal — see the rejection notice" });
+          }
+        }
+        seenRef.current = { offers: sOffers.length, msgs: sMsgs.length, rejected: !!sNeg.vesselRejection, init: true };
+      } catch (e) {}
       setNegotiate(prev => {
         const byId = {};
         for (const o of (prev?.offers || [])) if (o && o.id != null) byId[o.id] = o;
@@ -4231,6 +4265,37 @@ export default function BoatClosers() {
           uploads: { ...(prev?.uploads || {}), ...(sNeg.uploads || {}) },
         };
       });
+
+      // Due-diligence + documents progress: pull the other party's signatures,
+      // checks, fills, and prep so they appear live. Only apply when the server
+      // copy actually changed, so we don't re-render (and disturb typing) every
+      // poll. Local edits always win per-key; the server only ADDS what you don't
+      // have yet — so a signature you just made is never dropped mid-save.
+      try {
+        const sDocs = serverDeal.docs_data || {};
+        const sDocsKey = JSON.stringify([sDocs.signedDocs || {}, sDocs.docChecks || {}, sDocs.docFields || {}]);
+        if (sDocsKey !== stepSyncRef.current.docs) {
+          stepSyncRef.current.docs = sDocsKey;
+          setDocsData(prev => {
+            prev = prev || {};
+            return {
+              ...sDocs, ...prev,
+              signedDocs: { ...(sDocs.signedDocs || {}), ...(prev.signedDocs || {}) },
+              docChecks: { ...(sDocs.docChecks || {}), ...(prev.docChecks || {}) },
+              docFields: { ...(sDocs.docFields || {}), ...(prev.docFields || {}) },
+            };
+          });
+        }
+        const sDd = serverDeal.dd_data || {};
+        const sDdKey = JSON.stringify(sDd.sellerPrep || {});
+        if (sDdKey !== stepSyncRef.current.dd) {
+          stepSyncRef.current.dd = sDdKey;
+          setDdData(prev => {
+            prev = prev || {};
+            return { ...prev, sellerPrep: { ...(sDd.sellerPrep || {}), ...(prev.sellerPrep || {}) } };
+          });
+        }
+      } catch (e) {}
     };
 
     const poll = async () => {
@@ -4397,6 +4462,12 @@ export default function BoatClosers() {
           <button style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }} onClick={handleSignOut}>Sign Out</button>
         </div>
       </nav>
+      {toast && (
+        <div onClick={()=>setToast(null)} style={{ position:"fixed", top:14, left:"50%", transform:"translateX(-50%)", zIndex:1000, background:C.navy, color:"#fff", padding:"11px 18px", borderRadius:10, boxShadow:"0 6px 22px rgba(0,0,0,0.22)", fontSize:13, fontFamily:"sans-serif", fontWeight:600, cursor:"pointer", maxWidth:"92%", textAlign:"center" }}>
+          {toast.text}
+          <span style={{ opacity:0.6, marginLeft:10, fontSize:11, fontWeight:400 }}>tap to dismiss</span>
+        </div>
+      )}
       <ProgressBar step={step} setStep={setStep} maxStep={maxStep} dealPaid={dealPaid}/>
       <PreviewBanner step={step} maxStep={maxStep} setStep={setStep}/>
       {step >= 3 && step <= maxStep && (
