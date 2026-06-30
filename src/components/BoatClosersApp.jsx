@@ -32,6 +32,9 @@ const C = {
 const fmt = (n) => n ? new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n)) : "";
 const today = () => new Date().toISOString().split("T")[0];
 const addDays = (d,n) => { const dt=new Date(d); dt.setDate(dt.getDate()+n); return dt.toISOString().split("T")[0]; };
+const CONTINGENCY_LABELS = { survey:"Survey", seaTrial:"Sea Trial", financing:"Financing", insurance:"Insurance", title:"Clear Title" };
+const contingencyNames = (arr) => (Array.isArray(arr) ? arr : []).map(k => CONTINGENCY_LABELS[k] || k).join(", ");
+const capFirst = (s) => (typeof s === "string" && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
 // ── STEP TIPS ─────────────────────────────────────────────────────────────────
 const TIPS = {
@@ -549,9 +552,9 @@ function StepVessel({ data, setData, userRole, onNext }) {
         <h3 style={S.h3}>Identification</h3>
         <Grid2>
           <Field label="Year *"><input style={S.input} type="number" value={data.year} onChange={e=>set("year",e.target.value)} placeholder="2019" /></Field>
-          <Field label="Make / Manufacturer *"><input style={S.input} value={data.make} onChange={e=>set("make",e.target.value)} placeholder="Boston Whaler" /></Field>
-          <Field label="Model *"><input style={S.input} value={data.model} onChange={e=>set("model",e.target.value)} placeholder="Outrage 280" /></Field>
-          <Field label="Vessel Name (if any)"><input style={S.input} value={data.name} onChange={e=>set("name",e.target.value)} placeholder="Sea Dreams" /></Field>
+          <Field label="Make / Manufacturer *"><input style={S.input} value={data.make} onChange={e=>set("make",capFirst(e.target.value))} placeholder="Boston Whaler" /></Field>
+          <Field label="Model *"><input style={S.input} value={data.model} onChange={e=>set("model",capFirst(e.target.value))} placeholder="Outrage 280" /></Field>
+          <Field label="Vessel Name (if any)"><input style={S.input} value={data.name} onChange={e=>set("name",capFirst(e.target.value))} placeholder="Sea Dreams" /></Field>
           <Field label="Hull ID Number (HIN) — needed for documents"><input style={S.input} value={data.hin} onChange={e=>set("hin",e.target.value)} placeholder="BWCE1234A919" /></Field>
           <Field label="Hull Type">
             <select style={S.select} value={data.hullType} onChange={e=>set("hullType",e.target.value)}>
@@ -714,6 +717,15 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
           {userRole==="seller" ? "You are the Seller on this deal." : "You are the Buyer on this deal."} Your side is highlighted. The deal initiator controls vessel details and deal terms.
         </p>
       </div>
+      {userRole==="seller" && (
+        <div style={{ background:"#eef4fb", border:`1px solid ${C.navy}`, borderRadius:8, padding:"12px 16px", marginBottom:18, display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
+          <div style={{ flex:1, minWidth:200 }}>
+            <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:2 }}>📋 You know this boat best</div>
+            <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.5 }}>Review the boat details and fix anything that's wrong or missing — the closing documents depend on it being accurate.</div>
+          </div>
+          <button onClick={onBack} style={{ ...S.btn, fontSize:12.5, padding:"9px 16px", whiteSpace:"nowrap" }}>Review boat details →</button>
+        </div>
+      )}
       <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
         {sides.map(side => {
           const isMine = side === userRole;
@@ -728,7 +740,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
             <h3 style={S.h3}>{side==="buyer" ? "Buyer" : "Seller"}</h3>
             <Grid2>
               <Field label={`${side==="buyer"?"Buyer":"Seller"} Full Legal Name *`}>
-                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].name} readOnly={locked} onChange={e=>!locked&&set(side,"name",e.target.value)} />
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].name} readOnly={locked} onChange={e=>!locked&&set(side,"name",capFirst(e.target.value))} />
               </Field>
               <Field label="Email *">
                 <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} type="email" value={data[side].email} readOnly={locked} onChange={e=>!locked&&set(side,"email",e.target.value)} />
@@ -761,7 +773,8 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
         })}
       </div>
 
-      {/* ── INVITE OTHER PARTY ── */}
+      {/* ── INVITE OTHER PARTY (only until the other side joins) ── */}
+      {!partyBJoined ? (
       <div style={{ background:C.navy, borderRadius:8, padding:"14px 18px", marginTop:16, display:"flex", gap:14, alignItems:"flex-start" }}>
         <div style={{ fontSize:22, flexShrink:0 }}>📧</div>
         <div style={{ flex:1 }}>
@@ -851,6 +864,9 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
           )}
         </div>
       </div>
+      ) : (
+        <div style={{ background:"#eef7f0", border:"1px solid #22a06b", borderRadius:8, padding:"12px 16px", marginTop:16, fontSize:12.5, fontFamily:"sans-serif", color:"#176844", fontWeight:600 }}>✓ Both parties have joined this deal — you're all set. Confirm your details below are correct, then continue.</div>
+      )}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
         <div style={{ textAlign:"right" }}>
@@ -869,7 +885,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 2 — NEGOTIATE + TERMS (combined)
 // ─────────────────────────────────────────────────────────────────────────────
-function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiator, dealId, onNext, onBack }) {
+function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiator, dealId, onRefresh, refreshing, onNext, onBack }) {
   const [newMsg, setNewMsg] = useState("");
   const [offerAmt, setOfferAmt] = useState(data.currentOffer || vessel.askingPrice || "");
   const [escrowPct, setEscrowPct] = useState(data.escrowPct!==undefined ? String(data.escrowPct) : "0");
@@ -997,7 +1013,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     const escrowLabel = escrowPath==="escrow_com"?"Escrow.com":escrowPath==="attorney"?"Third Party Attorney":"Direct to Seller";
     const parts = [`${fromRole==="buyer"?"Offer":"Counter"}: ${fmt(amt)}`];
     parts.push(deposit>0?`${fmt(deposit)} (${escrowPct}%) earnest via ${escrowLabel}`:"No deposit");
-    if (inclContingencies && localContingencies.length) parts.push(`${localContingencies.length} contingenc${localContingencies.length>1?"ies":"y"}`);
+    if (inclContingencies && localContingencies.length) parts.push(`Contingent on ${contingencyNames(localContingencies)}`);
     if (inclDates) parts.push(`Due Diligence ${ddDays} days · Close ${closingDate||"TBD"}`);
     setMessages(m => {
       const updated = [...m, { from:fromRole, text:parts.join(" · "), time:new Date().toLocaleTimeString() }];
@@ -1362,9 +1378,16 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     <div style={S.page}>
       <TipBox tips={TIPS.negotiate} />
       <DealAssistant step="negotiate" role={myRole} vessel={vessel} />
-      <div style={{ display:"flex", alignItems:"center", gap:7, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12 }}>
-        <span style={{ width:8, height:8, borderRadius:"50%", background:"#22a06b", display:"inline-block", flexShrink:0 }} />
-        Live — new offers, counters, and messages appear here automatically. No need to refresh or check email.
+      <div style={{ display:"flex", alignItems:"center", gap:10, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12, flexWrap:"wrap" }}>
+        <span style={{ display:"inline-flex", alignItems:"center", gap:7 }}>
+          <span style={{ width:8, height:8, borderRadius:"50%", background:"#22a06b", display:"inline-block", flexShrink:0 }} />
+          Live — new offers, counters, and messages appear here automatically.
+        </span>
+        {onRefresh && (
+          <button onClick={onRefresh} disabled={refreshing} style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:"#eef4fb", border:`1px solid ${C.navy}`, borderRadius:14, padding:"4px 12px", cursor: refreshing ? "default" : "pointer", opacity: refreshing ? 0.6 : 1 }}>
+            {refreshing ? "Checking…" : "🔄 Check for new offers"}
+          </button>
+        )}
       </div>
       <div style={{ marginBottom:"1.5rem" }}>
         {offers.length > 0 ? (
@@ -1741,7 +1764,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                     </div>
                     <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:4, lineHeight:1.5 }}>
                       Deposit: {o.escrowPct}% ({fmt(o.deposit)}) · {o.escrowPath==="escrow_com"?"Escrow.com":o.escrowPath==="attorney"?"Attorney":"Direct"}
-                      {o.inclContingencies && o.contingencies?.length ? ` · ${o.contingencies.length} contingenc${o.contingencies.length>1?"ies":"y"}` : " · no contingencies"}
+                      {o.inclContingencies && o.contingencies?.length ? ` · Contingent on ${contingencyNames(o.contingencies)}` : " · no contingencies"}
                       {o.inclDates ? ` · Due Diligence ${o.ddDays} days · Close ${o.closingDate||"TBD"}` : " · dates open"}
                     </div>
 
@@ -4092,6 +4115,8 @@ export default function BoatClosers() {
   const [toast, setToast] = useState(null);
   const seenRef = useRef({ offers: 0, msgs: 0, init: false });
   const stepSyncRef = useRef({ dd: "", docs: "" });
+  const refreshRef = useRef(null);
+  const [refreshing, setRefreshing] = useState(false);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 6000); return () => clearTimeout(t); }, [toast]);
   const [deepLink, setDeepLink] = useState(null);
   const [user, setUser] = useState(null);
@@ -4360,6 +4385,18 @@ export default function BoatClosers() {
 
     const id = setInterval(poll, 5000);
     const onFocus = () => poll();
+    // Manual "check now" — ignores the hidden-tab guard and always fetches, so a
+    // user can force-pull the other party's latest offer instead of waiting.
+    refreshRef.current = async () => {
+      if (!dealId || !user?.token) return;
+      setRefreshing(true);
+      try {
+        const res = await fetch("/api/deals?dealId=" + encodeURIComponent(dealId), { headers: { "Authorization": "Bearer " + user.token } });
+        const data = await res.json();
+        mergeFromServer(data?.deal);
+      } catch (e) {}
+      setTimeout(() => setRefreshing(false), 400);
+    };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
     poll();
@@ -4534,7 +4571,7 @@ export default function BoatClosers() {
       )}
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} userRole={myDealRole || user?.role || "seller"} onNext={()=>goToStep(1)}/>}
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user}/>}
-      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
+      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onRefresh={()=>refreshRef.current?.()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
       {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} onBack={()=>setStep(4)}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
