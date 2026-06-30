@@ -2898,7 +2898,7 @@ function StepDocuments({ data, setData, vessel, parties, terms, negotiate, myRol
           </div>
           <hr style={S.divider}/>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
-            {["21 Professional Legal Documents","Electronic Signatures","Closing Checklist","PDF Download Package","AI Deal Assistant Access","No recurring fees","One deal covered","Buyer & seller copies"].map(f=>(
+            {["21 Professional Legal Documents","Electronic Signatures","Closing Checklist","PDF Download Package","No recurring fees","One deal covered","Buyer & seller copies"].map(f=>(
               <div key={f} style={{ fontSize:12, fontFamily:"sans-serif", color:C.navy }}>✓ {f}</div>
             ))}
           </div>
@@ -3620,164 +3620,6 @@ function StepClosing({ vessel, parties, terms, negotiate, ddData, docsData, myRo
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AI ASSISTANT
-// ─────────────────────────────────────────────────────────────────────────────
-function AIAssistant({ open, setOpen, step, vessel, parties }) {
-  const stepCtx = ["Vessel Details","Parties","Negotiate & Terms","Due Diligence","Documents","Closing"][step]||"";
-
-  const missingHints = [];
-  if (!vessel.hin) missingHints.push("HIN");
-  if (!vessel.engineSerial) missingHints.push("engine serial number");
-  if (!vessel.regNumber) missingHints.push("registration number");
-  if (!parties.buyer.name) missingHints.push("buyer name");
-  if (!parties.buyer.email) missingHints.push("buyer email");
-  if (!parties.seller.name) missingHints.push("seller name");
-  if (!parties.seller.email) missingHints.push("seller email");
-
-  const otherPartyEmail = parties.buyer.email || parties.seller.email;
-  const otherPartyMissing = !parties.buyer.email || !parties.seller.email;
-
-  // Step-specific suggested questions
-  const suggestions = {
-    0: ["Where do I find the HIN?","What engine info do I need?","Does USCG documentation replace registration?"],
-    1: ["How does the other party join?","Can I invite by email?","Who controls the deal?"],
-    2: ["How does the other party see my offer?","What is earnest money?","Which escrow option is safest?","How does negotiation work here?"],
-    3: ["What happens during due diligence?","Can I renegotiate after survey?","What if the buyer backs out?"],
-    4: ["What is the Purchase Agreement?","How do I send a doc to the other party?","Which documents are required?"],
-    5: ["What order should I complete closing?","How do I transfer the title?","When does the seller release the keys?"],
-  }[step] || [];
-
-  const openingMsg = `Hi! I'm your BoatClosers Deal Assistant — I'm here to guide you through every step.\n\nYou're on the **${stepCtx}** step.${
-    missingHints.length ? `\n\n⚠️ Your documents will have blank fields without: **${missingHints.join(", ")}**. You can add these anytime before paying — go back to the relevant step.` : ""
-  }${
-    otherPartyMissing ? `\n\n📧 **The other party hasn't been added yet.** Go to the Parties step to enter their email so they receive notifications, can respond to offers, and can sign documents.` : ""
-  }\n\nAsk me anything about the process, documents, or your deal.`;
-
-  const [msgs, setMsgs] = useState([{ role:"assistant", text: openingMsg }]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const end = useRef(null);
-  useEffect(()=>{ end.current?.scrollIntoView({behavior:"smooth"}); },[msgs]);
-
-  const ask = async (question) => {
-    const q = question || input;
-    if (!q?.trim() || loading) return;
-    setInput("");
-    setMsgs(m=>[...m,{role:"user",text:q}]);
-    setLoading(true);
-    try {
-      const res = await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:1000,
-          system:`You are the BoatClosers Deal Assistant — a friendly, practical guide for private boat buyers and sellers using BoatClosers.com.
-
-Current deal context:
-- Step: "${stepCtx}"
-- Vessel: ${vessel.year||"?"} ${vessel.make||"?"} ${vessel.model||"?"}
-- Missing document fields: ${missingHints.join(", ")||"none"}
-- Buyer email on file: ${parties.buyer.email||"NOT YET ADDED"}
-- Seller email on file: ${parties.seller.email||"NOT YET ADDED"}
-
-HOW THE TWO-PARTY SYSTEM WORKS (explain this when asked):
-- The deal initiator creates the deal and controls vessel details and terms
-- They invite the other party by entering their email in the Parties step
-- The other party receives an email invitation with a link to create their free BoatClosers account
-- Once they sign up (free), they can log in, see the deal, respond to messages, counter-offer, and sign documents
-- Both parties see the shared message thread and offer history
-- Only the initiator can edit vessel details and deal terms
-- The other party can update their own contact info and sign documents
-- Neither party can see each other's account password or private info
-
-KEY REMINDERS:
-- Always prompt user to complete missing fields: ${missingHints.join(", ")||"none — great!"}
-- If other party email is missing, remind user to go to the Parties step and add it
-- BoatClosers is NOT a broker, escrow agent, or attorney
-- You are NOT a lawyer — recommend maritime attorney for legal advice
-- Be warm, practical, and concise — like a knowledgeable friend who knows boats
-
-Help with: HIN location, engine serial numbers, USCG vs state registration, earnest money, escrow options, due diligence, survey, sea trial, title search, lien release, bill of sale, closing statement, purchase agreement, vessel acceptance, rejection, financing contingency, deposit rules.`,
-          messages: msgs.filter(m=>m.role!=="assistant"||msgs.indexOf(m)>0).concat([{role:"user",content:q}]).map(m=>({role:m.role,content:m.text}))
-        })
-      });
-      const d = await res.json();
-      const reply = d.content?.find(b=>b.type==="text")?.text||"Couldn't get a response — please try again.";
-      setMsgs(m=>[...m,{role:"assistant",text:reply}]);
-    } catch {
-      setMsgs(m=>[...m,{role:"assistant",text:"Connection error. Please try again."}]);
-    }
-    setLoading(false);
-  };
-
-  // Closed state — prominent pulsing button
-  if (!open) return (
-    <div style={{ position:"fixed", bottom:24, left:24, zIndex:1000 }}>
-      <style>{`@keyframes bc-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(184,134,58,0.5)} 50%{box-shadow:0 0 0 10px rgba(184,134,58,0)} }`}</style>
-      <button onClick={()=>setOpen(true)} style={{ background:C.navy, color:"#fff", border:`2px solid ${C.brass}`, borderRadius:12, padding:"10px 16px", cursor:"pointer", display:"flex", alignItems:"center", gap:10, boxShadow:"0 4px 20px rgba(0,0,0,0.3)", animation:"bc-pulse 2.5s infinite" }}>
-        <span style={{ fontSize:20 }}>⚓</span>
-        <div style={{ textAlign:"left" }}>
-          <div style={{ fontSize:12, fontWeight:700, color:C.brass, fontFamily:"sans-serif", letterSpacing:0.3 }}>Deal Assistant</div>
-          <div style={{ fontSize:10, color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif" }}>Ask me anything</div>
-        </div>
-      </button>
-      {missingHints.length > 0 && (
-        <div style={{ position:"absolute", top:-8, right:-8, background:C.red, color:"#fff", borderRadius:"50%", width:20, height:20, fontSize:11, fontFamily:"sans-serif", fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center" }}>
-          {missingHints.length}
-        </div>
-      )}
-    </div>
-  );
-
-  return (
-    <div className="bc-aiwidget" style={{ position:"fixed", bottom:24, left:24, width:360, height:520, background:"#fff", border:`1px solid ${C.mist}`, borderRadius:12, display:"flex", flexDirection:"column", boxShadow:"0 8px 40px rgba(0,0,0,0.2)", zIndex:1000, overflow:"hidden" }}>
-      {/* Header */}
-      <div style={{ background:C.navy, padding:"12px 14px", display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom:`2px solid ${C.brass}` }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:34, height:34, borderRadius:8, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>⚓</div>
-          <div>
-            <div style={{ fontSize:13, fontWeight:700, color:C.brass, fontFamily:"sans-serif" }}>Deal Assistant</div>
-            <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif" }}>Step: {stepCtx} {missingHints.length>0?`· ${missingHints.length} field${missingHints.length>1?"s":""} missing`:""}</div>
-          </div>
-        </div>
-        <button onClick={()=>setOpen(false)} style={{ background:"rgba(255,255,255,0.1)", border:"none", color:"rgba(255,255,255,0.7)", cursor:"pointer", fontSize:16, borderRadius:6, width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center" }}>×</button>
-      </div>
-
-      {/* Messages */}
-      <div style={{ flex:1, overflowY:"auto", padding:"12px 13px", display:"flex", flexDirection:"column", gap:8 }}>
-        {msgs.map((m,i)=>(
-          <div key={i} style={{ alignSelf:m.role==="user"?"flex-end":"flex-start", maxWidth:"90%", background:m.role==="user"?C.navy:C.sandDark, color:m.role==="user"?"#fff":C.text, borderRadius:m.role==="user"?"11px 11px 2px 11px":"11px 11px 11px 2px", padding:"9px 12px", fontSize:12, fontFamily:"sans-serif", lineHeight:1.6, whiteSpace:"pre-wrap" }}>
-            {m.text}
-          </div>
-        ))}
-        {loading && (
-          <div style={{ alignSelf:"flex-start", background:C.sandDark, borderRadius:"11px 11px 11px 2px", padding:"9px 12px", fontSize:12, fontFamily:"sans-serif", color:C.slate, fontStyle:"italic" }}>
-            Thinking…
-          </div>
-        )}
-        <div ref={end}/>
-      </div>
-
-      {/* Suggested questions */}
-      {suggestions.length > 0 && msgs.length <= 2 && (
-        <div style={{ padding:"6px 10px", borderTop:`1px solid ${C.mist}`, display:"flex", gap:5, flexWrap:"wrap" }}>
-          {suggestions.map(q=>(
-            <button key={q} onClick={()=>ask(q)} style={{ fontSize:10, fontFamily:"sans-serif", padding:"4px 9px", borderRadius:12, border:`1px solid ${C.brass}`, background:"transparent", color:C.brass, cursor:"pointer", whiteSpace:"nowrap" }}>{q}</button>
-          ))}
-        </div>
-      )}
-
-      {/* Input */}
-      <div style={{ padding:"8px 10px", borderTop:`1px solid ${C.mist}`, display:"flex", gap:7 }}>
-        <input style={{...S.input, flex:1, fontSize:12}} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&ask()} placeholder="Ask about documents, process, your deal…"/>
-        <button style={{...S.btn, padding:"8px 13px", flexShrink:0}} onClick={()=>ask()} disabled={loading}>↑</button>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // AUTH SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
 function Welcome({ name, onStart, onSignOut }) {
@@ -4170,7 +4012,7 @@ function Landing({ onStart }) {
             <div style={{ fontSize:56, fontWeight:800, color:"#fff", fontFamily:"sans-serif", lineHeight:1 }}>$249</div>
             <div style={{ fontSize:12, color:"rgba(255,255,255,0.45)", marginBottom:24, fontFamily:"sans-serif" }}>Flat fee · One vessel · One deal</div>
             <div style={{ textAlign:"left", fontSize:13, fontFamily:"sans-serif", lineHeight:2.2, color:"rgba(255,255,255,0.75)" }}>
-              {[`All ${DOC_COUNT} professional documents, ${CAT_COUNT} categories`,"Smart selection — see only what your deal needs","Electronic signatures for both parties","Title-transfer & registration paperwork","Full negotiation, offers & contingencies","Three escrow path options","Due-diligence & closing checklists","AI deal assistant","PDF download package — both parties","No commission, no subscription, ever"].map(f=>(
+              {[`All ${DOC_COUNT} professional documents, ${CAT_COUNT} categories`,"Smart selection — see only what your deal needs","Electronic signatures for both parties","Title-transfer & registration paperwork","Full negotiation, offers & contingencies","Three escrow path options","Due-diligence & closing checklists","PDF download package — both parties","No commission, no subscription, ever"].map(f=>(
                 <div key={f}>✓ {f}</div>
               ))}
             </div>
@@ -4259,7 +4101,6 @@ export default function BoatClosers() {
   const [negotiate, setNegotiate] = useState(emptyNeg);
   const [ddData, setDdData] = useState(emptyDD);
   const [docsData, setDocsData] = useState(emptyDocs);
-  const [aiOpen, setAiOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [booting, setBooting] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -4721,7 +4562,6 @@ export default function BoatClosers() {
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
       {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} onBack={()=>setStep(4)}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
-      <AIAssistant open={aiOpen} setOpen={setAiOpen} step={step} vessel={vessel} parties={parties}/>
     </div>
   );
 }
