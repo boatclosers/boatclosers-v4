@@ -628,9 +628,17 @@ export async function POST(req: Request) {
       if (!mergedPayload.negotiate.depositEnded && existingNeg.depositEnded) mergedPayload.negotiate.depositEnded = existingNeg.depositEnded
       if (!mergedPayload.negotiate.vesselAcceptance && existingNeg.vesselAcceptance) mergedPayload.negotiate.vesselAcceptance = existingNeg.vesselAcceptance
       if (!mergedPayload.negotiate.vesselRejection && existingNeg.vesselRejection) mergedPayload.negotiate.vesselRejection = existingNeg.vesselRejection
+      mergedPayload.negotiate.uploads = { ...(existingNeg.uploads || {}), ...(mergedPayload.negotiate.uploads || {}) }
       if (!mergedPayload.negotiate.addendum && existingNeg.addendum) mergedPayload.negotiate.addendum = existingNeg.addendum
       if (mergedPayload.negotiate.addendum && existingNeg.addendum && existingNeg.addendum.status && !mergedPayload.negotiate.addendum.status) {
         mergedPayload.negotiate.addendum.status = existingNeg.addendum.status
+      }
+      // Once a price addendum is accepted, the bound offer's price IS the amended
+      // price — enforce it server-side so a stale save can't revert to the old number.
+      if (mergedPayload.negotiate.addendum?.status === 'accepted' && Number(mergedPayload.negotiate.addendum?.newPrice) && Array.isArray(mergedPayload.negotiate.offers)) {
+        const amt = Number(mergedPayload.negotiate.addendum.newPrice)
+        mergedPayload.negotiate.offers = mergedPayload.negotiate.offers.map((o: any) =>
+          (o && (o.status === 'accepted' || o.status === 'agreed')) ? { ...o, origAmount: (o.origAmount ?? o.amount), amount: amt } : o)
       }
       if (!mergedPayload.negotiate.dealLocked && existingNeg.dealLocked) mergedPayload.negotiate.dealLocked = existingNeg.dealLocked
       if (!mergedPayload.negotiate.paid && existingNeg.paid) mergedPayload.negotiate.paid = existingNeg.paid
