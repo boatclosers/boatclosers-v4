@@ -35,6 +35,31 @@ const addDays = (d,n) => { const dt=new Date(d); dt.setDate(dt.getDate()+n); ret
 const CONTINGENCY_LABELS = { survey:"Survey", seaTrial:"Sea Trial", financing:"Financing", insurance:"Insurance", title:"Clear Title" };
 const contingencyNames = (arr) => (Array.isArray(arr) ? arr : []).map(k => CONTINGENCY_LABELS[k] || k).join(", ");
 const capFirst = (s) => (typeof s === "string" && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+const priceToWords = (n) => {
+  n = Math.round(Number(n)||0);
+  if (n === 0) return "Zero";
+  const ones=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+  const tens=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  const u1000=(x)=>{ let s=""; if(x>=100){ s+=ones[Math.floor(x/100)]+" Hundred"; x%=100; if(x) s+=" "; } if(x>=20){ s+=tens[Math.floor(x/10)]; x%=10; if(x) s+="-"+ones[x]; } else if(x>0){ s+=ones[x]; } return s; };
+  const units=["","Thousand","Million","Billion"]; const parts=[]; let m=n;
+  while(m>0){ parts.push(m%1000); m=Math.floor(m/1000); }
+  let out=""; for(let i=parts.length-1;i>=0;i--){ if(parts[i]){ out+=u1000(parts[i])+(units[i]?" "+units[i]:""); if(i>0) out+=" "; } }
+  return out.trim();
+};
+const PA_DOC_CSS = `
+.bc-pa{font-family:Georgia,'Times New Roman',serif;color:#1c1c1a;font-size:13px;line-height:1.7}
+.bc-pa h3{font-family:Georgia,serif;color:#08152e;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;margin:18px 0 6px}
+.bc-pa p{margin:0 0 10px}
+.bc-pa .lead{font-size:13.5px}
+.bc-pa .recital{font-style:italic;color:#33352f}
+.bc-pa ol{margin:0 0 10px;padding-left:20px}
+.bc-pa ol li{margin-bottom:6px}
+.bc-pa .sig{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:22px}
+.bc-pa .sig .ln{border-bottom:1.5px solid #08152e;height:24px;margin-bottom:5px}
+.bc-pa .sig small{font-size:11px;color:#3d5166;display:block;line-height:1.5;font-family:sans-serif}
+.bc-pa .clauses{margin:0 0 10px;padding-left:18px}
+.bc-pa .clauses li{margin-bottom:6px}
+`;
 
 // ── STEP TIPS ─────────────────────────────────────────────────────────────────
 const TIPS = {
@@ -887,7 +912,8 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
 // ─────────────────────────────────────────────────────────────────────────────
 function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiator, dealId, onRefresh, refreshing, onNext, onBack }) {
   const [newMsg, setNewMsg] = useState("");
-  const [offerAmt, setOfferAmt] = useState(data.currentOffer || vessel.askingPrice || "");
+  const [offerAmt, setOfferAmt] = useState(data.currentOffer || "");
+  const [askingPrice, setAskingPrice] = useState(vessel.askingPrice || data.askingPrice || "");
   const [escrowPct, setEscrowPct] = useState(data.escrowPct!==undefined ? String(data.escrowPct) : "0");
   const [escrowPath, setEscrowPath] = useState(data.escrowPath || "escrow_com");
   const [ddDays, setDdDays] = useState(data.dueDiligenceDays || "10");
@@ -917,6 +943,16 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const [paBuyerDisc, setPaBuyerDisc] = useState(false);
   const [paSellerDisc, setPaSellerDisc] = useState(false);
   const paBothSigned = paBuyerName.trim() && paSellerName.trim() && paBuyerDisc && paSellerDisc;
+  // Payment window (initiator pays the $249 fee). SIMULATED until Stripe is wired.
+  const [payModal, setPayModal] = useState(null); // null or the offer being paid for
+  const [payCard, setPayCard] = useState({ name:"", num:"", exp:"", cvc:"", zip:"" });
+  const [payProcessing, setPayProcessing] = useState(false);
+  // Signature section ref — when the agreement opens, scroll the user straight to
+  // where they sign so they don't bounce off the page looking for it.
+  const sigRef = useRef(null);
+  useEffect(() => {
+    if (paModal) { const t = setTimeout(() => { try { sigRef.current?.scrollIntoView({ behavior:"smooth", block:"center" }); } catch(e){} }, 350); return () => clearTimeout(t); }
+  }, [paModal]);
 
   // Verbal deal
   const [verbalDeal, setVerbalDeal] = useState(data.verbalDeal||false);
@@ -955,6 +991,16 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const [agreedOutside, setAgreedOutside] = useState("");
   const [outsideMethod, setOutsideMethod] = useState("verbal");
 
+  // ── LIVE SYNC FIX ──────────────────────────────────────────────────────────
+  // The deal room keeps local copies of offers/messages for snappy editing, but
+  // those copies must follow the live server poll — otherwise the other party's
+  // new offer or message sits in the deal data and never shows on screen until a
+  // full page reload. Re-sync whenever the incoming data actually changes.
+  const offersKey = JSON.stringify(data.offers || []);
+  const msgsKey = JSON.stringify(data.messages || []);
+  useEffect(() => { if (Array.isArray(data.offers)) setOffers(data.offers); }, [offersKey]);
+  useEffect(() => { if (Array.isArray(data.messages)) setMessages(data.messages); }, [msgsKey]);
+
   // DD custom / extension
   const [ddCustom, setDdCustom] = useState(false);
   const [ddExtension, setDdExtension] = useState(data.ddExtension||false);
@@ -990,7 +1036,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     const fromRole = myRole === "seller" ? "seller" : "buyer";
     const deposit = Math.round(amt*Number(escrowPct)/100);
     const offer = {
-      id:Date.now(), from:fromRole, amount:amt,
+      id:Date.now(), from:fromRole, amount:amt, askingPrice:Number(askingPrice)||0,
       escrowPct:Number(escrowPct), escrowPath, deposit,
       verbal:verbalDeal, status:"pending", time:new Date().toLocaleTimeString(),
       // opt-in contingencies
@@ -1028,6 +1074,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     const o = offers.find(x => x.id===id);
     if (!o) return;
     setOfferAmt(String(o.amount));
+    if (o.askingPrice) setAskingPrice(String(o.askingPrice));
     setEscrowPct(String(o.escrowPct));
     setEscrowPath(o.escrowPath);
     setInclContingencies(!!o.inclContingencies);
@@ -1215,7 +1262,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 The Purchase Agreement is fully signed. Pay the one-time <b>$249</b> to make the deal binding and unlock Due Diligence, Documents, and Closing for both parties.
               </div>
               <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-                <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>lockDeal(agreedOffer)}>💳 Pay $249 &amp; unlock the deal →</button>
+                <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>setPayModal(agreedOffer)}>💳 Pay $249 &amp; unlock the deal →</button>
                 <button style={{ ...S.btnOutline, fontSize:13, padding:"13px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
               </div>
             </>
@@ -1253,6 +1300,52 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     onNext();
   };
 
+  // ── PAYMENT WINDOW (initiator pays the one-time fee) ──────────────────────
+  // SIMULATED checkout. To go live, replace doPay() with Stripe Checkout/Elements;
+  // the rest of this window (summary, fields, success → lockDeal) stays the same.
+  if (payModal) {
+    const amt = payModal.amount || 0;
+    const fee = 249;
+    const card = payCard;
+    const validCard = card.name.trim() && card.num.replace(/\s/g, "").length >= 12 && card.exp.trim() && card.cvc.trim();
+    const doPay = () => {
+      if (!validCard || payProcessing) return;
+      setPayProcessing(true);
+      setTimeout(() => { setPayProcessing(false); setPayModal(null); lockDeal(payModal); }, 1400);
+    };
+    return (
+      <div style={{ minHeight:"100vh", background:"rgba(8,21,46,0.85)", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"2rem 1rem" }}>
+        <div style={{ background:C.white, borderRadius:10, width:"100%", maxWidth:440, border:`2px solid ${C.brass}`, overflow:"hidden" }}>
+          <div style={{ background:C.navy, padding:"1.1rem 1.5rem" }}>
+            <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:"sans-serif", textTransform:"uppercase" }}>BoatClosers.com · Secure Checkout</div>
+            <div style={{ fontSize:18, fontWeight:700, color:C.white }}>Complete your payment</div>
+          </div>
+          <div style={{ padding:"1.4rem 1.5rem" }}>
+            <div style={{ background:C.sandDark, borderRadius:8, padding:"14px 16px", marginBottom:18 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, fontFamily:"sans-serif", color:C.text, marginBottom:6 }}><span>BoatClosers deal fee (one-time)</span><span style={{ fontWeight:700 }}>${fee}.00</span></div>
+              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.5, marginBottom:10 }}>For the {vessel.year} {vessel.make} {vessel.model} — {fmt(amt)}. Unlocks Due Diligence, Documents, and Closing for both parties and makes the signed agreement binding.</div>
+              <div style={{ borderTop:`1px solid ${C.mist}`, paddingTop:8, display:"flex", justifyContent:"space-between", fontSize:15, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}><span>Total due today</span><span>${fee}.00</span></div>
+            </div>
+            <label style={S.label}>Name on card</label>
+            <input style={S.input} value={card.name} onChange={e=>setPayCard(c=>({ ...c, name:capFirst(e.target.value) }))} placeholder="Full name" />
+            <label style={{ ...S.label, marginTop:10 }}>Card number</label>
+            <input style={S.input} value={card.num} onChange={e=>setPayCard(c=>({ ...c, num:e.target.value }))} placeholder="1234 5678 9012 3456" inputMode="numeric" />
+            <div style={{ display:"flex", gap:10, marginTop:10 }}>
+              <div style={{ flex:1 }}><label style={S.label}>Expiry</label><input style={S.input} value={card.exp} onChange={e=>setPayCard(c=>({ ...c, exp:e.target.value }))} placeholder="MM/YY" /></div>
+              <div style={{ flex:1 }}><label style={S.label}>CVC</label><input style={S.input} value={card.cvc} onChange={e=>setPayCard(c=>({ ...c, cvc:e.target.value }))} placeholder="123" inputMode="numeric" /></div>
+              <div style={{ flex:1 }}><label style={S.label}>ZIP</label><input style={S.input} value={card.zip} onChange={e=>setPayCard(c=>({ ...c, zip:e.target.value }))} placeholder="33401" inputMode="numeric" /></div>
+            </div>
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, margin:"12px 0", display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>🔒 Payments are encrypted. <span style={{ color:C.brass, fontWeight:700 }}>Test mode — no real charge yet.</span></div>
+            <button onClick={doPay} disabled={!validCard||payProcessing} style={{ ...S.btnBrass, width:"100%", padding:"13px", fontSize:15, fontWeight:700, opacity:(!validCard||payProcessing)?0.5:1 }}>
+              {payProcessing ? "Processing…" : `Pay $${fee}.00`}
+            </button>
+            <button onClick={()=>{ if(!payProcessing) setPayModal(null); }} style={{ ...S.btnOutline, width:"100%", padding:"10px", fontSize:13, marginTop:10 }}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── PURCHASE AGREEMENT MODAL ─────────────────────────────────────────────
   if (paModal) {
     const esc = paModal.escrowPath==="escrow_com"?"Escrow.com":paModal.escrowPath==="attorney"?"Third Party Attorney":"Direct to Seller";
@@ -1263,6 +1356,39 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     const iAmBuyer = myRole === "buyer";
     const mySigned = iAmBuyer ? buyerSigned : sellerSigned;
     const otherRole = iAmBuyer ? "seller" : "buyer";
+
+    const paAgreed = paModal.amount || 0;
+    const paDep = paModal.deposit || 0;
+    const paFill = {
+      dealRef: data.dealRef || ("BC-" + String(Date.now()).slice(-5)),
+      effectiveDate: today(),
+      sellerName: parties.seller.name || "[Seller Name]",
+      sellerAddress: `${parties.seller.address||""} ${parties.seller.city||""} ${parties.seller.stateZip||""}`.trim() || "[Seller Address]",
+      sellerCitizen: "United States",
+      buyerName: parties.buyer.name || "[Buyer Name]",
+      buyerAddress: `${parties.buyer.address||""} ${parties.buyer.city||""} ${parties.buyer.stateZip||""}`.trim() || "[Buyer Address]",
+      buyerCitizen: "United States",
+      vesselYear: vessel.year||"[Year]", vesselMake: vessel.make||"[Make]", vesselModel: vessel.model||"[Model]",
+      vesselLength: vessel.loa ? vessel.loa+" ft" : "[Length]",
+      hullMaterial: vessel.hullType || "[Hull]",
+      hin: vessel.hin || "[HIN]",
+      uscgOfficialNo: vessel.uscgNumber || "N/A",
+      titleNo: vessel.regNumber || "[Title No.]",
+      regNo: vessel.regNumber || "[Reg]",
+      vesselState: vessel.regState || vessel.location || "[State]",
+      engineDesc: `${vessel.engineCount||"1"} × ${vessel.engineMake||""} ${vessel.engineModel||""}`.trim() || "[Engine]",
+      salePrice: fmt(paAgreed), salePriceWords: priceToWords(paAgreed),
+      depositAmount: fmt(paDep), depositPct: (paModal.escrowPct||0)+"%",
+      balanceDue: fmt(Math.max(0, paAgreed - paDep)),
+      closingDate: paModal.closingDate || "[Closing Date]",
+      closingLocation: vessel.location || "the location where the Vessel is moored",
+      surveyDeadline: "[Survey Deadline]", seaTrialDeadline: "[Sea Trial Deadline]", financingDeadline: "[Financing Deadline]",
+      brokerFee: "$249.00",
+      selectedContingencies: (Array.isArray(paModal.contingencies) && paModal.contingencies.length) ? paModal.contingencies : ["survey","seaTrial","title"],
+      paymentType: paModal.paymentType || "",
+    };
+    const paDoc = DOCUMENTS.find(d => d.id === "psa");
+    const paHtml = paDoc ? fillDocument(paDoc, paFill) : "";
 
     return (
       <div style={{ minHeight:"100vh", background:"rgba(8,21,46,0.85)", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"2rem 1rem" }}>
@@ -1283,29 +1409,24 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               </div>
             </div>
 
-            <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.text, lineHeight:1.8, marginBottom:16 }}>
-              <p>This Purchase and Sale Agreement ("Agreement") is entered into as of <strong>{today()}</strong> between:</p>
-              <div style={{ background:C.sandDark, borderRadius:5, padding:"10px 14px", margin:"10px 0" }}>
-                <div><strong>Buyer:</strong> {parties.buyer.name||"[Buyer Name]"} &nbsp;|&nbsp; {parties.buyer.email||"[Email]"}</div>
-                <div><strong>Seller:</strong> {parties.seller.name||"[Seller Name]"} &nbsp;|&nbsp; {parties.seller.email||"[Email]"}</div>
-              </div>
-              <p><strong>Vessel:</strong> {vessel.year||"[Year]"} {vessel.make||"[Make]"} {vessel.model||"[Model]"} · HIN: {vessel.hin||"[HIN]"} · Reg: {vessel.regNumber||"[Reg]"}</p>
-
-              <div className="bc-grid3" style={{ gap:8, margin:"12px 0" }}>
-                {[["Purchase Price",fmt(paModal.amount)],["Earnest Money",fmt(paModal.deposit)],["Escrow Method",esc]].map(([l,v])=>(
-                  <div key={l} style={{ background:C.sandDark, borderRadius:4, padding:"8px 10px" }}>
-                    <div style={{ fontSize:9, color:C.slate, textTransform:"uppercase", letterSpacing:0.5 }}>{l}</div>
-                    <div style={{ fontSize:13, fontWeight:700, color:C.navy }}>{v||"—"}</div>
-                  </div>
-                ))}
-              </div>
-
-              <p><strong>Due Diligence Period:</strong> {paModal.ddDays||"10"} days from execution. Buyer has the right to complete marine survey, sea trial, title search, and obtain insurance during this period, with the option to renegotiate or withdraw.</p>
-              <p><strong>Closing Date:</strong> {paModal.closingDate||"To be mutually agreed"}.</p>
-              <p>Vessel is sold <strong>"as-is, where-is"</strong> with no express or implied warranties except as specifically stated herein. Seller represents lawful ownership and the authority to convey clear title free of liens and encumbrances.</p>
-              <p>If Buyer withdraws without cause after due diligence, earnest money may be forfeited per escrow terms. If Seller fails to perform, Buyer is entitled to return of earnest money and may pursue remedies at law.</p>
-              <p style={{ fontWeight:700, color:C.slate }}>FACILITATOR DISCLAIMER: BoatClosers.com is a document facilitation platform only. We are not a broker, escrow agent, attorney, or party to this agreement. Both parties are solely responsible for all aspects of this transaction.</p>
+            <div className="bc-grid3" style={{ gap:8, marginBottom:14 }}>
+              {[["Purchase Price",fmt(paModal.amount)],["Earnest Money",fmt(paModal.deposit)],["Escrow Method",esc]].map(([l,v])=>(
+                <div key={l} style={{ background:C.sandDark, borderRadius:4, padding:"8px 10px" }}>
+                  <div style={{ fontSize:9, color:C.slate, textTransform:"uppercase", letterSpacing:0.5 }}>{l}</div>
+                  <div style={{ fontSize:13, fontWeight:700, color:C.navy }}>{v||"—"}</div>
+                </div>
+              ))}
             </div>
+
+            {!bothSigned && !mySigned && (
+              <button onClick={()=>sigRef.current?.scrollIntoView({ behavior:"smooth", block:"center" })} style={{ ...S.btnBrass, width:"100%", padding:"11px", fontSize:14, marginBottom:14 }}>
+                ✍️ Read the agreement, then scroll to sign ↓
+              </button>
+            )}
+
+            {/* The full, binding Purchase & Sale Agreement — identical to the document both parties receive. */}
+            <style>{PA_DOC_CSS}</style>
+            <div className="bc-pa" style={{ background:"#fffdf8", border:`1px solid ${C.mist}`, borderTop:`4px solid ${C.brass}`, borderRadius:4, padding:"20px 22px", marginBottom:16 }} dangerouslySetInnerHTML={{ __html: paHtml }} />
 
             <hr style={S.divider}/>
 
@@ -1313,6 +1434,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               By signing, both parties agree to the terms above and acknowledge that BoatClosers provides document facilitation only — not legal advice, brokerage, or escrow services.
             </div>
 
+            <div ref={sigRef} style={{ scrollMarginTop:20 }}>
+              <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:C.navy, margin:"4px 0 10px", textAlign:"center", letterSpacing:0.5 }}>✍️ SIGN HERE — {bothSigned ? "both parties have signed" : "type your full legal name on your line"}</div>
             <div className="bc-grid2" style={{ gap:20 }}>
               <div style={{ background:C.sandDark, borderRadius:6, padding:"14px", border: buyerSigned ? `1.5px solid ${C.green}` : `1px solid ${C.mist}` }}>
                 <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>Buyer: {parties.buyer.name||"Buyer"}{iAmBuyer ? " (you)" : ""}</div>
@@ -1351,6 +1474,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 )}
               </div>
             </div>
+            </div>
           </div>
 
           <div style={{ padding:"1rem 1.5rem", borderTop:`1px solid ${C.mist}`, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, flexWrap:"wrap" }}>
@@ -1360,7 +1484,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 {mySigned ? `✓ You've signed — waiting for the ${otherRole} to sign.` : "Sign your line above to continue."}
               </div>
             ) : amInitiator ? (
-              <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 20px" }} onClick={lockDeal}>
+              <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 20px" }} onClick={()=>setPayModal(paModal)}>
                 Pay $249 &amp; make binding →
               </button>
             ) : (
@@ -1566,9 +1690,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         {/* 💵 Price — always shown */}
         <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px", marginBottom:10, background:"#fff" }}>
           <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>💵 Price</div>
-          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, margin:"3px 0 12px", lineHeight:1.55 }}>The amount you're offering for the vessel.</div>
-          <Field label="Offer Amount ($)">
-            <input style={S.input} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder={vessel.askingPrice||"85000"} />
+          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, margin:"3px 0 12px", lineHeight:1.55 }}>The seller's asking price is shown for reference. Enter the amount you're actually offering below it.</div>
+          <Field label="Asking Price ($) — for reference">
+            <input style={S.input} type="number" value={askingPrice} onChange={e=>setAskingPrice(e.target.value)} placeholder={vessel.askingPrice||"85000"} />
+          </Field>
+          <Field label="Your Offer Price ($) *">
+            <input style={S.input} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder="Enter your offer" />
           </Field>
         </div>
 
@@ -4549,6 +4676,7 @@ export default function BoatClosers() {
           {saving && <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontFamily:"sans-serif" }}>Saving…</span>}
           {user && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1 }}>{myDealRole || user.role}</span>}
           {vessel.year && <span style={{ fontSize:11, color:C.brass, fontFamily:"sans-serif" }}>{vessel.year} {vessel.make} {vessel.model}</span>}
+          <button title="Reload to pull the other party's latest offers, messages, and updates" style={{ fontSize:11, color:"#fff", background:C.brass, border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={()=>window.location.reload()}>🔄 Check for updates</button>
           <button style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }} onClick={handleSignOut}>Sign Out</button>
         </div>
       </nav>
@@ -4571,7 +4699,7 @@ export default function BoatClosers() {
       )}
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} userRole={myDealRole || user?.role || "seller"} onNext={()=>goToStep(1)}/>}
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user}/>}
-      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onRefresh={()=>refreshRef.current?.()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
+      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onRefresh={()=>window.location.reload()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
       {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} onBack={()=>setStep(4)}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
