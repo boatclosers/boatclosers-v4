@@ -284,7 +284,7 @@ const ASSISTANT = {
       ],
     },
     seller: {
-      summary: "This is the Deal Room. The buyer authors the offer; as the seller you set your asking anchor, then accept, counter the price, or flag a conflict on the terms. It's free until a full offer is accepted.",
+      summary: "This is the Deal Room. The buyer authors the offer; as the seller you set your asking price, then accept, counter the price, or flag a conflict on the terms. It's free until a full offer is accepted.",
       todo: ["Review the buyer's offer when it arrives", "Accept it, counter the price, or flag a conflict on contingencies or dates", "Negotiate back and forth as needed", "When you agree, sign the Purchase Agreement on your line"],
       next: "Once both sign, the deal initiator pays the $249 to lock it and unlock Due Diligence.",
       faqs: [
@@ -413,9 +413,6 @@ function DealAssistant({ step, role, vessel }) {
               ))}
             </div>
           )}
-          <div style={{ marginTop:12, fontSize:11, fontFamily:"sans-serif", color:C.teal, background:C.tealLight, borderRadius:6, padding:"8px 11px", lineHeight:1.5 }}>
-            💬 Have a different question? Live answers from the assistant are coming soon — for now these cover the common ones at this step.
-          </div>
         </div>
       )}
     </div>
@@ -2288,6 +2285,27 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const [seaTrialNotes, setSeaTrialNotes] = useState("");
   const [seaTrialPass, setSeaTrialPass] = useState(null);
 
+  // Engine tests (buyer): oil analysis + compression test
+  const [engineTestsOpen, setEngineTestsOpen] = useState(false);
+  const [oilLab, setOilLab] = useState(data.oilLab||"");
+  const [oilDate, setOilDate] = useState(data.oilDate||"");
+  const [oilResult, setOilResult] = useState(data.oilResult||"");
+  const [oilNotes, setOilNotes] = useState(data.oilNotes||"");
+  const [oilFile, setOilFile] = useState(null);
+  const [compDate, setCompDate] = useState(data.compDate||"");
+  const [compResult, setCompResult] = useState(data.compResult||"");
+  const [compNotes, setCompNotes] = useState(data.compNotes||"");
+  const [compFile, setCompFile] = useState(null);
+
+  // Sea trial performance numbers
+  const [stWotSpeed, setStWotSpeed] = useState(data.stWotSpeed||"");
+  const [stWotRpm, setStWotRpm] = useState(data.stWotRpm||"");
+  const [stCruiseSpeed, setStCruiseSpeed] = useState(data.stCruiseSpeed||"");
+  const [stCruiseRpm, setStCruiseRpm] = useState(data.stCruiseRpm||"");
+  const [stFuel, setStFuel] = useState(data.stFuel||"");
+  const [stTemp, setStTemp] = useState(data.stTemp||"");
+  const [stSeaState, setStSeaState] = useState(data.stSeaState||"");
+
   // Insurance state
   const [insuranceOpen, setInsuranceOpen] = useState(false);
   const [insuranceCompany, setInsuranceCompany] = useState("");
@@ -2318,7 +2336,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:done?C.green:C.navy }}>{title}</div>
         {subtitle && <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>{subtitle}</div>}
       </div>
-      <div style={{ fontSize:12, color:C.slate }}>{open ? "▲" : "▼"}</div>f
+      <div style={{ fontSize:12, color:C.slate }}>{open ? "▲" : "▼"}</div>
     </div>
   );
 
@@ -2474,6 +2492,63 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           </div>
         )}
 
+        {/* ── ENGINE TESTS: OIL ANALYSIS + COMPRESSION ── */}
+        <SectionHeader icon="🛢️" title="Engine Oil Analysis &amp; Compression Test" subtitle={(oilResult||compResult)?`${oilResult?"Oil: "+oilResult:""}${oilResult&&compResult?" · ":""}${compResult?"Compression: "+compResult:""}`:"Optional lab oil analysis and cylinder compression readings"} open={engineTestsOpen} onToggle={()=>setEngineTestsOpen(v=>!v)} done={!!data.engineTests} />
+        {engineTestsOpen && (
+          <div style={{ paddingTop:14 }}>
+            <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>🛢️ Oil Analysis</div>
+            <Grid2>
+              <Field label="Lab / Provider"><input style={S.input} value={oilLab} onChange={e=>{setOilLab(e.target.value); set("oilLab",e.target.value);}} placeholder="Blackstone Labs, Polaris…" /></Field>
+              <Field label="Sample Date"><input style={S.input} type="date" value={oilDate} onChange={e=>{setOilDate(e.target.value); set("oilDate",e.target.value);}} /></Field>
+            </Grid2>
+            <Field label="Result">
+              <select style={S.select} value={oilResult} onChange={e=>{setOilResult(e.target.value); set("oilResult",e.target.value);}}>
+                <option value="">Select…</option>
+                <option value="Normal">Normal — no abnormal wear metals</option>
+                <option value="Watch">Watch — minor items flagged</option>
+                <option value="Flagged">Flagged — abnormal results, review needed</option>
+              </select>
+            </Field>
+            <Field label="Oil Analysis Notes"><textarea style={{...S.textarea, minHeight:56}} value={oilNotes} onChange={e=>{setOilNotes(e.target.value); set("oilNotes",e.target.value);}} placeholder="Wear metals within normal range. No coolant intrusion. Slight fuel dilution on port engine…" /></Field>
+            {!oilFile ? (
+              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"8px 14px", fontSize:12, fontFamily:"sans-serif", fontWeight:600, marginBottom:12 }}>
+                📎 Upload Oil Analysis Report
+                <input type="file" accept=".pdf,.doc,.docx,.jpg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) setOilFile(e.target.files[0]); }}/>
+              </label>
+            ) : (
+              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green, marginBottom:12 }}>✓ {oilFile.name} <button onClick={()=>setOilFile(null)} style={{ marginLeft:8, fontSize:10, background:"none", border:`1px solid ${C.mist}`, borderRadius:3, padding:"1px 6px", cursor:"pointer", color:C.slate }}>Remove</button></div>
+            )}
+
+            <hr style={S.divider}/>
+
+            <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, margin:"6px 0 8px" }}>🔧 Compression Test</div>
+            <Grid2>
+              <Field label="Test Date"><input style={S.input} type="date" value={compDate} onChange={e=>{setCompDate(e.target.value); set("compDate",e.target.value);}} /></Field>
+              <Field label="Result">
+                <select style={S.select} value={compResult} onChange={e=>{setCompResult(e.target.value); set("compResult",e.target.value);}}>
+                  <option value="">Select…</option>
+                  <option value="Even/Normal">Even across cylinders — normal</option>
+                  <option value="Minor Variance">Minor variance between cylinders</option>
+                  <option value="Low/Uneven">Low or uneven — review needed</option>
+                </select>
+              </Field>
+            </Grid2>
+            <Field label="Cylinder Readings / Notes"><textarea style={{...S.textarea, minHeight:56}} value={compNotes} onChange={e=>{setCompNotes(e.target.value); set("compNotes",e.target.value);}} placeholder="Port: 145/148/146/147 psi. Stbd: 150/149/151/148 psi. All within 10% — healthy." /></Field>
+            {!compFile ? (
+              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"8px 14px", fontSize:12, fontFamily:"sans-serif", fontWeight:600, marginBottom:10 }}>
+                📎 Upload Compression Report
+                <input type="file" accept=".pdf,.doc,.docx,.jpg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) setCompFile(e.target.files[0]); }}/>
+              </label>
+            ) : (
+              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green, marginBottom:10 }}>✓ {compFile.name} <button onClick={()=>setCompFile(null)} style={{ marginLeft:8, fontSize:10, background:"none", border:`1px solid ${C.mist}`, borderRadius:3, padding:"1px 6px", cursor:"pointer", color:C.slate }}>Remove</button></div>
+            )}
+            <label style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, fontFamily:"sans-serif", color:C.slate, cursor:"pointer" }}>
+              <input type="checkbox" checked={!!data.engineTests} onChange={e=>set("engineTests",e.target.checked)} style={{ accentColor:C.navy }} />
+              Mark engine tests complete
+            </label>
+          </div>
+        )}
+
         {/* ── TITLE SEARCH ── */}
         <SectionHeader icon="📋" title="Title Search" subtitle={titleClear===true?"Clear — no liens found":titleClear===false?"Issues found — see notes":"Verify clear title, no liens or encumbrances"} open={titleOpen} onToggle={()=>setTitleOpen(v=>!v)} done={!!data.title} />
         {titleOpen && (
@@ -2525,6 +2600,20 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             <Field label="Sea Trial Notes">
               <textarea style={{...S.textarea, minHeight:72}} value={seaTrialNotes} onChange={e=>setSeaTrialNotes(e.target.value)} placeholder="Both engines started immediately. Cruised at 3,500 RPM for 30 min. All gauges normal. Trim tabs responsive. Minor vibration at WOT — may be prop…" />
             </Field>
+            <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, margin:"10px 0 8px" }}>📈 Performance Numbers</div>
+            <Grid2>
+              <Field label="Wide-Open Throttle (WOT) Speed"><input style={S.input} value={stWotSpeed} onChange={e=>{setStWotSpeed(e.target.value); set("stWotSpeed",e.target.value);}} placeholder="42 kn / 48 mph" /></Field>
+              <Field label="WOT RPM"><input style={S.input} value={stWotRpm} onChange={e=>{setStWotRpm(e.target.value); set("stWotRpm",e.target.value);}} placeholder="5800 rpm" /></Field>
+            </Grid2>
+            <Grid2>
+              <Field label="Cruising Speed"><input style={S.input} value={stCruiseSpeed} onChange={e=>{setStCruiseSpeed(e.target.value); set("stCruiseSpeed",e.target.value);}} placeholder="26 kn / 30 mph" /></Field>
+              <Field label="Cruising RPM"><input style={S.input} value={stCruiseRpm} onChange={e=>{setStCruiseRpm(e.target.value); set("stCruiseRpm",e.target.value);}} placeholder="3500 rpm" /></Field>
+            </Grid2>
+            <Grid2>
+              <Field label="Fuel Consumption (MPG / GPH)"><input style={S.input} value={stFuel} onChange={e=>{setStFuel(e.target.value); set("stFuel",e.target.value);}} placeholder="1.2 mpg / 22 gph @ cruise" /></Field>
+              <Field label="Engine Temp"><input style={S.input} value={stTemp} onChange={e=>{setStTemp(e.target.value); set("stTemp",e.target.value);}} placeholder="180°F both engines" /></Field>
+            </Grid2>
+            <Field label="Sea Conditions"><input style={S.input} value={stSeaState} onChange={e=>{setStSeaState(e.target.value); set("stSeaState",e.target.value);}} placeholder="1–2 ft chop, light wind, calm harbor exit" /></Field>
             {[
               {key:"engines", label:"Engines started and ran normally"},
               {key:"electronics", label:"Electronics / navigation systems tested"},
