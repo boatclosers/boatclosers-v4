@@ -641,7 +641,7 @@ function StepVessel({ data, setData, userRole, onNext }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 1 — PARTIES (role-aware)
 // ─────────────────────────────────────────────────────────────────────────────
-function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, onBack, dealId, user }) {
+function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, onBack, dealId, user, ensureSaved }) {
   const [inviteLink, setInviteLink] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -683,18 +683,26 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
       setInviteError("Enter the other party's email above first.");
       return;
     }
-    if (!dealId || !user?.userId) {
-      setInviteError("Save the deal first, then try again.");
+    if (!user?.userId) {
+      setInviteError("Please sign in again, then try.");
       return;
     }
     setInviteLoading(true);
     setInviteError("");
+    // Make sure the deal is saved and has an id — create it now if needed.
+    let id = dealId;
+    if (!id) id = await (ensureSaved ? ensureSaved() : Promise.resolve(null));
+    if (!id) {
+      setInviteLoading(false);
+      setInviteError("Couldn't save the deal automatically. Add at least one vessel detail, then try again.");
+      return;
+    }
     try {
       const res = await fetch("/api/deals/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          dealId,
+          dealId: id,
           inviteEmail: email || `link-share-${otherSide}@boatclosers.com`,
           inviteRole: otherSide,
           userId: user.userId
@@ -1415,6 +1423,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
     const paAgreed = paModal.amount || 0;
     const paDep = paModal.deposit || 0;
+    // All contingency deadlines are the single Due-Diligence end date set in negotiation.
+    const _ddS = paModal.ddStart || ddStart || data.ddStartDate;
+    const _ddD = paModal.ddDays || ddDays || data.dueDiligenceDays;
+    const paDDEnd = (_ddS && _ddD) ? addDays(_ddS, Number(_ddD)) : "";
     const paFill = {
       dealRef: data.dealRef || ("BC-" + String(Date.now()).slice(-5)),
       effectiveDate: today(),
@@ -1438,7 +1450,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       balanceDue: fmt(Math.max(0, paAgreed - paDep)),
       closingDate: paModal.closingDate || "[Closing Date]",
       closingLocation: vessel.location || "the location where the Vessel is moored",
-      surveyDeadline: "[Survey Deadline]", seaTrialDeadline: "[Sea Trial Deadline]", financingDeadline: "[Financing Deadline]",
+      surveyDeadline: paDDEnd || "____________", seaTrialDeadline: paDDEnd || "____________", financingDeadline: paDDEnd || "____________",
       brokerFee: "$249.00",
       selectedContingencies: (Array.isArray(paModal.contingencies) && paModal.contingencies.length) ? paModal.contingencies : ["survey","seaTrial","title"],
       paymentType: paModal.paymentType || "",
@@ -4411,6 +4423,29 @@ export default function BoatClosers() {
     }, 1200);
   };
 
+  // Create/save the deal immediately and return its id. Used before actions that
+  // need a saved deal (e.g. building an invite link) so the user never has to
+  // manually "save first" — we just do it for them.
+  const ensureDealSaved = async () => {
+    if (dealId) return dealId;
+    if (!user?.token) return null;
+    try {
+      const s = latestState.current;
+      const res = await fetch("/api/deals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + user.token },
+        body: JSON.stringify({
+          role: user?.role,
+          vessel: s.vessel, parties: s.parties, negotiate: s.negotiate,
+          dd_data: s.ddData, docs_data: s.docsData, step: s.step, max_step: s.maxStep
+        })
+      });
+      const d = await res.json();
+      if (d?.deal?.id) { setDealId(d.deal.id); return d.deal.id; }
+    } catch (e) {}
+    return null;
+  };
+
   // Wrap each setter so any change schedules a save
   const withSave = (setter) => (fn) => { setter(fn); scheduleSave(); };
   const setVesselAndSave = withSave(setVessel);
@@ -4729,7 +4764,7 @@ export default function BoatClosers() {
         </div>
       )}
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} userRole={myDealRole || user?.role || "seller"} onNext={()=>goToStep(1)}/>}
-      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user}/>}
+      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user} ensureSaved={ensureDealSaved}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onRefresh={()=>window.location.reload()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
