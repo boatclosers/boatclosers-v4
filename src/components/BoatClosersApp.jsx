@@ -2857,20 +2857,18 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
               <div style={{ fontSize:13, fontWeight:700, color:"#fff", fontFamily:"sans-serif" }}>Vessel Acceptance Document — Required Before Proceeding</div>
               {vaSigned && <span style={{ fontSize:11, background:"rgba(255,255,255,0.2)", color:"#fff", borderRadius:20, padding:"2px 10px", fontFamily:"sans-serif" }}>✓ Signed</span>}
             </div>
-            <div style={{ background:"#fff", padding:"16px 18px", fontSize:11, fontFamily:"sans-serif", color:C.text, lineHeight:1.8 }}>
-              <div style={{ textAlign:"center", borderBottom:`1px solid ${C.mist}`, paddingBottom:10, marginBottom:12 }}>
-                <div style={{ fontSize:8, letterSpacing:3, color:C.brass, fontWeight:700, textTransform:"uppercase" }}>BoatClosers.com</div>
-                <div style={{ fontSize:13, fontWeight:700, letterSpacing:0.5 }}>VESSEL ACCEPTANCE</div>
-                <div style={{ fontSize:10, color:C.slate }}>Date: {today()}</div>
-              </div>
-              <p>The undersigned Buyer hereby formally accepts the following vessel upon completion of the due diligence period:</p>
-              <div style={{ background:C.sandDark, borderRadius:4, padding:"8px 12px", margin:"8px 0" }}>
-                <div><strong>{vessel.year||"[Year]"} {vessel.make||"[Make]"} {vessel.model||"[Model]"}</strong> · HIN: {vessel.hin||"[HIN]"}</div>
-                <div>Engine: {vessel.engineMake||"[Make]"} {vessel.engineModel||""} · Hours: {vessel.engineHours||"[Hours]"}</div>
-                <div>Purchase Price: <strong>{fmt(negotiate.agreedPrice||0)}</strong></div>
-              </div>
-              <p>Buyer acknowledges that the vessel has been inspected, the due diligence period has concluded, and Buyer accepts the vessel in its present condition. By signing, Buyer agrees to proceed to closing under the terms of the Purchase and Sale Agreement.</p>
-              <p style={{ fontWeight:700, color:C.slate }}>BoatClosers is not a party to this transaction. This document is for record-keeping purposes as facilitated by BoatClosers.com.</p>
+            <div style={{ background:"#fff", padding:"16px 18px" }}>
+              <style>{PA_DOC_CSS}</style>
+              <div className="bc-pa" style={{ background:"#fffdf8", border:`1px solid ${C.mist}`, borderTop:`4px solid ${C.brass}`, borderRadius:4, padding:"18px 20px", marginBottom:14 }} dangerouslySetInnerHTML={{ __html: fillDocument(DOCUMENTS.find(d=>d.id==="accept"), {
+                effectiveDate: today(),
+                sellerName: parties.seller?.name || "Seller",
+                buyerName: parties.buyer?.name || vaSigName || "Buyer",
+                vesselYear: vessel.year||"", vesselMake: vessel.make||"", vesselModel: vessel.model||"",
+                hin: vessel.hin || "____________",
+                contList: (negotiate.selectedContingencies || (negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.contingencies || []).map(c=>CONTINGENCY_LABELS[c]||c).join(", ") || "the selected contingencies",
+                closingDate: negotiate.closingDate || (negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.closingDate || "____________",
+                depositAmount: fmt((negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.deposit || 0),
+              }) }} />
               <hr style={S.divider}/>
               <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:4, padding:"9px 12px", fontSize:10, color:"#7a5500", marginBottom:12 }}>
                 By signing, Buyer acknowledges BoatClosers provides document facilitation only — not legal advice or brokerage services — and accepts full responsibility for this transaction.
@@ -2899,6 +2897,10 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
 
         {outcome==="reject" && rejectionReasons.length>0 && (
           <div style={{ background:C.sandDark, borderRadius:5, padding:"12px 14px", marginTop:8 }}>
+            <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>Full Rejection Notice — review before signing</div>
+            <div style={{ background:"#fff", border:`1px solid ${C.mist}`, borderRadius:5, padding:"4px 10px", marginBottom:12 }}>
+              <RejectionNotice rejection={{ reasons: rejectionReasons, notes: rejectionNotes, solution: rejSolution, sig: (rejSigName.trim()||parties.buyer.name||"Buyer"), date: today() }} escrowPath={(negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.escrowPath} viewerRole="buyer" vessel={vessel} />
+            </div>
             <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>Buyer: {parties.buyer.name||"Buyer"} — Formal Rejection</div>
             <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:4, padding:"9px 12px", fontSize:10, color:"#7a5500", marginBottom:10 }}>
               BoatClosers is not a party to this transaction. By signing, you accept full responsibility for the rejection and for arranging the return of any earnest-money deposit.
