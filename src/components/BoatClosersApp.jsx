@@ -4073,9 +4073,9 @@ function Landing({ onStart }) {
       {/* Problem / Solution */}
       <Section style={{ textAlign:"center" }}>
         <div style={{ fontSize:11, letterSpacing:3, color:C.brass, textTransform:"uppercase", fontFamily:"sans-serif", marginBottom:14 }}>The Problem</div>
-        <h2 style={{ fontSize:29, marginBottom:16 }}>A boat deal shouldn't cost you $8,500 in commission.</h2>
+        <h2 style={{ fontSize:29, marginBottom:16 }}>A boat deal shouldn't cost you $15,000 in commission.</h2>
         <p style={{ fontSize:15, fontFamily:"sans-serif", color:C.slate, lineHeight:1.85, maxWidth:660, margin:"0 auto 36px" }}>
-          On an $85,000 boat, a broker's 10% is around <strong style={{ color:C.navy }}>$8,500</strong> — for paperwork and coordination a motivated buyer and seller can handle themselves. And if your situation is anything but ordinary — an inherited boat, a loan still owed, a lost title — most people have nowhere to turn at all. The hard part was never the deal. It's the documents, the title paperwork, the escrow, and the fear of missing a step that costs you later.
+          On a $150,000 boat, a broker's 10% runs about <strong style={{ color:C.navy }}>$15,000</strong> — for paperwork and coordination a motivated buyer and seller can handle themselves. And these days, you often found the buyer yourself: a good listing, a few photos, and the reach of Facebook Marketplace or a boating group did the work a broker used to charge for. The hard part was never finding each other. It's the documents, the title paperwork, the escrow, and the fear of missing a step that costs you later.
         </p>
         <div style={{ fontSize:11, letterSpacing:3, color:C.brass, textTransform:"uppercase", fontFamily:"sans-serif", marginBottom:14 }}>The Solution</div>
         <h2 style={{ fontSize:29, marginBottom:16 }}>Every document, every step — for a flat $249.</h2>
@@ -4083,6 +4083,45 @@ function Landing({ onStart }) {
           BoatClosers gives you the exact paperwork and closing process used in professional vessel sales — the purchase agreement, the title-transfer documents, escrow options, and a guided due-diligence and closing checklist. Every step reflects real private boat closings, including the messy ones most DIY templates ignore. You stay in control of your own deal — and you keep the commission.
         </p>
       </Section>
+
+      {/* You found the buyer — callout */}
+      <div style={{ background:C.sandDark, padding:"3rem 2rem" }}>
+        <div style={{ maxWidth:760, margin:"0 auto", textAlign:"center" }}>
+          <div style={{ fontSize:23, fontWeight:700, color:C.navy, fontFamily:"'Georgia',serif", lineHeight:1.4, marginBottom:12 }}>
+            You did the hard part. You found your buyer.
+          </div>
+          <p style={{ fontSize:14.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.8, maxWidth:600, margin:"0 auto" }}>
+            Marketing a boat has never been easier — a sharp listing and a few good photos reach thousands of buyers on their own. Once you and the buyer have found each other, handing a broker 10% for the paperwork is the expensive part. BoatClosers gives you that same professional closing process for a flat $249 — so the value you created stays with you.
+          </p>
+        </div>
+      </div>
+
+      {/* Deal tracker preview */}
+      <div style={{ background:C.white, padding:"4.5rem 2rem", borderTop:`0.5px solid ${C.mist}`, borderBottom:`0.5px solid ${C.mist}` }}>
+        <div style={{ maxWidth:880, margin:"0 auto" }}>
+          <div style={{ fontSize:11, letterSpacing:3, color:C.brass, textTransform:"uppercase", fontFamily:"sans-serif", marginBottom:14, textAlign:"center" }}>The Whole Deal, In One Place</div>
+          <h2 style={{ textAlign:"center", fontSize:28, marginBottom:8 }}>Watch Your Deal Move From Offer to Closed</h2>
+          <p style={{ textAlign:"center", fontSize:14, fontFamily:"sans-serif", color:C.slate, marginBottom:44, maxWidth:600, marginLeft:"auto", marginRight:"auto" }}>
+            Every deal follows one clear track. Both sides always know exactly where things stand and what happens next — that's what the flat $249 buys you.
+          </p>
+          <div style={{ display:"flex", flexDirection:isMobile?"column":"row", justifyContent:"space-between", gap:isMobile?16:0 }}>
+            {[
+              ["📝","Offer & Terms","Deposit-backed offer, accepted by both sides"],
+              ["🔒","Deal Locked","Purchase agreement signed — boat off the market"],
+              ["🔍","Due Diligence","Survey, sea trial, and title & lien check"],
+              ["✍️","Documents Signed","Every form auto-filled, signed, and shared"],
+              ["🏁","Closed","Title transferred and the deal is done"],
+            ].map(([ic,t,d],i,a)=>(
+              <div key={t} style={{ flex:1, textAlign:"center", position:"relative", padding:isMobile?"0":"0 4px" }}>
+                {!isMobile && i<a.length-1 && <div style={{ position:"absolute", top:23, left:"50%", width:"100%", height:2, background:C.mist, zIndex:0 }} />}
+                <div style={{ width:48, height:48, borderRadius:"50%", background:C.navy, color:C.brass2, display:"flex", alignItems:"center", justifyContent:"center", fontSize:21, margin:"0 auto", position:"relative", zIndex:1 }}>{ic}</div>
+                <div style={{ fontSize:13, fontWeight:700, color:C.navy, marginTop:11, fontFamily:"sans-serif" }}>{t}</div>
+                <div style={{ fontSize:11, color:C.slate, fontFamily:"sans-serif", lineHeight:1.5, marginTop:3, maxWidth:150, marginLeft:"auto", marginRight:"auto" }}>{d}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Features */}
       <Section style={{ paddingTop:"1.5rem" }}>
@@ -4196,14 +4235,14 @@ function Landing({ onStart }) {
             <div style={{ fontSize:56, fontWeight:800, color:"#fff", fontFamily:"sans-serif", lineHeight:1 }}>$249</div>
             <div style={{ fontSize:12, color:"rgba(255,255,255,0.45)", marginBottom:24, fontFamily:"sans-serif" }}>Flat fee · One vessel · One deal</div>
             <div style={{ textAlign:"left", fontSize:13, fontFamily:"sans-serif", lineHeight:2.2, color:"rgba(255,255,255,0.75)" }}>
-              {[`All ${DOC_COUNT} professional documents, ${CAT_COUNT} categories`,"Smart selection — see only what your deal needs","Electronic signatures for both parties","Title-transfer & registration paperwork","Full negotiation, offers & contingencies","Three escrow path options","Due-diligence & closing checklists","PDF download package — both parties","No commission, no subscription, ever"].map(f=>(
+              {[`All ${DOC_COUNT} professional documents, ${CAT_COUNT} categories`,"Smart selection — see only what your deal needs","Electronic signatures for both parties","Title-transfer & registration paperwork","Full negotiation, offers & contingencies","Five escrow options — Escrow.com, attorney, licensed broker, direct, or custom","Due-diligence & closing checklists","PDF download package — both parties","No commission, no subscription, ever"].map(f=>(
                 <div key={f}>✓ {f}</div>
               ))}
             </div>
             <button style={{...S.btnBrass, marginTop:24, fontSize:15, padding:"13px", width:"100%"}} onClick={onStart}>
               Start Free — Pay When Ready
             </button>
-            <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", marginTop:12, fontFamily:"sans-serif" }}>vs. broker commission: typically $4,000–$15,000+</div>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", marginTop:12, fontFamily:"sans-serif" }}>vs. broker commission: typically $10,000–$50,000+</div>
           </div>
         </div>
       </div>
@@ -4222,7 +4261,8 @@ function Landing({ onStart }) {
           ["What if the seller still owes money on the boat?","The deal includes a payoff authorization and lien release so the seller's existing loan is cleared from the title at closing — letting clean title pass to the buyer. The buyer should confirm the lien is released before final payment."],
           ["What if I inherited a boat I want to sell?","BoatClosers includes an estate and inheritance section with a plain-language guide plus affidavit of heirship, executor authorization, and small-estate forms. Estate rules vary by state, so the app points you to when a probate attorney is needed."],
           ["Who pays the $249 fee?","Whoever starts the deal pays the flat fee and controls the vessel details and terms. The other party joins free to review, add their information, and sign."],
-          ["What escrow options do I have, and do you hold the money?","You choose: Escrow.com (a licensed third party, recommended), a direct wire to the seller, or a private attorney. BoatClosers never holds, touches, or releases funds."],
+          ["What escrow options do I have, and do you hold the money?","You choose from five: Escrow.com (a licensed third party, recommended), a licensed boat brokerage's trust account, a private attorney or title company, a direct wire to the seller, or your own custom arrangement. BoatClosers never holds, touches, or releases funds."],
+          ["Can I still use a broker or attorney if I want one?","Yes. BoatClosers is built so you don't need one, but nothing stops you from bringing one in — for example, letting a licensed brokerage's trust account hold the escrow deposit, or having an attorney review the agreement before you sign. You run the deal and bring in whatever help you're comfortable with."],
           ["What if the deal falls through?","If the buyer formally rejects during due diligence, the earnest money is returned and the reason is recorded in a Rejection Notice. BoatClosers does not hold or release any funds."],
         ].map(([q,a])=>(
           <div key={q} style={{ borderBottom:`1px solid ${C.mist}`, padding:"16px 0" }}>
