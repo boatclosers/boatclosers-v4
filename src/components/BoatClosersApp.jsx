@@ -944,6 +944,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const paBothSigned = paBuyerName.trim() && paSellerName.trim() && paBuyerDisc && paSellerDisc;
   // Payment window (initiator pays the $249 fee). SIMULATED until Stripe is wired.
   const [payModal, setPayModal] = useState(null); // null or the offer being paid for
+  const [payFeeAmt, setPayFeeAmt] = useState(249); // 249 full, 124.5 split-half
+  const [payWho, setPayWho] = useState("initiator"); // which side this payment is for
   const [payCard, setPayCard] = useState({ name:"", num:"", exp:"", cvc:"", zip:"" });
   const [payProcessing, setPayProcessing] = useState(false);
   // Signature section ref — when the agreement opens, scroll the user straight to
@@ -1164,6 +1166,29 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     setPaBuyerName(""); setPaSellerName(""); setPaBuyerDisc(false); setPaSellerDisc(false);
   };
 
+  // ── Payment plan: full / split 50-50 / ask the other party ──
+  const otherPayRole = myRole === "buyer" ? "seller" : "buyer";
+  const otherPayName = parties[otherPayRole]?.name || (otherPayRole === "buyer" ? "the buyer" : "the seller");
+  const payPlan = data.payPlan || "full";
+  const setPayPlan = (p) => setData(d => ({ ...d, payPlan: p }));
+  const openCheckout = (who, fee) => { setPayWho(who); setPayFeeAmt(fee); setPayModal(agreedOffer || acceptedOffer); };
+  const recordPayment = (who) => {
+    const plan = data.payPlan || "full";
+    const paidInit = who === "initiator" ? true : !!data.paidInitiator;
+    const paidOth  = who === "other"     ? true : !!data.paidOther;
+    const complete = plan === "full" ? paidInit : plan === "other" ? paidOth : (paidInit && paidOth);
+    if (complete) { lockDeal(agreedOffer); return; }
+    const note = { from:"system", text:`💳 ${who==="initiator"?"The deal initiator":"The other party"} paid their half ($124.50). The deal locks once the other half is paid.`, time:new Date().toLocaleTimeString() };
+    const updatedMsgs = [...messages, note];
+    setMessages(updatedMsgs);
+    setData(d => ({ ...d, payPlan:plan, paidInitiator:paidInit, paidOther:paidOth, messages:updatedMsgs }));
+  };
+  // Safety net: if a sync catches up and both split-halves are in, lock the deal.
+  useEffect(() => {
+    if (data.dealLocked || data.paid) return;
+    if (data.payPlan === "split" && data.paidInitiator && data.paidOther && agreedOffer) lockDeal(agreedOffer);
+  }, [data.paidInitiator, data.paidOther, data.payPlan, data.dealLocked, data.paid]);
+
   const rejectOffer = (id) => {
     const updatedOffers = offers.map(of => of.id===id ? {...of, status:"rejected"} : of);
     const note = { from: myRole, text:`✗ I've rejected the ${fmt(offers.find(o=>o.id===id)?.amount||0)} offer.`, time:new Date().toLocaleTimeString() };
@@ -1257,19 +1282,51 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             </>
           ) : amInitiator ? (
             <>
-              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:14, fontWeight:600 }}>
-                The Purchase Agreement is fully signed. Pay the one-time <b>$249</b> to make the deal binding and unlock Due Diligence, Documents, and Closing for both parties.
+              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
+                The Purchase Agreement is fully signed. Choose how the one-time <b>$249</b> fee gets paid, then complete it to make the deal binding and unlock Due Diligence, Documents, and Closing for both parties.
               </div>
-              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-                <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>setPayModal(agreedOffer)}>💳 Pay $249 &amp; unlock the deal →</button>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
+                {[["full","I'll pay","$249"],["split","Split 50/50","$124.50 each"],["other",`Ask ${otherPayName}`,"they pay $249"]].map(([id,label,sub])=>(
+                  <button key={id} onClick={()=>setPayPlan(id)} style={{ padding:"10px 8px", borderRadius:6, cursor:"pointer", textAlign:"center", fontFamily:"sans-serif", border:`2px solid ${payPlan===id?C.brass:C.mist}`, background:payPlan===id?"#fff8e6":"transparent" }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:C.navy }}>{label}</div>
+                    <div style={{ fontSize:10, color:C.slate, marginTop:2 }}>{sub}</div>
+                  </button>
+                ))}
+              </div>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
+                {payPlan==="full" && <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("initiator",249)}>💳 Pay $249 &amp; unlock the deal →</button>}
+                {payPlan==="split" && (data.paidInitiator
+                  ? <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:"#166534", fontWeight:600 }}>✓ You paid your half. Waiting for {otherPayName} to pay theirs — it unlocks automatically.</div>
+                  : <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("initiator",124.5)}>💳 Pay your half $124.50 →</button>)}
+                {payPlan==="other" && (data.paidOther
+                  ? <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:"#166534", fontWeight:600 }}>✓ {otherPayName} paid — unlocking…</div>
+                  : <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, fontWeight:600 }}>Waiting for {otherPayName} to pay the $249. They see the request on their side, and it unlocks the moment they pay.</div>)}
                 <button style={{ ...S.btnOutline, fontSize:13, padding:"13px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
               </div>
             </>
           ) : (
             <>
-              <div style={{ fontSize:13, fontFamily:"sans-serif", color:"#166534", lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
-                ✓ All signed! Waiting for the party who started this deal to pay the one-time $249 and make it binding — <b>nothing for you to pay</b>. You'll be unlocked automatically the moment they do.
-              </div>
+              {payPlan==="full" && (
+                <div style={{ fontSize:13, fontFamily:"sans-serif", color:"#166534", lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
+                  ✓ All signed! Waiting for the party who started this deal to pay the one-time $249 and make it binding — <b>nothing for you to pay</b>. You'll be unlocked automatically the moment they do.
+                </div>
+              )}
+              {payPlan==="split" && (
+                <div style={{ marginBottom:12 }}>
+                  <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:10, fontWeight:600 }}>The other party chose to <b>split the $249 fee 50/50</b>. Your share is <b>$124.50</b>.</div>
+                  {data.paidOther
+                    ? <div style={{ fontSize:12.5, color:"#166534", fontFamily:"sans-serif", fontWeight:600 }}>✓ You paid your half. Waiting for their half — it unlocks automatically.</div>
+                    : <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("other",124.5)}>💳 Pay your half $124.50 →</button>}
+                </div>
+              )}
+              {payPlan==="other" && (
+                <div style={{ marginBottom:12 }}>
+                  <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:10, fontWeight:600 }}>The other party asked <b>you</b> to pay the one-time <b>$249</b> fee to lock the deal and unlock Due Diligence, Documents, and Closing.</div>
+                  {data.paidOther
+                    ? <div style={{ fontSize:12.5, color:"#166534", fontFamily:"sans-serif", fontWeight:600 }}>✓ Paid — unlocking…</div>
+                    : <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("other",249)}>💳 Pay $249 &amp; unlock the deal →</button>}
+                </div>
+              )}
               <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
             </>
           )}
@@ -1304,13 +1361,13 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // the rest of this window (summary, fields, success → lockDeal) stays the same.
   if (payModal) {
     const amt = payModal.amount || 0;
-    const fee = 249;
+    const fee = payFeeAmt;
     const card = payCard;
     const validCard = card.name.trim() && card.num.replace(/\s/g, "").length >= 12 && card.exp.trim() && card.cvc.trim();
     const doPay = () => {
       if (!validCard || payProcessing) return;
       setPayProcessing(true);
-      setTimeout(() => { setPayProcessing(false); setPayModal(null); lockDeal(payModal); }, 1400);
+      setTimeout(() => { setPayProcessing(false); setPayModal(null); recordPayment(payWho); }, 1400);
     };
     return (
       <div style={{ minHeight:"100vh", background:"rgba(8,21,46,0.85)", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"2rem 1rem" }}>
@@ -1321,9 +1378,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </div>
           <div style={{ padding:"1.4rem 1.5rem" }}>
             <div style={{ background:C.sandDark, borderRadius:8, padding:"14px 16px", marginBottom:18 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, fontFamily:"sans-serif", color:C.text, marginBottom:6 }}><span>BoatClosers deal fee (one-time)</span><span style={{ fontWeight:700 }}>${fee}.00</span></div>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, fontFamily:"sans-serif", color:C.text, marginBottom:6 }}><span>{fee < 249 ? "BoatClosers deal fee — your half" : "BoatClosers deal fee (one-time)"}</span><span style={{ fontWeight:700 }}>${fee.toFixed(2)}</span></div>
               <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.5, marginBottom:10 }}>For the {vessel.year} {vessel.make} {vessel.model} — {fmt(amt)}. Unlocks Due Diligence, Documents, and Closing for both parties and makes the signed agreement binding.</div>
-              <div style={{ borderTop:`1px solid ${C.mist}`, paddingTop:8, display:"flex", justifyContent:"space-between", fontSize:15, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}><span>Total due today</span><span>${fee}.00</span></div>
+              <div style={{ borderTop:`1px solid ${C.mist}`, paddingTop:8, display:"flex", justifyContent:"space-between", fontSize:15, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}><span>Total due today</span><span>${fee.toFixed(2)}</span></div>
             </div>
             <label style={S.label}>Name on card</label>
             <input style={S.input} value={card.name} onChange={e=>setPayCard(c=>({ ...c, name:capFirst(e.target.value) }))} placeholder="Full name" />
@@ -1336,7 +1393,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             </div>
             <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, margin:"12px 0", display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>🔒 Payments are encrypted. <span style={{ color:C.brass, fontWeight:700 }}>Test mode — no real charge yet.</span></div>
             <button onClick={doPay} disabled={!validCard||payProcessing} style={{ ...S.btnBrass, width:"100%", padding:"13px", fontSize:15, fontWeight:700, opacity:(!validCard||payProcessing)?0.5:1 }}>
-              {payProcessing ? "Processing…" : `Pay $${fee}.00`}
+              {payProcessing ? "Processing…" : `Pay $${fee.toFixed(2)}`}
             </button>
             <button onClick={()=>{ if(!payProcessing) setPayModal(null); }} style={{ ...S.btnOutline, width:"100%", padding:"10px", fontSize:13, marginTop:10 }}>Cancel</button>
           </div>
