@@ -378,13 +378,46 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
   // ── helpers ──
   const setAction = (id, action) => setDocAction(d => ({ ...d, [id]: d[id] === action ? null : action }));
+  // Turn a filled in-app document into a self-contained HTML file so it can be
+  // attached to the "send" email. Bakes in merge fields AND any values typed into
+  // the tap-to-fill blanks, then wraps it in the same document styling.
+  const b64Unicode = (str) => { try { return btoa(unescape(encodeURIComponent(str))); } catch (e) { return btoa(str); } };
+  const buildDocFile = (docObj) => {
+    let body = prepHtml(fillDocument(docObj, deal), docObj.id);
+    const saved = fieldState[docObj.id] || {};
+    body = body.replace(/<span class="bc-fill-in" data-fk="([^"]+)">________<\/span>/g, (m, fk) => {
+      const v = saved[fk];
+      return `<span class="bc-fill-in">${(v != null && v !== "") ? String(v).replace(/</g, "&lt;").replace(/>/g, "&gt;") : "________"}</span>`;
+    });
+    body = body.replace("<!--CHECKLIST-->", "");
+    const css = docCSS +
+      "\n.bc-doc-paper{max-height:none;overflow:visible;border:none;border-top:4px solid " + C.brass + ";padding:26px 28px}" +
+      "\nbody{margin:0;padding:24px;background:#fff}" +
+      "\n.bc-fill-hint,.bc-lock-note{display:none}" +
+      "\n.bc-fill-in{border-bottom:1px solid " + C.brass + ";padding:0 4px;min-width:80px;display:inline-block}" +
+      "\n@page{margin:0.6in}";
+    return '<!doctype html><html><head><meta charset="utf-8"><title>' + (docObj.title || "Document") + '</title><style>' + css + '</style></head><body>' +
+      '<div class="bc-doc-paper">' +
+      (docObj.eyebrow ? '<div class="bc-doc-eyebrow">' + docObj.eyebrow + '</div>' : '') +
+      '<div class="bc-doc-title">' + (docObj.title || "") + '</div>' +
+      body +
+      '</div></body></html>';
+  };
+
   const sendDoc = async (docId, docName) => {
     const to = sendEmail[docId]?.trim(); if (!to) return;
     setSendErr(e => ({ ...e, [docId]: "" }));
     setSending(s => ({ ...s, [docId]: true }));
     try {
       const att = uploadedData[docId];
-      const attachment = att?.dataURL ? { filename: att.name, content: String(att.dataURL).split(",")[1] || "" } : null;
+      let attachment = att?.dataURL ? { filename: att.name, content: String(att.dataURL).split(",")[1] || "" } : null;
+      if (!attachment) {
+        const docObj = DOC_SET.find(d => d.id === docId);
+        if (docObj) {
+          const safe = (docName || "Document").replace(/[^\w\- ]+/g, "").trim().slice(0, 60) || "Document";
+          attachment = { filename: safe + ".html", content: b64Unicode(buildDocFile(docObj)) };
+        }
+      }
       const res = await fetch("/api/deals/send-doc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
