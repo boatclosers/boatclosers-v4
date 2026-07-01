@@ -159,6 +159,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [sigName, setSigName] = useState({});
 
   const [docAction, setDocAction] = useState({});
+  const [activeDoc, setActiveDoc] = useState(null); // the one document currently opened for work
   // Collapsible groups — required group open by default, the rest collapsed.
   const [openGroups, setOpenGroups] = useState({ "Closing Instruments": true });
   const [esignConsent, setEsignConsent] = useState({}); // per-doc consent before e-signing
@@ -215,9 +216,18 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     return head2 + tail;
   };
 
+  // Open one document into focused view: mark it active, show its filled body,
+  // and make sure its group is expanded.
+  const openDoc = (docId) => {
+    setActiveDoc(docId);
+    setDocAction(d => ({ ...d, [docId]: "view" }));
+    const grp = (DOC_SET.find(x => x.id === docId) || {}).group;
+    if (grp) setOpenGroups(g => ({ ...g, [grp]: true }));
+  };
+
   // Jump to a document from the required-docs tracker: open it and scroll to it.
   const jumpToDoc = (docId) => {
-    setDocAction(d => ({ ...d, [docId]: "view" }));
+    openDoc(docId);
     if (typeof document !== "undefined") {
       setTimeout(() => {
         const el = document.getElementById("bcdoc-" + docId);
@@ -612,7 +622,25 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
               const needsNotary = doc.kind !== "upload" && (doc.body||"").includes("Notary Acknowledgment");
               return (
               <div key={doc.id} id={"bcdoc-"+doc.id}>
-                <div style={{ padding:"11px 0" }}>
+                {activeDoc!==doc.id ? (
+                  <button onClick={()=>openDoc(doc.id)} className="bc-docrow" style={{ width:"100%", textAlign:"left", background:"transparent", border:"none", borderRadius:6, padding:"11px 4px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
+                      <div style={{ width:28, height:28, borderRadius:5, flexShrink:0, background: signed[doc.id] ? C.greenLight : C.sandDark, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13 }}>{signed[doc.id] ? (signed[doc.id].uploaded ? "📎" : signed[doc.id].manual ? "✍️" : "✅") : "📄"}</div>
+                      <div style={{ minWidth:0 }}>
+                        <div style={{ fontSize:12.5, fontWeight:600, color:C.navy }}>{doc.title}</div>
+                        <div style={{ display:"flex", gap:5, marginTop:2, flexWrap:"wrap" }}>
+                          {doc.required && <span style={{...S.tag, background:"#fff3cd", color:"#7a5500"}}>Required</span>}
+                          {needsNotary && <span style={{...S.tag, background:"#fbf4e3", color:"#8a6d1a"}}>Notary</span>}
+                          {signed[doc.id] && <span style={{...S.tag, background:C.greenLight, color:C.green}}>✓ Signed</span>}
+                          {sentLog[doc.id]?.length > 0 && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Sent</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize:11.5, color:C.brass, fontWeight:700, whiteSpace:"nowrap" }}>Open →</span>
+                  </button>
+                ) : (
+                <div style={{ background:"#fcfaf4", borderRadius:8, border:`1px solid ${C.mist}`, padding:"12px 14px" }}>
+                  <button onClick={()=>setActiveDoc(null)} style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, background:"none", border:"none", cursor:"pointer", padding:"0 0 10px", fontWeight:700 }}>← Back to documents</button>
                   <div className="bc-docrow">
                     <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
                       <div style={{ width:30, height:30, borderRadius:5, flexShrink:0, background: signed[doc.id] ? C.greenLight : C.sandDark, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>
@@ -827,6 +855,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                     </div>
                   )}
                 </div>
+                )}
                 {i<arr.length-1 && <hr style={{...S.divider, margin:0}}/>}
               </div>
             );})}
