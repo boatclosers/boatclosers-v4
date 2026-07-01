@@ -176,6 +176,8 @@ function Grid2({ children, gap }) {
 }
 
 // ── OFFER SECTION — expandable, self-explaining opt-in box for the offer builder ──
+function escLabel(p){ return p==="escrow_com"?"Escrow.com":p==="attorney"?"Third-Party Attorney":p==="brokerage"?"Licensed Broker":p==="custom"?"Custom / Other":"Direct to Seller"; }
+
 function OfferSection({ icon, title, desc, checked, onToggle, children }) {
   return (
     <div style={{ border:`1px solid ${checked?C.brass:C.mist}`, borderRadius:8, marginBottom:10, overflow:"hidden", background:checked?"#fffdf8":"#fff" }}>
@@ -1056,7 +1058,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       setData(d => ({...d, offers: updated}));
       return updated;
     });
-    const escrowLabel = escrowPath==="escrow_com"?"Escrow.com":escrowPath==="attorney"?"Third Party Attorney":"Direct to Seller";
+    const escrowLabel = escLabel(escrowPath);
     const parts = [`${fromRole==="buyer"?"Offer":"Counter"}: ${fmt(amt)}`];
     parts.push(deposit>0?`${fmt(deposit)} (${escrowPct}%) earnest via ${escrowLabel}`:"No deposit");
     if (inclContingencies && localContingencies.length) parts.push(`Contingent on ${contingencyNames(localContingencies)}`);
@@ -1348,7 +1350,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
   // ── PURCHASE AGREEMENT MODAL ─────────────────────────────────────────────
   if (paModal) {
-    const esc = paModal.escrowPath==="escrow_com"?"Escrow.com":paModal.escrowPath==="attorney"?"Third Party Attorney":"Direct to Seller";
+    const esc = escLabel(paModal.escrowPath);
     const live = offers.find(o => o.id===paModal.id) || paModal;
     const buyerSigned = !!(live.paBuyerSig && live.paBuyerDisc);
     const sellerSigned = !!(live.paSellerSig && live.paSellerDisc);
@@ -1699,24 +1701,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </Field>
         </div>
 
-        {/* 🤝 Deposit — always shown */}
-        <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px", marginBottom:10, background:"#fff" }}>
-          <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>🤝 Earnest-Money Deposit</div>
-          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, margin:"3px 0 12px", lineHeight:1.55 }}>The good-faith deposit that shows you're serious — it's what secures the boat. You'll choose where it's held (escrow.com, an attorney, or direct) at the bottom of this form. BoatClosers never holds funds.</div>
-          <div style={ myRole==="seller" ? { pointerEvents:"none", opacity:0.6 } : undefined }>
-          <Field label="Deposit Amount">
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:5 }}>
-              {["0","5","7.5","10"].map(p => (
-                <button key={p} onClick={()=>setEscrowPct(p)} style={{ ...S.btnOutline, background:escrowPct===p?C.navy:"transparent", color:escrowPct===p?"#fff":C.navy, fontSize:11, padding:"7px 0", textAlign:"center" }}>
-                  {p==="0"?"None":`${p}%`}
-                </button>
-              ))}
-            </div>
-            {escrowPct!=="0" && offerAmt && <div style={{ fontSize:11, color:C.teal, fontFamily:"sans-serif", marginTop:5 }}>Deposit: {fmt(Math.round(Number(offerAmt)*Number(escrowPct)/100))}</div>}
-          </Field>
-          </div>
-        </div>
-
         {/* Terms below are authored by the buyer — read-only for the seller. */}
         <div style={ myRole==="seller" ? { pointerEvents:"none", opacity:0.6 } : undefined }>
 
@@ -1740,7 +1724,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           {ddExtension && (<Grid2><Field label="Max extension days"><input style={S.input} type="number" value={ddExtDays} onChange={e=>setDdExtDays(e.target.value)} placeholder="7" /></Field><Field label="If extended, deposit:"><select style={S.select} value={ddExtDepositRule} onChange={e=>setDdExtDepositRule(e.target.value)}><option value="returnable">Stays returnable</option><option value="nonrefundable">Becomes non-refundable</option><option value="partial">50% non-refundable</option></select></Field></Grid2>)}
           <Grid2>
             <Field label="Target Closing Date"><input style={S.input} type="date" value={closingDate} min={ddStart && ddDays ? addDays(ddStart,Number(ddDays)) : today()} onChange={e=>setClosingDate(e.target.value)} /></Field>
-            <Field label="Payment Method"><select style={S.select} value={paymentType} onChange={e=>setPaymentType(e.target.value)}><option value="cash">All Cash</option><option value="cash_quick">Cash — Quick Close (7 days)</option><option value="finance">Financed</option><option value="other">Other / TBD</option></select></Field>
+            <Field label="Final Payment"><select style={S.select} value={paymentType} onChange={e=>setPaymentType(e.target.value)}><option value="cash">All Cash</option><option value="finance">Financed</option><option value="other">Other / TBD</option></select></Field>
           </Grid2>
           {paymentType==="finance" && (<Field label="Financing contingency (days)"><input style={{...S.input, maxWidth:140}} type="number" value={financeContingency} onChange={e=>setFinanceContingency(e.target.value)} placeholder="14" /></Field>)}
         </OfferSection>
@@ -1750,8 +1734,18 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <ContingencyPicker value={localContingencies} onChange={setLocalContingencies} paymentType={paymentType} ddEnd={ddStart && ddDays ? addDays(ddStart, Number(ddDays)) : ""} />
         </OfferSection>
 
-        {/* 📋 Deposit Terms, Escrow & Notes — opt-in */}
-        <OfferSection icon="📋" title="Deposit Terms, Escrow &amp; Notes" desc="Where the deposit is held, what happens to it if the deal falls through, and any notes — included gear, a trailer, or special conditions." checked={inclDepositTerms} onToggle={()=>setInclDepositTerms(v=>!v)}>
+        {/* 🔒 Escrow Terms — opt-in (deposit amount, terms, and where it's held all together) */}
+        <OfferSection icon="🔒" title="Escrow Terms" desc="The good-faith deposit that secures the boat — how much, what happens to it if the deal falls through, and where it's held. BoatClosers never holds funds." checked={inclDepositTerms} onToggle={()=>setInclDepositTerms(v=>!v)}>
+          <label style={S.label}>Deposit Amount</label>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:5 }}>
+            {["0","5","7.5","10"].map(p => (
+              <button key={p} onClick={()=>setEscrowPct(p)} style={{ ...S.btnOutline, background:escrowPct===p?C.navy:"transparent", color:escrowPct===p?"#fff":C.navy, fontSize:11, padding:"7px 0", textAlign:"center" }}>
+                {p==="0"?"None":`${p}%`}
+              </button>
+            ))}
+          </div>
+          {escrowPct!=="0" && offerAmt && <div style={{ fontSize:11, color:C.teal, fontFamily:"sans-serif", marginTop:5 }}>Deposit: {fmt(Math.round(Number(offerAmt)*Number(escrowPct)/100))}</div>}
+          <div style={{ height:14 }}/>
           <label style={S.label}>If the deal falls through, the earnest money is…</label>
           <select style={S.select} value={depositRule} onChange={e=>setDepositRule(e.target.value)}>
             <option value="fully_returnable">Fully returnable if buyer rejects during due diligence</option>
@@ -1773,7 +1767,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             After the deal locks, the buyer uploads proof of the earnest-money deposit within this window. If proof isn't provided in time the deal can expire — the seller may grant an extension or end it.
           </div>
           <div style={{ height:10 }}/>
-          <Field label="Notes (optional — appears in the Purchase Agreement)"><textarea style={{...S.textarea, minHeight:48}} value={verbalNote} onChange={e=>setVerbalNote(e.target.value)} placeholder="e.g. Includes trailer and electronics. Closing at seller's marina." /></Field>
+          <Field label="Additional Contingencies (appears on the Purchase Agreement)"><textarea style={{...S.textarea, minHeight:48}} value={verbalNote} onChange={e=>setVerbalNote(e.target.value)} placeholder="e.g. Sale contingent on slip/dock transfer. Includes trailer and electronics. Closing at seller's marina." /></Field>
           <div style={{ height:16 }}/>
           <label style={S.label}>Escrow Method — where the deposit is held</label>
           <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
@@ -1891,7 +1885,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                       {o.verbal && <span style={{...S.pill, background:C.tealLight, color:C.teal}}>Verbal</span>}
                     </div>
                     <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:4, lineHeight:1.5 }}>
-                      Deposit: {o.escrowPct}% ({fmt(o.deposit)}) · {o.escrowPath==="escrow_com"?"Escrow.com":o.escrowPath==="attorney"?"Attorney":"Direct"}
+                      Deposit: {o.escrowPct}% ({fmt(o.deposit)}) · {escLabel(o.escrowPath)}
                       {o.inclContingencies && o.contingencies?.length ? ` · Contingent on ${contingencyNames(o.contingencies)}` : " · no contingencies"}
                       {o.inclDates ? ` · Due Diligence ${o.ddDays} days · Close ${o.closingDate||"TBD"}` : " · dates open"}
                     </div>
@@ -1933,14 +1927,14 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         <button onClick={()=>setShowMessages(true)} style={{ display:"flex", width:"100%", justifyContent:"space-between", alignItems:"center", background:"transparent", border:"none", cursor:"pointer", padding:0 }}>
           <div style={{ textAlign:"left" }}>
             <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>💬 Messages {messages.length>0 && <span style={{ fontSize:11, fontWeight:400, color:C.slate }}>({messages.length})</span>}</div>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:2 }}>Chat with the other party alongside your offers.</div>
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:2 }}>Your private thread with the other party — ask questions, clarify terms, and keep everything about this deal in one place. Every offer, counter, and note lands here too, and both sides see it in real time.</div>
           </div>
           <span style={{ fontSize:13, color:C.slate }}>{showMessages?"▲":"▼"}</span>
         </button>
         {showMessages && (
           <div style={{ marginTop:12 }}>
             <div style={{ height:200, overflowY:"auto", display:"flex", flexDirection:"column", border:`1px solid ${C.mist}`, borderRadius:5, padding:"8px", marginBottom:8 }}>
-              {messages.length===0 && <div style={{ fontSize:12, color:C.slate, fontFamily:"sans-serif", textAlign:"center", margin:"auto" }}>No messages yet. Send an offer or a note to start.</div>}
+              {messages.length===0 && <div style={{ fontSize:12, color:C.slate, fontFamily:"sans-serif", textAlign:"center", margin:"auto" }}>No messages yet. Say hello or ask a question to get started — your offers and counters will show up here too, so the whole conversation stays in one place.</div>}
               {messages.map((m,i) => {
                 const mine = m.from === myRole;
                 return (
@@ -1965,7 +1959,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         <div style={{...S.cardGold, marginBottom:16}}>
           <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>✓ Agreed Price Summary</div>
           <div className="bc-grid3" style={{ gap:10 }}>
-            {[["Purchase Price",fmt(acceptedOffer.amount)],["Earnest Money",fmt(acceptedOffer.deposit)],["Escrow",acceptedOffer.escrowPath==="escrow_com"?"Escrow.com":acceptedOffer.escrowPath==="attorney"?"Attorney":"Direct to Seller"]].map(([l,v])=>(
+            {[["Purchase Price",fmt(acceptedOffer.amount)],["Earnest Money",fmt(acceptedOffer.deposit)],["Escrow",escLabel(acceptedOffer.escrowPath)]].map(([l,v])=>(
               <div key={l} style={{ background:C.sandDark, borderRadius:5, padding:"10px 12px" }}>
                 <div style={{ fontSize:10, color:C.slate, fontFamily:"sans-serif" }}>{l}</div>
                 <div style={{ fontSize:15, fontWeight:700, color:C.navy }}>{v}</div>
@@ -2025,6 +2019,24 @@ function EscrowSelector({ value, onChange, depositAmt }) {
       desc:"A licensed attorney or title company holds the deposit. Common for larger or complex transactions.",
       detail:"Both parties agree on an attorney or title company to act as escrow agent. Their fees and terms are outside BoatClosers. Our documents support the transaction but we are not involved in fund handling.",
     },
+    {
+      id:"brokerage",
+      icon:"🛥️",
+      label:"Licensed Broker",
+      badge:"Brokerage",
+      badgeColor:C.navy,
+      desc:"A state-licensed yacht/boat brokerage holds the deposit in their trust/escrow account.",
+      detail:"If the boat is listed with a broker — or you're using a buyer's broker — a state-licensed brokerage can hold the deposit in their trust/escrow account per state law. Confirm the broker's license and get the escrow terms in writing. Any commission and terms are between you and the broker; BoatClosers is not involved in fund handling.",
+    },
+    {
+      id:"custom",
+      icon:"✍️",
+      label:"Custom / Other",
+      badge:"Your Terms",
+      badgeColor:C.slate,
+      desc:"You've agreed on another holder or method — describe it in your terms.",
+      detail:"Use this if you've agreed on a holder or method not listed (a bank, a mutual escrow agent, or another arrangement). Describe the specifics in Additional Contingencies above so both parties and the Purchase Agreement reflect it. BoatClosers does not hold or release funds.",
+    },
   ];
   const selected = options.find(o=>o.id===value)||options[0];
 
@@ -2068,6 +2080,18 @@ function EscrowSelector({ value, onChange, depositAmt }) {
             Both parties should agree on the attorney or title company in writing before transferring any funds. BoatClosers documents (Escrow Instructions, Closing Statement) can be shared with the attorney to support their work.
           </div>
         )}
+
+        {value==="brokerage" && (
+          <div style={{ background:"#eef2f7", border:`1px solid ${C.navy}`, borderRadius:5, padding:"8px 12px", fontSize:11, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6 }}>
+            Confirm the brokerage is licensed in the boat's state and get the escrow terms in writing before sending funds. The broker holds the deposit in their trust account; BoatClosers does not hold, verify, or release funds.
+          </div>
+        )}
+
+        {value==="custom" && (
+          <div style={{ background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:5, padding:"8px 12px", fontSize:11, fontFamily:"sans-serif", color:"#7a5500", lineHeight:1.6 }}>
+            Spell out who holds the deposit and the exact terms in <strong>Additional Contingencies</strong> above so it appears on the Purchase Agreement. BoatClosers does not hold, verify, or release funds.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2082,7 +2106,7 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate }) {
   if (!open) return null;
   const amt = fmt(negotiate.deposit||0);
   const price = fmt(negotiate.agreedPrice||0);
-  const escrowLabel = negotiate.escrowPath==="escrow_com"?"Escrow.com":negotiate.escrowPath==="attorney"?"Third Party Attorney":"Direct to Seller";
+  const escrowLabel = escLabel(negotiate.escrowPath);
 
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.8)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:2000, padding:"1rem" }}>
@@ -2851,7 +2875,7 @@ function StepDocuments({ data, setData, vessel, parties, terms, negotiate, myRol
     uscg: vessel.uscgNumber||"N/A",
     price: fmt(negotiate.agreedPrice||0),
     deposit: fmt(negotiate.deposit||0),
-    escrow: negotiate.escrowPath==="escrow_com"?"Escrow.com":negotiate.escrowPath==="attorney"?"Third Party Attorney":"Direct to Seller",
+    escrow: escLabel(negotiate.escrowPath),
     closing: terms.closingDate||"[Closing Date]",
     ddDays: terms.dueDiligenceDays||"[Due Diligence Days]",
     ddEnd: terms.ddStartDate && terms.dueDiligenceDays ? addDays(terms.ddStartDate, Number(terms.dueDiligenceDays)) : "[DD End]",
@@ -3243,7 +3267,7 @@ function StepClosing({ vessel, parties, terms, negotiate, ddData, docsData, myRo
   const toggleManual = (k) => setManualChecks(c => ({...c,[k]:!c[k]}));
 
   const balanceDue = Math.max(0, Number(negotiate.agreedPrice||0) - Number(negotiate.deposit||0));
-  const escrowLabel = negotiate.escrowPath==="escrow_com"?"Escrow.com":negotiate.escrowPath==="attorney"?"Third Party Attorney":"Direct to Seller";
+  const escrowLabel = escLabel(negotiate.escrowPath);
 
   const PAYMENT_METHODS = [
     {
