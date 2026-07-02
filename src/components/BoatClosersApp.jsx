@@ -4031,7 +4031,7 @@ function Landing({ onStart }) {
   }, []);
   const cols = (n) => isMobile ? "1fr" : Array(n).fill("1fr").join(" ");
 
-  const Section = ({ children, style }) => <div style={{ maxWidth:880, margin:"0 auto", padding:"4.5rem 2rem", ...style }}>{children}</div>;
+  const Section = ({ children, style }) => <div style={{ maxWidth:880, margin:"0 auto", padding:isMobile?"3rem 1.25rem":"4.5rem 2rem", ...style }}>{children}</div>;
 
   return (
     <div style={{ fontFamily:"'Georgia','Times New Roman',serif", background:C.sand, color:C.text, minHeight:"100vh" }}>
@@ -4048,13 +4048,13 @@ function Landing({ onStart }) {
       </nav>
 
       {/* Hero */}
-      <header style={{ background:`linear-gradient(160deg, ${C.navy} 0%, ${C.navy2} 55%, #0e3a52 100%)`, color:"#fff", padding:"6rem 2rem 4.5rem", textAlign:"center", position:"relative", overflow:"hidden" }}>
+      <header style={{ background:`linear-gradient(160deg, ${C.navy} 0%, ${C.navy2} 55%, #0e3a52 100%)`, color:"#fff", padding:isMobile?"3.5rem 1.25rem 3rem":"6rem 2rem 4.5rem", textAlign:"center", position:"relative", overflow:"hidden" }}>
         <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:`repeating-linear-gradient(90deg, ${C.brass} 0px, ${C.brass} 12px, transparent 12px, transparent 20px)`, opacity:0.4 }} />
         <div style={{ maxWidth:720, margin:"0 auto" }}>
           <div style={{ display:"inline-block", background:"rgba(184,134,58,0.15)", border:`1px solid rgba(184,134,58,0.4)`, borderRadius:20, padding:"5px 16px", fontSize:11, letterSpacing:2, color:C.brass2, fontFamily:"sans-serif", textTransform:"uppercase", marginBottom:24 }}>
             Private Boat Transactions · Done Right
           </div>
-          <h1 style={{ fontSize:46, fontWeight:800, lineHeight:1.12, marginBottom:20, fontFamily:"'Georgia',serif" }}>
+          <h1 style={{ fontSize:isMobile?32:46, fontWeight:800, lineHeight:1.12, marginBottom:20, fontFamily:"'Georgia',serif" }}>
             Buy or Sell a Boat<br/>
             <span style={{ color:C.brass2 }}>With Total Confidence</span>
           </h1>
