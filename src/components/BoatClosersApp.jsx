@@ -4347,7 +4347,7 @@ const LEGAL = {
       ["Limitation of liability", ["To the maximum extent allowed by law, BoatClosers is not liable for any indirect, incidental, or consequential damages, or for any loss arising from your transaction, the other party's conduct, any third-party escrow, or your reliance on documents. Our total liability to you is limited to the fees you paid us."]],
       ["Indemnification", ["You agree to hold BoatClosers harmless from claims, losses, and expenses arising out of your use of the service or your transaction."]],
       ["Changes and termination", ["We may update these Terms or the service over time. We may suspend or close accounts that violate these Terms. Continued use after an update means you accept the updated Terms."]],
-      ["Governing law and disputes", ["These Terms are governed by the laws of the State of [STATE], without regard to conflict-of-law rules. [Insert your chosen dispute-resolution approach — e.g. arbitration or courts in a specific county. Your attorney should finalize this section.]"]],
+      ["Governing law and disputes", ["These Terms are governed by the laws of the State of Florida, without regard to conflict-of-law rules. Any dispute arising from these Terms or your use of BoatClosers will be resolved exclusively in the state or federal courts located in Florida, and both parties consent to the jurisdiction of those courts."]],
       ["Contact", ["Questions about these Terms: support@boatclosers.com."]],
     ],
   },
@@ -4381,9 +4381,6 @@ function LegalScreen({ page, onBack }) {
       <div style={{ maxWidth:760, margin:"0 auto", padding:"2.5rem 1.5rem 4rem" }}>
         <h1 style={{ fontSize:30, color:C.navy, marginBottom:6, fontFamily:"'Georgia',serif" }}>{doc.title}</h1>
         <div style={{ fontSize:12, color:C.slate, fontFamily:"sans-serif", marginBottom:20 }}>Last updated {LEGAL_UPDATED}</div>
-        <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", fontSize:12, fontFamily:"sans-serif", color:"#7a5500", lineHeight:1.6, marginBottom:26 }}>
-          ⚠️ This is a plain-language starting draft, not legal advice. Have a licensed attorney review and adapt it — and fill in the bracketed [ ] items — before you rely on it.
-        </div>
         {doc.sections.map(([h, paras], i) => (
           <div key={i} style={{ marginBottom:22 }}>
             <h2 style={{ fontSize:16, color:C.navy, fontFamily:"sans-serif", fontWeight:700, marginBottom:8 }}>{i+1}. {h}</h2>
