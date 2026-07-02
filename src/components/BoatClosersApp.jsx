@@ -1293,7 +1293,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
                 The Purchase Agreement is fully signed. Choose how the one-time <b>$249</b> fee gets paid, then complete it to make the deal binding and unlock Due Diligence, Documents, and Closing for both parties.
               </div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
+              <div className="bc-grid3" style={{ gap:8, marginBottom:14 }}>
                 {[["full","I'll pay","$249"],["split","Split 50/50","$124.50 each"],["other",`Ask ${otherPayName}`,"they pay $249"]].map(([id,label,sub])=>(
                   <button key={id} onClick={()=>setPayPlan(id)} style={{ padding:"10px 8px", borderRadius:6, cursor:"pointer", textAlign:"center", fontFamily:"sans-serif", border:`2px solid ${payPlan===id?C.brass:C.mist}`, background:payPlan===id?"#fff8e6":"transparent" }}>
                     <div style={{ fontSize:12, fontWeight:700, color:C.navy }}>{label}</div>
@@ -2846,7 +2846,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         <p style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginBottom:14 }}>
           After due diligence you may accept the vessel as-is, reject it (earnest money returned, reason recorded), or propose a new final price — which reopens negotiation. Only you, the buyer, can make this decision.
         </p>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
+        <div className="bc-grid3" style={{ gap:10, marginBottom:16 }}>
           <button onClick={()=>{ setOutcome("accept"); setBuyerSigned(false); setVaSigned(false); set("outcome","accept"); }} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="accept"?C.green:"transparent", color:outcome==="accept"?"#fff":C.green, border:`2px solid ${C.green}` }}>
             ✓ Accept As-Is
           </button>
