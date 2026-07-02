@@ -491,11 +491,11 @@ export async function GET(req: Request) {
         if (isInitiator || isPartyB) {
           return NextResponse.json({ deal: row })
         }
-        // Slot is filled by someone else and this user isn't a member.
-        // They were invited to THIS deal (they have its dealId in session) but
-        // the party_b slot is taken — surface the deal read-only rather than
-        // dumping them on a blank app, and let the UI explain.
-        return NextResponse.json({ deal: row, notAMember: true })
+        // Slot is filled by someone else and this user isn't a member → do NOT
+        // expose the deal. Returning the row here would let any logged-in user
+        // read someone else's deal by guessing its id. Send nothing sensitive;
+        // the app treats a null deal as "no access".
+        return NextResponse.json({ deal: null, notAMember: true })
       }
       // dealId was requested but no such row — fall through to the member lookup
       // below rather than returning a confusing blank.
