@@ -31,6 +31,13 @@ const C = {
 
 const fmt = (n) => n ? new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n)) : "";
 const today = () => new Date().toISOString().split("T")[0];
+// Human-friendly time remaining until an offer's expiresAt timestamp.
+const hoursLeft = (expiresAt) => {
+  const ms = expiresAt - Date.now();
+  if (ms <= 0) return "expired";
+  const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
 const addDays = (d,n) => { const dt=new Date(d); dt.setDate(dt.getDate()+n); return dt.toISOString().split("T")[0]; };
 const CONTINGENCY_LABELS = { survey:"Survey", seaTrial:"Sea Trial", financing:"Financing", insurance:"Insurance", title:"Clear Title" };
 const contingencyNames = (arr) => (Array.isArray(arr) ? arr : []).map(k => CONTINGENCY_LABELS[k] || k).join(", ");
@@ -925,6 +932,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const [escrowPath, setEscrowPath] = useState(data.escrowPath || "escrow_com");
   const [ddDays, setDdDays] = useState(data.dueDiligenceDays || "10");
   const [ddStart, setDdStart] = useState(data.ddStartDate || today());
+  const [offerExpiry, setOfferExpiry] = useState("0"); // hours the offer stays valid; "0" = no expiry
   const [closingDate, setClosingDate] = useState(data.closingDate || "");
   const [offers, setOffers] = useState(data.offers || []);
   const [offerFrom, setOfferFrom] = useState(myRole==="seller" ? "seller" : "buyer"); // who is making the current offer
@@ -1059,6 +1067,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       // opt-in deposit terms / notes
       inclDepositTerms, depositRule: inclDepositTerms ? depositRule : "", depositRuleCustom, note: verbalNote,
       depositHours: Number(depositHours) || 24,
+      expiresHours: Number(offerExpiry) || 0,
+      expiresAt: offerExpiry !== "0" ? Date.now() + Number(offerExpiry) * 3600000 : null,
     };
     setOffers(o => {
       const updated = [...o.map(of => of.status==="pending" ? {...of, status:"countered"} : of), offer];
@@ -1105,6 +1115,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const acceptOffer = (id) => {
     const acc = offers.find(o => o.id===id);
     if (!acc) return;
+    if (acc.expiresAt && Date.now() > acc.expiresAt) {
+      setMessages(m => [...m, { from:"system", text:"⚠️ That offer has expired and can no longer be accepted. Send a new offer to continue.", time:new Date().toLocaleTimeString() }]);
+      return;
+    }
     // Either party accepting the other's number means the PRICE is agreed.
     // Both then sign the Purchase Agreement (free) before the initiator pays.
     const updatedOffers = offers.map(of => of.id===id ? {...of, status:"agreed", agreedBy:myRole} : of);
@@ -1216,7 +1230,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     if (!amt || !baseOffer) return;
     const fromRole = myRole === "seller" ? "seller" : "buyer";
     const deposit = Math.round(amt * Number(baseOffer.escrowPct || 0) / 100);
-    const offer = { ...baseOffer, id: Date.now(), from: fromRole, amount: amt, deposit, status: "pending", time: new Date().toLocaleTimeString() };
+    const offer = { ...baseOffer, id: Date.now(), from: fromRole, amount: amt, deposit, status: "pending", time: new Date().toLocaleTimeString(), expiresAt: baseOffer.expiresHours ? Date.now() + baseOffer.expiresHours * 3600000 : null };
     setOffers(o => {
       const updated = [...o.map(of => of.status === "pending" ? { ...of, status: "countered" } : of), offer];
       setData(d => ({ ...d, offers: updated }));
@@ -1842,6 +1856,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         </div>
 
         {/* Submit */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, background:C.sandDark, borderRadius:6, padding:"8px 12px", marginTop:6, flexWrap:"wrap" }}>
+          <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate }}>⏳ This offer is good for:</span>
+          <select style={{...S.select, width:"auto", padding:"6px 10px", fontSize:12}} value={offerExpiry} onChange={e=>setOfferExpiry(e.target.value)}>
+            <option value="0">No expiration</option>
+            <option value="24">24 hours</option>
+            <option value="48">48 hours</option>
+            <option value="72">72 hours</option>
+          </select>
+        </div>
         <button style={{...S.btnBrass, width:"100%", marginTop:6, fontSize:15, padding:"12px", opacity:(!offerAmt||myOfferAwaiting)?0.5:1}} onClick={makeOffer} disabled={!offerAmt||myOfferAwaiting}>
           {(offers.length===0 && myRole!=="seller") ? "Send Offer to Seller" : (myRole==="seller" ? "Send Counter-Offer to Buyer" : "Send Counter-Offer to Seller")} →
         </button>
@@ -1923,6 +1946,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               const prev = i>0 ? offers[i-1] : null;
               const delta = prev ? o.amount - prev.amount : 0;
               const isLatestPending = latestPending && o.id===latestPending.id;
+              const oExpired = o.status==="pending" && o.expiresAt && Date.now() > o.expiresAt;
               const partyName = isBuyer ? (parties.buyer?.name||"Buyer") : (parties.seller?.name||"Seller");
               const accent = isBuyer ? C.navy : C.brass;
               return (
@@ -1958,11 +1982,18 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
                     {/* status / actions */}
                     <div style={{ marginTop:9 }}>
+                      {o.status==="pending" && o.expiresAt && !oExpired && (
+                        <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.brass, fontWeight:600, marginBottom:6 }}>⏳ Expires in {hoursLeft(o.expiresAt)}</div>
+                      )}
                       {o.status==="accepted" && <span style={{...S.pill, background:C.green, color:"#fff"}}>Accepted ✓ — Purchase Agreement signed</span>}
                       {o.status==="agreed" && <span style={{...S.pill, background:"#166534", color:"#fff"}}>Price agreed ✓ — awaiting lock</span>}
                       {o.status==="rejected" && <span style={{...S.pill, background:C.red, color:"#fff"}}>Rejected</span>}
                       {o.status==="countered" && <span style={{...S.pill, background:C.mist, color:C.slate}}>Countered — see newer offer below</span>}
-                      {isLatestPending && !frozen && (
+                      {isLatestPending && !frozen && oExpired ? (
+                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.red, background:C.redLight, borderRadius:6, padding:"8px 12px", lineHeight:1.6 }}>
+                          ⚠️ This offer expired. {o.from===myRole ? "Send a fresh offer above to keep the deal moving." : "It can no longer be accepted — send a counter-offer above to restart negotiation."}
+                        </div>
+                      ) : isLatestPending && !frozen && (
                         o.from === myRole ? (
                           <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, fontStyle:"italic", background:C.sandDark, borderRadius:6, padding:"8px 12px" }}>
                             ⏳ Sent — waiting for the {myRole==="buyer" ? "seller" : "buyer"} to accept, counter, or reject. You can't respond to your own offer.
