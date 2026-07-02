@@ -4000,7 +4000,7 @@ function AuthScreen({ onAuth, prefillEmail, notice, defaultMode }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // LANDING PAGE
 // ─────────────────────────────────────────────────────────────────────────────
-function Landing({ onStart }) {
+function Landing({ onStart, onLegal }) {
   // Pull the real library so counts never go stale.
   const groupOrder = [...new Set(DOCUMENTS.map(d=>d.group))];
   const docGroups = groupOrder.map(g => ({ group:g, count: DOCUMENTS.filter(d=>d.group===g).length }));
@@ -4315,10 +4315,83 @@ function Landing({ onStart }) {
             <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", fontFamily:"sans-serif", marginTop:4 }}>© {new Date().getFullYear()} BoatClosers.com · Buy or sell a boat without a broker · All rights reserved</div>
           </div>
           <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(255,255,255,0.3)", lineHeight:1.8, maxWidth:420, textAlign:"right" }}>
+            <div style={{ marginBottom:8 }}>
+              <button onClick={()=>onLegal && onLegal("terms")} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif", fontSize:11, cursor:"pointer", textDecoration:"underline", padding:0 }}>Terms of Service</button>
+              <span style={{ margin:"0 8px", color:"rgba(255,255,255,0.25)" }}>·</span>
+              <button onClick={()=>onLegal && onLegal("privacy")} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif", fontSize:11, cursor:"pointer", textDecoration:"underline", padding:0 }}>Privacy Policy</button>
+            </div>
             BoatClosers is a document facilitation platform only. Not a broker, escrow agent, or attorney. Not a party to any transaction. All parties are solely responsible for their own deal outcomes. Consult a licensed maritime attorney for legal advice.
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LEGAL PAGES (Terms + Privacy) — plain-language starting drafts; attorney review needed
+// ─────────────────────────────────────────────────────────────────────────────
+const LEGAL_UPDATED = new Date().toLocaleDateString("en-US", { year:"numeric", month:"long", day:"numeric" });
+const LEGAL = {
+  terms: {
+    title: "Terms of Service",
+    sections: [
+      ["Agreement to these terms", ["By creating an account or using BoatClosers, you agree to these Terms. If you don't agree, please don't use the service."]],
+      ["What BoatClosers is — and isn't", ["BoatClosers is a self-service platform that helps a buyer and seller organize a private boat sale — building offers, generating documents, collecting electronic signatures, and tracking the deal to closing.", "BoatClosers is NOT a yacht or boat broker, dealer, escrow agent, title company, law firm, or financial advisor. We do not represent either party, do not give legal, tax, or financial advice, and are not a party to any transaction between users."]],
+      ["You are responsible for your deal", ["You are responsible for the accuracy of the information you enter, for verifying the vessel, title, and any liens, for your own due diligence, and for complying with all applicable federal, state, and local laws. Every decision in your transaction is yours. The documents and checklists we provide are general starting points and may not fit your specific situation."]],
+      ["We never hold your money", ["BoatClosers never holds, receives, transfers, or releases funds. Any deposit, escrow, or payment is arranged directly between you, the other party, and any third-party escrow provider you choose. We are not responsible for those funds or for the conduct of any escrow provider."]],
+      ["Electronic signatures and records", ["You consent to sign and receive documents electronically, and you agree that electronic signatures and records are valid and binding to the same extent as handwritten ones."]],
+      ["Fees and the 60-day credit", ["BoatClosers charges a flat one-time fee of $249 per deal, due when you lock the deal to move toward closing. Everything up to that point is free.", "If a deal you paid for falls through before closing, you may start another deal at no additional fee within 60 days of when it fell through; after 60 days the credit expires. Except where required by law, fees are otherwise non-refundable."]],
+      ["Your account", ["Keep your login secure — you're responsible for activity under your account. You must be at least 18 years old and legally able to enter a contract to use BoatClosers."]],
+      ["No warranty", ["The service and all documents are provided \u201Cas is\u201D and \u201Cas available,\u201D without warranties of any kind. We do not guarantee that any deal will close, that a document is legally sufficient for your situation, or that the service will be uninterrupted or error-free."]],
+      ["Limitation of liability", ["To the maximum extent allowed by law, BoatClosers is not liable for any indirect, incidental, or consequential damages, or for any loss arising from your transaction, the other party's conduct, any third-party escrow, or your reliance on documents. Our total liability to you is limited to the fees you paid us."]],
+      ["Indemnification", ["You agree to hold BoatClosers harmless from claims, losses, and expenses arising out of your use of the service or your transaction."]],
+      ["Changes and termination", ["We may update these Terms or the service over time. We may suspend or close accounts that violate these Terms. Continued use after an update means you accept the updated Terms."]],
+      ["Governing law and disputes", ["These Terms are governed by the laws of the State of [STATE], without regard to conflict-of-law rules. [Insert your chosen dispute-resolution approach — e.g. arbitration or courts in a specific county. Your attorney should finalize this section.]"]],
+      ["Contact", ["Questions about these Terms: support@boatclosers.com."]],
+    ],
+  },
+  privacy: {
+    title: "Privacy Policy",
+    sections: [
+      ["Overview", ["This policy explains what information BoatClosers collects, how we use it, and the choices you have."]],
+      ["Information we collect", ["Account information you give us: your name, email, and password. Deal information you enter: vessel details, the parties' contact information, prices, offers, messages, and dates. Files you upload, such as survey reports or deposit proof."]],
+      ["How we use your information", ["To provide and operate the service: create and route your documents, let both parties collaborate on the same deal, send transactional emails (invites, offer and signature notifications), and provide support."]],
+      ["How we share your information", ["With the other party to your deal — sharing a deal between a buyer and seller is the whole point of the platform. With service providers that run the platform on our behalf (for example, our hosting and database provider, our email-delivery provider, and, when enabled, our payment processor), under their own terms. And if required by law. We do not sell your personal information."]],
+      ["Where your data is stored and security", ["Your data is stored with our hosting and database provider. We use reasonable technical and organizational safeguards to protect it, but no method of storage or transmission is perfectly secure."]],
+      ["Data retention and your choices", ["We keep deal data to provide the service and maintain records. You can request access to, correction of, or deletion of your account data by emailing us — though some records may be retained where the law requires it."]],
+      ["Children", ["BoatClosers is for adults 18 and older and is not directed to children. We do not knowingly collect information from anyone under 18."]],
+      ["Cookies and local storage", ["We use essential cookies and browser storage to keep you signed in and to run the app. [If you add analytics or marketing tools later, disclose them here.]"]],
+      ["Changes to this policy", ["We may update this policy from time to time. The \u201Clast updated\u201D date at the top shows the current version."]],
+      ["Contact", ["Questions about your privacy or data: support@boatclosers.com."]],
+    ],
+  },
+};
+
+function LegalScreen({ page, onBack }) {
+  const doc = LEGAL[page] || LEGAL.terms;
+  return (
+    <div style={{ minHeight:"100vh", background:C.sand }}>
+      <nav style={S.nav}>
+        <div style={{ cursor:"pointer" }} onClick={onBack}>
+          <div style={S.logo}>BOATCLOSERS</div>
+        </div>
+        <button style={{ fontSize:12, color:"#fff", background:C.brass, border:"none", borderRadius:16, padding:"6px 16px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={onBack}>← Back</button>
+      </nav>
+      <div style={{ maxWidth:760, margin:"0 auto", padding:"2.5rem 1.5rem 4rem" }}>
+        <h1 style={{ fontSize:30, color:C.navy, marginBottom:6, fontFamily:"'Georgia',serif" }}>{doc.title}</h1>
+        <div style={{ fontSize:12, color:C.slate, fontFamily:"sans-serif", marginBottom:20 }}>Last updated {LEGAL_UPDATED}</div>
+        <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", fontSize:12, fontFamily:"sans-serif", color:"#7a5500", lineHeight:1.6, marginBottom:26 }}>
+          ⚠️ This is a plain-language starting draft, not legal advice. Have a licensed attorney review and adapt it — and fill in the bracketed [ ] items — before you rely on it.
+        </div>
+        {doc.sections.map(([h, paras], i) => (
+          <div key={i} style={{ marginBottom:22 }}>
+            <h2 style={{ fontSize:16, color:C.navy, fontFamily:"sans-serif", fontWeight:700, marginBottom:8 }}>{i+1}. {h}</h2>
+            {paras.map((p, j) => <p key={j} style={{ fontSize:13.5, fontFamily:"sans-serif", color:C.text, lineHeight:1.75, marginBottom:8 }}>{p}</p>)}
+          </div>
+        ))}
+        <button style={{...S.btnBrass, marginTop:10}} onClick={onBack}>← Back to BoatClosers</button>
+      </div>
     </div>
   );
 }
@@ -4809,7 +4882,9 @@ export default function BoatClosers() {
     );
   }
 
-  if (screen==="landing") return <Landing onStart={()=>setScreen("auth")}/>;
+  if (screen==="landing") return <Landing onStart={()=>setScreen("auth")} onLegal={(p)=>setScreen(p)}/>;
+  if (screen==="terms") return <LegalScreen page="terms" onBack={()=>setScreen("landing")} />;
+  if (screen==="privacy") return <LegalScreen page="privacy" onBack={()=>setScreen("landing")} />;
   if (screen==="auth") return <AuthScreen onAuth={handleAuth} prefillEmail={deepLink?.email} notice={deepLink ? `Sign in as ${deepLink.email} to review this deal.` : null} defaultMode={deepLink ? "login" : "signup"} />;
   if (screen==="deal" && showWelcome) return <Welcome name={user?.name} onStart={()=>setShowWelcome(false)} onSignOut={handleSignOut} />;
 
