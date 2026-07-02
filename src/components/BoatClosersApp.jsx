@@ -2260,7 +2260,7 @@ const SELLER_PREP = [
 
 // Shared rejection notice + deposit-refund walkthrough. Shown to the seller in
 // due diligence, and to both parties at closing, from the synced negotiate data.
-function RejectionNotice({ rejection, escrowPath, viewerRole, vessel }) {
+function RejectionNotice({ rejection, escrowPath, viewerRole, vessel, isInitiator }) {
   if (!rejection) return null;
   const reasons = (rejection.reasons||[]).map(id => REJECTION_REASONS.find(r=>r.id===id)).filter(Boolean);
   const pathLabel = escrowPath==="escrow_com" ? "Escrow.com" : escrowPath==="attorney" ? "a closing attorney's trust account" : "a direct party-to-party deposit";
@@ -2272,6 +2272,14 @@ function RejectionNotice({ rejection, escrowPath, viewerRole, vessel }) {
   return (
     <div style={{ border:`1px solid ${C.red}`, borderRadius:8, overflow:"hidden", marginTop:4 }}>
       <div style={{ background:C.red, color:"#fff", padding:"10px 14px", fontSize:12, fontWeight:700, fontFamily:"sans-serif", letterSpacing:0.5 }}>VESSEL REJECTION NOTICE — DEAL ENDED</div>
+      {isInitiator && (
+        <div style={{ background:"#eef7f0", borderBottom:`1px solid ${C.green}`, padding:"12px 16px", fontFamily:"sans-serif" }}>
+          <div style={{ fontSize:12, fontWeight:800, color:"#166534", letterSpacing:0.3, marginBottom:4 }}>💡 Your fee carries over — 60-day credit</div>
+          <div style={{ fontSize:11.5, color:"#256b3f", lineHeight:1.65 }}>
+            This deal fell through, so you don't start over from scratch. As the party who paid, you have <b>60 days from today</b> to begin a new deal — a backup buyer, or a different boat — with no additional fee. The one-time $249 is only fully used once a deal actually closes. If you don't start a new deal within 60 days, the credit expires.
+          </div>
+        </div>
+      )}
       <div style={{ background:"#fff", padding:"14px 16px", fontFamily:"sans-serif" }}>
         <div style={{ fontSize:12, color:C.text, lineHeight:1.7 }}>The buyer has formally rejected <b>{vessel?.year} {vessel?.make} {vessel?.model}</b> after due diligence. This ends the deal.</div>
         <div style={{ marginTop:10, fontSize:11, fontWeight:700, color:C.navy, textTransform:"uppercase", letterSpacing:0.4 }}>Reasons</div>
@@ -2300,7 +2308,7 @@ function RejectionNotice({ rejection, escrowPath, viewerRole, vessel }) {
   );
 }
 
-function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms, negotiate, myRole, onNext, onBack }) {
+function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms, negotiate, myRole, amInitiator, onNext, onBack }) {
   const set = (k,v) => setData(d => ({...d,[k]:v}));
   const isBuyer = myRole !== "seller";
   // ── Earnest-money deposit timeline: set at lock, buyer proves, seller may extend ──
@@ -2830,7 +2838,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
               </div>
             )}
             {negotiate.vesselRejection && (
-              <RejectionNotice rejection={negotiate.vesselRejection} escrowPath={(negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.escrowPath} viewerRole="seller" vessel={vessel} />
+              <RejectionNotice rejection={negotiate.vesselRejection} escrowPath={(negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.escrowPath} viewerRole="seller" vessel={vessel} isInitiator={amInitiator} />
             )}
           </div>
         ) : (
@@ -2968,7 +2976,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           <div style={{ background:C.sandDark, borderRadius:5, padding:"12px 14px", marginTop:8 }}>
             <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>Full Rejection Notice — review before signing</div>
             <div style={{ background:"#fff", border:`1px solid ${C.mist}`, borderRadius:5, padding:"4px 10px", marginBottom:12 }}>
-              <RejectionNotice rejection={{ reasons: rejectionReasons, notes: rejectionNotes, solution: rejSolution, sig: (rejSigName.trim()||parties.buyer.name||"Buyer"), date: today() }} escrowPath={(negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.escrowPath} viewerRole="buyer" vessel={vessel} />
+              <RejectionNotice rejection={{ reasons: rejectionReasons, notes: rejectionNotes, solution: rejSolution, sig: (rejSigName.trim()||parties.buyer.name||"Buyer"), date: today() }} escrowPath={(negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.escrowPath} viewerRole="buyer" vessel={vessel} isInitiator={amInitiator} />
             </div>
             <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>Buyer: {parties.buyer.name||"Buyer"} — Formal Rejection</div>
             <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:4, padding:"9px 12px", fontSize:10, color:"#7a5500", marginBottom:10 }}>
@@ -3417,7 +3425,7 @@ function DocPreview({ doc, D, negotiate }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 5 — CLOSING
 // ─────────────────────────────────────────────────────────────────────────────
-function StepClosing({ vessel, parties, terms, negotiate, ddData, docsData, myRole, onBack }) {
+function StepClosing({ vessel, parties, terms, negotiate, ddData, docsData, myRole, amInitiator, onBack }) {
   const isBuyer = myRole !== "seller";
   const [cleared, setCleared] = useState(false);
   const [manualChecks, setManualChecks] = useState({});
@@ -3655,6 +3663,7 @@ function StepClosing({ vessel, parties, terms, negotiate, ddData, docsData, myRo
             escrowPath={(negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.escrowPath}
             viewerRole={isBuyer?"buyer":"seller"}
             vessel={vessel}
+            isInitiator={amInitiator}
           />
         </div>
       )}
@@ -4794,9 +4803,9 @@ export default function BoatClosers() {
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} userRole={myDealRole || user?.role || "seller"} onNext={()=>goToStep(1)}/>}
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user} ensureSaved={ensureDealSaved}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onRefresh={()=>window.location.reload()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
-      {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
+      {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
-      {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} onBack={()=>setStep(4)}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
+      {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onBack={()=>setStep(4)}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
     </div>
   );
 }
