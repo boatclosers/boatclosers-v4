@@ -3981,7 +3981,7 @@ function Landing({ onStart }) {
 
   const features = [
     { icon:"📜", title:`${DOC_COUNT} Documents for Every Situation`, desc:"Purchase agreement to title transfer — plus estate sales, loans, lost titles, and documented vessels." },
-    { icon:"🎯", title:"Smart Document Selection", desc:"Tell us about your deal; see only the documents you actually need." },
+    { icon:"🎯", title:"Auto-Filled Documents", desc:"Enter your deal once — every document fills itself in with your vessel, parties, price, and dates. No retyping onto twenty forms." },
     { icon:"🧭", title:"Guided Closing Checklist", desc:"A step-by-step checklist takes both sides from agreement to filed title transfer." },
     { icon:"💬", title:"Deposit-Backed Offers", desc:"Real offers with earnest money attached — and the boat locked so it can't be sold out from under you." },
     { icon:"✍️", title:"E-Sign — Notary-Aware", desc:"Sign routine documents electronically; notary-required affidavits are clearly flagged." },
