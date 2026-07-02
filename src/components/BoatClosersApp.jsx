@@ -1235,7 +1235,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       stripeHandledRef.current = true;
       recordPayment(stripeReturn.who || "initiator");
     }
-  }, [stripeReturn, agreedOffer, data.dealLocked, data.paid]);
+  }, [stripeReturn, data.dealLocked, data.paid, offers.length]);
 
   const rejectOffer = (id) => {
     const updatedOffers = offers.map(of => of.id===id ? {...of, status:"rejected"} : of);
