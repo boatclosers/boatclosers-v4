@@ -4356,6 +4356,8 @@ export default function BoatClosers() {
   const [cancelModal, setCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const [savedOk, setSavedOk] = useState(false);
   const [booting, setBooting] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
   // The logged-in user's role ON THIS SPECIFIC DEAL (buyer or seller),
@@ -4486,9 +4488,15 @@ export default function BoatClosers() {
             dd_data: s.ddData, docs_data: s.docsData, step: s.step, max_step: s.maxStep
           })
         });
+        if (!res.ok) throw new Error("save failed (" + res.status + ")");
         const data = await res.json();
         if (data?.deal?.id && !dealId) setDealId(data.deal.id);
-      } catch (e) {}
+        setSaveError(false);
+        setSavedOk(true);
+        setTimeout(() => setSavedOk(false), 2000);
+      } catch (e) {
+        setSaveError(true);
+      }
       setSaving(false);
     }, 1200);
   };
@@ -4826,7 +4834,13 @@ export default function BoatClosers() {
           <div style={S.logoSub}>Private Vessel Transactions</div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          {saving && <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontFamily:"sans-serif" }}>Saving…</span>}
+          {saveError ? (
+            <button onClick={()=>{ setSaveError(false); scheduleSave(); }} title="Your last change didn't save. Click to try again — keep this tab open." style={{ fontSize:10.5, color:"#fff", background:C.red, border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }}>⚠️ Couldn't save — Retry</button>
+          ) : saving ? (
+            <span style={{ fontSize:10, color:"rgba(255,255,255,0.45)", fontFamily:"sans-serif" }}>Saving…</span>
+          ) : savedOk ? (
+            <span style={{ fontSize:10, color:"#8fd6a6", fontFamily:"sans-serif" }}>✓ Saved</span>
+          ) : null}
           {user && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1 }}>{myDealRole || user.role}</span>}
           {vessel.year && <span style={{ fontSize:11, color:C.brass, fontFamily:"sans-serif" }}>{vessel.year} {vessel.make} {vessel.model}</span>}
           <button title="Reload to pull the other party's latest offers, messages, and updates" style={{ fontSize:11, color:"#fff", background:C.brass, border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={()=>window.location.reload()}>🔄 Check for updates</button>
