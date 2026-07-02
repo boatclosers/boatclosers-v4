@@ -924,7 +924,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 2 — NEGOTIATE + TERMS (combined)
 // ─────────────────────────────────────────────────────────────────────────────
-function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiator, dealId, onRefresh, refreshing, onNext, onBack }) {
+function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiator, dealId, stripeReturn, onRefresh, refreshing, onNext, onBack }) {
   const [newMsg, setNewMsg] = useState("");
   const [offerAmt, setOfferAmt] = useState(data.currentOffer || "");
   const [askingPrice, setAskingPrice] = useState(vessel.askingPrice || data.askingPrice || "");
@@ -1193,7 +1193,21 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const otherPayName = parties[otherPayRole]?.name || (otherPayRole === "buyer" ? "the buyer" : "the seller");
   const payPlan = data.payPlan || "full";
   const setPayPlan = (p) => setData(d => ({ ...d, payPlan: p }));
-  const openCheckout = (who, fee) => { setPayWho(who); setPayFeeAmt(fee); setPayModal(agreedOffer || acceptedOffer); };
+  const openCheckout = async (who, fee) => {
+    setPayWho(who);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dealId, amountCents: Math.round(Number(fee) * 100), who, appUrl: (typeof window !== "undefined" ? window.location.origin : "") })
+      });
+      const d = await res.json();
+      if (d?.url) { window.location.href = d.url; return; }
+      alert(d?.error || "Couldn't start checkout. Please try again.");
+    } catch (e) {
+      alert("Couldn't reach checkout. Please check your connection and try again.");
+    }
+  };
   const recordPayment = (who) => {
     const plan = data.payPlan || "full";
     const paidInit = who === "initiator" ? true : !!data.paidInitiator;
@@ -1210,6 +1224,18 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     if (data.dealLocked || data.paid) return;
     if (data.payPlan === "split" && data.paidInitiator && data.paidOther && agreedOffer) lockDeal(agreedOffer);
   }, [data.paidInitiator, data.paidOther, data.payPlan, data.dealLocked, data.paid]);
+
+  // Returning from a successful Stripe payment: record it (locks the deal, or the
+  // split half). Guarded so it only fires once and never double-locks.
+  const stripeHandledRef = useRef(false);
+  useEffect(() => {
+    if (!stripeReturn?.paid || stripeHandledRef.current) return;
+    if (data.dealLocked || data.paid) { stripeHandledRef.current = true; return; }
+    if (agreedOffer) {
+      stripeHandledRef.current = true;
+      recordPayment(stripeReturn.who || "initiator");
+    }
+  }, [stripeReturn, agreedOffer, data.dealLocked, data.paid]);
 
   const rejectOffer = (id) => {
     const updatedOffers = offers.map(of => of.id===id ? {...of, status:"rejected"} : of);
@@ -4404,6 +4430,25 @@ const emptyDocs = {paid:false,signedDocs:{}};
 
 export default function BoatClosers() {
   const [screen, setScreen] = useState("landing");
+  const [stripeReturn, setStripeReturn] = useState(null);
+  // If we just came back from Stripe Checkout, ask our server to confirm the
+  // session was really paid, then hand the result to the deal room to lock the
+  // deal. Clean the URL either way so a refresh doesn't re-trigger it.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("stripe");
+    if (status === "success" && params.get("session_id")) {
+      const sid = params.get("session_id");
+      fetch(`/api/stripe/verify?session_id=${encodeURIComponent(sid)}`)
+        .then(r => r.json())
+        .then(v => { if (v?.paid) { setStripeReturn({ paid: true, who: v.who || "initiator", dealId: v.dealId || null }); setStep(2); } })
+        .catch(() => {});
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (status === "cancel") {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
   const [toast, setToast] = useState(null);
   const seenRef = useRef({ offers: 0, msgs: 0, init: false });
   const stepSyncRef = useRef({ dd: "", docs: "" });
@@ -4977,7 +5022,7 @@ export default function BoatClosers() {
       )}
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} userRole={myDealRole || user?.role || "seller"} onNext={()=>goToStep(1)}/>}
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user} ensureSaved={ensureDealSaved}/>}
-      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onRefresh={()=>window.location.reload()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
+      {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} stripeReturn={stripeReturn} onRefresh={()=>window.location.reload()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
       {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onBack={()=>setStep(4)}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
