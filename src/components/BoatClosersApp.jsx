@@ -4856,6 +4856,29 @@ export default function BoatClosers() {
           <button onClick={()=>setCancelModal(true)} style={{ background:"none", border:"none", color:C.slate, fontSize:11.5, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }}>Cancel this deal</button>
         </div>
       )}
+
+      {dealPaid && !negotiate.canceled && negotiate.depositDeadline && !negotiate.depositProof && negotiate.deposit > 0 && (() => {
+        const overdue = Date.now() > negotiate.depositDeadline;
+        const left = hoursLeft(negotiate.depositDeadline);
+        const isBuyer = (myDealRole || user?.role) === "buyer";
+        return (
+          <div style={{ background: overdue ? "#fdecec" : "#fff8e6", borderBottom:`2px solid ${overdue?C.red:C.brass}`, padding:"12px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
+            <div style={{ fontSize:13, fontWeight:800, color: overdue?C.red:"#7a5500", marginBottom:3 }}>
+              {overdue ? "⚠️ Earnest-money deposit is overdue" : `⏳ Earnest-money deposit due in ${left}`}
+            </div>
+            <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, maxWidth:620, margin:"0 auto" }}>
+              {isBuyer
+                ? (overdue
+                    ? "Your deposit proof is past the agreed deadline. Upload it on the Due Diligence step now — the seller may end the deal if it isn't provided."
+                    : "Send your earnest-money deposit, then upload the proof on the Due Diligence step before the window closes.")
+                : (overdue
+                    ? "The buyer's deposit proof is past the agreed deadline. You can give them more time or end the deal."
+                    : "Waiting for the buyer to submit their earnest-money deposit proof within the agreed window.")}
+            </div>
+            {isBuyer && <button onClick={()=>setStep(3)} style={{ ...S.btnBrass, fontSize:12, padding:"7px 16px", marginTop:8 }}>Go to Due Diligence →</button>}
+          </div>
+        );
+      })()}
       <PreviewBanner step={step} maxStep={maxStep} setStep={setStep}/>
       {step >= 3 && step <= maxStep && (
         <div style={{ background:C.white, borderBottom:`1px solid ${C.mist}`, padding:"8px 2rem" }}>
