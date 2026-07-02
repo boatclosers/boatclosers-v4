@@ -4322,6 +4322,8 @@ export default function BoatClosers() {
   const [negotiate, setNegotiate] = useState(emptyNeg);
   const [ddData, setDdData] = useState(emptyDD);
   const [docsData, setDocsData] = useState(emptyDocs);
+  const [cancelModal, setCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [booting, setBooting] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -4507,6 +4509,23 @@ export default function BoatClosers() {
   const setNegotiateAndSave = withSave(setNegotiate);
   const setDdDataAndSave = withSave(setDdData);
   const setDocsDataAndSave = withSave(setDocsData);
+
+  // Cancel/withdraw the current deal: mark it canceled, drop a note in the thread,
+  // and save so the other party sees it. Either party can do this before lock.
+  const cancelDeal = () => {
+    const who = myDealRole || user?.role || "a party";
+    const whoName = user?.name || who;
+    const note = { from:"system", text:`✗ ${whoName} canceled this deal${cancelReason?` — "${cancelReason}"`:""}. The deal is now closed.`, time:new Date().toLocaleTimeString() };
+    setNegotiateAndSave(n => ({ ...n, canceled: { by: who, byName: whoName, reason: cancelReason, date: today() }, messages: [ ...(n.messages||[]), note ] }));
+    setCancelModal(false);
+    setCancelReason("");
+  };
+  // Reset everything to a clean slate for a brand-new deal (keeps you signed in).
+  const startNewDeal = () => {
+    setDealId(null);
+    setVessel(emptyVessel); setParties(emptyParties); setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
+    setStep(0); setMaxStep(0); setShowWelcome(true);
+  };
 
   // ── LIVE SYNC ───────────────────────────────────────────────────────────
   // While a deal is open, quietly poll the server so each party sees the other
@@ -4790,6 +4809,22 @@ export default function BoatClosers() {
         </div>
       )}
       <ProgressBar step={step} setStep={setStep} maxStep={maxStep} dealPaid={dealPaid}/>
+
+      {negotiate.canceled && (
+        <div style={{ background:"#fdecec", borderBottom:`2px solid ${C.red}`, padding:"14px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
+          <div style={{ fontSize:14, fontWeight:800, color:C.red, marginBottom:4 }}>This deal was canceled</div>
+          <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.6, maxWidth:600, margin:"0 auto 10px" }}>
+            {negotiate.canceled.byName} canceled this deal on {negotiate.canceled.date}{negotiate.canceled.reason?` — “${negotiate.canceled.reason}”`:""}. It's now closed for both parties.
+          </div>
+          <button onClick={startNewDeal} style={{ ...S.btnBrass, fontSize:13, padding:"9px 20px" }}>Start a new deal →</button>
+        </div>
+      )}
+
+      {!negotiate.canceled && !dealPaid && (dealId || step>0) && (
+        <div style={{ maxWidth:880, margin:"0 auto", padding:"8px 1.25rem 0", textAlign:"right" }}>
+          <button onClick={()=>setCancelModal(true)} style={{ background:"none", border:"none", color:C.slate, fontSize:11.5, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }}>Cancel this deal</button>
+        </div>
+      )}
       <PreviewBanner step={step} maxStep={maxStep} setStep={setStep}/>
       {step >= 3 && step <= maxStep && (
         <div style={{ background:C.white, borderBottom:`1px solid ${C.mist}`, padding:"8px 2rem" }}>
@@ -4806,6 +4841,24 @@ export default function BoatClosers() {
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
       {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onBack={()=>setStep(4)}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
+
+      {cancelModal && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.85)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem" }}>
+          <div style={{ background:"#fff", borderRadius:12, padding:"1.75rem", maxWidth:440, width:"100%" }}>
+            <div style={{ fontSize:18, fontWeight:800, color:C.navy, fontFamily:"'Georgia',serif", marginBottom:8 }}>Cancel this deal?</div>
+            <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, marginBottom:14 }}>
+              This ends the deal for both you and the other party. Your offers and terms stay on record, but no one can move it forward. You can start a new deal afterward. This can't be undone.
+            </div>
+            <Field label="Reason (optional — shared with the other party)">
+              <textarea style={{...S.textarea, minHeight:60}} value={cancelReason} onChange={e=>setCancelReason(e.target.value)} placeholder="e.g. Decided to keep the boat / found another buyer / changed my mind" />
+            </Field>
+            <div style={{ display:"flex", gap:10, marginTop:16 }}>
+              <button onClick={()=>{ setCancelModal(false); setCancelReason(""); }} style={{ ...S.btnOutline, flex:1 }}>Keep the deal</button>
+              <button onClick={cancelDeal} style={{ ...S.btn, flex:1, background:C.red, color:"#fff", border:"none" }}>Cancel deal</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
