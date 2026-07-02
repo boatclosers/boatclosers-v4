@@ -4075,7 +4075,7 @@ function Landing({ onStart }) {
         <div style={{ fontSize:11, letterSpacing:3, color:C.brass, textTransform:"uppercase", fontFamily:"sans-serif", marginBottom:14 }}>The Problem</div>
         <h2 style={{ fontSize:29, marginBottom:16 }}>A boat deal shouldn't cost you $15,000 in commission.</h2>
         <p style={{ fontSize:15, fontFamily:"sans-serif", color:C.slate, lineHeight:1.85, maxWidth:660, margin:"0 auto 36px" }}>
-          On a $150,000 boat, a broker's 10% runs about <strong style={{ color:C.navy }}>$15,000</strong> — for paperwork and coordination a motivated buyer and seller can handle themselves. And these days, you often found the buyer yourself: a good listing, a few photos, and the reach of Facebook Marketplace or a boating group did the work a broker used to charge for. The hard part was never finding each other. It's the documents, the title paperwork, the escrow, and the fear of missing a step that costs you later.
+          On a $150,000 boat, a broker's 10% is around <strong style={{ color:C.navy }}>$15,000</strong> — for paperwork and coordination a motivated buyer and seller can handle themselves. And if your situation is anything but ordinary — an inherited boat, a loan still owed, a lost title — most people have nowhere to turn at all. The hard part was never the deal. It's the documents, the title paperwork, the escrow, and the fear of missing a step that costs you later.
         </p>
         <div style={{ fontSize:11, letterSpacing:3, color:C.brass, textTransform:"uppercase", fontFamily:"sans-serif", marginBottom:14 }}>The Solution</div>
         <h2 style={{ fontSize:29, marginBottom:16 }}>Every document, every step — for a flat $249.</h2>
@@ -4083,18 +4083,6 @@ function Landing({ onStart }) {
           BoatClosers gives you the exact paperwork and closing process used in professional vessel sales — the purchase agreement, the title-transfer documents, escrow options, and a guided due-diligence and closing checklist. Every step reflects real private boat closings, including the messy ones most DIY templates ignore. You stay in control of your own deal — and you keep the commission.
         </p>
       </Section>
-
-      {/* You found the buyer — callout */}
-      <div style={{ background:C.sandDark, padding:"3rem 2rem" }}>
-        <div style={{ maxWidth:760, margin:"0 auto", textAlign:"center" }}>
-          <div style={{ fontSize:23, fontWeight:700, color:C.navy, fontFamily:"'Georgia',serif", lineHeight:1.4, marginBottom:12 }}>
-            You did the hard part. You found your buyer.
-          </div>
-          <p style={{ fontSize:14.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.8, maxWidth:600, margin:"0 auto" }}>
-            Marketing a boat has never been easier — a sharp listing and a few good photos reach thousands of buyers on their own. Once you and the buyer have found each other, handing a broker 10% for the paperwork is the expensive part. BoatClosers gives you that same professional closing process for a flat $249 — so the value you created stays with you.
-          </p>
-        </div>
-      </div>
 
       {/* Deal tracker preview */}
       <div style={{ background:C.white, padding:"4.5rem 2rem", borderTop:`0.5px solid ${C.mist}`, borderBottom:`0.5px solid ${C.mist}` }}>
