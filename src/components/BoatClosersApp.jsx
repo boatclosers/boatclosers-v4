@@ -4769,7 +4769,17 @@ export default function BoatClosers() {
         const offers = Object.values(byId).sort((a, b) => (a.id || 0) - (b.id || 0));
         const prevMsgs = prev?.messages || [];
         const srvMsgs = sNeg.messages || [];
-        const messages = srvMsgs.length >= prevMsgs.length ? srvMsgs : prevMsgs;
+        // Union messages (dedupe by from+time+text) so a message either side just
+        // sent — but hasn't finished saving — is never wiped by an incoming poll.
+        const _seenMsg = new Set();
+        const messages = [];
+        for (const m of [...srvMsgs, ...prevMsgs]) {
+          if (!m) continue;
+          const k = (m.from || "") + "|" + (m.time || "") + "|" + (m.text || "");
+          if (_seenMsg.has(k)) continue;
+          _seenMsg.add(k);
+          messages.push(m);
+        }
         return {
           ...prev, offers, messages,
           paid: prev?.paid || sNeg.paid,
