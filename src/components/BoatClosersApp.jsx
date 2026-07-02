@@ -4490,6 +4490,28 @@ export default function BoatClosers() {
   const [docsData, setDocsData] = useState(emptyDocs);
   const [cancelModal, setCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [supportModal, setSupportModal] = useState(false);
+  const [supportType, setSupportType] = useState("A conflict or disagreement with the other party");
+  const [supportMsg, setSupportMsg] = useState("");
+  const [supportSending, setSupportSending] = useState(false);
+  const [supportSent, setSupportSent] = useState(false);
+  const [supportErr, setSupportErr] = useState("");
+  const submitSupport = async () => {
+    if (!supportMsg.trim()) { setSupportErr("Please describe the problem first."); return; }
+    if (supportSending) return;
+    setSupportSending(true); setSupportErr("");
+    try {
+      const res = await fetch("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: user?.name, email: user?.email, dealId, role: myDealRole || user?.role, issueType: supportType, message: supportMsg })
+      });
+      const d = await res.json();
+      if (d?.ok) { setSupportSent(true); setSupportMsg(""); }
+      else setSupportErr(d?.error || "Couldn't send. Please try again.");
+    } catch (e) { setSupportErr("Couldn't reach support. Please check your connection and try again."); }
+    setSupportSending(false);
+  };
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
@@ -4981,6 +5003,7 @@ export default function BoatClosers() {
           {user && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1 }}>{myDealRole || user.role}</span>}
           {vessel.year && <span style={{ fontSize:11, color:C.brass, fontFamily:"sans-serif" }}>{vessel.year} {vessel.make} {vessel.model}</span>}
           <button title="Reload to pull the other party's latest offers, messages, and updates" style={{ fontSize:11, color:"#fff", background:C.brass, border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={()=>window.location.reload()}>🔄 Check for updates</button>
+          <button title="Get help or report a problem or conflict" style={{ fontSize:11, color:"rgba(255,255,255,0.85)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={()=>{ setSupportSent(false); setSupportErr(""); setSupportModal(true); }}>help</button>
           <button style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }} onClick={handleSignOut}>Sign Out</button>
         </div>
       </nav>
@@ -5061,6 +5084,43 @@ export default function BoatClosers() {
               <button onClick={()=>{ setCancelModal(false); setCancelReason(""); }} style={{ ...S.btnOutline, flex:1 }}>Keep the deal</button>
               <button onClick={cancelDeal} style={{ ...S.btn, flex:1, background:C.red, color:"#fff", border:"none" }}>Cancel deal</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {supportModal && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.85)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem" }}>
+          <div style={{ background:"#fff", borderRadius:12, padding:"1.75rem", maxWidth:480, width:"100%", maxHeight:"90vh", overflowY:"auto" }}>
+            {supportSent ? (
+              <>
+                <div style={{ fontSize:18, fontWeight:800, color:C.navy, fontFamily:"'Georgia',serif", marginBottom:8 }}>✓ Request sent</div>
+                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, marginBottom:18 }}>Thanks — we've sent your request to the BoatClosers team and emailed you a confirmation. We'll review it and reply by email.</div>
+                <button onClick={()=>{ setSupportModal(false); setSupportSent(false); }} style={{ ...S.btnBrass }}>Close</button>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize:18, fontWeight:800, color:C.navy, fontFamily:"'Georgia',serif", marginBottom:6 }}>Help &amp; Support</div>
+                <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65, marginBottom:16 }}>
+                  Having trouble, or a disagreement with the other party? Tell us what's going on and the BoatClosers team will help — we can explain the process, help both sides communicate, and review the issue. We're not a party to your deal and don't hold funds, and any refund request is reviewed case by case.
+                </div>
+                <label style={S.label}>What do you need help with?</label>
+                <select style={S.select} value={supportType} onChange={e=>setSupportType(e.target.value)}>
+                  <option>A conflict or disagreement with the other party</option>
+                  <option>A problem with a deposit</option>
+                  <option>A technical problem with the app</option>
+                  <option>Request a refund of my $249 fee</option>
+                  <option>Something else</option>
+                </select>
+                <div style={{ height:12 }}/>
+                <label style={S.label}>Tell us what's happening</label>
+                <textarea style={{...S.textarea, minHeight:110}} value={supportMsg} onChange={e=>setSupportMsg(e.target.value)} placeholder="Describe the problem and what you'd like to happen. Include any details that help us understand it." />
+                {supportErr && <div style={{ fontSize:12, color:C.red, fontFamily:"sans-serif", marginTop:8 }}>{supportErr}</div>}
+                <div style={{ display:"flex", gap:10, marginTop:16 }}>
+                  <button onClick={()=>setSupportModal(false)} style={{ ...S.btnOutline, flex:1 }}>Cancel</button>
+                  <button onClick={submitSupport} disabled={supportSending} style={{ ...S.btnBrass, flex:1, opacity:supportSending?0.6:1 }}>{supportSending ? "Sending…" : "Send to BoatClosers"}</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
