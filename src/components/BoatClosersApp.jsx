@@ -2319,6 +2319,15 @@ const SELLER_PREP = [
 // due diligence, and to both parties at closing, from the synced negotiate data.
 function RejectionNotice({ rejection, escrowPath, viewerRole, vessel, isInitiator }) {
   if (!rejection) return null;
+  const noticeRef = useRef(null);
+  const printNotice = () => {
+    const node = noticeRef.current;
+    if (!node) return;
+    const w = window.open("", "_blank", "width=820,height=940");
+    if (!w) { alert("Please allow pop-ups for this site so you can print or save the notice."); return; }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Vessel Rejection Notice</title><style>body{font-family:Georgia,serif;color:#222;max-width:720px;margin:0 auto;padding:30px;line-height:1.6}@media print{@page{margin:0.6in}}</style></head><body><div style="text-align:center;border-bottom:2px solid #b0863c;padding-bottom:10px;margin-bottom:18px"><div style="letter-spacing:3px;font-size:11px;color:#b0863c;font-weight:700">BOATCLOSERS.COM</div><div style="font-size:18px;font-weight:700;margin-top:6px">Vessel Rejection &amp; Deposit-Return Record</div></div>' + node.innerHTML + '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},250);};</scr'+'ipt></body></html>');
+    w.document.close();
+  };
   const reasons = (rejection.reasons||[]).map(id => REJECTION_REASONS.find(r=>r.id===id)).filter(Boolean);
   const pathLabel = escrowPath==="escrow_com" ? "Escrow.com" : escrowPath==="attorney" ? "a closing attorney's trust account" : "a direct party-to-party deposit";
   const refundSteps = escrowPath==="escrow_com"
@@ -2327,7 +2336,8 @@ function RejectionNotice({ rejection, escrowPath, viewerRole, vessel, isInitiato
     ? ["Contact the closing attorney holding the deposit in trust.", "Both parties instruct the attorney in writing to return the deposit to the buyer.", "Keep the attorney's written confirmation of the return for your records."]
     : ["Whoever is holding the deposit returns it directly to the buyer, by the same method it was paid.", "Both parties confirm the return in writing (a simple email is fine).", "Keep that written confirmation for your records."];
   return (
-    <div style={{ border:`1px solid ${C.red}`, borderRadius:8, overflow:"hidden", marginTop:4 }}>
+    <div>
+    <div ref={noticeRef} style={{ border:`1px solid ${C.red}`, borderRadius:8, overflow:"hidden", marginTop:4 }}>
       <div style={{ background:C.red, color:"#fff", padding:"10px 14px", fontSize:12, fontWeight:700, fontFamily:"sans-serif", letterSpacing:0.5 }}>VESSEL REJECTION NOTICE — DEAL ENDED</div>
       {isInitiator && (
         <div style={{ background:"#eef7f0", borderBottom:`1px solid ${C.green}`, padding:"12px 16px", fontFamily:"sans-serif" }}>
@@ -2361,6 +2371,16 @@ function RejectionNotice({ rejection, escrowPath, viewerRole, vessel, isInitiato
           <div style={{ fontSize:10.5, color:C.slate, marginTop:8, fontStyle:"italic" }}>Trouble getting a deposit returned? Reply to your BoatClosers notification email and we'll help you work it out.</div>
         </div>
       </div>
+    </div>
+    <div style={{ marginTop:12, background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", fontFamily:"sans-serif" }}>
+      <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:4 }}>📄 Keep this on file{isInitiator ? " — your proof of records" : ""}</div>
+      <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
+        {isInitiator
+          ? "This rejection notice is your official record of why the deal ended and how the earnest-money deposit is returned. Save or print a copy now and keep it — you may need it for the deposit return or your records."
+          : "Save or print a copy of this rejection notice for your records."}
+      </div>
+      <button onClick={printNotice} style={{ ...S.btnBrass, fontSize:13, padding:"9px 18px" }}>🖨️ Print / Save Rejection Notice</button>
+    </div>
     </div>
   );
 }
