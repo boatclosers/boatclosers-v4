@@ -76,22 +76,58 @@ async function buildPaPdfBase64(updated: any): Promise<string | null> {
     text(`Executed ${today}`, { size: 9, color: rgb(0.45, 0.5, 0.58), gap: 8 })
     rule()
 
-    text(`This Purchase and Sale Agreement is entered into between the parties below for the vessel described herein.`, { gap: 8 })
-    text('PARTIES', { size: 11, f: bold, color: navy, gap: 5 })
-    text(`Buyer:  ${buyer?.name || '—'}${buyer?.email ? '   |   ' + buyer.email : ''}`)
-    text(`Seller: ${seller?.name || '—'}${seller?.email ? '   |   ' + seller.email : ''}`, { gap: 8 })
+    // ── Values from the deal ──
+    const sAddr = [seller?.address, seller?.city, seller?.stateZip].filter(Boolean).join(', ') || '—'
+    const bAddr = [buyer?.address, buyer?.city, buyer?.stateZip].filter(Boolean).join(', ') || '—'
+    const price = Number(o?.amount) || 0
+    const dep = Number(o?.deposit) || 0
+    const bal = Math.max(0, price - dep)
+    const depPct = (o?.escrowPct != null && o?.escrowPct !== '') ? `${o.escrowPct}%` : '—'
+    const vState = v?.regState || v?.location || 'the State where the Vessel is located'
+    const closeLoc = v?.location || 'the location where the Vessel is moored'
+    const vLen = v?.loa ? `${v.loa} ft` : (v?.length || '—')
+    const hull = v?.hullType || '—'
+    const uscg = v?.uscgNumber || 'N/A'
+    const titleNo = v?.regNumber || '—'
+    const engine = [v?.engineCount, v?.engineMake, v?.engineModel].filter(Boolean).join(' ') || '—'
+    const CONT_LABELS: any = { survey: 'Marine Survey', seaTrial: 'Sea Trial', financing: 'Financing Approval', insurance: 'Insurance Binding', title: 'Clear Title & Lien Search' }
+    let contList: any[] = []
+    const cRaw = o?.contingencies
+    if (Array.isArray(cRaw)) contList = cRaw.map((k: any) => CONT_LABELS[k] || k)
+    else if (cRaw && typeof cRaw === 'object') contList = Object.keys(cRaw).filter((k: any) => cRaw[k]).map((k: any) => CONT_LABELS[k] || k)
+    const contStr = contList.length ? contList.join(', ') : 'the contingencies selected by the Buyer in the app'
 
-    text('VESSEL', { size: 11, f: bold, color: navy, gap: 5 })
-    text(`${[v?.year, v?.make, v?.model].filter(Boolean).join(' ') || vesselName}`)
-    text(`HIN: ${v?.hin || '—'}    Length: ${v?.length || v?.loa || '—'}    Reg/Title: ${v?.regNumber || v?.titleNo || '—'}`, { gap: 8 })
+    text(`This Vessel Purchase & Sale Agreement (the "Agreement") is made on ${today}, by and between ${seller?.name || '—'}, of ${sAddr} (the "Seller"), and ${buyer?.name || '—'}, of ${bAddr} (the "Buyer"). The Parties may reside in different states or countries; their places of residence do not change the governing law set out in this Agreement.`, { gap: 10 })
 
-    text('PRICE & TERMS', { size: 11, f: bold, color: navy, gap: 5 })
-    text(`Purchase Price:  ${fmtMoney(Number(o?.amount)) || '—'}`)
-    text(`Earnest Money Deposit:  ${fmtMoney(Number(o?.deposit)) || '—'}`)
-    if (o?.closingDate) text(`Closing Date:  ${o.closingDate}`)
-    if (o?.ddDays) text(`Due Diligence Period:  ${o.ddDays} days`)
-    gapY(4)
-    text(`The vessel is sold "as-is, where-is" with no warranties except as stated herein. Seller represents lawful ownership and authority to convey clear title free of liens and encumbrances. BoatClosers.com is a document facilitation platform only — not a broker, escrow agent, attorney, or party to this agreement.`, { size: 9.5, color: rgb(0.32, 0.37, 0.45), gap: 8 })
+    text('1. The Vessel', { size: 11, f: bold, color: navy, gap: 5 })
+    text(`Seller agrees to sell and Buyer agrees to purchase the following vessel together with its engines, equipment, and accessories: a ${[v?.year, v?.make, v?.model].filter(Boolean).join(' ') || vesselName}, ${vLen} in length, ${hull} hull, Hull Identification Number ${v?.hin || '—'}, U.S. Coast Guard Official Number ${uscg}, Title No. ${titleNo}, Registration ${titleNo}, powered by ${engine}. Items not listed and any personal effects of Seller are excluded from the sale.`, { gap: 9 })
+
+    text('2. Purchase Price', { size: 11, f: bold, color: navy, gap: 5 })
+    text(`The total purchase price is ${fmtMoney(price) || '—'} U.S. Dollars, payable as: an earnest money deposit of ${fmtMoney(dep) || '—'} (${depPct}) upon execution, and the balance of ${fmtMoney(bal) || '—'} in good funds at Closing.`, { gap: 9 })
+
+    text('3. Contingencies', { size: 11, f: bold, color: navy, gap: 5 })
+    text(`This Agreement is contingent upon the Buyer's satisfactory completion of the following during the Due Diligence period${o?.ddDays ? ` of ${o.ddDays} days` : ''}: ${contStr}. It is the Buyer's responsibility to obtain any assurances the Buyer requires regarding financing and insurance before accepting the Vessel, except to the extent a financing or insurance contingency is selected above.`, { gap: 9 })
+
+    text('4. Closing', { size: 11, f: bold, color: navy, gap: 5 })
+    text(`Closing shall occur on or before ${o?.closingDate || '____________'} at ${closeLoc}. At Closing, Seller shall deliver an executed Bill of Sale, the original Certificate of Title properly endorsed, the Vessel's registration and any U.S. Coast Guard documentation transfer materials, and keys and possession. Buyer shall deliver the balance of the Purchase Price in good funds.`, { gap: 9 })
+
+    text('5. Condition, Risk of Loss & Damage Before Closing', { size: 11, f: bold, color: navy, gap: 5 })
+    text(`Except as expressly stated in writing, the Vessel is sold "AS-IS, WHERE-IS," as described in the As-Is Acknowledgment executed with this Agreement. Risk of loss remains with Seller until possession and title pass to Buyer at Closing. If the Vessel sustains damage after Buyer's acceptance but before Closing, Seller shall repair it at Seller's expense prior to Closing, subject to Buyer's approval. If the damage is substantial and cannot be repaired to Buyer's reasonable satisfaction, Buyer may either accept a price adjustment or terminate this Agreement and receive a full refund of the earnest money deposit.`, { gap: 9 })
+
+    text("6. Seller's Warranties of Title", { size: 11, f: bold, color: navy, gap: 5 })
+    text(`Seller warrants lawful ownership of the Vessel, that it is free of all liens and encumbrances except those released at or before Closing, and that Seller has full authority to sell and transfer it.`, { gap: 9 })
+
+    text('7. Default & Remedies', { size: 11, f: bold, color: navy, gap: 5 })
+    text(`If Buyer defaults without a permitted contingency, Seller may retain the deposit as liquidated damages. If Seller defaults, Buyer shall receive a full refund of the deposit and any remedy available at law or equity.`, { gap: 9 })
+
+    text('8. Time Is of the Essence', { size: 11, f: bold, color: navy, gap: 5 })
+    text(`Time is of the essence in this Agreement. Each Party shall meet the deadlines stated for contingencies, acceptance, and Closing. Any deadline may be extended only by written agreement of both Parties.`, { gap: 9 })
+
+    text('9. Dispute Resolution', { size: 11, f: bold, color: navy, gap: 5 })
+    text(`The Parties shall first attempt in good faith to resolve any dispute through direct negotiation, then mediation. Any dispute not resolved by mediation shall be settled by binding arbitration under the rules of the American Arbitration Association, seated in the State of ${vState}, regardless of where the Parties reside. Judgment on the award may be entered in any court of competent jurisdiction.`, { gap: 9 })
+
+    text('10. Governing Law', { size: 11, f: bold, color: navy, gap: 5 })
+    text(`This Agreement is governed by the laws of the State of ${vState}, and by applicable United States maritime law, without regard to the state or country in which either Party resides. This Agreement constitutes the entire agreement between the Parties and supersedes all prior understandings. BoatClosers.com is a document facilitation platform only — not a broker, escrow agent, attorney, or party to this Agreement.`, { size: 10, gap: 8 })
     rule()
 
     text('SIGNATURES', { size: 11, f: bold, color: navy, gap: 8 })
