@@ -722,7 +722,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
         return;
       }
       if (showLinkAfter) {
-        setInviteLink(result.inviteUrl);
+        setInviteLink(result.shortUrl || result.inviteUrl);
       } else {
         setInviteSent(true);
       }
