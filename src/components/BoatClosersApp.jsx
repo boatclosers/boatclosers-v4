@@ -3934,9 +3934,9 @@ function Welcome({ name, onStart, onSignOut }) {
   );
 }
 
-function AuthScreen({ onAuth, prefillEmail, notice, defaultMode }) {
+function AuthScreen({ onAuth, prefillEmail, notice, defaultMode, defaultRole }) {
   const [mode, setMode] = useState(defaultMode || "signup");
-  const [role, setRole] = useState(null);
+  const [role, setRole] = useState(defaultRole || null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState(prefillEmail || "");
   const [pw, setPw] = useState("");
@@ -4139,8 +4139,8 @@ function Landing({ onStart, onLegal }) {
             Professional-grade tools once reserved for yacht brokers — now in the hands of any private buyer or seller. <strong style={{ color:"#fff", fontWeight:600 }}>No broker, no commission — just $249.</strong>
           </p>
           <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
-            <button style={{...S.btnBrass, fontSize:15, padding:"13px 32px"}} onClick={onStart}>Start as Buyer</button>
-            <button style={{ ...S.btnOutline, color:"rgba(255,255,255,0.85)", borderColor:"rgba(255,255,255,0.3)", fontSize:15, padding:"13px 32px", borderRadius:5 }} onClick={onStart}>Start as Seller</button>
+            <button style={{...S.btnBrass, fontSize:15, padding:"13px 32px"}} onClick={()=>onStart("buyer")}>Start as Buyer</button>
+            <button style={{ ...S.btnOutline, color:"rgba(255,255,255,0.85)", borderColor:"rgba(255,255,255,0.3)", fontSize:15, padding:"13px 32px", borderRadius:5 }} onClick={()=>onStart("seller")}>Start as Seller</button>
           </div>
           <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginTop:16, fontFamily:"sans-serif" }}>Free to start · Pay $249 only when you're ready to sign</div>
         </div>
@@ -4450,6 +4450,7 @@ const emptyDocs = {paid:false,signedDocs:{}};
 
 export default function BoatClosers() {
   const [screen, setScreen] = useState("landing");
+  const [authRole, setAuthRole] = useState(null);
   const [stripeReturn, setStripeReturn] = useState(null);
   // If we just came back from Stripe Checkout, ask our server to confirm the
   // session was really paid, then hand the result to the deal room to lock the
@@ -4976,10 +4977,10 @@ export default function BoatClosers() {
     );
   }
 
-  if (screen==="landing") return <Landing onStart={()=>setScreen("auth")} onLegal={(p)=>setScreen(p)}/>;
+  if (screen==="landing") return <Landing onStart={(r)=>{ if(r==="buyer"||r==="seller") setAuthRole(r); setScreen("auth"); }} onLegal={(p)=>setScreen(p)}/>;
   if (screen==="terms") return <LegalScreen page="terms" onBack={()=>setScreen("landing")} />;
   if (screen==="privacy") return <LegalScreen page="privacy" onBack={()=>setScreen("landing")} />;
-  if (screen==="auth") return <AuthScreen onAuth={handleAuth} prefillEmail={deepLink?.email} notice={deepLink ? `Sign in as ${deepLink.email} to review this deal.` : null} defaultMode={deepLink ? "login" : "signup"} />;
+  if (screen==="auth") return <AuthScreen onAuth={handleAuth} prefillEmail={deepLink?.email} notice={deepLink ? `Sign in as ${deepLink.email} to review this deal.` : null} defaultMode={deepLink ? "login" : "signup"} defaultRole={authRole} />;
   if (screen==="deal" && showWelcome) return <Welcome name={user?.name} onStart={()=>setShowWelcome(false)} onSignOut={handleSignOut} />;
 
   return (
