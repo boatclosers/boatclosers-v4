@@ -3,6 +3,15 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendEmail, emailLayout } from '@/lib/sendEmail';
 import crypto from 'crypto';
 
+// Makes a short, readable invite code like "BOAT-7F3K2M" (no confusing 0/O/1/I/L).
+function makeShortCode() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const bytes = crypto.randomBytes(6);
+  let s = '';
+  for (let i = 0; i < 6; i++) s += chars[bytes[i] % chars.length];
+  return 'BOAT-' + s;
+}
+
 export async function POST(req: Request) {
   const { dealId, inviteEmail, userId } = await req.json();
 
@@ -30,11 +39,13 @@ export async function POST(req: Request) {
   const derivedInviteRole = (deal.initiator_role === 'seller') ? 'buyer' : 'seller';
 
   const token = crypto.randomBytes(32).toString('hex');
+  const shortCode = makeShortCode();
 
   const { error: updateError } = await supabaseAdmin
     .from('deals')
     .update({
       invite_token: token,
+      invite_short_code: shortCode,
       invite_email: inviteEmail,
       invite_role: derivedInviteRole,
       invite_status: 'pending',
@@ -47,6 +58,7 @@ export async function POST(req: Request) {
   }
 
   const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`;
+  const shortUrl = `${process.env.NEXT_PUBLIC_APP_URL}/join/${shortCode}`;
   const v = deal?.vessel || {};
   const boat = [v.year, v.make, v.model].filter(Boolean).join(' ') || v.name || v.makeModel || 'a boat';
   const inviterName = (deal?.parties?.[deal.initiator_role]?.name || '').trim();
@@ -96,5 +108,5 @@ export async function POST(req: Request) {
     console.error('Invite email failed to send:', emailResult.error);
   }
 
-  return NextResponse.json({ success: true, inviteUrl, token, emailSent: emailResult.success });
+  return NextResponse.json({ success: true, inviteUrl, shortUrl, token, shortCode, emailSent: emailResult.success });
 }
