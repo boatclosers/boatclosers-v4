@@ -952,8 +952,13 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const _bkey = `builderOpen_${myRole}`;
   const [showBuilder, setShowBuilder] = useState(data[_bkey] ?? false);
   // Remember whether the builder is open so it doesn't collapse when the user
-  // navigates back to edit Vessel or Parties and returns to the Deal Room.
-  useEffect(() => { setData(d => (d[_bkey] === showBuilder ? d : { ...d, [_bkey]: showBuilder })); }, [showBuilder]);
+  // navigates back to edit Vessel or Parties. Skip the initial mount so it
+  // doesn't fire an extra save that could race with offer sync.
+  const builderMountRef = useRef(true);
+  useEffect(() => {
+    if (builderMountRef.current) { builderMountRef.current = false; return; }
+    setData(d => (d[_bkey] === showBuilder ? d : { ...d, [_bkey]: showBuilder }));
+  }, [showBuilder]);
   const [quickAmt, setQuickAmt] = useState("");
   const [localContingencies, setLocalContingencies] = useState(data.selectedContingencies || []);
   const [messages, setMessages] = useState(data.messages || [
@@ -4848,9 +4853,23 @@ export default function BoatClosers() {
         seenRef.current = { offers: sOffers.length, msgs: sMsgs.length, rejected: !!sNeg.vesselRejection, init: true };
       } catch (e) {}
       setNegotiate(prev => {
+        const STATUS_RANK = { pending:0, sent:0, expired:1, countered:1, rejected:2, agreed:3, accepted:4 };
+        const _rank = s => STATUS_RANK[s] ?? 0;
         const byId = {};
         for (const o of (prev?.offers || [])) if (o && o.id != null) byId[o.id] = o;
-        for (const o of (sNeg.offers || [])) if (o && o.id != null) byId[o.id] = { ...(byId[o.id] || {}), ...o };
+        for (const o of (sNeg.offers || [])) {
+          if (!o || o.id == null) continue;
+          const local = byId[o.id];
+          if (!local) { byId[o.id] = o; continue; }
+          const merged = { ...local, ...o };
+          // Never let a stale poll pull an offer BACKWARD — a just-made accept or
+          // signature the save hasn't caught up to yet must not be reverted.
+          if (_rank(local.status) > _rank(o.status)) merged.status = local.status;
+          merged.agreedBy = local.agreedBy || o.agreedBy;
+          merged.paBuyerSig = local.paBuyerSig || o.paBuyerSig;
+          merged.paSellerSig = local.paSellerSig || o.paSellerSig;
+          byId[o.id] = merged;
+        }
         const offers = Object.values(byId).sort((a, b) => (a.id || 0) - (b.id || 0));
         const prevMsgs = prev?.messages || [];
         const srvMsgs = sNeg.messages || [];
