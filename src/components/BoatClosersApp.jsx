@@ -1114,6 +1114,19 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     setTimeout(() => offerFormRef.current?.scrollIntoView({ behavior:"smooth", block:"center" }), 60);
   };
 
+  // Do-over: reopen the agreed offer to fix a forgotten term BEFORE signing.
+  const reviseOffer = () => {
+    const ag = offers.find(o => o.status==="agreed");
+    if (!ag) return;
+    counterOffer(ag.id);
+    const reverted = offers.map(of => of.id===ag.id ? {...of, status:"countered", paBuyerSig:null, paSellerSig:null} : of);
+    const note = { from: myRole, text:"↩️ Reopened the offer to revise the terms before signing.", time:new Date().toLocaleTimeString() };
+    const msgs = [...messages, note];
+    setOffers(reverted);
+    setMessages(msgs);
+    setData(d => ({ ...d, offers: reverted, messages: msgs, priceAgreed:false, agreedOfferId:null }));
+  };
+
   // Accepting an offer opens the modal — pay first, then sign the PA.
   const acceptOffer = (id) => {
     const acc = offers.find(o => o.id===id);
@@ -1328,9 +1341,14 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:12 }}>
                 Both parties sign the Purchase Agreement for free — each signs only their own line. {amInitiator ? "Once both have signed, you pay the one-time $249 to make it binding." : "Once both have signed, the party who started the deal pays the $249 — nothing for you to pay."}
               </div>
-              <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 22px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>
-                {iSigned ? "View Purchase Agreement →" : "Sign the Purchase Agreement →"}
-              </button>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
+                <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 22px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>
+                  {iSigned ? "View Purchase Agreement →" : "Sign the Purchase Agreement →"}
+                </button>
+                {!buyerSigned && !sellerSigned && (
+                  <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={reviseOffer} title="Reopen the offer to fix a term before signing">↩️ Revise offer</button>
+                )}
+              </div>
             </>
           ) : amInitiator ? (
             <>
