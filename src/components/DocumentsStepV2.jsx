@@ -96,12 +96,28 @@ function DocPaper({ doc, html, editable, checkState, toggleCheck, savedFields, o
         el.textContent = (saved != null && saved !== "") ? saved : "";
         const onBlur = () => onField(fk, (el.textContent || "").trim());
         el.addEventListener("blur", onBlur);
-        handlers.push([el, onBlur]);
+        handlers.push([el, onBlur, "blur"]);
       } else {
         el.textContent = (saved != null && saved !== "") ? saved : "________";
       }
     });
-    return () => handlers.forEach(([el, h]) => el.removeEventListener("blur", h));
+    // Checkboxes (☐/☑) embedded in the document body — clickable when editable.
+    const checks = root.querySelectorAll(".bc-check");
+    checks.forEach((el) => {
+      const fk = el.getAttribute("data-fk");
+      el.textContent = savedFields[fk] === "on" ? "\u2611" : "\u2610";
+      if (editable) {
+        el.classList.add("editable");
+        const onClick = () => {
+          const nowOn = el.textContent === "\u2611";
+          el.textContent = nowOn ? "\u2610" : "\u2611";
+          onField(fk, nowOn ? "" : "on");
+        };
+        el.addEventListener("click", onClick);
+        handlers.push([el, onClick, "click"]);
+      }
+    });
+    return () => handlers.forEach(([el, h, ev]) => el.removeEventListener(ev, h));
   }, [html, editable]); // eslint-disable-line
 
   if (doc.checklist && html.includes("<!--CHECKLIST-->")) {
@@ -211,8 +227,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     const sigAt = rawHtml.indexOf('<div class="sig"');
     const head = sigAt >= 0 ? rawHtml.slice(0, sigAt) : rawHtml;
     const tail = sigAt >= 0 ? rawHtml.slice(sigAt) : "";
-    let n = 0;
-    const head2 = head.replace(/_{4,}/g, () => `<span class="bc-fill-in" data-fk="${docId}:${n++}">________</span>`);
+    let n = 0, c = 0;
+    let head2 = head.replace(/_{4,}/g, () => `<span class="bc-fill-in" data-fk="${docId}:${n++}">________</span>`);
+    head2 = head2.replace(/[\u2610\u2611\u2612]/g, () => `<span class="bc-check" data-fk="${docId}:chk${c++}">\u2610</span>`);
     return head2 + tail;
   };
 
@@ -535,6 +552,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 .bc-checklist{margin:6px 0 14px}
 .bc-fill-in.editable{display:inline-block;min-width:90px;border-bottom:1.5px solid ${C.brass};padding:0 5px;outline:none;color:${C.navy};font-weight:600;line-height:1.7}
 .bc-fill-in.editable:focus{background:#fffaf0}
+.bc-check{font-size:16px;color:${C.slate};user-select:none;padding:0 2px}
+.bc-check.editable{cursor:pointer;color:${C.navy}}
+.bc-check.editable:hover{color:${C.brass}}
 .bc-fill-hint{background:${C.tealLight};border:1px solid ${C.teal};border-radius:6px;padding:9px 13px;margin-bottom:14px;font-size:11.5px;line-height:1.5;color:${C.teal};font-family:sans-serif}
 .bc-lock-note{background:#fbf4e3;border:1px solid #8a6d1a;border-radius:6px;padding:9px 13px;margin-bottom:14px;font-size:11.5px;line-height:1.5;color:#6b540f;font-family:sans-serif}
 .bc-cl-item.locked{opacity:.7;cursor:default}
