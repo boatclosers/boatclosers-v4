@@ -178,6 +178,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [activeDoc, setActiveDoc] = useState(null); // the one document currently opened for work
   // Collapsible groups — required group open by default, the rest collapsed.
   const [openGroups, setOpenGroups] = useState({ "Closing Instruments": true });
+  const [quizOpen, setQuizOpen] = useState(true);
+  const [quiz, setQuiz] = useState({ pay:"", trailer:false, documented:false, lien:false, estate:false });
   const [esignConsent, setEsignConsent] = useState({}); // per-doc consent before e-signing
   const toggleGroup = (g) => setOpenGroups(o => ({ ...o, [g]: !o[g] }));
   const [sendEmail, setSendEmail] = useState({});
@@ -317,6 +319,26 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const GROUPS = [...new Set(DOC_SET.map(d=>d.group))];
 
   const requiredDocs = DOC_SET.filter(d => d.required);
+  // Questionnaire → suggested documents (additive; the full list stays browsable).
+  const REC_MAP = {
+    core: ["psa","bos","dep","asis","stmt","title_app","delivery_receipt"],
+    finance: ["commitment","fin_conditions","binder"],
+    trailer: ["trailer_bos"],
+    documented: ["uscg_transfer"],
+    lien: ["payoff","lien_release"],
+    estate: ["estate_guide","heirship","executor_auth"],
+  };
+  const recIds = (() => {
+    const s = new Set(REC_MAP.core);
+    if (quiz.pay === "finance") REC_MAP.finance.forEach(id => s.add(id));
+    if (quiz.trailer) REC_MAP.trailer.forEach(id => s.add(id));
+    if (quiz.documented) REC_MAP.documented.forEach(id => s.add(id));
+    if (quiz.lien) REC_MAP.lien.forEach(id => s.add(id));
+    if (quiz.estate) REC_MAP.estate.forEach(id => s.add(id));
+    return [...s];
+  })();
+  const recDocs = recIds.map(id => DOC_SET.find(d => d.id === id)).filter(Boolean);
+  const quizStarted = quiz.pay || quiz.trailer || quiz.documented || quiz.lien || quiz.estate;
   const allRequiredSigned = requiredDocs.every(d => signed[d.id]);
   const reqMissing = requiredDocs.filter(d => !signed[d.id]);
   const reqNotaryMissing = reqMissing.filter(d => (d.body||"").includes("Notary Acknowledgment"));
@@ -619,6 +641,59 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       <div style={{ height:5, background:C.mist, borderRadius:3, marginBottom:20, overflow:"hidden" }}>
         <div style={{ height:"100%", width:`${(signedCount/DOC_SET.length)*100}%`, background:C.green, borderRadius:3, transition:"width 0.4s" }}/>
       </div>
+
+      {/* ── OPTIONAL: which documents does your deal need? (skippable) ── */}
+      {quizOpen && (
+        <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px 16px", marginBottom:22, background:"#f7fbfd" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:10 }}>
+            <div>
+              <div style={{ fontSize:14, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}>🧭 Not sure which documents you need?</div>
+              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:2, lineHeight:1.5 }}>Answer a few quick questions and we'll point you to the right ones — or skip and browse all documents below.</div>
+            </div>
+            <button onClick={()=>setQuizOpen(false)} style={{ background:"transparent", border:`1px solid ${C.mist}`, color:C.slate, borderRadius:5, padding:"5px 10px", fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", whiteSpace:"nowrap" }}>Skip — browse all ↓</button>
+          </div>
+
+          <div style={{ marginTop:12, display:"flex", flexDirection:"column", gap:10 }}>
+            {/* Payment */}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
+              <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>How is the buyer paying?</span>
+              <div style={{ display:"flex", gap:6 }}>
+                {[["cash","Cash"],["finance","Financing"]].map(([v,l])=>(
+                  <button key={v} onClick={()=>setQuiz(q=>({...q,pay:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", border:`2px solid ${quiz.pay===v?C.brass:C.mist}`, background:quiz.pay===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
+                ))}
+              </div>
+            </div>
+            {/* Yes/No toggles */}
+            {[["trailer","Is a trailer included in the sale?"],["documented","Is the vessel U.S. Coast Guard documented?"],["lien","Does the seller still owe money on the boat (a lien to pay off)?"],["estate","Is this an estate or inherited sale?"]].map(([k,label])=>(
+              <div key={k} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
+                <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>{label}</span>
+                <div style={{ display:"flex", gap:6 }}>
+                  {[[true,"Yes"],[false,"No"]].map(([v,l])=>(
+                    <button key={String(v)} onClick={()=>setQuiz(q=>({...q,[k]:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", border:`2px solid ${quiz[k]===v?C.brass:C.mist}`, background:quiz[k]===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {quizStarted && (
+            <div style={{ marginTop:14, borderTop:`1px solid ${C.mist}`, paddingTop:12 }}>
+              <div style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:800, color:C.navy, marginBottom:8 }}>📋 Your deal likely needs these {recDocs.length} documents:</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                {recDocs.map(doc=>(
+                  <button key={doc.id} onClick={()=>jumpToDoc(doc.id)} style={{ background:signed[doc.id]?C.greenLight:"#fff", border:`1px solid ${signed[doc.id]?C.green:C.brass}`, color:signed[doc.id]?C.green:C.navy, borderRadius:20, padding:"6px 12px", fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>
+                    {signed[doc.id]?"✓ ":""}{doc.title} →
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:10, lineHeight:1.5 }}>These are suggestions to guide you — every document is still available in the full list below. Tap any one to open it.</div>
+            </div>
+          )}
+        </div>
+      )}
+      {!quizOpen && (
+        <button onClick={()=>setQuizOpen(true)} style={{ background:"transparent", border:`1px dashed ${C.mist}`, color:C.slate, borderRadius:6, padding:"8px 14px", fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", marginBottom:16 }}>🧭 Help me pick the right documents</button>
+      )}
 
       {/* ── REQUIRED DOCUMENTS TRACKER ── */}
       <div style={{ border:`2px solid ${allRequiredSigned ? C.green : C.brass}`, borderRadius:8, padding:"13px 16px", marginBottom:22, background: allRequiredSigned ? C.greenLight : "#fff9ee" }}>
