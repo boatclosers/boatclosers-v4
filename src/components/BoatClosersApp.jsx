@@ -13,7 +13,7 @@ const C = {
   navy:    "#08152e",
   navy2:   "#0d2145",
   teal:    "#0e6b7c",
-  tealLight:"#e4f4f7",
+  tealLight:"#e4f4f7",BoatClosersApp.jsx
   brass:   "#b8863a",
   brass2:  "#d4a84b",
   rope:    "#c8b89a",
