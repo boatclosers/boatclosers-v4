@@ -1352,7 +1352,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                   : <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("initiator",124.5)}>💳 Pay your half $124.50 →</button>)}
                 {payPlan==="other" && (data.paidOther
                   ? <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:"#166534", fontWeight:600 }}>✓ {otherPayName} paid — unlocking…</div>
-                  : <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, fontWeight:600 }}>Waiting for {otherPayName} to pay the $249. They see the request on their side, and it unlocks the moment they pay.</div>)}
+                  : <div style={{ background:"#eef7f0", border:`1px solid ${C.green}`, borderRadius:6, padding:"10px 12px", fontFamily:"sans-serif" }}>
+                      <div style={{ fontSize:12.5, fontWeight:800, color:"#166534", marginBottom:3 }}>✓ Payment request sent to {otherPayName}</div>
+                      <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6 }}>They'll see a "you've been asked to pay $249" prompt on their deal and can pay it there. The deal unlocks automatically the moment they do — nothing more for you to do here.</div>
+                    </div>)}
                 <button style={{ ...S.btnOutline, fontSize:13, padding:"13px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
               </div>
             </>
