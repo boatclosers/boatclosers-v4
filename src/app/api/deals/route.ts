@@ -306,6 +306,32 @@ async function notifyOnDealChange(previous: any, updated: any) {
       }
     }
 
+    const justCanceled = updated?.negotiate?.canceled && !previous?.negotiate?.canceled
+    if (justCanceled) {
+      const c = updated.negotiate.canceled
+      const recipients = [buyerEmail, sellerEmail].filter(Boolean)
+      for (const email of recipients) {
+        await sendEmail({
+          to: email,
+          subject: `A BoatClosers deal was canceled — ${vesselName}`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">Deal Canceled</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              <strong>${c?.byName || 'A party'}</strong> canceled the deal on <strong>${vesselName}</strong>${c?.reason ? ` — "${c.reason}"` : ''}. The deal is now closed for both parties.
+            </p>
+            <p style="color:#475569; font-size:13px; line-height:1.5;">
+              If you'd both still like to move forward, reach out to the other party directly to agree on next steps — or start a new deal any time.
+            </p>
+            <p style="text-align:center; margin: 24px 0;">
+              <a href="${dealLink(2, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
+                View the Deal
+              </a>
+            </p>
+          `)
+        })
+      }
+    }
+
     const justLocked = updated?.negotiate?.dealLocked && !previous?.negotiate?.dealLocked
     if (justLocked) {
       const recipients = [buyerEmail, sellerEmail].filter(Boolean)
