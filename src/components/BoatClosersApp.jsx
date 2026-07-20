@@ -13,7 +13,7 @@ const C = {
   navy:    "#08152e",
   navy2:   "#0d2145",
   teal:    "#0e6b7c",
-  tealLight:"#e4f4f7",BoatClosersApp.jsx
+  tealLight:"#e4f4f7",
   brass:   "#b8863a",
   brass2:  "#d4a84b",
   rope:    "#c8b89a",
@@ -1225,6 +1225,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const payPlan = data.payPlan || _agreedForFee?.feePayer || "full";
   const setPayPlan = (p) => setData(d => ({ ...d, payPlan: p }));
   const openCheckout = async (who, fee) => {
+    if (!dealId) { alert("This deal is still saving — please wait a moment and try again."); return; }
     setPayWho(who);
     try {
       const res = await fetch("/api/stripe/checkout", {
@@ -4543,10 +4544,12 @@ export default function BoatClosers() {
       fetch(`/api/stripe/verify?session_id=${encodeURIComponent(sid)}`)
         .then(r => r.json())
         .then(v => {
+          console.log('[PAY VERIFY]', v?.dbg || v);
           if (v?.paid) {
+            if (v.dbg && !String(v.dbg).includes('LOCKED') && !String(v.dbg).includes('wasLocked=true')) {
+              alert('Payment received, but the deal did not lock. Details:\n\n' + (v.dbg || '') + '\n\nPlease screenshot this and send it.');
+            }
             if (v.dealId) {
-              // Payment confirmed & the deal is locked server-side — reload into
-              // the locked deal and jump straight to Due Diligence.
               window.location.replace(`/?dealId=${encodeURIComponent(v.dealId)}&step=3`);
             } else {
               setStripeReturn({ paid: true, who: v.who || "initiator", dealId: null }); setStep(2);
