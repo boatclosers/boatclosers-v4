@@ -944,7 +944,11 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const [showMessages, setShowMessages] = useState(true);
   // In Deal Room mode (offers already exist) the builder starts collapsed so the
   // negotiation conversation is the focus; expand it to make a new offer/counter.
-  const [showBuilder, setShowBuilder] = useState(false);
+  const _bkey = `builderOpen_${myRole}`;
+  const [showBuilder, setShowBuilder] = useState(data[_bkey] ?? false);
+  // Remember whether the builder is open so it doesn't collapse when the user
+  // navigates back to edit Vessel or Parties and returns to the Deal Room.
+  useEffect(() => { setData(d => (d[_bkey] === showBuilder ? d : { ...d, [_bkey]: showBuilder })); }, [showBuilder]);
   const [quickAmt, setQuickAmt] = useState("");
   const [localContingencies, setLocalContingencies] = useState(data.selectedContingencies || []);
   const [messages, setMessages] = useState(data.messages || [
