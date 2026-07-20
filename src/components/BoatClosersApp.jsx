@@ -1592,7 +1592,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 {mySigned ? `✓ You've signed — waiting for the ${otherRole} to sign.` : "Sign your line above to continue."}
               </div>
             ) : amInitiator ? (
-              <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 20px" }} onClick={()=>setPayModal(paModal)}>
+              <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 20px" }} onClick={()=>openCheckout("initiator", 249)}>
                 Pay $249 &amp; make binding →
               </button>
             ) : (
