@@ -8,10 +8,10 @@ function admin() {
   })
 }
 
-// After Stripe redirects back, the app calls this with the session id. We ask
-// Stripe whether the session was actually paid, then lock the deal server-side
-// so it's authoritative regardless of client timing. Returns debug fields so we
-// can see exactly what happened if a lock ever doesn't fire.
+// After Stripe redirects back, the app calls this with the session id. We confirm
+// the payment with Stripe, then LOCK the deal server-side so the rest of the app
+// (Due Diligence, Documents, Closing) is released to BOTH parties. For a split,
+// we only lock once BOTH halves are confirmed. Returns debug fields for support.
 export async function GET(req: Request) {
   const key = process.env.STRIPE_SECRET_KEY
   if (!key) return NextResponse.json({ paid: false, dbg: 'no-stripe-key' })
@@ -37,8 +37,6 @@ export async function GET(req: Request) {
         const { data: row } = await sb.from('deals').select('negotiate').eq('id', dealId).maybeSingle()
         const neg: any = row?.negotiate || {}
         const offers: any[] = Array.isArray(neg.offers) ? neg.offers : []
-        // Find the offer to lock — try agreed/accepted, then a both-signed offer,
-        // then the most recent active offer. Robust to status naming drift.
         const agreed =
           offers.find((o: any) => o && (o.status === 'agreed' || o.status === 'accepted')) ||
           offers.find((o: any) => o && o.paBuyerSig && o.paSellerSig) ||
@@ -47,31 +45,41 @@ export async function GET(req: Request) {
         const plan = neg.payPlan || agreed?.feePayer || 'full'
         const paidInitiator = who === 'initiator' ? true : !!neg.paidInitiator
         const paidOther = who === 'other' ? true : !!neg.paidOther
-        const complete = plan === 'full' ? paidInitiator : plan === 'other' ? paidOther : (paidInitiator && paidOther)
+        // Split unlocks ONLY when both halves are confirmed.
+        const complete = plan === 'split' ? (paidInitiator && paidOther) : plan === 'other' ? paidOther : paidInitiator
         const today = new Date().toISOString().split('T')[0]
 
-        dbg += ` offers=${offers.length} agreed=${agreed ? 'yes' : 'NONE'} plan=${plan} complete=${complete} wasLocked=${!!neg.dealLocked}`
+        dbg += ` offers=${offers.length} agreed=${agreed ? 'yes' : 'NONE'} plan=${plan} paidInit=${paidInitiator} paidOther=${paidOther} complete=${complete} wasLocked=${!!neg.dealLocked}`
 
+        // Always record who has paid (so a split's first half is remembered).
         let newNeg: any = { ...neg, paidInitiator, paidOther, payPlan: plan }
-        if (complete && agreed && !neg.dealLocked) {
-          const lockedOffers = offers.map((o: any) => o && o.id === agreed.id ? { ...o, status: 'accepted', paDate: o.paDate || today } : o)
+
+        // Once the fee is fully covered, LOCK — releasing the app to both parties.
+        // Lock even if we can't pinpoint the exact offer; the flags are what gate access.
+        if (complete && !neg.dealLocked) {
+          const lockedOffers = agreed
+            ? offers.map((o: any) => o && o.id === agreed.id ? { ...o, status: 'accepted', paDate: o.paDate || today } : o)
+            : offers
           newNeg = {
             ...newNeg,
             offers: lockedOffers,
             paid: true,
             dealLocked: true,
             dealStatus: 'locked',
-            agreedPrice: agreed.amount,
-            escrowPct: agreed.escrowPct,
-            escrowPath: agreed.escrowPath,
-            deposit: agreed.deposit,
-            selectedContingencies: agreed.contingencies || neg.selectedContingencies || [],
-            dueDiligenceDays: agreed.ddDays || neg.dueDiligenceDays,
+            ...(agreed ? {
+              agreedPrice: agreed.amount,
+              escrowPct: agreed.escrowPct,
+              escrowPath: agreed.escrowPath,
+              deposit: agreed.deposit,
+              selectedContingencies: agreed.contingencies || neg.selectedContingencies || [],
+              dueDiligenceDays: agreed.ddDays || neg.dueDiligenceDays,
+            } : {}),
           }
           dbg += ' => LOCKED'
         } else {
-          dbg += ' => not-locked'
+          dbg += complete ? ' => already-locked' : ' => half-paid-waiting-for-other'
         }
+
         const { error: upErr } = await sb.from('deals').update({ negotiate: newNeg }).eq('id', dealId)
         if (upErr) dbg += ` updateErr=${upErr.message}`
       } catch (e: any) {
