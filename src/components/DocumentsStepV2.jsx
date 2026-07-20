@@ -181,7 +181,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // Collapsible groups — required group open by default, the rest collapsed.
   const [openGroups, setOpenGroups] = useState({ "Closing Instruments": true });
   const [quizOpen, setQuizOpen] = useState(true);
-  const [quiz, setQuiz] = useState({ pay:"", trailer:false, documented:false, lien:false, estate:false });
+  const [quizMore, setQuizMore] = useState(false);
+  const [quiz, setQuiz] = useState({ pay:"", trailer:false, documented:false, lien:false, estate:false, coowner:false, entity:false, poa:false, tradein:false, gift:false, sellerfin:false, losttitle:false, lostreg:false, survey:false, defects:false });
   const [esignConsent, setEsignConsent] = useState({}); // per-doc consent before e-signing
   const toggleGroup = (g) => setOpenGroups(o => ({ ...o, [g]: !o[g] }));
   const [sendEmail, setSendEmail] = useState({});
@@ -329,18 +330,25 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     documented: ["uscg_transfer"],
     lien: ["payoff","lien_release"],
     estate: ["estate_guide","heirship","executor_auth"],
+    coowner: ["coowner"],
+    entity: ["entity_auth"],
+    poa: ["poa"],
+    tradein: ["trade_in"],
+    gift: ["gift_transfer"],
+    sellerfin: ["promissory_note","security_agreement"],
+    losttitle: ["lost_title","bos_only"],
+    lostreg: ["lost_reg"],
+    survey: ["survey_report"],
+    defects: ["defect_disclosure","engine_hours"],
   };
   const recIds = (() => {
     const s = new Set(REC_MAP.core);
     if (quiz.pay === "finance") REC_MAP.finance.forEach(id => s.add(id));
-    if (quiz.trailer) REC_MAP.trailer.forEach(id => s.add(id));
-    if (quiz.documented) REC_MAP.documented.forEach(id => s.add(id));
-    if (quiz.lien) REC_MAP.lien.forEach(id => s.add(id));
-    if (quiz.estate) REC_MAP.estate.forEach(id => s.add(id));
+    ["trailer","documented","lien","estate","coowner","entity","poa","tradein","gift","sellerfin","losttitle","lostreg","survey","defects"].forEach(k => { if (quiz[k]) (REC_MAP[k]||[]).forEach(id => s.add(id)); });
     return [...s];
   })();
   const recDocs = recIds.map(id => DOC_SET.find(d => d.id === id)).filter(Boolean);
-  const quizStarted = quiz.pay || quiz.trailer || quiz.documented || quiz.lien || quiz.estate;
+  const quizStarted = !!quiz.pay || Object.keys(quiz).some(k => k !== "pay" && quiz[k]);
   const allRequiredSigned = requiredDocs.every(d => signed[d.id]);
   const reqMissing = requiredDocs.filter(d => !signed[d.id]);
   const reqNotaryMissing = reqMissing.filter(d => (d.body||"").includes("Notary Acknowledgment"));
@@ -626,7 +634,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       <div style={{ marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div>
           <h1 style={S.h1}>Documents</h1>
-          <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>{signedCount} of {DOC_SET.length} complete · {requiredDocs.filter(d=>signed[d.id]).length}/{requiredDocs.length} required</p>
+          <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>{requiredDocs.filter(d=>signed[d.id]).length} of {requiredDocs.length} required documents complete</p>
         </div>
         <span style={{...S.pill, background:C.greenLight, color:C.green}}>Paid ✓</span>
       </div>
@@ -641,7 +649,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       </div>
 
       <div style={{ height:5, background:C.mist, borderRadius:3, marginBottom:20, overflow:"hidden" }}>
-        <div style={{ height:"100%", width:`${(signedCount/DOC_SET.length)*100}%`, background:C.green, borderRadius:3, transition:"width 0.4s" }}/>
+        <div style={{ height:"100%", width:`${requiredDocs.length ? (requiredDocs.filter(d=>signed[d.id]).length/requiredDocs.length)*100 : 0}%`, background:C.green, borderRadius:3, transition:"width 0.4s" }}/>
       </div>
 
       {/* ── OPTIONAL: which documents does your deal need? (skippable) ── */}
@@ -665,7 +673,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                 ))}
               </div>
             </div>
-            {/* Yes/No toggles */}
+            {/* Yes/No toggles — most pertinent up front */}
             {[["trailer","Is a trailer included in the sale?"],["documented","Is the vessel U.S. Coast Guard documented?"],["lien","Does the seller still owe money on the boat (a lien to pay off)?"],["estate","Is this an estate or inherited sale?"]].map(([k,label])=>(
               <div key={k} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
                 <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>{label}</span>
@@ -676,6 +684,22 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                 </div>
               </div>
             ))}
+
+            {/* Expandable — less common situations */}
+            {quizMore && [["coowner","Are there co-owners on the current title?"],["entity","Is the buyer or seller a business or LLC?"],["poa","Is anyone signing with power of attorney?"],["tradein","Is a trade-in part of the deal?"],["gift","Is this a gift or family transfer?"],["sellerfin","Is the seller financing it (buyer pays over time)?"],["losttitle","Is the title lost or missing?"],["lostreg","Is the registration lost?"],["survey","Do you want a marine survey on record?"],["defects","Record engine hours / disclose known defects?"]].map(([k,label])=>(
+              <div key={k} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
+                <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>{label}</span>
+                <div style={{ display:"flex", gap:6 }}>
+                  {[[true,"Yes"],[false,"No"]].map(([v,l])=>(
+                    <button key={String(v)} onClick={()=>setQuiz(q=>({...q,[k]:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", border:`2px solid ${quiz[k]===v?C.brass:C.mist}`, background:quiz[k]===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <button onClick={()=>setQuizMore(m=>!m)} style={{ alignSelf:"flex-start", background:"transparent", border:"none", color:C.teal, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", padding:"2px 0", marginTop:2 }}>
+              {quizMore ? "▴ Fewer questions" : "▾ More questions (for less common situations)"}
+            </button>
           </div>
 
           {quizStarted && (
