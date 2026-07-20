@@ -31,6 +31,9 @@ const C = {
 
 const fmt = (n) => n ? new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n)) : "";
 const today = () => new Date().toISOString().split("T")[0];
+const isValidYear = (y) => { const n = Number(y); return Number.isInteger(n) && n >= 1900 && n <= new Date().getFullYear() + 1; };
+const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e||"").trim());
+const isValidPhone = (p) => { const d = (p||"").replace(/\D/g,""); return d.length===0 || (d.length >= 7 && d.length <= 15); };
 // Human-friendly time remaining until an offer's expiresAt timestamp.
 const hoursLeft = (expiresAt) => {
   const ms = expiresAt - Date.now();
@@ -550,7 +553,7 @@ function LockedStep({ stepName, onBack }) {
 function StepVessel({ data, setData, userRole, onNext }) {
   const set = (k,v) => setData(d => ({...d,[k]:v}));
   // Only year, make, model required — rest optional until paywall
-  const canContinue = data.year && data.make && data.model && data.askingPrice;
+  const canContinue = data.year && data.make && data.model && data.askingPrice && isValidYear(data.year);
   return (
     <div style={S.page}>
       <TipBox tips={TIPS.vessel} />
@@ -582,7 +585,7 @@ function StepVessel({ data, setData, userRole, onNext }) {
       <div style={S.card}>
         <h3 style={S.h3}>Identification</h3>
         <Grid2>
-          <Field label="Year *"><input style={S.input} type="number" value={data.year} onChange={e=>set("year",e.target.value)} placeholder="2019" /></Field>
+          <Field label="Year *"><input style={S.input} type="number" value={data.year} onChange={e=>set("year",e.target.value)} placeholder="2019" />{data.year && !isValidYear(data.year) && <div style={{ fontSize:11, color:"#b91c1c", fontFamily:"sans-serif", marginTop:3 }}>Enter a valid 4-digit year.</div>}</Field>
           <Field label="Make / Manufacturer *"><input style={S.input} value={data.make} onChange={e=>set("make",capFirst(e.target.value))} placeholder="Boston Whaler" /></Field>
           <Field label="Model *"><input style={S.input} value={data.model} onChange={e=>set("model",capFirst(e.target.value))} placeholder="Outrage 280" /></Field>
           <Field label="Vessel Name (if any)"><input style={S.input} value={data.name} onChange={e=>set("name",capFirst(e.target.value))} placeholder="Sea Dreams" /></Field>
@@ -741,8 +744,8 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
 
   const set = (side,k,v) => setData(d => ({...d,[side]:{...d[side],[k]:v}}));
   const canContinue = userRole==="seller"
-    ? (data.seller.name && data.seller.email)
-    : (data.buyer.name && data.buyer.email);
+    ? (data.seller.name && isValidEmail(data.seller.email))
+    : (data.buyer.name && isValidEmail(data.buyer.email));
 
   const sides = userRole==="seller" ? ["seller","buyer"] : ["buyer","seller"];
 
@@ -783,9 +786,11 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
               </Field>
               <Field label="Email *">
                 <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} type="email" value={data[side].email} readOnly={locked} onChange={e=>!locked&&set(side,"email",e.target.value)} />
+                {!locked && data[side].email && !isValidEmail(data[side].email) && <div style={{ fontSize:11, color:"#b91c1c", fontFamily:"sans-serif", marginTop:3 }}>Enter a valid email address.</div>}
               </Field>
               <Field label="Phone">
                 <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].phone} readOnly={locked} onChange={e=>!locked&&set(side,"phone",e.target.value)} />
+                {!locked && !isValidPhone(data[side].phone) && <div style={{ fontSize:11, color:"#b91c1c", fontFamily:"sans-serif", marginTop:3 }}>Enter a valid phone number.</div>}
               </Field>
               <Field label="Address">
                 <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].address} readOnly={locked} onChange={e=>!locked&&set(side,"address",e.target.value)} />
