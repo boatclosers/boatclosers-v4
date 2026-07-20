@@ -933,6 +933,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const [ddDays, setDdDays] = useState(data.dueDiligenceDays || "10");
   const [ddStart, setDdStart] = useState(data.ddStartDate || today());
   const [offerExpiry, setOfferExpiry] = useState("0"); // hours the offer stays valid; "0" = no expiry
+  const [feePayer, setFeePayer] = useState("full"); // who pays the $249: full=initiator, split, other
   const [closingDate, setClosingDate] = useState(data.closingDate || "");
   const [offers, setOffers] = useState(data.offers || []);
   const [offerFrom, setOfferFrom] = useState(myRole==="seller" ? "seller" : "buyer"); // who is making the current offer
@@ -1067,6 +1068,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       // opt-in deposit terms / notes
       inclDepositTerms, depositRule: inclDepositTerms ? depositRule : "", depositRuleCustom, note: verbalNote,
       depositHours: Number(depositHours) || 24,
+      feePayer,
       expiresHours: Number(offerExpiry) || 0,
       expiresAt: offerExpiry !== "0" ? Date.now() + Number(offerExpiry) * 3600000 : null,
     };
@@ -1104,6 +1106,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     if (o.closingDate) setClosingDate(o.closingDate);
     if (o.paymentType) setPaymentType(o.paymentType);
     setInclDepositTerms(!!o.inclDepositTerms);
+    if (o.feePayer) setFeePayer(o.feePayer);
     if (o.depositRule) setDepositRule(o.depositRule);
     setOfferFrom(myRole==="seller" ? "seller" : "buyer");
     setNegMode("negotiate");
@@ -1191,7 +1194,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // ── Payment plan: full / split 50-50 / ask the other party ──
   const otherPayRole = myRole === "buyer" ? "seller" : "buyer";
   const otherPayName = parties[otherPayRole]?.name || (otherPayRole === "buyer" ? "the buyer" : "the seller");
-  const payPlan = data.payPlan || "full";
+  const _agreedForFee = offers.find(o => o.status==="agreed" || o.status==="accepted");
+  const payPlan = data.payPlan || _agreedForFee?.feePayer || "full";
   const setPayPlan = (p) => setData(d => ({ ...d, payPlan: p }));
   const openCheckout = async (who, fee) => {
     setPayWho(who);
@@ -1879,6 +1883,16 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
           <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.5 }}>Choose this last — selecting Escrow.com may open their site in a new tab. Everything above is already saved, so you can set it up there and come back, then send your offer.</div>
         </OfferSection>
+        </div>
+
+        {/* Who pays the $249 fee — decided here, in the offer */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, background:C.sandDark, borderRadius:6, padding:"8px 12px", marginTop:6, flexWrap:"wrap" }}>
+          <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate }}>💵 Who pays the $249 BoatClosers fee?</span>
+          <select style={{...S.select, width:"auto", padding:"6px 10px", fontSize:12}} value={feePayer} onChange={e=>setFeePayer(e.target.value)}>
+            <option value="full">Whoever started the deal (default)</option>
+            <option value="split">Split 50/50 — $124.50 each</option>
+            <option value="other">The other party pays</option>
+          </select>
         </div>
 
         {/* Submit */}
