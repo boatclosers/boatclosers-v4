@@ -4537,7 +4537,17 @@ export default function BoatClosers() {
       const sid = params.get("session_id");
       fetch(`/api/stripe/verify?session_id=${encodeURIComponent(sid)}`)
         .then(r => r.json())
-        .then(v => { if (v?.paid) { setStripeReturn({ paid: true, who: v.who || "initiator", dealId: v.dealId || null }); setStep(2); } })
+        .then(v => {
+          if (v?.paid) {
+            if (v.dealId) {
+              // Payment confirmed & the deal is locked server-side — reload into
+              // the locked deal and jump straight to Due Diligence.
+              window.location.replace(`/?dealId=${encodeURIComponent(v.dealId)}&step=3`);
+            } else {
+              setStripeReturn({ paid: true, who: v.who || "initiator", dealId: null }); setStep(2);
+            }
+          }
+        })
         .catch(() => {});
       window.history.replaceState({}, "", window.location.pathname);
     } else if (status === "cancel") {
