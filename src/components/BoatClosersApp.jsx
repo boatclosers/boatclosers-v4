@@ -2099,6 +2099,14 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                               <button style={{...S.btn, background:C.navy, fontSize:12, padding:"8px 12px"}} onClick={()=>sendQuickCounter(o)}>Send →</button>
                             </div>
                             <button style={{...S.btnOutline, fontSize:12, padding:"8px 14px", color:C.red, borderColor:C.red}} onClick={()=>rejectOffer(o.id)}>Reject</button>
+                            {myRole==="seller" && (
+                              <button
+                                onClick={()=>{ setShowBuilder(true); setConflictOpen(true); setTimeout(()=>offerFormRef.current?.scrollIntoView({behavior:"smooth",block:"center"}),80); }}
+                                title="Not about the price? Use this to ask the buyer to change the dates, deposit, or contingencies before you accept. It sends the buyer your concern — they make the actual edits and send a revised offer."
+                                style={{...S.btn, background:"#b45309", color:"#fff", fontSize:12, padding:"8px 14px", whiteSpace:"nowrap"}}>
+                                ⚑ Flag a conflict
+                              </button>
+                            )}
                           </div>
                         )
                       )}
