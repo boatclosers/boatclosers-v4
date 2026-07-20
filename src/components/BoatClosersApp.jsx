@@ -1824,16 +1824,38 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </div>
         )}
 
-        {/* 💵 Price — always shown */}
+        {/* 💵 Price — the OFFER is the star; asking price is muted reference */}
         <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px", marginBottom:10, background:"#fff" }}>
           <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>💵 Price</div>
-          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, margin:"3px 0 12px", lineHeight:1.55 }}>The seller's asking price is shown for reference. Enter the amount you're actually offering below it.</div>
-          <Field label="Asking Price ($) — for reference">
-            <input style={S.input} type="number" value={askingPrice} onChange={e=>setAskingPrice(e.target.value)} placeholder={vessel.askingPrice||"85000"} />
-          </Field>
-          <Field label="Your Offer Price ($) *">
-            <input style={S.input} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder="Enter your offer" />
-          </Field>
+          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, margin:"3px 0 12px", lineHeight:1.55 }}>The seller's asking price is shown for reference. Enter the amount you're actually offering below.</div>
+
+          {/* Asking price — muted reference + one-tap "match asking" to drive participation */}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, background:C.sandDark, borderRadius:6, padding:"8px 12px", marginBottom:12, flexWrap:"wrap" }}>
+            <label style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, fontWeight:600 }}>Asking price (reference)</label>
+            <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+              <input style={{ ...S.input, width:130, textAlign:"right", padding:"6px 10px", fontSize:13, color:C.slate, background:"#fff", margin:0 }} type="number" value={askingPrice} onChange={e=>setAskingPrice(e.target.value)} placeholder={vessel.askingPrice||"85000"} />
+              {Number(askingPrice)>0 && (
+                <button type="button" onClick={()=>setOfferAmt(String(Number(askingPrice)))} style={{ background:C.navy, color:"#fff", border:"none", borderRadius:5, padding:"7px 12px", fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", whiteSpace:"nowrap" }}>
+                  Offer full asking →
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Your offer — pronounced, gold-highlighted */}
+          <div style={{ border:`2px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", background:"#fffaf0" }}>
+            <label style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, fontWeight:800, display:"block", marginBottom:6 }}>💰 Your Offer Price</label>
+            <input style={{ ...S.input, fontSize:22, fontWeight:800, color:C.navy, padding:"12px 14px", border:`1.5px solid ${C.brass}`, background:"#fff", margin:0 }} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder="Enter your offer" />
+            {offerAmt && Number(askingPrice)>0 && (
+              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color: Number(offerAmt) < Number(askingPrice) ? C.teal : C.slate, marginTop:6, fontWeight:700 }}>
+                {Number(offerAmt) < Number(askingPrice)
+                  ? `${fmt(Number(askingPrice)-Number(offerAmt))} below asking`
+                  : Number(offerAmt) > Number(askingPrice)
+                    ? `${fmt(Number(offerAmt)-Number(askingPrice))} above asking`
+                    : "Full asking price"}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Terms below are authored by the buyer — read-only for the seller. */}
