@@ -641,7 +641,17 @@ function StepVessel({ data, setData, userRole, onNext }) {
           <textarea style={{...S.textarea, minHeight:72}} value={data.description} onChange={e=>set("description",e.target.value)} placeholder="Twin Yamaha F300s, 450 hours, full Garmin electronics, fresh water only..." />
         </Field>
       </div>
-      <div style={{ display:"flex", justifyContent:"flex-end", marginTop:"1.5rem" }}>
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8, marginTop:"1.5rem" }}>
+        {!canContinue && (
+          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.red, textAlign:"right", maxWidth:440, lineHeight:1.5 }}>
+            ⚠️ Before you continue, please add: {[
+              (!data.year || !isValidYear(data.year)) && "a valid year",
+              !data.make && "make",
+              !data.model && "model",
+              !data.askingPrice && "an asking price",
+            ].filter(Boolean).join(", ")}.
+          </div>
+        )}
         <button style={S.btnBrass} disabled={!canContinue} onClick={onNext}>Continue to Parties →</button>
       </div>
     </div>
@@ -915,8 +925,11 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
         <div style={{ textAlign:"right" }}>
           {!canContinue && (
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.red, marginBottom:6 }}>
-              Add your {mySide==="seller"?"seller":"buyer"} full legal name and email to continue.
+            <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.red, marginBottom:6 }}>
+              ⚠️ Please add {[
+                !(userRole==="seller"?data.seller.name:data.buyer.name) && "your full legal name",
+                (() => { const e = userRole==="seller"?data.seller.email:data.buyer.email; return !e ? "your email" : !isValidEmail(e) ? "a valid email address" : false; })(),
+              ].filter(Boolean).join(" and ")} to continue.
             </div>
           )}
           <button style={S.btnBrass} disabled={!canContinue} onClick={onNext}>Continue to Negotiate & Terms →</button>
@@ -1918,6 +1931,11 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             <option value="72">72 hours</option>
           </select>
         </div>
+        {!offerAmt && !myOfferAwaiting && (
+          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.red, marginTop:8, textAlign:"center" }}>
+            ⚠️ Enter your offer price above to send.
+          </div>
+        )}
         <button style={{...S.btnBrass, width:"100%", marginTop:6, fontSize:15, padding:"12px", opacity:(!offerAmt||myOfferAwaiting)?0.5:1}} onClick={makeOffer} disabled={!offerAmt||myOfferAwaiting}>
           {(offers.length===0 && myRole!=="seller") ? "Send Offer to Seller" : (myRole==="seller" ? "Send Counter-Offer to Buyer" : "Send Counter-Offer to Seller")} →
         </button>
