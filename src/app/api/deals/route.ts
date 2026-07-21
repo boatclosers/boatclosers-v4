@@ -158,7 +158,8 @@ async function notifyOnDealChange(previous: any, updated: any) {
 
     const buyerEmail = updated?.parties?.buyer?.email
     const sellerEmail = updated?.parties?.seller?.email
-    const vesselName = updated?.vessel?.name || updated?.vessel?.makeModel || 'the vessel'
+    const esc = (s: any) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    const vesselName = esc(updated?.vessel?.name || updated?.vessel?.makeModel || 'the vessel')
 
     // Build a deep-link that opens THIS deal on the page for the task, tied to
     // the RECIPIENT so the app makes them sign in as the right account instead
@@ -317,7 +318,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
           html: emailLayout(`
             <h2 style="color:#08152e; font-size:18px;">Deal Canceled</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
-              <strong>${c?.byName || 'A party'}</strong> canceled the deal on <strong>${vesselName}</strong>${c?.reason ? ` — "${c.reason}"` : ''}. The deal is now closed for both parties.
+              <strong>${esc(c?.byName || 'A party')}</strong> canceled the deal on <strong>${vesselName}</strong>${c?.reason ? ` — "${esc(c.reason)}"` : ''}. The deal is now closed for both parties.
             </p>
             <p style="color:#475569; font-size:13px; line-height:1.5;">
               If you'd both still like to move forward, reach out to the other party directly to agree on next steps — or start a new deal any time.
