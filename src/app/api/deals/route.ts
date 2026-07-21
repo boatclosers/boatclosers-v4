@@ -154,7 +154,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
     // joined (party_b has an account). Before that there's no real account to
     // sign in as, so a "Review the Offer" link would dead-end. The invite email
     // (sent from the invite route) is what brings the second party in first.
-    if (!updated?.party_b_user_id) return
+    if (!(updated?.other_party_id || updated?.party_b_user_id)) return
 
     const buyerEmail = updated?.parties?.buyer?.email
     const sellerEmail = updated?.parties?.seller?.email
@@ -541,12 +541,12 @@ export async function GET(req: Request) {
         .from('deals').select('*').eq('id', dealId).single()
       if (row) {
         const isInitiator = row.initiator_id === userId || row.party_a_user_id === userId
-        const isPartyB = row.party_b_user_id === userId
+        const isPartyB = (row.other_party_id || row.party_b_user_id) === userId
         // Open second slot + not the initiator → attach this user as party B now.
-        if (!isInitiator && !isPartyB && !row.party_b_user_id) {
+        if (!isInitiator && !isPartyB && !(row.other_party_id || row.party_b_user_id)) {
           const { data: attached } = await admin()
             .from('deals')
-            .update({ party_b_user_id: userId, invite_status: 'accepted', invite_accepted_at: new Date().toISOString() })
+            .update({ other_party_id: userId, invite_status: 'accepted', invite_accepted_at: new Date().toISOString() })
             .eq('id', dealId).select().single()
           return NextResponse.json({ deal: attached || row })
         }
@@ -567,7 +567,7 @@ export async function GET(req: Request) {
     const { data } = await admin()
       .from('deals')
       .select('*')
-      .or(`initiator_id.eq.${userId},party_b_user_id.eq.${userId}`)
+      .or(`initiator_id.eq.${userId},other_party_id.eq.${userId}`)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(1)
@@ -606,7 +606,7 @@ export async function POST(req: Request) {
       }
 
       const isInitiator = existingRow.initiator_id === userId || existingRow.party_a_user_id === userId
-      const isPartyBmember = existingRow.party_b_user_id === userId
+      const isPartyBmember = (existingRow.other_party_id || existingRow.party_b_user_id) === userId
       const isMember = isInitiator || isPartyBmember
       if (!isMember) {
         return NextResponse.json({ error: 'You are not a party on this deal.' }, { status: 403 })
@@ -622,7 +622,7 @@ export async function POST(req: Request) {
       // Once the second party has joined, each side may only write its OWN
       // contact sub-object — the other side is preserved untouched. Before the
       // second party joins, the initiator may still pre-fill both sides.
-      const bothPresent = !!existingRow.party_b_user_id
+      const bothPresent = !!(existingRow.other_party_id || existingRow.party_b_user_id)
       const existingParties = existingRow.parties || {}
       const incomingParties = parties || {}
       let mergedParties
@@ -721,7 +721,7 @@ export async function POST(req: Request) {
 
     const { data: existing } = await admin()
       .from('deals').select('id')
-      .or(`initiator_id.eq.${userId},party_b_user_id.eq.${userId}`)
+      .or(`initiator_id.eq.${userId},other_party_id.eq.${userId}`)
       .eq('status', 'active')
       .order('created_at', { ascending: false }).limit(1)
 
@@ -744,7 +744,7 @@ export async function POST(req: Request) {
       : ((parties && parties.seller && parties.seller.name && !(parties.buyer && parties.buyer.name)) ? 'seller' : 'buyer')
     const { data, error } = await admin()
       .from('deals')
-      .insert({ initiator_id: userId, party_a_user_id: userId, initiator_role: role, status: 'active', paid: false, ...payload })
+      .insert({ initiator_id: userId, initiator_role: role, status: 'active', paid: false, ...payload })
       .select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     return NextResponse.json({ deal: data })
