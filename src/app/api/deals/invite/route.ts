@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
   const { data: deal, error: fetchError } = await supabaseAdmin
     .from('deals')
-    .select('id, party_a_user_id, initiator_role, vessel, parties')
+    .select('id, initiator_id, party_a_user_id, initiator_role, vessel, parties')
     .eq('id', dealId)
     .single();
 
@@ -29,7 +29,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Deal not found' }, { status: 404 });
   }
 
-  if (deal.party_a_user_id !== userId) {
+  // Authorize by the canonical initiator column (initiator_id), falling back to
+  // the old party_a_user_id for any deal created before the column cleanup.
+  // This matches how the app and join route now identify the initiator.
+  const initiatorId = deal.initiator_id || deal.party_a_user_id;
+  if (initiatorId !== userId) {
     return NextResponse.json({ error: 'Not authorized to invite for this deal' }, { status: 403 });
   }
 
