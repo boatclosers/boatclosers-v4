@@ -4623,8 +4623,8 @@ export default function BoatClosers() {
   // deal has no party info yet (e.g. a brand-new unsaved deal).
   const computeDealRole = (deal, userId, fallbackRole) => {
     if (!deal || !userId) return fallbackRole || "buyer";
-    if (deal.party_a_user_id === userId) return deal.initiator_role || fallbackRole || "buyer";
-    if (deal.party_b_user_id === userId) return deal.invite_role || fallbackRole || "seller";
+    if ((deal.initiator_id || deal.party_a_user_id) === userId) return deal.initiator_role || fallbackRole || "buyer";
+    if ((deal.other_party_id || deal.party_b_user_id) === userId) return deal.invite_role || fallbackRole || "seller";
     return fallbackRole || "buyer";
   };
   const latestState = useRef({});
@@ -4682,10 +4682,9 @@ export default function BoatClosers() {
               setUser({ name: session.name, email: session.email, role: session.role, userId: session.userId, token: session.token });
               if (data?.deal) {
                 setDealId(data.deal.id);
-                console.log('[ROLE] boot. userId:', session.userId, 'party_a:', data.deal.party_a_user_id, 'party_b:', data.deal.party_b_user_id, 'initiator_role:', data.deal.initiator_role, 'invite_role:', data.deal.invite_role, '=> computed:', computeDealRole(data.deal, session.userId, session.role));
                 setMyDealRole(computeDealRole(data.deal, session.userId, session.role));
-                setPartyBJoined(!!data.deal.party_b_user_id);
-                setAmInitiator(data.deal.party_a_user_id === session.userId || data.deal.initiator_id === session.userId);
+                setPartyBJoined(!!(data.deal.other_party_id || data.deal.party_b_user_id));
+                setAmInitiator((data.deal.initiator_id || data.deal.party_a_user_id) === session.userId);
                 setVessel(data.deal.vessel || emptyVessel);
                 setParties(data.deal.parties || emptyParties);
                 setNegotiate(data.deal.negotiate || emptyNeg);
@@ -5019,8 +5018,8 @@ export default function BoatClosers() {
           // Returning user — restore everything from the database.
           setDealId(data.deal.id);
           setMyDealRole(claimedRole || computeDealRole(data.deal, authData.userId, authData.role));
-          setPartyBJoined(!!data.deal.party_b_user_id);
-          setAmInitiator(data.deal.party_a_user_id === authData.userId || data.deal.initiator_id === authData.userId);
+          setPartyBJoined(!!(data.deal.other_party_id || data.deal.party_b_user_id));
+          setAmInitiator((data.deal.initiator_id || data.deal.party_a_user_id) === authData.userId);
           setVessel(data.deal.vessel || emptyVessel);
           setParties(data.deal.parties || emptyParties);
           setNegotiate(data.deal.negotiate || emptyNeg);
