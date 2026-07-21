@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     // 1. Find the deal this invite belongs to.
     const { data: deal, error: dealErr } = await sb
       .from('deals')
-      .select('id, invite_status, invite_role, party_a_user_id, party_b_user_id')
+      .select('id, invite_status, invite_role, initiator_id, other_party_id')
       .eq('invite_token', token)
       .single()
 
@@ -87,12 +87,12 @@ export async function POST(req: Request) {
     }
 
     // 3. Guards — explicit so the joiner always knows WHY if it won't attach.
-    if (deal.party_a_user_id === userId) {
+    if (deal.initiator_id === userId) {
       return NextResponse.json({
         error: 'This email is the person who STARTED the deal. The other party must join with a DIFFERENT email than the initiator used.'
       }, { status: 400 })
     }
-    if (deal.party_b_user_id && deal.party_b_user_id !== userId) {
+    if (deal.other_party_id && deal.other_party_id !== userId) {
       return NextResponse.json({ error: 'This invite has already been claimed by someone else.' }, { status: 409 })
     }
 
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
     const { error: updateErr } = await sb
       .from('deals')
       .update({
-        party_b_user_id: userId,
+        other_party_id: userId,
         invite_status: 'accepted',
         invite_accepted_at: new Date().toISOString()
       })
