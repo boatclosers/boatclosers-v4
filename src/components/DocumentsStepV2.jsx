@@ -176,6 +176,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
   const [docAction, setDocAction] = useState({});
   const [editedHtml, setEditedHtml] = useState({}); // { docId: custom fully-edited HTML }
+  // Strip anything executable so an edited doc can't carry injected scripts when
+  // it's later sent to the other party. Formatting/text is preserved.
+  const sanitizeHtml = (html) => String(html || '')
+    .replace(/<\s*script[\s\S]*?<\s*\/\s*script\s*>/gi, '')
+    .replace(/<\s*(iframe|object|embed|link|meta|style)[\s\S]*?>/gi, '')
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+    .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+    .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
+    .replace(/(href|src)\s*=\s*(["']?)\s*javascript:[^"'>]*\2/gi, '$1="#"');
   const editRefs = useRef({}); // contentEditable surfaces, keyed by docId
   const [activeDoc, setActiveDoc] = useState(null); // the one document currently opened for work
   // Collapsible groups — required group open by default, the rest collapsed.
@@ -929,7 +938,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                         dangerouslySetInnerHTML={{ __html: (editedHtml[doc.id] || prepHtml(fillDocument(doc, deal), doc.id)).replace("<!--CHECKLIST-->","") }}
                       />
                       <div style={{ marginTop:10, display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
-                        <button onClick={()=>{ const h = editRefs.current[doc.id]?.innerHTML || ""; setEditedHtml(e => ({ ...e, [doc.id]: h })); setDocAction(d => ({ ...d, [doc.id]: "view" })); }}
+                        <button onClick={()=>{ const h = sanitizeHtml(editRefs.current[doc.id]?.innerHTML || ""); setEditedHtml(e => ({ ...e, [doc.id]: h })); setDocAction(d => ({ ...d, [doc.id]: "view" })); }}
                           style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"8px 18px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>💾 Save Changes</button>
                         {editedHtml[doc.id] && (
                           <button onClick={()=>{ setEditedHtml(e => { const n={...e}; delete n[doc.id]; return n; }); setDocAction(d => ({ ...d, [doc.id]: null })); }}
