@@ -4135,6 +4135,12 @@ function Landing({ onStart, onLegal }) {
     { icon:"🏦", title:"Move money safely — even remotely", desc:"Funds route through escrow so neither party wires thousands to a stranger. Money releases only when the deal is done." },
   ];
 
+  const dealroom = [
+    { icon:"🔄", title:"Negotiate the whole deal — not just price", desc:"Price, deposit, contingencies, and closing dates bundle into one clean offer. Counter back and forth with no limit until you both agree. It's the work a broker does — done by you, for free." },
+    { icon:"🚩", title:"Flag a conflict instead of walking away", desc:"Don't like a date or a term? Flag it and the other side adjusts, instead of the deal falling apart. Small disagreements that usually kill private sales actually get resolved." },
+    { icon:"⏱️", title:"Keep it moving — no ghosting", desc:"Put an expiration on your offer so it can't sit forever, and watch every counter and message update live for both sides. You always know exactly where the deal stands." },
+  ];
+
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 760 : false);
   useEffect(() => {
     const onR = () => setIsMobile(window.innerWidth < 760);
@@ -4268,6 +4274,28 @@ function Landing({ onStart, onLegal }) {
           <p style={{ textAlign:"center", fontSize:13, fontFamily:"sans-serif", color:C.slate, marginTop:28 }}>
             Don't see your exact situation? With {DOC_COUNT} documents across {CAT_COUNT} categories, the odds are it's covered — and the app shows you only what your deal needs.
           </p>
+        </div>
+      </div>
+
+      {/* The Deal Room — negotiation */}
+      <div style={{ background:"#fff", padding:"5rem 2rem" }}>
+        <div style={{ maxWidth:1000, margin:"0 auto" }}>
+          <div style={{ textAlign:"center", marginBottom:44 }}>
+            <div style={{ fontSize:11, letterSpacing:3, color:C.brass2, textTransform:"uppercase", fontFamily:"sans-serif", marginBottom:14 }}>Where a Fair Deal Actually Happens</div>
+            <h2 style={{ fontSize:30, color:C.navy, marginBottom:16 }}>The Deal Room — Where Stuck Deals Get Unstuck</h2>
+            <p style={{ fontSize:15, fontFamily:"sans-serif", color:C.slate, lineHeight:1.8, maxWidth:680, margin:"0 auto" }}>
+              Most private boat sales don't fall apart over price — they fall apart over a missed text, a term nobody would budge on, or an offer with nothing behind it. The Deal Room gives both sides one place to negotiate the entire deal, back and forth, until it's fair — the job a broker would charge thousands for.
+            </p>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:cols(3), gap:18 }}>
+            {dealroom.map(d=>(
+              <div key={d.title} style={{ background:C.sand, border:`1px solid ${C.mist}`, borderRadius:9, padding:"1.6rem 1.4rem" }}>
+                <div style={{ fontSize:26, marginBottom:12 }}>{d.icon}</div>
+                <h3 style={{ fontSize:15, fontWeight:700, color:C.navy, marginBottom:8, fontFamily:"sans-serif" }}>{d.title}</h3>
+                <p style={{ fontSize:13.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>{d.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
