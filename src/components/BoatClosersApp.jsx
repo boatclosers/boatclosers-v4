@@ -1368,53 +1368,18 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           ) : amInitiator ? (
             <>
               <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
-                The Purchase Agreement is fully signed. Choose how the one-time <b>$249</b> fee gets paid, then complete it to make the deal binding and unlock Due Diligence, Documents, and Closing for both parties.
-              </div>
-              <div className="bc-grid3" style={{ gap:8, marginBottom:14 }}>
-                {[["full","I'll pay","$249"],["split","Split 50/50","$124.50 each"],["other",`Ask ${otherPayName}`,"they pay $249"]].map(([id,label,sub])=>(
-                  <button key={id} onClick={()=>setPayPlan(id)} style={{ padding:"10px 8px", borderRadius:6, cursor:"pointer", textAlign:"center", fontFamily:"sans-serif", border:`2px solid ${payPlan===id?C.brass:C.mist}`, background:payPlan===id?"#fff8e6":"transparent" }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:C.navy }}>{label}</div>
-                    <div style={{ fontSize:10, color:C.slate, marginTop:2 }}>{sub}</div>
-                  </button>
-                ))}
+                The Purchase Agreement is fully signed. Pay the one-time <b>$249</b> to make the deal binding and unlock Due Diligence, Documents, and Closing for both parties.
               </div>
               <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
-                {payPlan==="full" && <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("initiator",249)}>💳 Pay $249 &amp; unlock the deal →</button>}
-                {payPlan==="split" && (data.paidInitiator
-                  ? <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:"#166534", fontWeight:600 }}>✓ You paid your half. Waiting for {otherPayName} to pay theirs — it unlocks automatically.</div>
-                  : <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("initiator",124.5)}>💳 Pay your half $124.50 →</button>)}
-                {payPlan==="other" && (data.paidOther
-                  ? <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:"#166534", fontWeight:600 }}>✓ {otherPayName} paid — unlocking…</div>
-                  : <div style={{ background:"#eef7f0", border:`1px solid ${C.green}`, borderRadius:6, padding:"10px 12px", fontFamily:"sans-serif" }}>
-                      <div style={{ fontSize:12.5, fontWeight:800, color:"#166534", marginBottom:3 }}>✓ Payment request sent to {otherPayName}</div>
-                      <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6 }}>They'll see a "you've been asked to pay $249" prompt on their deal and can pay it there. The deal unlocks automatically the moment they do — nothing more for you to do here.</div>
-                    </div>)}
+                <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("initiator",249)}>💳 Pay $249 &amp; unlock the deal →</button>
                 <button style={{ ...S.btnOutline, fontSize:13, padding:"13px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
               </div>
             </>
           ) : (
             <>
-              {payPlan==="full" && (
-                <div style={{ fontSize:13, fontFamily:"sans-serif", color:"#166534", lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
-                  ✓ All signed! Waiting for the party who started this deal to pay the one-time $249 and make it binding — <b>nothing for you to pay</b>. You'll be unlocked automatically the moment they do.
-                </div>
-              )}
-              {payPlan==="split" && (
-                <div style={{ marginBottom:12 }}>
-                  <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:10, fontWeight:600 }}>The other party chose to <b>split the $249 fee 50/50</b>. Your share is <b>$124.50</b>.</div>
-                  {data.paidOther
-                    ? <div style={{ fontSize:12.5, color:"#166534", fontFamily:"sans-serif", fontWeight:600 }}>✓ You paid your half. Waiting for their half — it unlocks automatically.</div>
-                    : <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("other",124.5)}>💳 Pay your half $124.50 →</button>}
-                </div>
-              )}
-              {payPlan==="other" && (
-                <div style={{ marginBottom:12 }}>
-                  <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:10, fontWeight:600 }}>The other party asked <b>you</b> to pay the one-time <b>$249</b> fee to lock the deal and unlock Due Diligence, Documents, and Closing.</div>
-                  {data.paidOther
-                    ? <div style={{ fontSize:12.5, color:"#166534", fontFamily:"sans-serif", fontWeight:600 }}>✓ Paid — unlocking…</div>
-                    : <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("other",249)}>💳 Pay $249 &amp; unlock the deal →</button>}
-                </div>
-              )}
+              <div style={{ fontSize:13, fontFamily:"sans-serif", color:"#166534", lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
+                ✓ All signed! Waiting for the party who started this deal to pay the one-time $249 and make it binding — <b>nothing for you to pay</b>. You'll be unlocked automatically the moment they do.
+              </div>
               <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
             </>
           )}
@@ -1941,16 +1906,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
           <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.5 }}>Choose this last — selecting Escrow.com may open their site in a new tab. Everything above is already saved, so you can set it up there and come back, then send your offer.</div>
         </OfferSection>
-        </div>
-
-        {/* Who pays the $249 fee — decided here, in the offer */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, background:C.sandDark, borderRadius:6, padding:"8px 12px", marginTop:6, flexWrap:"wrap" }}>
-          <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate }}>💵 Who pays the $249 BoatClosers fee?</span>
-          <select style={{...S.select, width:"auto", padding:"6px 10px", fontSize:12}} value={feePayer} onChange={e=>setFeePayer(e.target.value)}>
-            <option value="full">Whoever started the deal (default)</option>
-            <option value="split">Split 50/50 — $124.50 each</option>
-            <option value="other">The other party pays</option>
-          </select>
         </div>
 
         {/* Submit */}
