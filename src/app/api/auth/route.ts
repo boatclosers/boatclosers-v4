@@ -12,16 +12,12 @@ function admin() {
 }
 
 // Account creation, sign-in, and password recovery for BoatClosers.
-// The client (AuthScreen) POSTs { action, email, password, fullName, role } and
-// expects back { user: { id, email, fullName, role }, token }.
 //
-// PASSWORD RECOVERY uses a 6-digit code emailed through Resend rather than
-// Supabase's emailed magic link. Reset links are single-use, and corporate mail
-// scanners often click them before the customer does, which burns the link and
-// shows a real person "invalid or expired". A typed code has no such failure mode
-// and keeps every Supabase call server-side, matching the rest of this app.
-// The code is stored HASHED in app_metadata (admin-only, users can't edit it),
-// expires in 15 minutes, and locks out after 5 wrong attempts.
+// ⚠️ TEMPORARY DIAGNOSTIC MODE: reset_request currently reports exactly why it
+// failed (no account / email send error) instead of always returning a friendly
+// "if an account exists..." message. Restore the silent version once the cause
+// is found — the silence is what prevents strangers from probing which email
+// addresses have accounts here.
 
 const CODE_TTL_MS = 15 * 60 * 1000
 const MAX_ATTEMPTS = 5
@@ -34,12 +30,15 @@ async function findUserByEmail(sb: any, email: string) {
   const target = String(email).trim().toLowerCase()
   for (let page = 1; page <= 5; page++) {
     const { data, error } = await sb.auth.admin.listUsers({ page, perPage: 1000 })
-    if (error || !data?.users?.length) return null
+    if (error) return { user: null, diag: 'listUsers error: ' + error.message }
+    if (!data?.users?.length) return { user: null, diag: 'listUsers returned 0 users on page ' + page }
     const hit = data.users.find((u: any) => (u.email || '').toLowerCase() === target)
-    if (hit) return hit
-    if (data.users.length < 1000) return null
+    if (hit) return { user: hit, diag: 'found' }
+    if (data.users.length < 1000) {
+      return { user: null, diag: `no match among ${data.users.length} users` }
+    }
   }
-  return null
+  return { user: null, diag: 'no match after 5 pages' }
 }
 
 export async function POST(req: Request) {
@@ -48,23 +47,33 @@ export async function POST(req: Request) {
     const { action, email, password, fullName, role, code, newPassword } = await req.json()
 
     // ── FORGOT PASSWORD: send a code ──
-    // Always returns success, even if no account exists, so this can't be used
-    // to discover which email addresses have accounts.
     if (action === 'reset_request') {
       if (!email) {
         return NextResponse.json({ error: 'Enter the email address on your account.' }, { status: 400 })
       }
-      const user = await findUserByEmail(sb, email)
-      if (user) {
-        const plainCode = String(crypto.randomInt(100000, 1000000))
-        await sb.auth.admin.updateUserById(user.id, {
-          app_metadata: {
-            reset_code_hash: hashCode(plainCode),
-            reset_expires_at: Date.now() + CODE_TTL_MS,
-            reset_attempts: 0
-          }
-        })
-        const emailResult = await sendEmail({
+
+      const { user, diag } = await findUserByEmail(sb, email)
+
+      if (!user) {
+        return NextResponse.json({ error: 'DIAG A — user lookup failed: ' + diag }, { status: 400 })
+      }
+
+      const plainCode = String(crypto.randomInt(100000, 1000000))
+
+      const { error: metaErr } = await sb.auth.admin.updateUserById(user.id, {
+        app_metadata: {
+          reset_code_hash: hashCode(plainCode),
+          reset_expires_at: Date.now() + CODE_TTL_MS,
+          reset_attempts: 0
+        }
+      })
+      if (metaErr) {
+        return NextResponse.json({ error: 'DIAG B — could not save code: ' + metaErr.message }, { status: 500 })
+      }
+
+      let emailResult: any
+      try {
+        emailResult = await sendEmail({
           to: user.email,
           subject: `Your BoatClosers reset code: ${plainCode}`,
           html: emailLayout(`
@@ -84,10 +93,18 @@ export async function POST(req: Request) {
             </p>
           `)
         })
-        if (!emailResult.success) {
-          console.error('Reset code email failed to send:', emailResult.error)
-        }
+      } catch (sendEx: any) {
+        return NextResponse.json({
+          error: 'DIAG C — sendEmail threw: ' + (sendEx?.message || String(sendEx))
+        }, { status: 500 })
       }
+
+      if (!emailResult?.success) {
+        return NextResponse.json({
+          error: 'DIAG D — Resend rejected it: ' + JSON.stringify(emailResult?.error || emailResult)
+        }, { status: 500 })
+      }
+
       return NextResponse.json({
         ok: true,
         message: 'If an account exists for that email, a reset code is on its way.'
@@ -103,7 +120,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'New password must be at least 6 characters.' }, { status: 400 })
       }
 
-      const user = await findUserByEmail(sb, email)
+      const { user } = await findUserByEmail(sb, email)
       const meta = user?.app_metadata || {}
       const badCode = { error: 'That code is not right, or it has expired. Request a new one.' }
 
@@ -125,7 +142,6 @@ export async function POST(req: Request) {
         return NextResponse.json(badCode, { status: 400 })
       }
 
-      // Code is good. Set the new password and burn the code so it can't be reused.
       const { error: pwErr } = await sb.auth.admin.updateUserById(user.id, {
         password: String(newPassword),
         app_metadata: { reset_code_hash: null, reset_expires_at: null, reset_attempts: null }
@@ -134,7 +150,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Could not update your password: ' + pwErr.message }, { status: 400 })
       }
 
-      // Sign them straight in so they land back in their deal, not on a login screen.
       const { data: session } = await sb.auth.signInWithPassword({
         email: user.email,
         password: String(newPassword)
@@ -196,7 +211,6 @@ export async function POST(req: Request) {
     if (createErr) {
       const msg = (createErr.message || '').toLowerCase()
       if (msg.includes('already') || msg.includes('exists') || msg.includes('registered')) {
-        // Be explicit so the user knows to sign in rather than getting a vague failure.
         return NextResponse.json({
           error: 'An account already exists for this email. Please switch to Sign In, or use a different email.'
         }, { status: 409 })
@@ -204,7 +218,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Could not create account: ' + createErr.message }, { status: 400 })
     }
 
-    // Created — now sign in to get a usable session token.
     const session = await signIn()
     if (!session) {
       return NextResponse.json({ error: 'Account created, but sign in failed. Please try signing in.' }, { status: 400 })
