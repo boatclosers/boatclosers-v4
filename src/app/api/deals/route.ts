@@ -536,6 +536,114 @@ async function notifyOnDealChange(previous: any, updated: any) {
         })
       }
     }
+
+    // ── DEPOSIT CHECKPOINT ── the earnest-money handoff, which is where private
+    // deals most often stall: nobody says where the money goes, so nothing moves.
+    const prevNeg = previous?.negotiate || {}
+    const newNeg = updated?.negotiate || {}
+
+    // 1. Seller posted WHERE to send the deposit → tell the buyer immediately.
+    const instrJustPosted = !!newNeg?.depositInstructions?.details && !prevNeg?.depositInstructions?.details
+    const instrJustChanged = !!newNeg?.depositInstrChangedAt && newNeg?.depositInstrChangedAt !== prevNeg?.depositInstrChangedAt
+    if ((instrJustPosted || instrJustChanged) && buyerEmail) {
+      await sendEmail({
+        to: buyerEmail,
+        subject: instrJustChanged
+          ? `${boat} — ⚠️ Deposit instructions CHANGED, verify by phone`
+          : `${boat} — Where to send your deposit`,
+        html: emailLayout(`
+          <h2 style="color:#08152e; font-size:18px;">${instrJustChanged ? 'The deposit instructions were changed' : 'The seller posted deposit instructions'}</h2>
+          <p style="color:#475569; font-size:14px; line-height:1.5;">
+            ${instrJustChanged
+              ? `The deposit instructions for <strong>${vesselName}</strong> were changed after they were first posted. Your earlier commitment has been cancelled and you'll need to review the new details.`
+              : `The seller has posted where to send the earnest-money deposit for <strong>${vesselName}</strong>. Open the deal to review the details and confirm.`}
+          </p>
+          <p style="background:#fdecec;border-left:3px solid #b91c1c;padding:12px 14px;margin:14px 0;color:#334155;font-size:13px;line-height:1.6;">
+            <strong>Before you wire anything:</strong> call the escrow agent or attorney at a
+            number you looked up yourself &mdash; not one from an email or text &mdash; and read
+            the account details back to them. Never accept changed wire instructions by email
+            or message. Wired money is very hard to recover.
+          </p>
+          <p style="text-align:center; margin: 24px 0;">
+            <a href="${dealLink(3, buyerEmail)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">Review Deposit Instructions</a>
+          </p>
+        `)
+      })
+    }
+
+    // 2. Buyer submitted proof → the deal is secured; both sides should know.
+    const proofJustIn = !!newNeg?.depositProof?.ref && !prevNeg?.depositProof?.ref
+    if (proofJustIn) {
+      for (const email of [buyerEmail, sellerEmail].filter(Boolean)) {
+        await sendEmail({
+          to: email,
+          subject: `${boat} — ✓ Deposit confirmed, the deal is secured`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">The deal is secured</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              The buyer has submitted proof of the earnest-money deposit on
+              <strong>${vesselName}</strong> (reference ${String(newNeg.depositProof.ref).replace(/</g, '&lt;')}).
+            </p>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              The boat is now held off the market while due diligence is completed. Both sides
+              are protected: the buyer has the agreed time to inspect, and the seller has the
+              buyer's committed deposit.
+            </p>
+            <p style="color:#94a3b8; font-size:12px; line-height:1.5;">
+              BoatClosers records this confirmation &mdash; it does not hold or verify the funds.
+              Confirm receipt directly with your escrow agent.
+            </p>
+            <p style="text-align:center; margin: 24px 0;">
+              <a href="${dealLink(3, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">Open Your Deal</a>
+            </p>
+          `)
+        })
+      }
+    }
+
+    // 3. Deposit window closed without proof → seller is FREED, buyer is told plainly.
+    const depositJustEnded = !!newNeg?.depositEnded && !prevNeg?.depositEnded
+    if (depositJustEnded) {
+      if (sellerEmail) {
+        await sendEmail({
+          to: sellerEmail,
+          subject: `${boat} — Deal ended, you're free to pursue other buyers`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">You're free to move on</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              The earnest-money deposit on <strong>${vesselName}</strong> was not funded in time,
+              and the deal has been ended. You are free to pursue other buyers.
+            </p>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              Nothing is lost &mdash; every offer, message, and document from this deal stays in
+              your account. If a new buyer comes along, you can start a fresh deal and reuse the
+              vessel details you already entered.
+            </p>
+            <p style="text-align:center; margin: 24px 0;">
+              <a href="${dealLink(1, sellerEmail)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">Open Your Deal</a>
+            </p>
+          `)
+        })
+      }
+      if (buyerEmail) {
+        await sendEmail({
+          to: buyerEmail,
+          subject: `${boat} — Deal ended, deposit was not funded in time`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">This deal has ended</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              The earnest-money deposit on <strong>${vesselName}</strong> was not funded before the
+              agreed deadline, so the seller has ended the deal and may now accept other offers.
+            </p>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              If you still want this boat, contact the seller directly &mdash; they can restart the
+              deal if it's still available. If you already sent funds, contact your escrow agent
+              right away to confirm their status.
+            </p>
+          `)
+        })
+      }
+    }
   } catch (e) {
     console.error('notifyOnDealChange failed:', e)
   }
