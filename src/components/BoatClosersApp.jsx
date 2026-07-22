@@ -550,6 +550,17 @@ function LockedStep({ stepName, onBack }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// A one-line answer to "what happens now?" at the end of each step. Motivated
+// buyers and sellers forgive a long form; what makes them abandon a deal is not
+// knowing whether anything actually happened, or whose turn it is.
+function WhatsNext({ children }) {
+  return (
+    <div style={{ background:"#eef4fb", borderLeft:"3px solid #08152e", borderRadius:6, padding:"10px 13px", marginTop:20, fontSize:12.5, fontFamily:"sans-serif", color:"#334155", lineHeight:1.6 }}>
+      <strong style={{ color:"#08152e" }}>What happens next: </strong>{children}
+    </div>
+  );
+}
+
 function StepVessel({ data, setData, userRole, onNext }) {
   const set = (k,v) => setData(d => ({...d,[k]:v}));
   // Only year, make, model required — rest optional until paywall
@@ -654,6 +665,7 @@ function StepVessel({ data, setData, userRole, onNext }) {
         )}
         <button style={S.btnBrass} disabled={!canContinue} onClick={onNext}>Continue to Parties →</button>
       </div>
+      <WhatsNext>You'll add who's buying and who's selling, then invite the other party by email. Nothing is shared with them until you send that invite.</WhatsNext>
     </div>
   );
 }
@@ -921,6 +933,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
       ) : (
         <div style={{ background:"#eef7f0", border:"1px solid #22a06b", borderRadius:8, padding:"12px 16px", marginTop:16, fontSize:12.5, fontFamily:"sans-serif", color:"#176844", fontWeight:600 }}>✓ Both parties have joined this deal — you're all set. Confirm your details below are correct, then continue.</div>
       )}
+      <WhatsNext>Next you'll build the offer &mdash; price, deposit, contingencies and dates. When you send it, the other party gets an email and can accept, counter, or flag a conflict.</WhatsNext>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
         <div style={{ textAlign:"right" }}>
@@ -2149,6 +2162,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           page lands on the sign / pay action without scrolling back up. */}
       {agreedBanner}
 
+      <WhatsNext>Once the price is agreed and the deal is locked, you move to due diligence &mdash; survey, sea trial, and the earnest-money deposit that holds the boat off the market.</WhatsNext>
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
         <button style={{...S.btnBrass, opacity:canProceed?1:0.5}} disabled={!canProceed} onClick={proceed}>
@@ -3237,6 +3251,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         )}
       </div>
 
+      <WhatsNext>Next are the documents &mdash; the bill of sale, title transfer, and the rest. You'll review and sign each required one, and the other party is emailed as they're signed.</WhatsNext>
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
         <button style={S.btnBrass} disabled={!canProceed} onClick={()=>{ setData(d=>({...d,outcome,rejectionReasons,rejectionNotes,rejSolution,rejSigName,vaSigName,vaSigned,surveyFile:surveyFile?.name,surveyCompany,surveyorName})); if(setNegotiate){ if(outcome==="propose_price" && newPrice){ setNegotiate(n=>({...n, addendum:{ newPrice:Number(newPrice), reason:newPriceReason||"", buyer:parties.buyer.name||"Buyer", date:(n.addendum&&n.addendum.date)||today() }, vesselAcceptance: n.vesselAcceptance || { sig:parties.buyer.name||"Buyer", date:today() } })); } if(outcome==="accept" && vaSigName.trim()){ setNegotiate(n=>({...n, vesselAcceptance: n.vesselAcceptance || { sig:vaSigName.trim(), date:today() }})); } if(outcome==="reject" && rejectionReasons.length>0){ setNegotiate(n=>({...n, vesselRejection:{ reasons:rejectionReasons, notes:rejectionNotes, solution:rejSolution, sig:(rejSigName.trim()||parties.buyer.name||"Buyer"), date:today() }})); } } onNext(); }}>
@@ -3601,6 +3616,7 @@ function StepDocuments({ data, setData, vessel, parties, terms, negotiate, myRol
         </div>
       ))}
 
+      <WhatsNext>Last step is closing &mdash; final funds, handing over keys and title, and your record of the completed sale. Everything signed here stays in the deal for both of you.</WhatsNext>
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
         <button style={S.btnBrass} disabled={!allRequiredSigned} onClick={()=>{setData(d=>({...d,signedDocs:signed}));onNext();}}>
