@@ -4084,6 +4084,11 @@ function AuthScreen({ onAuth, prefillEmail, notice, defaultMode, defaultRole }) 
           <button style={{...S.btnBrass, width:"100%", marginTop:16, fontSize:14, padding:"12px", opacity:loading?0.6:1}} disabled={!canSubmit||loading} onClick={submit}>
             {loading ? "Please wait..." : mode==="signup" ? "Create Account & Start Deal" : "Sign In"}
           </button>
+          {mode!=="signup" && (
+            <div style={{ marginTop:12, textAlign:"center", fontSize:12, fontFamily:"sans-serif" }}>
+              <a href="/forgot-password" style={{ color:C.slate, textDecoration:"underline" }}>Forgot password?</a>
+            </div>
+          )}
           <div style={{ marginTop:16, textAlign:"center", fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
             {mode==="signup" ? "Already have an account? " : "New here? "}
             <span style={{ color:C.teal, cursor:"pointer", fontWeight:600 }} onClick={()=>{ setMode(mode==="signup"?"login":"signup"); setError(""); }}>
