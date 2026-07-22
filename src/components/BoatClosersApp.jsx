@@ -553,6 +553,17 @@ function LockedStep({ stepName, onBack }) {
 // A one-line answer to "what happens now?" at the end of each step. Motivated
 // buyers and sellers forgive a long form; what makes them abandon a deal is not
 // knowing whether anything actually happened, or whose turn it is.
+// A one-line "here's what's normal" from a broker who has closed these deals.
+// First-timers don't want to DECIDE — they want to be told what's standard and
+// be able to override it.
+function BrokerTip({ children }) {
+  return (
+    <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"#475569", lineHeight:1.6, marginTop:7, paddingLeft:9, borderLeft:"2px solid #b8863a" }}>
+      <strong style={{ color:"#7a5500" }}>Broker tip: </strong>{children}
+    </div>
+  );
+}
+
 function WhatsNext({ children }) {
   return (
     <div style={{ background:"#eef4fb", borderLeft:"3px solid #08152e", borderRadius:6, padding:"10px 13px", marginTop:20, fontSize:12.5, fontFamily:"sans-serif", color:"#334155", lineHeight:1.6 }}>
@@ -959,11 +970,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const [newMsg, setNewMsg] = useState("");
   const [offerAmt, setOfferAmt] = useState(data.currentOffer || "");
   const [askingPrice, setAskingPrice] = useState(vessel.askingPrice || data.askingPrice || "");
-  const [escrowPct, setEscrowPct] = useState(data.escrowPct!==undefined ? String(data.escrowPct) : "0");
+  // Smart defaults: a first-time seller shouldn't have to KNOW what's normal.
+  // 10% earnest money is the standard for private boat sales, and it's also what
+  // switches on the whole deposit/secured-hold mechanic — leaving this at "None"
+  // by default meant most deals had nothing holding the boat off the market.
+  const [escrowPct, setEscrowPct] = useState(data.escrowPct!==undefined ? String(data.escrowPct) : "10");
   const [escrowPath, setEscrowPath] = useState(data.escrowPath || "escrow_com");
   const [ddDays, setDdDays] = useState(data.dueDiligenceDays || "10");
   const [ddStart, setDdStart] = useState(data.ddStartDate || today());
-  const [offerExpiry, setOfferExpiry] = useState("0"); // hours the offer stays valid; "0" = no expiry
+  const [offerExpiry, setOfferExpiry] = useState("48"); // hours the offer stays valid; "0" = no expiry
   const [feePayer, setFeePayer] = useState("full"); // who pays the $249: full=initiator, split, other
   const [closingDate, setClosingDate] = useState(data.closingDate || "");
   const [offers, setOffers] = useState(data.offers || []);
@@ -1872,6 +1887,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             ))}
           </div>
           {ddCustom && (<div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}><input style={{...S.input, maxWidth:90}} type="number" min="1" max="90" value={ddDays} onChange={e=>setDdDays(e.target.value)} placeholder="21" /><span style={{ fontSize:12, color:C.slate, fontFamily:"sans-serif" }}>days</span></div>)}
+          <BrokerTip>10&ndash;14 days is typical. That's enough to book a surveyor, haul the boat out, and run a sea trial without rushing &mdash; surveyors are often booked a week out. Go shorter only if the survey is already scheduled.</BrokerTip>
           <Grid2>
             <Field label="DD Start"><input style={S.input} type="date" value={ddStart} onChange={e=>setDdStart(e.target.value)} /></Field>
             <Field label="DD End (auto)"><input style={{...S.input, background:C.sandDark, color:C.teal, fontWeight:600}} readOnly value={ddStart && ddDays ? addDays(ddStart,Number(ddDays)) : "—"} /></Field>
@@ -1904,6 +1920,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             ))}
           </div>
           {escrowPct!=="0" && offerAmt && <div style={{ fontSize:11, color:C.teal, fontFamily:"sans-serif", marginTop:5 }}>Deposit: {fmt(Math.round(Number(offerAmt)*Number(escrowPct)/100))}</div>}
+          <BrokerTip>10% is the norm for private boat sales &mdash; enough to show the buyer is serious and to justify taking the boat off the market. Much less and sellers tend to keep showing it. Choose "None" only if you've agreed to handle the deposit outside this deal.</BrokerTip>
           <div style={{ height:14 }}/>
           <label style={S.label}>If the deal falls through, the earnest money is…</label>
           <select style={S.select} value={depositRule} onChange={e=>setDepositRule(e.target.value)}>
@@ -1944,6 +1961,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             <option value="72">72 hours</option>
           </select>
         </div>
+        <BrokerTip>48 hours keeps a deal moving without pressuring anyone. An offer with no deadline is the single most common way private boat sales quietly die &mdash; the other side means to reply, then a week goes by.</BrokerTip>
         {!offerAmt && !myOfferAwaiting && (
           <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.red, marginTop:8, textAlign:"center" }}>
             ⚠️ Enter your offer price above to send.
