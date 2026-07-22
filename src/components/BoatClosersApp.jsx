@@ -2449,6 +2449,19 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const depDeadline = Number(dep.depositDeadline) || 0;
   const depEnded = !!dep.depositEnded;
   const submitProof = () => { if (proofRef.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositProof: { ref: proofRef.trim(), note: proofNote.trim(), at: Date.now(), by: "buyer" } })); };
+  // ── Deposit checkpoint: the seller must say WHERE the money goes, and the buyer
+  // must acknowledge it and commit to the deadline, before proof can be submitted.
+  // This is what forces the deposit conversation to actually happen in the deal
+  // instead of dying in a text thread.
+  const depInstr = dep.depositInstructions || null;
+  const depInstrPosted = !!(depInstr && depInstr.details);
+  const depCommit = dep.depositCommitment || null;
+  const depCommitted = !!(depCommit && depCommit.name);
+  const [instrMethod, setInstrMethod] = useState("Escrow.com");
+  const [instrDetails, setInstrDetails] = useState("");
+  const [commitName, setCommitName] = useState("");
+  const postInstructions = () => { if (instrDetails.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositInstructions: { method: instrMethod, details: instrDetails.trim(), at: Date.now() } })); };
+  const signCommitment = () => { if (commitName.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositCommitment: { name: commitName.trim(), at: Date.now(), amount: n.deposit, deadline: n.depositDeadline } })); };
   const extendDeposit = (h) => { if (setNegotiate) setNegotiate(n => ({ ...n, depositDeadline: Date.now() + h*3600*1000, depositEnded: false })); };
   const endDealForDeposit = () => { if (setNegotiate) setNegotiate(n => ({ ...n, depositEnded: true })); };
   // Seller readiness checklist (each party only sees/edits their own DD).
@@ -2589,7 +2602,58 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>Earnest money keeps this deal alive. If proof isn't provided before the timer runs out, the deal can be declared <b>null and void — including the signed Purchase Agreement</b>, and the <b>seller is then free to accept other offers</b>.</div>
               </>
             )}
-            {isBuyer && !depHasProof && !depEnded && (
+            {!depHasProof && !depEnded && (
+              <div style={{ marginTop:14 }}>
+                {!depInstrPosted ? (
+                  isBuyer ? (
+                    <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", fontFamily:"sans-serif" }}>
+                      <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:3 }}>⏳ Waiting on the seller</div>
+                      <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>The seller still needs to post <b>where to send the deposit</b>. You'll get an email the moment they do &mdash; don't wire anything until those instructions appear here.</div>
+                    </div>
+                  ) : (
+                    <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", fontFamily:"sans-serif" }}>
+                      <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:3 }}>⚠️ Action needed: tell the buyer where to send the deposit</div>
+                      <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>The buyer can't fund until you post this. Give them the escrow account or attorney trust account details &mdash; enough that they can send the money without texting you for it.</div>
+                      <label style={S.label}>How is the deposit being held?</label>
+                      <select style={S.input} value={instrMethod} onChange={e=>setInstrMethod(e.target.value)}>
+                        <option>Escrow.com</option>
+                        <option>Attorney / title company trust account</option>
+                        <option>Licensed broker escrow account</option>
+                        <option>Other</option>
+                      </select>
+                      <div style={{ height:8 }}/>
+                      <label style={S.label}>Where to send it</label>
+                      <textarea style={{ ...S.input, minHeight:78, resize:"vertical" }} value={instrDetails} onChange={e=>setInstrDetails(e.target.value)} placeholder="e.g. Escrow.com transaction #12345 — buyer opens it and funds there. Or: wire to Smith &amp; Co. Trust Account, routing 000000000, account 000000000, reference the vessel." />
+                      <button style={{...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"10px", opacity:instrDetails.trim()?1:0.5}} disabled={!instrDetails.trim()} onClick={postInstructions}>Post deposit instructions</button>
+                    </div>
+                  )
+                ) : (
+                  <>
+                    <div style={{ background:"#f1f5f9", border:"1px solid #cbd5e1", borderRadius:8, padding:"12px 14px", fontFamily:"sans-serif" }}>
+                      <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:4 }}>Where the deposit goes &mdash; posted by the seller</div>
+                      <div style={{ fontSize:12, color:C.slate, marginBottom:6 }}><b>Held by:</b> {depInstr.method}</div>
+                      <div style={{ fontSize:12.5, color:C.navy, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{depInstr.details}</div>
+                      <div style={{ fontSize:11, color:C.slate, lineHeight:1.5, marginTop:9, borderTop:"1px solid #cbd5e1", paddingTop:8 }}>BoatClosers records these instructions so both sides see the same thing &mdash; we do not hold the funds or verify them. Confirm the details directly with the escrow agent before sending money.</div>
+                    </div>
+                    {isBuyer && !depCommitted && (
+                      <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", marginTop:12, fontFamily:"sans-serif" }}>
+                        <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:4 }}>Commit to the deposit</div>
+                        <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>By typing your name you confirm you've read the instructions above and agree to fund the earnest-money deposit by the deadline shown. If it isn't funded in time, the seller may release the boat and pursue other buyers.</div>
+                        <input style={S.input} value={commitName} onChange={e=>setCommitName(e.target.value)} placeholder="Type your full name" />
+                        <button style={{...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"10px", opacity:commitName.trim()?1:0.5}} disabled={!commitName.trim()} onClick={signCommitment}>I agree to fund the deposit</button>
+                      </div>
+                    )}
+                    {depCommitted && (
+                      <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green, fontWeight:700, marginTop:10 }}>✓ Buyer committed to funding &mdash; signed by {depCommit.name}</div>
+                    )}
+                    {!isBuyer && !depCommitted && (
+                      <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginTop:10, lineHeight:1.6 }}>Instructions posted. Waiting for the buyer to acknowledge them and commit to the deadline.</div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+            {isBuyer && !depHasProof && !depEnded && depInstrPosted && depCommitted && (
               <div style={{ marginTop:12 }}>
                 <label style={S.label}>Deposit confirmation / reference #</label>
                 <input style={S.input} value={proofRef} onChange={e=>setProofRef(e.target.value)} placeholder="Escrow.com or wire confirmation #" />
