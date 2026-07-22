@@ -4667,11 +4667,14 @@ export default function BoatClosers() {
       fetch(`/api/stripe/verify?session_id=${encodeURIComponent(sid)}`)
         .then(r => r.json())
         .then(v => {
-          console.log('[PAY VERIFY]', v?.dbg || v);
+          // The verify route still returns a `dbg` string describing exactly what
+          // happened during the lock. It is logged here (invisible to the customer)
+          // so a failed lock can still be diagnosed from a support session, without
+          // ever showing raw internals to someone who just paid.
+          if (v?.dbg && !String(v.dbg).includes('LOCKED') && !String(v.dbg).includes('wasLocked=true')) {
+            console.warn('[PAY VERIFY] deal did not lock:', v.dbg);
+          }
           if (v?.paid) {
-            if (v.dbg && !String(v.dbg).includes('LOCKED') && !String(v.dbg).includes('wasLocked=true')) {
-              alert('Payment received, but the deal did not lock. Details:\n\n' + (v.dbg || '') + '\n\nPlease screenshot this and send it.');
-            }
             if (v.dealId) {
               window.location.replace(`/?dealId=${encodeURIComponent(v.dealId)}&step=3`);
             } else {
