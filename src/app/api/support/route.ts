@@ -7,12 +7,58 @@ import { sendEmail, emailLayout } from '@/lib/sendEmail'
 // Override the destination anytime by setting SUPPORT_EMAIL in Vercel.
 const OWNER_INBOX = process.env.SUPPORT_EMAIL || 'chupurdy@gmail.com'
 
+// ── Rate limiting ────────────────────────────────────────────────────────────
+// Every submission sends TWO emails (one to the owner, one confirming to the
+// sender), so an unthrottled form is a way to flood the owner's inbox and burn
+// the Resend quota — and, because the confirmation goes to whatever address was
+// typed, a way to bounce mail off this domain at a stranger.
+//
+// This is deliberately simple: an in-memory counter per serverless instance. It
+// is a speed bump, not a wall — instances don't share memory, so a determined
+// attacker spread across many cold starts gets more through. It stops the common
+// cases (a stuck retry loop, someone leaning on the button, a naive script). If
+// support spam ever becomes real, move this to a Supabase table or a captcha.
+const WINDOW_MS = 10 * 60 * 1000
+const MAX_PER_WINDOW = 3
+const hits = new Map<string, { count: number; start: number }>()
+
+function overLimit(key: string) {
+  if (!key) return false
+  const now = Date.now()
+  const rec = hits.get(key)
+  if (!rec || now - rec.start > WINDOW_MS) {
+    hits.set(key, { count: 1, start: now })
+    return false
+  }
+  rec.count += 1
+  if (rec.count > MAX_PER_WINDOW) return true
+  return false
+}
+
+// Keep the map from growing forever on a long-lived instance.
+function prune() {
+  const now = Date.now()
+  for (const [k, v] of hits) {
+    if (now - v.start > WINDOW_MS) hits.delete(k)
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { name, email, dealId, role, issueType, message } = await req.json()
     if (!email || !message) {
       return NextResponse.json({ error: 'Please include your email and a description of the problem.' }, { status: 400 })
     }
+
+    prune()
+    const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim()
+    const tooMany = overLimit(`ip:${ip}`) || overLimit(`em:${String(email).toLowerCase().trim()}`)
+    if (tooMany) {
+      return NextResponse.json({
+        error: "You've sent several requests in a row — we already have them. Please give us a few minutes to reply before sending another."
+      }, { status: 429 })
+    }
+
     const type = issueType || 'General question'
     const safe = String(message).replace(/</g, '&lt;').replace(/>/g, '&gt;')
     const cust = String(email).replace(/</g, '&lt;').replace(/>/g, '&gt;')
