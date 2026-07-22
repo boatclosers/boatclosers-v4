@@ -156,10 +156,23 @@ async function notifyOnDealChange(previous: any, updated: any) {
     // (sent from the invite route) is what brings the second party in first.
     if (!(updated?.other_party_id || updated?.party_b_user_id)) return
 
-    const buyerEmail = updated?.parties?.buyer?.email
-    const sellerEmail = updated?.parties?.seller?.email
+    let buyerEmail = updated?.parties?.buyer?.email
+    let sellerEmail = updated?.parties?.seller?.email
+    // The invited party's address is known from the invite (invite_email) even if
+    // they haven't re-typed it into the Parties form. Fall back to it so the
+    // "email both parties" events are never one-sided — the .filter(Boolean)
+    // below would otherwise silently drop whichever side the blob is missing.
+    const inviteRole = updated?.invite_role
+    const inviteEmail = updated?.invite_email
+    if (inviteRole === 'buyer' && !buyerEmail) buyerEmail = inviteEmail
+    if (inviteRole === 'seller' && !sellerEmail) sellerEmail = inviteEmail
     const esc = (s: any) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
     const vesselName = esc(updated?.vessel?.name || updated?.vessel?.makeModel || 'the vessel')
+    // Subject-line label. Leading with the BOAT keeps every email distinct in the
+    // inbox — generic subjects ("New offer on your BoatClosers deal") look alike
+    // to Gmail, which threads them together so the newest collapses out of sight.
+    const vv = updated?.vessel || {}
+    const boat = [vv.year, vv.make, vv.model].filter(Boolean).join(' ') || vv.name || vv.makeModel || 'Your boat'
 
     // Build a deep-link that opens THIS deal on the page for the task, tied to
     // the RECIPIENT so the app makes them sign in as the right account instead
@@ -179,7 +192,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
       if (recipientEmail) {
         await sendEmail({
           to: recipientEmail,
-          subject: `New offer on your BoatClosers deal`,
+          subject: `${boat} — New offer to review`,
           html: emailLayout(`
             <h2 style="color:#08152e; font-size:18px;">You have a new offer</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
@@ -209,7 +222,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
       if (o.status === 'rejected' && recipientEmail) {
         await sendEmail({
           to: recipientEmail,
-          subject: `Your offer was rejected — BoatClosers`,
+          subject: `${boat} — Your offer was turned down`,
           html: emailLayout(`
             <h2 style="color:#08152e; font-size:18px;">Your offer was declined</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
@@ -230,7 +243,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
         for (const email of recips) {
           await sendEmail({
             to: email,
-            subject: `Price agreed — time to lock your BoatClosers deal`,
+            subject: `${boat} — ✓ Price agreed, time to lock the deal`,
             html: emailLayout(`
               <h2 style="color:#08152e; font-size:18px;">Price agreed: ${fmtMoney(o.amount)}</h2>
               <p style="color:#475569; font-size:14px; line-height:1.5;">
@@ -263,7 +276,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
       for (const email of recipients) {
         await sendEmail({
           to: email,
-          subject: `Purchase Agreement signed — BoatClosers`,
+          subject: `${boat} — Purchase Agreement signed`,
           attachments,
           html: emailLayout(`
             <h2 style="color:#08152e; font-size:18px;">Purchase Agreement Signed</h2>
@@ -290,7 +303,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
       for (const email of recipients) {
         await sendEmail({
           to: email,
-          subject: `Documents signed on your BoatClosers deal`,
+          subject: `${boat} — Documents signed`,
           html: emailLayout(`
             <h2 style="color:#08152e; font-size:18px;">Documents Signed</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
@@ -314,7 +327,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
       for (const email of recipients) {
         await sendEmail({
           to: email,
-          subject: `A BoatClosers deal was canceled — ${vesselName}`,
+          subject: `${boat} — Deal canceled`,
           html: emailLayout(`
             <h2 style="color:#08152e; font-size:18px;">Deal Canceled</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
@@ -341,7 +354,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
       for (const email of recipients) {
         await sendEmail({
           to: email,
-          subject: `Your BoatClosers deal is locked`,
+          subject: `${boat} — 🔒 Deal locked, terms are set`,
           attachments,
           html: emailLayout(`
             <h2 style="color:#08152e; font-size:18px;">Deal Locked</h2>
@@ -372,7 +385,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
       if (newOutcome === 'accept') {
         await sendEmail({
           to: sellerEmail,
-          subject: `Buyer accepted the vessel — BoatClosers`,
+          subject: `${boat} — Buyer accepted the vessel`,
           html: emailLayout(`
             <h2 style="color:#08152e; font-size:18px;">Buyer Accepted the Vessel</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
@@ -389,7 +402,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
       } else if (newOutcome === 'reject') {
         await sendEmail({
           to: sellerEmail,
-          subject: `Buyer rejected the vessel — BoatClosers`,
+          subject: `${boat} — Buyer rejected the vessel`,
           html: emailLayout(`
             <h2 style="color:#08152e; font-size:18px;">Buyer Rejected the Vessel</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
@@ -408,7 +421,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
         const reason = updated?.dd_data?.proposedNewPriceReason || ''
         await sendEmail({
           to: sellerEmail,
-          subject: `Action needed: buyer proposed a price addendum — BoatClosers`,
+          subject: `${boat} — ⚠️ Action needed: buyer proposed a new price`,
           html: emailLayout(`
             <h2 style="color:#08152e; font-size:18px;">Buyer Proposed a Price Addendum</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
@@ -436,7 +449,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
       const accepted = newAdd === 'accepted'
       await sendEmail({
         to: buyerEmail,
-        subject: `Seller ${accepted ? 'accepted' : 'declined'} your price addendum — BoatClosers`,
+        subject: `${boat} — Seller ${accepted ? 'accepted' : 'declined'} your new price`,
         html: emailLayout(`
           <h2 style="color:#08152e; font-size:18px;">Addendum ${accepted ? 'Accepted' : 'Declined'}</h2>
           <p style="color:#475569; font-size:14px; line-height:1.5;">
@@ -476,7 +489,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
       for (const email of rejRecips) {
         await sendEmail({
           to: email,
-          subject: `Deal ended — vessel rejected (${vesselName})`,
+          subject: `${boat} — Deal ended, vessel rejected`,
           html: emailLayout(`
             <h2 style="color:#7a1c1c; font-size:18px;">Vessel Rejected — Deal Ended</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
@@ -504,7 +517,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
       for (const email of recips) {
         await sendEmail({
           to: email,
-          subject: `Due diligence cleared — time to finalize your BoatClosers deal`,
+          subject: `${boat} — ✓ Due diligence cleared, time to finalize`,
           html: emailLayout(`
             <h2 style="color:#08152e; font-size:18px;">Get Ready to Finalize</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
