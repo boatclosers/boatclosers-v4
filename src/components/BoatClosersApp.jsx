@@ -2461,6 +2461,17 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const [instrDetails, setInstrDetails] = useState("");
   const [commitName, setCommitName] = useState("");
   const postInstructions = () => { if (instrDetails.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositInstructions: { method: instrMethod, details: instrDetails.trim(), at: Date.now() } })); };
+  // Wire-fraud guard: changing posted instructions VOIDS the buyer's commitment and
+  // flags the change, so a swapped account number can never slip through on the back
+  // of an agreement the buyer made to different details. This is the classic attack —
+  // criminals watch the thread, then send "updated" wire info at the last minute.
+  const [editingInstr, setEditingInstr] = useState(false);
+  const openInstrEditor = () => { setInstrMethod(depInstr?.method || "Escrow.com"); setInstrDetails(depInstr?.details || ""); setEditingInstr(true); };
+  const updateInstructions = () => {
+    if (!instrDetails.trim() || !setNegotiate) return;
+    setNegotiate(n => ({ ...n, depositInstructions: { method: instrMethod, details: instrDetails.trim(), at: Date.now() }, depositCommitment: null, depositInstrChangedAt: Date.now() }));
+    setEditingInstr(false);
+  };
   const signCommitment = () => { if (commitName.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositCommitment: { name: commitName.trim(), at: Date.now(), amount: n.deposit, deadline: n.depositDeadline } })); };
   const extendDeposit = (h) => { if (setNegotiate) setNegotiate(n => ({ ...n, depositDeadline: Date.now() + h*3600*1000, depositEnded: false })); };
   const endDealForDeposit = () => { if (setNegotiate) setNegotiate(n => ({ ...n, depositEnded: true })); };
@@ -2635,6 +2646,39 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                       <div style={{ fontSize:12.5, color:C.navy, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{depInstr.details}</div>
                       <div style={{ fontSize:11, color:C.slate, lineHeight:1.5, marginTop:9, borderTop:"1px solid #cbd5e1", paddingTop:8 }}>BoatClosers records these instructions so both sides see the same thing &mdash; we do not hold the funds or verify them. Confirm the details directly with the escrow agent before sending money.</div>
                     </div>
+                    {dep.depositInstrChangedAt && (
+                      <div style={{ background:"#fdecec", border:`1px solid ${C.red}`, borderRadius:8, padding:"12px 14px", marginTop:12, fontFamily:"sans-serif" }}>
+                        <div style={{ fontSize:12.5, fontWeight:800, color:C.red, marginBottom:3 }}>⚠️ These instructions were CHANGED after they were first posted</div>
+                        <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>Do not send money until you have verified the new details <b>by phone</b> with the escrow agent, using a number you looked up yourself. Changed payment details are the most common sign of wire fraud.</div>
+                      </div>
+                    )}
+                    <div style={{ background:"#fdecec", border:`1px solid ${C.red}`, borderRadius:8, padding:"12px 14px", marginTop:12, fontFamily:"sans-serif" }}>
+                      <div style={{ fontSize:12.5, fontWeight:800, color:C.red, marginBottom:3 }}>🛑 Protect yourself from wire fraud</div>
+                      <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>Before you send a wire, <b>call the escrow agent or attorney at a number you found yourself</b> &mdash; not one from an email or text &mdash; and read the account details back to them. <b>Never accept changed wire instructions</b> by email, text, or message. Criminals watch deals like this one and send convincing "updated" instructions at the last minute. Wired money is very hard to recover.</div>
+                    </div>
+                    {!isBuyer && !editingInstr && (
+                      <button style={{...S.btnOutline, width:"100%", marginTop:12, fontSize:12.5, padding:"9px"}} onClick={openInstrEditor}>Update deposit instructions</button>
+                    )}
+                    {!isBuyer && editingInstr && (
+                      <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", marginTop:12, fontFamily:"sans-serif" }}>
+                        <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:3 }}>Update deposit instructions</div>
+                        <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>Changing these will <b>cancel the buyer's commitment</b> and flag the change to them as a possible fraud warning. They'll have to review and agree again. Only change this if the details are genuinely wrong.</div>
+                        <label style={S.label}>How is the deposit being held?</label>
+                        <select style={S.input} value={instrMethod} onChange={e=>setInstrMethod(e.target.value)}>
+                          <option>Escrow.com</option>
+                          <option>Attorney / title company trust account</option>
+                          <option>Licensed broker escrow account</option>
+                          <option>Other</option>
+                        </select>
+                        <div style={{ height:8 }}/>
+                        <label style={S.label}>Where to send it</label>
+                        <textarea style={{ ...S.input, minHeight:78, resize:"vertical" }} value={instrDetails} onChange={e=>setInstrDetails(e.target.value)} />
+                        <div style={{ display:"flex", gap:8, marginTop:10 }}>
+                          <button style={{...S.btnOutline, flex:1, fontSize:12.5, padding:"9px"}} onClick={()=>setEditingInstr(false)}>Cancel</button>
+                          <button style={{...S.btnBrass, flex:1, fontSize:12.5, padding:"9px", opacity:instrDetails.trim()?1:0.5}} disabled={!instrDetails.trim()} onClick={updateInstructions}>Save changes</button>
+                        </div>
+                      </div>
+                    )}
                     {isBuyer && !depCommitted && (
                       <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", marginTop:12, fontFamily:"sans-serif" }}>
                         <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:4 }}>Commit to the deposit</div>
