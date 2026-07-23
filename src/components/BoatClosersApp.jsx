@@ -45,6 +45,22 @@ const addDays = (d,n) => { const dt=new Date(d); dt.setDate(dt.getDate()+n); ret
 // Deposits can be a preset percentage or a custom dollar figure. A custom figure is
 // stored as the exact percentage it represents (full precision, so the dollars come
 // back out exactly), and only rounded when shown to a human.
+// Escrow.com publishes tiered rates charged on the amount they HOLD — not on the
+// boat's price. Because BoatClosers escrows only the deposit, the fee lands on the
+// deposit. Buyers routinely confuse the two and picture a four-figure bill, then
+// skip escrow entirely and wire a stranger. Showing the real number prevents that.
+// Rates as published (updated May 2024) — an estimate, always verify current rates.
+function escrowComFee(amount) {
+  const a = Number(amount) || 0;
+  if (a <= 0) return 0;
+  let pct, min;
+  if (a <= 5000)        { pct = 0.026; min = 50;   }
+  else if (a <= 50000)  { pct = 0.024; min = 130;  }
+  else if (a <= 200000) { pct = 0.019; min = 1200; }
+  else if (a <= 500000) { pct = 0.015; min = 3800; }
+  else                  { pct = 0.012; min = 7500; }
+  return Math.max(Math.round(a * pct), min);
+}
 const pctLabel = (p) => {
   const n = Number(p);
   if (!isFinite(n) || !n) return "0";
@@ -194,6 +210,9 @@ function Grid2({ children, gap }) {
 }
 
 // ── OFFER SECTION — expandable, self-explaining opt-in box for the offer builder ──
+// NOTE: this falls through to "Direct to Seller" for anything unrecognised, and it
+// feeds the Purchase Agreement — so every escrow id must be listed here explicitly.
+// A missing entry silently mislabels who is holding the money on a signed contract.
 function escLabel(p){ return p==="escrow_com"?"Escrow.com":p==="attorney"?"Third-Party Attorney":p==="brokerage"?"Licensed Broker":p==="custom"?"Custom / Other":"Direct to Seller"; }
 
 function OfferSection({ icon, title, desc, checked, onToggle, children }) {
@@ -1205,7 +1224,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     if (o.askingPrice) setAskingPrice(String(o.askingPrice));
     setEscrowPct(String(o.escrowPct));
     // A non-preset percentage came from a custom dollar figure — restore that view.
-    if (!["0","5","7.5","10"].includes(String(o.escrowPct))) {
+    if (!["0","2","3","5","7.5","10"].includes(String(o.escrowPct))) {
       setCustomMode(true);
       setCustomDep(String(o.deposit || ""));
     } else { setCustomMode(false); setCustomDep(""); }
@@ -2012,8 +2031,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         {/* 🔒 Escrow Terms — opt-in (deposit amount, terms, and where it's held all together) */}
         <OfferSection icon="🔒" title="Escrow Terms" desc="The good-faith deposit that secures the boat — how much, what happens to it if the deal falls through, and where it's held. BoatClosers never holds funds." checked={inclDepositTerms} onToggle={()=>setInclDepositTerms(v=>!v)}>
           <label style={S.label}>Earnest Money Deposit</label>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:5 }}>
-            {["0","5","7.5","10"].map(p => {
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:5 }}>
+            {["0","2","3","5","7.5","10"].map(p => {
               const on = !customMode && escrowPct===p;
               const dollars = (p!=="0" && offerAmt) ? fmt(Math.round(Number(offerAmt)*Number(p)/100)) : null;
               return (
@@ -2075,7 +2094,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               </div>
             </div>
           )}
-          <BrokerTip>10% is the norm for private boat sales &mdash; enough to show you're serious and to justify the seller taking the boat off the market. Offer much less and sellers tend to keep showing it; the seller can reject or counter whatever you propose. Choose "None" only if you've agreed to handle the deposit outside this deal.</BrokerTip>
+          <BrokerTip>10% is the standard between yacht brokers, but remember what the deposit is actually <i>for</i>: taking the boat off the market while you inspect it, and proving to the seller you&rsquo;re serious. On a private sale a smaller deposit often does that job perfectly well &mdash; what matters to a seller is that it&rsquo;s real money you&rsquo;d hate to lose, not that it hits a particular percentage. Offer too little and they may keep showing the boat; they can always counter. One thing worth knowing: escrow is charged on the amount held, not on the boat&rsquo;s price, so a deposit costs far less to escrow than people expect. Choose &ldquo;None&rdquo; only if you&rsquo;ve agreed to handle the deposit outside this deal.</BrokerTip>
           {escrowPct!=="" && escrowPct!=="0" && (<>
           <div style={{ height:14 }}/>
           <label style={S.label}>If the deal falls through, the earnest money is…</label>
@@ -2403,11 +2422,11 @@ function EscrowSelector({ value, onChange, depositAmt }) {
   const [showDetail, setShowDetail] = useState(false);
   const options = [
     {
-      id:"escrow_com", icon:"🏦", label:"Escrow.com", badge:"Recommended", badgeColor:C.green,
+      id:"escrow_com", icon:"🏦", label:"Escrow.com", badge:"Online", badgeColor:C.green,
       tint:C.greenLight, line:"#a8d8b8",
       desc:"Licensed third-party escrow. Funds held securely until both parties confirm the deal is complete.",
-      detail:"Escrow.com is a licensed, regulated escrow service. Neither buyer nor seller can access funds until conditions are met. BoatClosers has no affiliation with Escrow.com and earns nothing from their fees.",
-      warn:"BoatClosers.com has no affiliation with Escrow.com, earns no referral fee, and is not responsible for Escrow.com's services, fees, or outcomes. Deposit return is solely between buyer, seller, and Escrow.com per their agreement.",
+      detail:"Escrow.com is a licensed, regulated escrow service. Neither buyer nor seller can access funds until conditions are met. Their fee is charged on the amount they hold — and here that's only the deposit, not the boat's purchase price. On a typical deposit that works out to a couple of hundred dollars. Sign-up requires identity verification, which can take a day or two, so start it early rather than on the day the deposit is due. BoatClosers has no affiliation with Escrow.com and earns nothing from their fees.",
+      warn:"Escrow.com's policy: if the buyer rejects the vessel or the transaction is cancelled after funds have been approved, the BUYER pays the escrow fee — even if you agreed the seller would cover it. Budget for that before you reject. BoatClosers.com has no affiliation with Escrow.com, earns no referral fee, and is not responsible for their services, fees, or outcomes. Deposit return is solely between buyer, seller, and Escrow.com per their agreement.",
     },
     {
       id:"direct", icon:"💵", label:"Direct to Seller", badge:"Simple", badgeColor:C.slate,
@@ -2420,14 +2439,14 @@ function EscrowSelector({ value, onChange, depositAmt }) {
       id:"attorney", icon:"⚖️", label:"Third Party Attorney", badge:"Professional", badgeColor:C.teal,
       tint:C.tealLight, line:C.teal,
       desc:"A licensed attorney or title company holds the deposit. Common on larger or more complex deals.",
-      detail:"Both parties agree on an attorney or title company to act as escrow agent. Their fees and terms are outside BoatClosers. Our documents support the transaction but we are not involved in fund handling.",
+      detail:"Both parties agree on an attorney or title company to act as escrow agent. Many charge a flat fee for holding a deposit rather than a percentage, which on a larger deposit is often cheaper than an online escrow service — worth asking for a quote before you decide. Their fees and terms are outside BoatClosers. Our documents support the transaction but we are not involved in fund handling.",
       warn:"Agree on the attorney or title company in writing before transferring any funds. BoatClosers documents (Escrow Instructions, Closing Statement) can be shared with them to support their work.",
     },
     {
       id:"brokerage", icon:"🛥️", label:"Licensed Broker", badge:"Brokerage", badgeColor:C.navy,
       tint:"#eef2f7", line:C.navy,
       desc:"A state-licensed yacht brokerage holds the deposit in their trust account.",
-      detail:"If the boat is listed with a broker — or you're using a buyer's broker — a state-licensed brokerage can hold the deposit in their trust/escrow account per state law. Any commission and terms are between you and the broker.",
+      detail:"If the boat is listed with a broker — or you're using a buyer's broker — a state-licensed brokerage can hold the deposit in their trust/escrow account per state law. Brokerage trust accounts are regulated by the state and often carry little or no separate holding fee, since it's part of the brokerage's normal business. Any commission and terms are between you and the broker.",
       warn:"Confirm the brokerage is licensed in the boat's state and get the escrow terms in writing before sending funds. The broker holds the deposit in their trust account; BoatClosers does not hold, verify, or release funds.",
     },
     {
@@ -2435,7 +2454,7 @@ function EscrowSelector({ value, onChange, depositAmt }) {
       tint:"#fff9ee", line:C.brass,
       desc:"You've agreed on another holder or method — describe it in your terms.",
       detail:"Use this if you've agreed on a holder or method not listed (a bank, a mutual escrow agent, or another arrangement). BoatClosers does not hold or release funds.",
-      warn:"Spell out who holds the deposit and the exact terms in Additional Contingencies above, so it appears on the Purchase Agreement.",
+      warn:"Check who you're sending money to before you send it. Independent boat closing and documentation agents are not always bonded, licensed, or subject to fiduciary duty — the oversight on them is thin compared with attorneys, licensed brokerages, and regulated escrow companies. Ask whether they are bonded and licensed in their state, and get it in writing. Then spell out who holds the deposit and the exact terms in Additional Contingencies above, so it appears on the Purchase Agreement.",
     },
   ];
   const selected = options.find(o => o.id === value) || null;
@@ -2470,6 +2489,12 @@ function EscrowSelector({ value, onChange, depositAmt }) {
               <div style={{ background:"rgba(255,255,255,0.65)", border:`1px solid ${selected.line}`, borderRadius:5, padding:"8px 11px", fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
                 {selected.warn}
               </div>
+            </div>
+          )}
+          {value==="escrow_com" && depositAmt > 0 && (
+            <div style={{ background:"#fff", border:`1px solid ${selected.line}`, borderRadius:5, padding:"9px 11px", marginTop:9, fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
+              <b style={{ color:C.navy }}>What this actually costs:</b> Escrow.com charges on the amount they hold. You&rsquo;re escrowing the <b>{fmt(depositAmt)} deposit</b>, not the boat&rsquo;s full price &mdash; so the fee is roughly <b style={{ color:C.green }}>{fmt(escrowComFee(depositAmt))}</b>, not a percentage of the whole sale.
+              <br/><span style={{ fontSize:11 }}>Estimate based on their published tiers; check their calculator for the current rate. Note their policy: if the buyer rejects the vessel or cancels after funds are approved, the buyer pays the escrow fee.</span>
             </div>
           )}
           {value==="escrow_com" && (
