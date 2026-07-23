@@ -38,9 +38,12 @@ function overLimit(key: string) {
 // Keep the map from growing forever on a long-lived instance.
 function prune() {
   const now = Date.now()
-  for (const [k, v] of hits) {
+  // .forEach rather than `for...of` — iterating a Map with for...of needs the
+  // downlevelIteration compiler flag on this project's TypeScript target, and
+  // the build fails without it. forEach works on every target.
+  hits.forEach((v, k) => {
     if (now - v.start > WINDOW_MS) hits.delete(k)
-  }
+  })
 }
 
 export async function POST(req: Request) {
