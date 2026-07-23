@@ -42,6 +42,14 @@ const hoursLeft = (expiresAt) => {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 };
 const addDays = (d,n) => { const dt=new Date(d); dt.setDate(dt.getDate()+n); return dt.toISOString().split("T")[0]; };
+// Deposits can be a preset percentage or a custom dollar figure. A custom figure is
+// stored as the exact percentage it represents (full precision, so the dollars come
+// back out exactly), and only rounded when shown to a human.
+const pctLabel = (p) => {
+  const n = Number(p);
+  if (!isFinite(n) || !n) return "0";
+  return String(Math.round(n * 100) / 100);
+};
 const CONTINGENCY_LABELS = { survey:"Survey", seaTrial:"Sea Trial", financing:"Financing", insurance:"Insurance", title:"Clear Title" };
 const contingencyNames = (arr) => (Array.isArray(arr) ? arr : []).map(k => CONTINGENCY_LABELS[k] || k).join(", ");
 const capFirst = (s) => (typeof s === "string" && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
@@ -557,9 +565,20 @@ function LockedStep({ stepName, onBack }) {
 // First-timers don't want to DECIDE — they want to be told what's standard and
 // be able to override it.
 function BrokerTip({ children }) {
+  // Collapsed by default. The guidance is worth having, but five open paragraphs
+  // turned the offer form into a wall of reading — and a buyer facing a wall of
+  // text doesn't read it, they just pick whatever looks safest and move on.
+  const [open, setOpen] = useState(false);
   return (
-    <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"#475569", lineHeight:1.6, marginTop:7, paddingLeft:9, borderLeft:"2px solid #b8863a" }}>
-      <strong style={{ color:"#7a5500" }}>Broker tip: </strong>{children}
+    <div style={{ marginTop:7 }}>
+      <button onClick={()=>setOpen(v=>!v)} style={{ background:"none", border:"none", padding:0, cursor:"pointer", fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:"#7a5500", display:"inline-flex", alignItems:"center", gap:4 }}>
+        💡 Broker tip {open ? "▲" : "▾"}
+      </button>
+      {open && (
+        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"#475569", lineHeight:1.6, marginTop:5, paddingLeft:9, borderLeft:"2px solid #b8863a" }}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -979,6 +998,11 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // point on the buyer's behalf. Blank until they pick, and the offer won't send
   // with Escrow Terms switched on and no amount chosen.
   const [escrowPct, setEscrowPct] = useState(data.escrowPct!==undefined ? String(data.escrowPct) : "");
+  // "Custom" is a dollar figure the buyer types. It's converted to the exact
+  // percentage on the way in, so every downstream calculation, document and email
+  // keeps working off a single number instead of two competing ones.
+  const [customDep, setCustomDep] = useState("");
+  const [customMode, setCustomMode] = useState(false);
   // Where the deposit is held is the buyer's call and the seller's to accept —
   // not something to pre-pick. Blank until chosen; the offer won't send without it.
   const [escrowPath, setEscrowPath] = useState(data.escrowPath || "");
@@ -1024,7 +1048,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // Every term the buyer is meant to CHOOSE must actually be chosen before the
   // offer goes out. Nothing here is pre-decided, so nothing can be sent by accident.
   const offerBlocked = !offerAmt
-    || (inclDepositTerms && escrowPct === "")
     || needsEscrowPath
     || (inclContingencies && localContingencies.length === 0)
     || closingTooEarly;
@@ -1133,7 +1156,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     const amt = Number(offerAmt);
     if (!amt) return;
     const fromRole = myRole === "seller" ? "seller" : "buyer";
-    if (inclDepositTerms && escrowPct === "") return;
     if (closingTooEarly) return;
     if (needsEscrowPath) return;
     if (inclContingencies && localContingencies.length === 0) return;
@@ -1164,7 +1186,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     });
     const escrowLabel = escLabel(escrowPath);
     const parts = [`${fromRole==="buyer"?"Offer":"Counter"}: ${fmt(amt)}`];
-    parts.push(deposit>0?`${fmt(deposit)} (${escrowPct}%) earnest via ${escrowLabel}`:"No deposit");
+    parts.push(deposit>0?`${fmt(deposit)} (${pctLabel(escrowPct)}%) earnest via ${escrowLabel}`:"No deposit");
     if (inclContingencies && localContingencies.length) parts.push(`Contingent on ${contingencyNames(localContingencies)}`);
     if (inclDates) parts.push(`Due Diligence ${ddDays} days · Close ${closingDate||"TBD"}`);
     setMessages(m => {
@@ -1182,6 +1204,11 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     setOfferAmt(String(o.amount));
     if (o.askingPrice) setAskingPrice(String(o.askingPrice));
     setEscrowPct(String(o.escrowPct));
+    // A non-preset percentage came from a custom dollar figure — restore that view.
+    if (!["0","5","7.5","10"].includes(String(o.escrowPct))) {
+      setCustomMode(true);
+      setCustomDep(String(o.deposit || ""));
+    } else { setCustomMode(false); setCustomDep(""); }
     setEscrowPath(o.escrowPath);
     setInclContingencies(!!o.inclContingencies);
     if (o.contingencies) setLocalContingencies(o.contingencies);
@@ -1568,7 +1595,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       vesselState: vessel.regState || vessel.location || "[State]",
       engineDesc: `${vessel.engineCount||"1"} × ${vessel.engineMake||""} ${vessel.engineModel||""}`.trim() || "[Engine]",
       salePrice: fmt(paAgreed), salePriceWords: priceToWords(paAgreed),
-      depositAmount: fmt(paDep), depositPct: (paModal.escrowPct||0)+"%",
+      depositAmount: fmt(paDep), depositPct: pctLabel(paModal.escrowPct||0)+"%",
       balanceDue: fmt(Math.max(0, paAgreed - paDep)),
       closingDate: paModal.closingDate || "[Closing Date]",
       closingLocation: vessel.location || "the location where the Vessel is moored",
@@ -1984,17 +2011,72 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
         {/* 🔒 Escrow Terms — opt-in (deposit amount, terms, and where it's held all together) */}
         <OfferSection icon="🔒" title="Escrow Terms" desc="The good-faith deposit that secures the boat — how much, what happens to it if the deal falls through, and where it's held. BoatClosers never holds funds." checked={inclDepositTerms} onToggle={()=>setInclDepositTerms(v=>!v)}>
-          <label style={S.label}>Deposit Amount</label>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:5 }}>
-            {["0","5","7.5","10"].map(p => (
-              <button key={p} onClick={()=>setEscrowPct(p)} style={{ ...S.btnOutline, background:escrowPct===p?C.navy:"transparent", color:escrowPct===p?"#fff":C.navy, fontSize:11, padding:"7px 0", textAlign:"center" }}>
-                {p==="0"?"None":`${p}%`}
-              </button>
-            ))}
+          <label style={S.label}>Earnest Money Deposit</label>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:5 }}>
+            {["0","5","7.5","10"].map(p => {
+              const on = !customMode && escrowPct===p;
+              const dollars = (p!=="0" && offerAmt) ? fmt(Math.round(Number(offerAmt)*Number(p)/100)) : null;
+              return (
+                <button key={p} onClick={()=>{ setCustomMode(false); setEscrowPct(p); }} style={{ ...S.btnOutline, background:on?C.navy:"transparent", color:on?"#fff":C.navy, fontSize:12.5, fontWeight:700, padding:"9px 0 7px", textAlign:"center", lineHeight:1.3 }}>
+                  <div>{p==="0"?"None":`${p}%`}</div>
+                  {dollars && <div style={{ fontSize:10, fontWeight:600, opacity:on?0.85:0.6, marginTop:2 }}>{dollars}</div>}
+                </button>
+              );
+            })}
+            <button onClick={()=>setCustomMode(true)} style={{ ...S.btnOutline, background:customMode?C.navy:"transparent", color:customMode?"#fff":C.navy, fontSize:12.5, fontWeight:700, padding:"9px 0 7px", textAlign:"center", lineHeight:1.3 }}>
+              <div>Custom</div>
+              {customMode && customDep && <div style={{ fontSize:10, fontWeight:600, opacity:0.85, marginTop:2 }}>{fmt(Number(customDep))}</div>}
+            </button>
           </div>
-          {escrowPct!=="" && escrowPct!=="0" && offerAmt && <div style={{ fontSize:11, color:C.teal, fontFamily:"sans-serif", marginTop:5 }}>Deposit: {fmt(Math.round(Number(offerAmt)*Number(escrowPct)/100))}</div>}
-          {escrowPct==="" && <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", marginTop:6, fontWeight:700 }}>Choose a deposit amount above &mdash; or switch off Escrow Terms if this deal has no deposit.</div>}
+          {customMode && (
+            <div style={{ marginTop:8 }}>
+              {!offerAmt ? (
+                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.red, fontWeight:700, lineHeight:1.5 }}>Enter your offer price first &mdash; a custom deposit is worked out against it.</div>
+              ) : (
+                <>
+                  <label style={S.label}>Custom deposit amount</label>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ fontSize:17, fontWeight:800, color:C.navy, fontFamily:"sans-serif" }}>$</span>
+                    <input style={{...S.input, maxWidth:190}} type="number" min="0" step="100" value={customDep}
+                      onChange={e=>{
+                        const v = e.target.value;
+                        setCustomDep(v);
+                        const amt = Number(offerAmt)||0;
+                        setEscrowPct(v && amt ? String((Number(v)/amt)*100) : "0");
+                      }}
+                      placeholder="5000" />
+                  </div>
+                  {customDep && Number(customDep)>0 && (
+                    <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.6 }}>
+                      That&rsquo;s <b>{pctLabel(escrowPct)}%</b> of your {fmt(Number(offerAmt))} offer.
+                      {Number(customDep) > Number(offerAmt) && <span style={{ color:C.red, fontWeight:700 }}> &mdash; that&rsquo;s more than the offer itself, double-check it.</span>}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+          {(escrowPct==="0" || escrowPct==="") ? (
+            <div style={{ background:C.sandDark, borderRadius:6, padding:"11px 13px", marginTop:8, fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:12, color:C.text, lineHeight:1.7 }}>
+                <b>Thinking about it?</b> Earnest money is a good-faith deposit that takes the boat <b>off the market</b> while you inspect it. It shows the seller you&rsquo;re serious, and it buys you protected time for a survey and sea trial without worrying they&rsquo;ll sell it to someone else. Most private boat deals include one.
+              </div>
+              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:7 }}>
+                Pick an amount above and we&rsquo;ll walk you through what happens to it if the deal falls through, and who holds it. Prefer no deposit? Leave it on <b>None</b> &mdash; the offer still works, it just doesn&rsquo;t hold the boat.
+              </div>
+            </div>
+          ) : (
+            <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"10px 13px", marginTop:8, fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:12.5, color:C.teal, fontWeight:700, lineHeight:1.5 }}>
+                {offerAmt ? <>✓ {fmt(Math.round(Number(offerAmt)*Number(escrowPct)/100))} earnest money ({pctLabel(escrowPct)}% of your offer)</> : <>✓ {pctLabel(escrowPct)}% earnest money &mdash; enter your offer price to see the amount</>}
+              </div>
+              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:4 }}>
+                You&rsquo;ll send this after both sides sign, not now. Next, choose what happens to it if the deal falls through &mdash; and who holds it in the meantime.
+              </div>
+            </div>
+          )}
           <BrokerTip>10% is the norm for private boat sales &mdash; enough to show you're serious and to justify the seller taking the boat off the market. Offer much less and sellers tend to keep showing it; the seller can reject or counter whatever you propose. Choose "None" only if you've agreed to handle the deposit outside this deal.</BrokerTip>
+          {escrowPct!=="" && escrowPct!=="0" && (<>
           <div style={{ height:14 }}/>
           <label style={S.label}>If the deal falls through, the earnest money is…</label>
           <select style={S.select} value={depositRule} onChange={e=>setDepositRule(e.target.value)}>
@@ -2021,7 +2103,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ height:16 }}/>
           <label style={S.label}>Escrow Method — where the deposit is held</label>
           <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
-          <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.5 }}>Choose this last — selecting Escrow.com may open their site in a new tab. Everything above is already saved, so you can set it up there and come back, then send your offer.</div>
+          {escrowPath==="escrow_com" && (
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.5 }}>Opening Escrow.com launches a new tab. Everything above is already saved, so you can set it up there and come back to send your offer.</div>
+          )}
+          </>)}
         </OfferSection>
         </div>
 
@@ -2040,7 +2125,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.red, marginTop:8, textAlign:"center", lineHeight:1.5 }}>
             ⚠️ Before you send, please {[
               !offerAmt && "enter your offer price",
-              (inclDepositTerms && escrowPct==="") && "choose a deposit amount under Escrow Terms",
               needsEscrowPath && "choose where the deposit will be held",
               (inclContingencies && localContingencies.length===0) && "choose your contingencies (or switch that section off to waive them all)",
               closingTooEarly && "set a closing date after due diligence ends",
@@ -2060,7 +2144,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               </div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:"5px 16px", fontSize:12, color:C.text, lineHeight:1.8 }}>
                 <span><b style={{ fontSize:15, color:C.navy }}>{fmt(Number(offerAmt)||0)}</b> offer</span>
-                {inclDepositTerms && escrowPct!=="0" && escrowPct!=="" && <span>· {escrowPct}% deposit ({fmt(Math.round(Number(offerAmt||0)*Number(escrowPct)/100))}) via {escLabel(escrowPath)}</span>}
+                {inclDepositTerms && escrowPct!=="0" && escrowPct!=="" && <span>· {fmt(Math.round(Number(offerAmt||0)*Number(escrowPct)/100))} deposit ({pctLabel(escrowPct)}%) via {escLabel(escrowPath)}</span>}
                 {inclDepositTerms && escrowPct==="0" && <span>· no deposit</span>}
                 {inclContingencies && <span>· {localContingencies.length ? localContingencies.map(k=>CONTINGENCY_LABELS[k]||k).join(", ") : "no contingencies"}</span>}
                 {inclDates && <span>· {ddDays}-day due diligence{closingDate ? `, closing ${closingDate}` : ""}</span>}
@@ -2188,7 +2272,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                       {o.verbal && <span style={{...S.pill, background:C.tealLight, color:C.teal}}>Verbal</span>}
                     </div>
                     <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:4, lineHeight:1.5 }}>
-                      Deposit: {o.escrowPct}% ({fmt(o.deposit)}) · {escLabel(o.escrowPath)}
+                      Deposit: {fmt(o.deposit)} ({pctLabel(o.escrowPct)}%) · {escLabel(o.escrowPath)}
                       {o.inclContingencies && o.contingencies?.length ? ` · Contingent on ${contingencyNames(o.contingencies)}` : " · no contingencies"}
                       {o.inclDates ? ` · Due Diligence ${o.ddDays} days · Close ${o.closingDate||"TBD"}` : " · dates open"}
                     </div>
@@ -4954,7 +5038,11 @@ function LegalScreen({ page, onBack }) {
 // ─────────────────────────────────────────────────────────────────────────────
 const emptyVessel = {name:"",year:"",make:"",model:"",hin:"",hullType:"",loa:"",beam:"",engineCount:"1",engineMake:"",engineModel:"",engineHours:"",engineSerial:"",fuelType:"Gasoline",regNumber:"",regState:"",uscgNumber:"",trailerIncluded:"no",trailerVin:"",trailerState:"",askingPrice:"",location:"",description:""};
 const emptyParties = {buyer:{name:"",email:"",phone:"",address:"",city:"",stateZip:""},seller:{name:"",email:"",phone:"",address:"",city:"",stateZip:""}};
-const emptyNeg = {offers:[],messages:[],agreedPrice:"",escrowPct:0,escrowPath:"escrow_com",deposit:0,dueDiligenceDays:"10",ddStartDate:"",closingDate:""};
+// escrowPct and escrowPath start EMPTY, not 0/"escrow_com". This object is the real
+// source of the offer form's starting values — setting them here was pre-deciding
+// the deposit amount and the escrow holder before the buyer had chosen either, and
+// no amount of changing the useState defaults downstream could override it.
+const emptyNeg = {offers:[],messages:[],agreedPrice:"",escrowPct:"0",escrowPath:"",deposit:0,dueDiligenceDays:"10",ddStartDate:"",closingDate:""};
 const emptyDD = {survey:false,title:false,insurance:false,seatrial:false,engines:false,electronics:false,ddNotes:"",outcome:null,rejectionReason:"",rejectionReasons:[],rejectionNotes:"",rejSolution:"",rejSigName:""};
 const emptyDocs = {paid:false,signedDocs:{}};
 
