@@ -43,11 +43,11 @@ const LINKS = [
   {
     rank: "Third-Party · Paid",
     color: C.brass, bg: "#fff9ee",
-    icon: "🏢",
-    title: "Private Document-Prep Services (Optional)",
-    desc: "Private companies will obtain the abstract for you for a service fee (around $75). They are not government agencies, and you can get the same official document directly from the Coast Guard, usually for less. One example is linked here for convenience only.",
-    btn: "Example third-party service →",
-    url: "https://unitedstatesvessel.us/abstract-of-title/",
+    icon: "📋",
+    title: "Boat History Report (Damage, Theft & Salvage)",
+    desc: "The official records above show who owns the boat and what is owed on it — they do not show what the boat has been through. A history report searches by HIN, state registration, or USCG documentation number for accidents, hurricane and flood damage, fire, sinking, running aground, theft, total-loss and salvage events, recalls, and registration history. This matters because most states do not issue salvage titles for boats: a storm-damaged or sunken vessel can be repaired and resold on a perfectly clean title, and no lien search will ever show it.",
+    btn: "Run a Boat History Report →",
+    url: "https://boathistoryreport.com/",
   },
 ];
 
