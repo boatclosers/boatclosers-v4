@@ -36,9 +36,9 @@ const LINKS = [
     color: C.teal, bg: C.tealLight,
     icon: "📜",
     title: "USCG Abstract of Title (Full Ownership + Liens)",
-    desc: "For documented vessels, the National Vessel Documentation Center (NVDC) issues the official Abstract of Title — the managing owner, complete ownership chain, and every recorded lien or mortgage. This is the definitive lien check. Request it directly from the Coast Guard using form CG-7043; small fee, typically 2–3 business days.",
-    btn: "Request from the NVDC →",
-    url: "https://www.dco.uscg.mil/Our-Organization/Deputy-for-Operations-Policy-and-Capabilities-DCO-D/National-Vessel-Documentation-Center/",
+    desc: "For documented vessels, the National Vessel Documentation Center (NVDC) issues the official Abstract of Title — the managing owner, complete ownership chain, and every recorded lien or mortgage. This is the definitive lien check. The button below opens the Coast Guard's own eStorefront, where you order it directly: sign in, then choose \"Request an Abstract of Title (A/T)\". Small fee, typically 2–3 business days. Questions: 1-800-799-8362.",
+    btn: "Order an Abstract of Title →",
+    url: "https://www.nvdc-estorefront.uscg.mil/vds-estorefront/",
   },
   {
     rank: "Third-Party · Paid",
