@@ -974,7 +974,11 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // 10% earnest money is the standard for private boat sales, and it's also what
   // switches on the whole deposit/secured-hold mechanic — leaving this at "None"
   // by default meant most deals had nothing holding the boat off the market.
-  const [escrowPct, setEscrowPct] = useState(data.escrowPct!==undefined ? String(data.escrowPct) : "10");
+  // No pre-selected percentage. The deposit is a term the BUYER proposes and the
+  // SELLER accepts or rejects — pre-filling it would quietly decide a negotiating
+  // point on the buyer's behalf. Blank until they pick, and the offer won't send
+  // with Escrow Terms switched on and no amount chosen.
+  const [escrowPct, setEscrowPct] = useState(data.escrowPct!==undefined ? String(data.escrowPct) : "");
   const [escrowPath, setEscrowPath] = useState(data.escrowPath || "escrow_com");
   const [ddDays, setDdDays] = useState(data.dueDiligenceDays || "10");
   const [ddStart, setDdStart] = useState(data.ddStartDate || today());
@@ -1107,7 +1111,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     const amt = Number(offerAmt);
     if (!amt) return;
     const fromRole = myRole === "seller" ? "seller" : "buyer";
-    const deposit = Math.round(amt*Number(escrowPct)/100);
+    if (inclDepositTerms && escrowPct === "") return;
+    const deposit = Math.round(amt*Number(escrowPct||0)/100);
     const offer = {
       id:Date.now(), from:fromRole, amount:amt, askingPrice:Number(askingPrice)||0,
       escrowPct:Number(escrowPct), escrowPath, deposit,
@@ -1790,6 +1795,35 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, background:C.sandDark, borderRadius:6, padding:"12px 14px" }}>
             The agreed terms are frozen for both parties and can't be edited here. The only change allowed now is the <b>buyer's vessel decision during due diligence</b> — accept as-is, reject, or propose a new price (which is recorded as an <b>addendum</b> to the signed Purchase Agreement, not a change to it).
           </div>
+          {Number(acceptedOffer.deposit) > 0 && (() => {
+            // Signed terms and a secured deal are two different things. The PA binds
+            // the terms; the deposit is what actually takes the boat off the market.
+            // Saying "Terms Locked" without this reads as "we're done" when the money
+            // hasn't moved yet.
+            const verif = data.depositVerification || null;
+            const hasProof = !!(data.depositProof && data.depositProof.ref);
+            const verified = verif?.status === "confirmed";
+            const disputed = verif?.status === "disputed";
+            const bg = verified ? C.greenLight : disputed ? C.redLight : "#fff8e6";
+            const bd = verified ? C.green : disputed ? C.red : C.brass;
+            const head = verified ? "✓ Deposit verified — this deal is secured"
+              : disputed ? "⚠️ The seller could not verify the deposit — deal on hold"
+              : hasProof ? "⏸️ Waiting on the seller to confirm the deposit"
+              : "⏳ Waiting on the earnest-money deposit";
+            const body = verified
+              ? `The ${fmt(acceptedOffer.deposit)} earnest money is confirmed. The boat is held off the market while due diligence is completed.`
+              : disputed
+              ? `The buyer submitted proof but the seller reports the ${fmt(acceptedOffer.deposit)} has not arrived. Nothing moves forward until it's sorted out on the Due Diligence step.`
+              : hasProof
+              ? `The buyer has submitted proof of the ${fmt(acceptedOffer.deposit)} deposit. The seller is confirming it actually arrived — the deal is secured once they do.`
+              : `The terms are signed, but the boat isn't secured yet. The ${fmt(acceptedOffer.deposit)} earnest money is what holds it off the market. Handle it on the Due Diligence step.`;
+            return (
+              <div style={{ background:bg, border:`1px solid ${bd}`, borderRadius:6, padding:"11px 13px", marginTop:10, fontFamily:"sans-serif" }}>
+                <div style={{ fontSize:12.5, fontWeight:800, color: verified ? C.green : disputed ? C.red : "#7a5500", marginBottom:3 }}>{head}</div>
+                <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>{body}</div>
+              </div>
+            );
+          })()}
         </div>
       ) : (myRole === "seller" && offers.length === 0 && !showBuilder) ? (
         <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.navy}`, textAlign:"center" }}>
@@ -1925,8 +1959,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               </button>
             ))}
           </div>
-          {escrowPct!=="0" && offerAmt && <div style={{ fontSize:11, color:C.teal, fontFamily:"sans-serif", marginTop:5 }}>Deposit: {fmt(Math.round(Number(offerAmt)*Number(escrowPct)/100))}</div>}
-          <BrokerTip>10% is the norm for private boat sales &mdash; enough to show the buyer is serious and to justify taking the boat off the market. Much less and sellers tend to keep showing it. Choose "None" only if you've agreed to handle the deposit outside this deal.</BrokerTip>
+          {escrowPct!=="" && escrowPct!=="0" && offerAmt && <div style={{ fontSize:11, color:C.teal, fontFamily:"sans-serif", marginTop:5 }}>Deposit: {fmt(Math.round(Number(offerAmt)*Number(escrowPct)/100))}</div>}
+          {escrowPct==="" && <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", marginTop:6, fontWeight:700 }}>Choose a deposit amount above &mdash; or switch off Escrow Terms if this deal has no deposit.</div>}
+          <BrokerTip>10% is the norm for private boat sales &mdash; enough to show you're serious and to justify the seller taking the boat off the market. Offer much less and sellers tend to keep showing it; the seller can reject or counter whatever you propose. Choose "None" only if you've agreed to handle the deposit outside this deal.</BrokerTip>
           <div style={{ height:14 }}/>
           <label style={S.label}>If the deal falls through, the earnest money is…</label>
           <select style={S.select} value={depositRule} onChange={e=>setDepositRule(e.target.value)}>
@@ -1968,12 +2003,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </select>
         </div>
         <BrokerTip>48 hours keeps a deal moving without pressuring anyone. An offer with no deadline is the single most common way private boat sales quietly die &mdash; the other side means to reply, then a week goes by.</BrokerTip>
-        {!offerAmt && !myOfferAwaiting && (
-          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.red, marginTop:8, textAlign:"center" }}>
-            ⚠️ Enter your offer price above to send.
+        {(!offerAmt || (inclDepositTerms && escrowPct==="")) && !myOfferAwaiting && (
+          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.red, marginTop:8, textAlign:"center", lineHeight:1.5 }}>
+            ⚠️ Before you send, please {[
+              !offerAmt && "enter your offer price",
+              (inclDepositTerms && escrowPct==="") && "choose a deposit amount under Escrow Terms",
+            ].filter(Boolean).join(" and ")}.
           </div>
         )}
-        <button style={{...S.btnBrass, width:"100%", marginTop:6, fontSize:15, padding:"12px", opacity:(!offerAmt||myOfferAwaiting)?0.5:1}} onClick={makeOffer} disabled={!offerAmt||myOfferAwaiting}>
+        <button style={{...S.btnBrass, width:"100%", marginTop:6, fontSize:15, padding:"12px", opacity:(!offerAmt||myOfferAwaiting||(inclDepositTerms&&escrowPct===""))?0.5:1}} onClick={makeOffer} disabled={!offerAmt||myOfferAwaiting||(inclDepositTerms&&escrowPct==="")}>
           {(offers.length===0 && myRole!=="seller") ? "Send Offer to Seller" : (myRole==="seller" ? "Send Counter-Offer to Buyer" : "Send Counter-Offer to Seller")} →
         </button>
         {myOfferAwaiting ? (
@@ -2314,17 +2352,53 @@ function EscrowSelector({ value, onChange, depositAmt }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // EARNEST MONEY RECEIPT MODAL
 // ─────────────────────────────────────────────────────────────────────────────
-function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate }) {
-  const [sentTo, setSentTo] = useState("");
-  const [sent, setSent] = useState(false);
+// The Deposit Receipt is the single signing surface for the earnest money.
+// Both parties sign the SAME document — the buyer attests they sent the funds,
+// the seller attests they arrived — the way they both sign the Purchase Agreement.
+// Keeping it in one document instead of scattered inline fields is what makes it
+// legible to a customer: one receipt, two signatures, done.
+function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNegotiate, myRole }) {
+  const [refNo, setRefNo] = useState("");
+  const [sigName, setSigName] = useState("");
+  const [note, setNote] = useState("");
   if (!open) return null;
+
+  const isBuyer = myRole !== "seller";
   const amt = fmt(negotiate.deposit||0);
   const price = fmt(negotiate.agreedPrice||0);
   const escrowLabel = escLabel(negotiate.escrowPath);
+  const proof = negotiate.depositProof || null;
+  const verif = negotiate.depositVerification || null;
+  const buyerSigned = !!(proof && proof.sig);
+  const sellerSigned = !!(verif && verif.status === "confirmed" && verif.sig);
+  const disputed = verif?.status === "disputed";
+
+  const signAsBuyer = () => {
+    if (!refNo.trim() || !sigName.trim() || !setNegotiate) return;
+    setNegotiate(n => ({ ...n, depositProof: { ref: refNo.trim(), note: note.trim(), sig: sigName.trim(), at: Date.now(), by: "buyer" }, depositVerification: null }));
+    setRefNo(""); setSigName(""); setNote("");
+  };
+  const signAsSeller = () => {
+    if (!sigName.trim() || !setNegotiate) return;
+    setNegotiate(n => ({ ...n, depositVerification: { status: "confirmed", at: Date.now(), by: "seller", note: note.trim(), sig: sigName.trim() } }));
+    setSigName(""); setNote("");
+  };
+  const disputeAsSeller = () => {
+    if (!setNegotiate) return;
+    setNegotiate(n => ({ ...n, depositVerification: { status: "disputed", at: Date.now(), by: "seller", note: note.trim() } }));
+    setSigName(""); setNote("");
+  };
+
+  const sigLine = (label, name, when, extra) => (
+    <div style={{ flex:1, minWidth:200 }}>
+      <div style={{ borderBottom:`1px solid ${C.slate}`, minHeight:26, fontSize:14, fontFamily:"Georgia, serif", fontStyle:"italic", color:C.navy, paddingBottom:2 }}>{name || ""}</div>
+      <div style={{ fontSize:9.5, color:C.slate, marginTop:3, lineHeight:1.5 }}>{label}{when ? ` · ${when}` : ""}{extra ? <><br/>{extra}</> : null}</div>
+    </div>
+  );
 
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.8)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:2000, padding:"1rem" }}>
-      <div style={{ background:"#fff", borderRadius:10, width:"100%", maxWidth:560, border:`2px solid ${C.brass}`, overflow:"hidden" }}>
+    <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.8)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:2000, padding:"1rem", overflowY:"auto" }}>
+      <div style={{ background:"#fff", borderRadius:10, width:"100%", maxWidth:560, border:`2px solid ${C.brass}`, overflow:"hidden", margin:"auto" }}>
         <div style={{ background:C.navy, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <div>
             <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:"sans-serif", textTransform:"uppercase" }}>BoatClosers.com</div>
@@ -2333,7 +2407,6 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate }) {
           <button onClick={onClose} style={{ background:"rgba(255,255,255,0.1)", border:"none", color:"rgba(255,255,255,0.7)", cursor:"pointer", borderRadius:5, width:28, height:28, fontSize:16, display:"flex", alignItems:"center", justifyContent:"center" }}>×</button>
         </div>
         <div style={{ padding:"1.5rem" }}>
-          {/* Receipt document */}
           <div style={{ background:C.sandDark, borderRadius:6, padding:"16px 18px", fontSize:12, fontFamily:"sans-serif", lineHeight:2, color:C.text, marginBottom:16 }}>
             <div style={{ textAlign:"center", borderBottom:`1px solid ${C.mist}`, paddingBottom:10, marginBottom:12 }}>
               <div style={{ fontSize:14, fontWeight:800, letterSpacing:1 }}>DEPOSIT RECEIPT</div>
@@ -2347,31 +2420,76 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate }) {
               <strong style={{ fontSize:14 }}>Earnest Money Amount: {amt}</strong>
             </div>
             <div><strong>Escrow Method:</strong> {escrowLabel}</div>
+            {proof?.ref && <div><strong>Confirmation / Reference #:</strong> {proof.ref}</div>}
+            {proof?.note && <div style={{ fontSize:11, color:C.slate }}>Buyer's note: {proof.note}</div>}
+            {verif?.note && <div style={{ fontSize:11, color:C.slate }}>Seller's note: {verif.note}</div>}
             <div style={{ fontSize:10, color:C.slate, marginTop:8, lineHeight:1.6 }}>
-              This receipt confirms that earnest money in the amount stated above has been tendered by the Buyer as a deposit toward the purchase of the vessel described. Deposit return or forfeiture is governed by the terms of the Purchase and Sale Agreement executed between the parties. BoatClosers.com is not a party to this transaction, does not hold these funds, and is not responsible for deposit return or disbursement.
+              This receipt confirms that earnest money in the amount stated above has been tendered by the Buyer as a deposit toward the purchase of the vessel described. Deposit return or forfeiture is governed by the terms of the Purchase and Sale Agreement executed between the parties. BoatClosers.com is not a party to this transaction, does not hold these funds, does not verify their receipt, and is not responsible for deposit return or disbursement.
+            </div>
+            <div style={{ display:"flex", gap:18, flexWrap:"wrap", marginTop:16, paddingTop:12, borderTop:`1px solid ${C.mist}` }}>
+              {sigLine("Buyer — sent the deposit", proof?.sig, proof?.at ? new Date(proof.at).toLocaleDateString() : "", buyerSigned ? null : "Not yet signed")}
+              {sigLine("Seller — confirmed receipt", sellerSigned ? verif.sig : "", sellerSigned && verif?.at ? new Date(verif.at).toLocaleDateString() : "", sellerSigned ? null : "Not yet signed")}
             </div>
           </div>
 
-          {/* Send section */}
-          {!sent ? (
-            <div>
-              <label style={S.label}>Send receipt to (email)</label>
-              <div style={{ display:"flex", gap:8, marginBottom:8 }}>
-                {[parties.buyer.email, parties.seller.email].filter(Boolean).map(e=>(
-                  <button key={e} onClick={()=>setSentTo(e)} style={{ fontSize:11, fontFamily:"sans-serif", padding:"4px 10px", borderRadius:16, border:`1px solid ${C.brass}`, background:sentTo===e?C.brass:"transparent", color:sentTo===e?C.navy:C.brass, cursor:"pointer" }}>{e}</button>
-                ))}
-              </div>
-              <div style={{ display:"flex", gap:8 }}>
-                <input style={{...S.input, flex:1}} type="email" placeholder="Or type any email…" value={sentTo} onChange={e=>setSentTo(e.target.value)} />
-                <button style={S.btnBrass} disabled={!sentTo.trim()} onClick={()=>setSent(true)}>Send Receipt →</button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ background:C.greenLight, border:`1px solid #a8d8b8`, borderRadius:5, padding:"10px 14px", fontSize:12, fontFamily:"sans-serif", color:C.green }}>
-              ✓ Receipt sent to {sentTo} · {today()}
-              <button onClick={()=>setSent(false)} style={{ marginLeft:12, fontSize:11, background:"none", border:`1px solid #a8d8b8`, borderRadius:4, padding:"2px 8px", cursor:"pointer", color:C.green }}>Send to another</button>
+          {disputed && (
+            <div style={{ background:C.redLight, border:`1px solid ${C.red}`, borderRadius:6, padding:"11px 13px", marginBottom:14, fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:12.5, fontWeight:800, color:C.red, marginBottom:3 }}>⚠️ The seller reports these funds have not arrived</div>
+              <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>{verif.note ? `Their note: ${verif.note}. ` : ""}Wires can take 1&ndash;2 business days to land. Check with your escrow agent, then the buyer can sign a corrected receipt below.</div>
             </div>
           )}
+
+          {isBuyer && (!buyerSigned || disputed) && (
+            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"13px 15px", fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:7 }}>Sign as the buyer</div>
+              <label style={S.label}>Confirmation / reference #</label>
+              <input style={S.input} value={refNo} onChange={e=>setRefNo(e.target.value)} placeholder="Wire confirmation, escrow transaction #, or check #" />
+              <div style={{ height:8 }}/>
+              <label style={S.label}>Note (optional)</label>
+              <input style={S.input} value={note} onChange={e=>setNote(e.target.value)} placeholder="e.g. Wired from Chase on 8/14" />
+              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, margin:"10px 0 7px" }}>
+                By typing your full name you sign this receipt, confirming you have <b>actually sent</b> the {amt} earnest money as described. Your signature is recorded with the date and time.
+              </div>
+              <input style={S.input} value={sigName} onChange={e=>setSigName(e.target.value)} placeholder="Type your full name to sign" />
+              <button style={{...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"11px", opacity:(refNo.trim()&&sigName.trim())?1:0.5}} disabled={!refNo.trim()||!sigName.trim()} onClick={signAsBuyer}>Sign the receipt</button>
+            </div>
+          )}
+
+          {!isBuyer && buyerSigned && !sellerSigned && (
+            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"13px 15px", fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:7 }}>Sign as the seller</div>
+              <div style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:6, padding:"10px 12px", fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
+                <b>Before you sign:</b> confirm with your escrow agent, attorney, or bank that the {amt} is actually <b>in the account</b>. Don't rely on a screenshot or the buyer's word &mdash; a wire can be recalled, and a confirmation number is not proof the money landed.
+              </div>
+              <label style={S.label}>Note (optional &mdash; the buyer sees this)</label>
+              <input style={S.input} value={note} onChange={e=>setNote(e.target.value)} placeholder="e.g. Escrow.com shows funds received 8/14" />
+              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, margin:"10px 0 7px" }}>
+                By typing your full name you sign this receipt, confirming the {amt} <b>has arrived</b> and you verified it yourself. Signing releases the deal into due diligence.
+              </div>
+              <input style={S.input} value={sigName} onChange={e=>setSigName(e.target.value)} placeholder="Type your full name to sign" />
+              <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap" }}>
+                <button style={{...S.btn, background:C.green, color:"#fff", flex:1, minWidth:170, fontSize:13, padding:"11px", opacity:sigName.trim()?1:0.5}} disabled={!sigName.trim()} onClick={signAsSeller}>✓ Sign &mdash; funds received</button>
+                <button style={{...S.btnOutline, flex:1, minWidth:170, fontSize:13, padding:"11px"}} onClick={disputeAsSeller}>Not received yet</button>
+              </div>
+            </div>
+          )}
+
+          {isBuyer && buyerSigned && !sellerSigned && !disputed && (
+            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"12px 14px", fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+              <b style={{ color:"#7a5500" }}>You've signed.</b> The seller now confirms the funds arrived and signs the same receipt. You'll be emailed the moment they do, and due diligence opens then.
+            </div>
+          )}
+          {!isBuyer && !buyerSigned && (
+            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"12px 14px", fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+              Waiting for the buyer to send the deposit and sign this receipt. You'll be emailed when they do, and you'll sign underneath to confirm it arrived.
+            </div>
+          )}
+          {buyerSigned && sellerSigned && (
+            <div style={{ background:C.greenLight, border:"1px solid #a8d8b8", borderRadius:6, padding:"12px 14px", fontSize:12.5, fontFamily:"sans-serif", color:C.green, lineHeight:1.6, fontWeight:700 }}>
+              ✓ Fully signed by both parties — this deal is secured and due diligence is open.
+            </div>
+          )}
+
           <div style={{ textAlign:"right", marginTop:14 }}>
             <button style={S.btnOutline} onClick={onClose}>Close</button>
           </div>
@@ -2488,18 +2606,30 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const depEnded = !!dep.depositEnded;
   // Submitting proof no longer secures the deal by itself — it hands the claim to
   // the seller to verify. Resubmitting after a dispute clears the old verdict.
-  const submitProof = () => { if (proofRef.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositProof: { ref: proofRef.trim(), note: proofNote.trim(), at: Date.now(), by: "buyer" } , depositVerification: null })); };
+  const [proofSig, setProofSig] = useState("");
+  const submitProof = () => { if (proofRef.trim() && proofSig.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositProof: { ref: proofRef.trim(), note: proofNote.trim(), sig: proofSig.trim(), at: Date.now(), by: "buyer" }, depositVerification: null })); };
   // ── Deposit verification handshake ──────────────────────────────────────────
   // The buyer can only ever CLAIM the money was sent; the seller (or their escrow
   // agent) is the one who can actually see it arrive. So the deal HOLDS between
   // those two moments: proof submitted → seller confirms → secured. Without this,
   // a typed reference number alone was enough to move a deal forward.
+  // ── Due Diligence is gated on the deposit ──────────────────────────────────
+  // The deposit exists so the buyer can survey, sea-trial and inspect WITHOUT the
+  // seller selling the boat out from under them. That protection has to be in
+  // place BEFORE the inspection period starts, not settled halfway through it.
+  // If the accepted offer carried no deposit, there is nothing to wait for and
+  // Due Diligence opens immediately.
+  const depositRequired = Number(dep.deposit) > 0;
+  const depBuyerSigned = !!(dep.depositProof && dep.depositProof.sig);
+  const depSellerSigned = !!(dep.depositVerification && dep.depositVerification.status === "confirmed" && dep.depositVerification.sig);
+  const ddOpen = !depositRequired || (depBuyerSigned && depSellerSigned);
   const depVerif = dep.depositVerification || null;
   const depVerified = depVerif?.status === "confirmed";
   const depDisputed = depVerif?.status === "disputed";
   const depAwaitingVerify = depHasProof && !depVerif;
   const [verifyNote, setVerifyNote] = useState("");
-  const confirmDeposit = () => { if (setNegotiate) setNegotiate(n => ({ ...n, depositVerification: { status: "confirmed", at: Date.now(), by: "seller", note: verifyNote.trim() } })); };
+  const [verifySig, setVerifySig] = useState("");
+  const confirmDeposit = () => { if (verifySig.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositVerification: { status: "confirmed", at: Date.now(), by: "seller", note: verifyNote.trim(), sig: verifySig.trim() } })); };
   const disputeDeposit = () => { if (setNegotiate) setNegotiate(n => ({ ...n, depositVerification: { status: "disputed", at: Date.now(), by: "seller", note: verifyNote.trim() } })); };
   // ── Deposit checkpoint: the seller must say WHERE the money goes, and the buyer
   // must acknowledge it and commit to the deadline, before proof can be submitted.
@@ -2625,7 +2755,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
 
   return (
     <div style={S.page}>
-      <EarnestReceiptModal open={showReceipt} onClose={()=>setShowReceipt(false)} vessel={vessel} parties={parties} negotiate={negotiate} />
+      <EarnestReceiptModal open={showReceipt} onClose={()=>setShowReceipt(false)} vessel={vessel} parties={parties} negotiate={negotiate} setNegotiate={setNegotiate} myRole={myRole} />
       <TipBox tips={TIPS.diligence}/>
       <DealAssistant step="diligence" role={myRole} vessel={vessel} />
       {negotiate.vesselRejection && (
@@ -2773,19 +2903,10 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             {depAwaitingVerify && !depEnded && !isBuyer && (
               <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", marginTop:14, fontFamily:"sans-serif" }}>
                 <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:4 }}>⚠️ Action needed: has the deposit actually arrived?</div>
-                <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:8 }}>
-                  The buyer says they funded the deposit and gave reference <b>{dep.depositProof.ref}</b>{dep.depositProof.note ? <> &mdash; &ldquo;{dep.depositProof.note}&rdquo;</> : null}.
+                <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
+                  The buyer has signed the deposit receipt for <b>{fmt(dep.deposit)}</b> (ref {dep.depositProof.ref}). Confirm with your escrow agent that the money is really in the account, then sign underneath their signature on the same receipt.
                 </div>
-                <div style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:6, padding:"10px 12px", fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
-                  <b>Before you confirm:</b> check with your escrow agent, attorney, or bank that the funds are actually <b>in the account</b> &mdash; don't rely on a screenshot, a receipt, or the buyer's word. A wire can be recalled, and a confirmation number is not proof the money landed. Only confirm what you can see.
-                </div>
-                <label style={S.label}>Note (optional &mdash; the buyer will see this)</label>
-                <input style={S.input} value={verifyNote} onChange={e=>setVerifyNote(e.target.value)} placeholder="e.g. Escrow.com shows funds received 8/14" />
-                <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap" }}>
-                  <button style={{...S.btn, background:C.green, color:"#fff", flex:1, minWidth:180, fontSize:13, padding:"11px"}} onClick={confirmDeposit}>✓ Confirm deposit received</button>
-                  <button style={{...S.btnOutline, flex:1, minWidth:180, fontSize:13, padding:"11px"}} onClick={disputeDeposit}>✗ Not received / can't verify</button>
-                </div>
-                <div style={{ fontSize:11, color:C.slate, lineHeight:1.5, marginTop:9 }}>Confirming secures the deal and takes the boat off the market. If it hasn't landed yet, choose &ldquo;not received&rdquo; &mdash; the deal holds and you can give the buyer more time or void it.</div>
+                <button style={{...S.btnBrass, width:"100%", fontSize:13, padding:"11px"}} onClick={()=>setShowReceipt(true)}>📄 Open the receipt to sign →</button>
               </div>
             )}
             {depAwaitingVerify && !depEnded && isBuyer && (
@@ -2796,16 +2917,50 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             )}
             {isBuyer && (!depHasProof || depDisputed) && !depEnded && depInstrPosted && depCommitted && (
               <div style={{ marginTop:12 }}>
-                <label style={S.label}>{depDisputed ? "Corrected deposit confirmation / reference #" : "Deposit confirmation / reference #"}</label>
-                <input style={S.input} value={proofRef} onChange={e=>setProofRef(e.target.value)} placeholder="Escrow.com or wire confirmation #" />
-                <div style={{ height:8 }}/>
-                <Field label="Note (optional)"><input style={S.input} value={proofNote} onChange={e=>setProofNote(e.target.value)} placeholder="e.g. Wired $7,500 to Escrow.com" /></Field>
-                <button style={{...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"10px", opacity:proofRef.trim()?1:0.5}} disabled={!proofRef.trim()} onClick={submitProof}>Submit deposit proof</button>
+                <button style={{...S.btnBrass, width:"100%", fontSize:13, padding:"11px"}} onClick={()=>setShowReceipt(true)}>
+                  📄 {depDisputed ? "Sign a corrected deposit receipt" : "Open the deposit receipt to sign"} →
+                </button>
+                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:7 }}>
+                  Send the deposit first, then sign the receipt with your confirmation number. The seller signs the same receipt to confirm it arrived.
+                </div>
               </div>
             )}
           </div>
         );
       })()}
+
+      {!ddOpen ? (
+        <div style={{ ...S.card, borderTop:`3px solid ${C.brass}`, textAlign:"center", padding:"26px 22px" }}>
+          <div style={{ fontSize:36, marginBottom:8 }}>🔒</div>
+          <div style={{ fontSize:19, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>Due diligence opens once the deposit is secured</div>
+          <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, maxWidth:520, margin:"0 auto 6px" }}>
+            {dep.depositEnded
+              ? "This deal ended because the earnest-money deposit was never funded. The survey, sea trial and inspection steps stay closed."
+              : isBuyer
+              ? `The ${fmt(dep.deposit)} earnest money is what takes this boat off the market so you can survey, sea-trial and inspect it without the seller selling it to someone else. Until it's funded and the seller has confirmed it arrived, there's nothing protecting your time or money — so due diligence stays closed.`
+              : `The buyer's ${fmt(dep.deposit)} earnest money is what commits them to this deal before you hold the boat for them through survey and sea trial. Once it's funded and you've confirmed it arrived, due diligence opens for both of you.`}
+          </div>
+          {!dep.depositEnded && (
+            <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, background:C.sandDark, borderRadius:6, padding:"11px 14px", maxWidth:520, margin:"14px auto 0" }}>
+              <b>Both parties sign one receipt:</b> the buyer signs that the deposit was sent, the seller signs that it arrived. The panel above shows whose move it is right now.
+            </div>
+          )}
+          {!dep.depositEnded && depInstrPosted && ((isBuyer && depCommitted) || (!isBuyer && depBuyerSigned)) && (
+            <button style={{...S.btnBrass, marginTop:14, fontSize:13, padding:"11px 22px"}} onClick={()=>setShowReceipt(true)}>📄 Open the deposit receipt →</button>
+          )}
+          {/* A buyer whose money is already out must never be trapped waiting on a
+              silent seller. Support is a real door, not a dead end. */}
+          {!dep.depositEnded && isBuyer && depBuyerSigned && !depSellerSigned && (
+            <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, maxWidth:520, margin:"14px auto 0" }}>
+              Seller not responding? If it's been more than a couple of days since you sent the funds, open <b>Help</b> from the menu at the top and tell us what's happened &mdash; we'll step in and sort it out with them.
+            </div>
+          )}
+          <div style={{ marginTop:18 }}>
+            <button style={S.btnOutline} onClick={onBack}>← Back</button>
+          </div>
+        </div>
+      ) : (
+      <>
       {/* Header bar */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"1.5rem" }}>
         <div>
@@ -3341,6 +3496,8 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           {outcome==="reject" ? "Proceed to Close (Rejected)" : "Continue to Documents →"}
         </button>
       </div>
+      </>
+      )}
     </div>
   );
 }
@@ -5400,6 +5557,35 @@ export default function BoatClosers() {
                 </div>
               </>
             )}
+          </div>
+        );
+      })()}
+
+      {(() => {
+        // A rejected offer with nothing accepted is a dead end the app used to just
+        // leave people sitting in. Surfaced at the TOP so it can't be missed — the
+        // rejection pill down in the offer ladder was far too easy to scroll past.
+        const offs = negotiate.offers || [];
+        const last = offs.length ? offs[offs.length - 1] : null;
+        const stalled = offs.length > 0
+          && !offs.some(o => o.status === "accepted")
+          && last?.status === "rejected"
+          && !negotiate.canceled
+          && !negotiate.depositEnded;
+        if (!stalled) return null;
+        const isBuyer = (myDealRole || user?.role) === "buyer";
+        return (
+          <div style={{ background:"#fff8e6", borderBottom:`2px solid ${C.brass}`, padding:"14px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
+            <div style={{ fontSize:13.5, fontWeight:800, color:"#7a5500", marginBottom:4 }}>No agreement yet — the last offer was rejected</div>
+            <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.6, maxWidth:640, margin:"0 auto 12px" }}>
+              {isBuyer
+                ? "You can send another offer with different terms, or use the message thread to find out what the seller actually needs. If you can't get there, nothing is lost — this deal simply ends."
+                : "You can counter with terms that work for you, or talk it through in the message thread. If this buyer isn't the one, you can start fresh with a different buyer and keep this boat's details."}
+            </div>
+            <div style={{ display:"flex", gap:9, justifyContent:"center", flexWrap:"wrap" }}>
+              <button onClick={()=>setStep(2)} style={{ ...S.btnBrass, fontSize:13, padding:"10px 20px" }}>Back to the Deal Room →</button>
+              {!isBuyer && <button onClick={()=>relistBoat()} style={{ ...S.btnOutline, fontSize:13, padding:"10px 20px" }}>Start over with a different buyer</button>}
+            </div>
           </div>
         );
       })()}
