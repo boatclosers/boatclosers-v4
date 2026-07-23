@@ -979,7 +979,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // point on the buyer's behalf. Blank until they pick, and the offer won't send
   // with Escrow Terms switched on and no amount chosen.
   const [escrowPct, setEscrowPct] = useState(data.escrowPct!==undefined ? String(data.escrowPct) : "");
-  const [escrowPath, setEscrowPath] = useState(data.escrowPath || "escrow_com");
+  // Where the deposit is held is the buyer's call and the seller's to accept —
+  // not something to pre-pick. Blank until chosen; the offer won't send without it.
+  const [escrowPath, setEscrowPath] = useState(data.escrowPath || "");
   const [ddDays, setDdDays] = useState(data.dueDiligenceDays || "10");
   const [ddStart, setDdStart] = useState(data.ddStartDate || today());
   const [offerExpiry, setOfferExpiry] = useState("48"); // hours the offer stays valid; "0" = no expiry
@@ -1006,6 +1008,26 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   }, [showBuilder]);
   const [quickAmt, setQuickAmt] = useState("");
   const [localContingencies, setLocalContingencies] = useState(data.selectedContingencies || []);
+
+  // ── Derived rules. These MUST sit below every piece of state they read: a const
+  // that references a later `const` throws at runtime (temporal dead zone), and the
+  // build won't warn you — the step just white-screens.
+  //
+  // Closing cannot land before due diligence ends; the survey, sea trial and title
+  // checks are the whole point of that window. The date input carries a `min`, but
+  // that only guards the picker — it doesn't survive someone shortening the DD
+  // period AFTER picking a closing date, and it doesn't block sending.
+  const ddEndDate = (ddStart && ddDays) ? addDays(ddStart, Number(ddDays)) : "";
+  const closingTooEarly = !!(inclDates && closingDate && ddEndDate && closingDate < ddEndDate);
+  // Where the deposit is held only matters if there IS a deposit.
+  const needsEscrowPath = !!(inclDepositTerms && escrowPct !== "" && escrowPct !== "0" && !escrowPath);
+  // Every term the buyer is meant to CHOOSE must actually be chosen before the
+  // offer goes out. Nothing here is pre-decided, so nothing can be sent by accident.
+  const offerBlocked = !offerAmt
+    || (inclDepositTerms && escrowPct === "")
+    || needsEscrowPath
+    || (inclContingencies && localContingencies.length === 0)
+    || closingTooEarly;
   const [messages, setMessages] = useState(data.messages || [
     { from:"seller", text:`Asking price is ${fmt(vessel.askingPrice||0)}. Let's talk!`, time: new Date().toLocaleTimeString() }
   ]);
@@ -1112,6 +1134,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     if (!amt) return;
     const fromRole = myRole === "seller" ? "seller" : "buyer";
     if (inclDepositTerms && escrowPct === "") return;
+    if (closingTooEarly) return;
+    if (needsEscrowPath) return;
+    if (inclContingencies && localContingencies.length === 0) return;
     const deposit = Math.round(amt*Number(escrowPct||0)/100);
     const offer = {
       id:Date.now(), from:fromRole, amount:amt, askingPrice:Number(askingPrice)||0,
@@ -1938,10 +1963,18 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </label>
           {ddExtension && (<Grid2><Field label="Max extension days"><input style={S.input} type="number" value={ddExtDays} onChange={e=>setDdExtDays(e.target.value)} placeholder="7" /></Field><Field label="If extended, deposit:"><select style={S.select} value={ddExtDepositRule} onChange={e=>setDdExtDepositRule(e.target.value)}><option value="returnable">Stays returnable</option><option value="nonrefundable">Becomes non-refundable</option><option value="partial">50% non-refundable</option></select></Field></Grid2>)}
           <Grid2>
-            <Field label="Target Closing Date"><input style={S.input} type="date" value={closingDate} min={ddStart && ddDays ? addDays(ddStart,Number(ddDays)) : today()} onChange={e=>setClosingDate(e.target.value)} /></Field>
+            <Field label="Target Closing Date"><input style={{...S.input, ...(closingTooEarly ? { borderColor:C.red } : {})}} type="date" value={closingDate} min={ddEndDate || today()} onChange={e=>setClosingDate(e.target.value)} /></Field>
             <Field label="Final Payment"><select style={S.select} value={paymentType} onChange={e=>setPaymentType(e.target.value)}><option value="cash">All Cash</option><option value="finance">Financed</option><option value="other">Other / TBD</option></select></Field>
           </Grid2>
+          {closingTooEarly && (
+            <div style={{ background:C.redLight, border:`1px solid ${C.red}`, borderRadius:6, padding:"10px 13px", marginTop:9, fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:12, color:C.red, fontWeight:700, lineHeight:1.5 }}>⚠️ Closing is set before due diligence ends ({ddEndDate}).</div>
+              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:4 }}>You can't close on a boat you're still allowed to inspect &mdash; the survey and sea trial have to finish first. Push the closing date out, or shorten the due-diligence window.</div>
+              <button style={{...S.btnOutline, fontSize:12, padding:"7px 13px", marginTop:8}} onClick={()=>setClosingDate(addDays(ddEndDate, 7))}>Move closing to {addDays(ddEndDate, 7)}</button>
+            </div>
+          )}
           {paymentType==="finance" && (<Field label="Financing contingency (days)"><input style={{...S.input, maxWidth:140}} type="number" value={financeContingency} onChange={e=>setFinanceContingency(e.target.value)} placeholder="14" /></Field>)}
+          <BrokerTip>Leave about a week between the end of due diligence and closing. That's the gap where funds get wired, the title and lien release come through, and insurance is bound &mdash; closing the day after a survey almost never happens on time.</BrokerTip>
         </OfferSection>
 
         {/* 🛡️ Contingencies — opt-in (placed after timeline so the escrow choice sits last) */}
@@ -2003,17 +2036,51 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </select>
         </div>
         <BrokerTip>48 hours keeps a deal moving without pressuring anyone. An offer with no deadline is the single most common way private boat sales quietly die &mdash; the other side means to reply, then a week goes by.</BrokerTip>
-        {(!offerAmt || (inclDepositTerms && escrowPct==="")) && !myOfferAwaiting && (
+        {offerBlocked && !myOfferAwaiting && (
           <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.red, marginTop:8, textAlign:"center", lineHeight:1.5 }}>
             ⚠️ Before you send, please {[
               !offerAmt && "enter your offer price",
               (inclDepositTerms && escrowPct==="") && "choose a deposit amount under Escrow Terms",
-            ].filter(Boolean).join(" and ")}.
+              needsEscrowPath && "choose where the deposit will be held",
+              (inclContingencies && localContingencies.length===0) && "choose your contingencies (or switch that section off to waive them all)",
+              closingTooEarly && "set a closing date after due diligence ends",
+            ].filter(Boolean).join(", and ")}.
           </div>
         )}
-        <button style={{...S.btnBrass, width:"100%", marginTop:6, fontSize:15, padding:"12px", opacity:(!offerAmt||myOfferAwaiting||(inclDepositTerms&&escrowPct===""))?0.5:1}} onClick={makeOffer} disabled={!offerAmt||myOfferAwaiting||(inclDepositTerms&&escrowPct==="")}>
-          {(offers.length===0 && myRole!=="seller") ? "Send Offer to Seller" : (myRole==="seller" ? "Send Counter-Offer to Buyer" : "Send Counter-Offer to Seller")} →
-        </button>
+        {/* The send bar. This is the single most consequential control on the page —
+            it puts a real, binding-in-spirit offer in front of another person — so it
+            gets its own visual block, a recap of exactly what's about to go out, and
+            the actual dollar figure printed on the button. A customer should never
+            press this wondering what they just sent. */}
+        <div style={{ marginTop:16, border:`2px solid ${offerBlocked||myOfferAwaiting ? C.mist : C.brass}`, borderRadius:10, overflow:"hidden", background: offerBlocked||myOfferAwaiting ? "#f8fafc" : "#fffdf7" }}>
+          {!offerBlocked && !myOfferAwaiting && (
+            <div style={{ padding:"12px 15px", borderBottom:`1px solid ${C.mist}`, fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:10.5, letterSpacing:1.4, textTransform:"uppercase", color:C.slate, fontWeight:700, marginBottom:7 }}>
+                You're about to send
+              </div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:"5px 16px", fontSize:12, color:C.text, lineHeight:1.8 }}>
+                <span><b style={{ fontSize:15, color:C.navy }}>{fmt(Number(offerAmt)||0)}</b> offer</span>
+                {inclDepositTerms && escrowPct!=="0" && escrowPct!=="" && <span>· {escrowPct}% deposit ({fmt(Math.round(Number(offerAmt||0)*Number(escrowPct)/100))}) via {escLabel(escrowPath)}</span>}
+                {inclDepositTerms && escrowPct==="0" && <span>· no deposit</span>}
+                {inclContingencies && <span>· {localContingencies.length ? localContingencies.map(k=>CONTINGENCY_LABELS[k]||k).join(", ") : "no contingencies"}</span>}
+                {inclDates && <span>· {ddDays}-day due diligence{closingDate ? `, closing ${closingDate}` : ""}</span>}
+                {offerExpiry!=="0" && <span>· expires in {offerExpiry}h</span>}
+              </div>
+            </div>
+          )}
+          <div style={{ padding:"13px 15px" }}>
+            <button style={{...S.btnBrass, width:"100%", fontSize:16.5, fontWeight:800, padding:"15px 12px", letterSpacing:0.2, opacity:(offerBlocked||myOfferAwaiting)?0.45:1, boxShadow:(offerBlocked||myOfferAwaiting)?"none":"0 3px 10px rgba(184,134,58,0.35)"}} onClick={makeOffer} disabled={offerBlocked||myOfferAwaiting}>
+              {offerAmt && !offerBlocked
+                ? `📨 Send ${fmt(Number(offerAmt))} ${(offers.length===0 && myRole!=="seller") ? "Offer" : "Counter-Offer"} to the ${myRole==="seller" ? "Buyer" : "Seller"} →`
+                : `📨 ${(offers.length===0 && myRole!=="seller") ? "Send Offer to Seller" : (myRole==="seller" ? "Send Counter-Offer to Buyer" : "Send Counter-Offer to Seller")} →`}
+            </button>
+            {!offerBlocked && !myOfferAwaiting && (
+              <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, textAlign:"center", marginTop:8, lineHeight:1.5 }}>
+                They'll get an email straight away and can accept, counter, or flag a conflict. You can withdraw or revise until they respond.
+              </div>
+            )}
+          </div>
+        </div>
         {myOfferAwaiting ? (
           <div style={{ textAlign:"center", fontSize:11, color:C.slate, fontFamily:"sans-serif", marginTop:8, lineHeight:1.5 }}>
             ⏳ Your offer is on the table — waiting for the {myRole==="buyer" ? "seller" : "buyer"} to respond. You'll be able to send a new offer if they counter or reject.
