@@ -571,33 +571,132 @@ async function notifyOnDealChange(previous: any, updated: any) {
       })
     }
 
-    // 2. Buyer submitted proof → the deal is secured; both sides should know.
-    const proofJustIn = !!newNeg?.depositProof?.ref && !prevNeg?.depositProof?.ref
+    // 2. Buyer submitted proof → this does NOT secure the deal. It hands the claim
+    //    to the seller to verify, and the deal HOLDS in between. The seller is the
+    //    one who can actually see the money arrive, so they get an action email and
+    //    the buyer gets a "you're done, waiting on them" email.
+    const proofJustIn = !!newNeg?.depositProof?.ref && newNeg?.depositProof?.ref !== prevNeg?.depositProof?.ref
+    const proofRef = String(newNeg?.depositProof?.ref || '').replace(/</g, '&lt;')
     if (proofJustIn) {
-      for (const email of [buyerEmail, sellerEmail].filter(Boolean)) {
+      if (sellerEmail) {
         await sendEmail({
-          to: email,
-          subject: `${boat} — ✓ Deposit confirmed, the deal is secured`,
+          to: sellerEmail,
+          subject: `${boat} — ⚠️ Action needed: verify the buyer's deposit`,
           html: emailLayout(`
-            <h2 style="color:#08152e; font-size:18px;">The deal is secured</h2>
+            <h2 style="color:#08152e; font-size:18px;">Has the deposit actually arrived?</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
-              The buyer has submitted proof of the earnest-money deposit on
-              <strong>${vesselName}</strong> (reference ${String(newNeg.depositProof.ref).replace(/</g, '&lt;')}).
+              The buyer says they funded the earnest-money deposit on <strong>${vesselName}</strong>
+              and gave reference <strong>${proofRef}</strong>. <strong>This deal is on hold until you verify it.</strong>
+            </p>
+            <p style="background:#fdecec;border-left:3px solid #b91c1c;padding:12px 14px;margin:14px 0;color:#334155;font-size:13px;line-height:1.6;">
+              <strong>Before you confirm:</strong> check with your escrow agent, attorney, or bank
+              that the funds are actually <strong>in the account</strong>. Don't rely on a screenshot,
+              a receipt, or the buyer's word &mdash; a wire can be recalled, and a confirmation
+              number is not proof the money landed. Only confirm what you can see.
             </p>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
-              The boat is now held off the market while due diligence is completed. Both sides
-              are protected: the buyer has the agreed time to inspect, and the seller has the
-              buyer's committed deposit.
-            </p>
-            <p style="color:#94a3b8; font-size:12px; line-height:1.5;">
-              BoatClosers records this confirmation &mdash; it does not hold or verify the funds.
-              Confirm receipt directly with your escrow agent.
+              If it hasn't landed yet, choose &ldquo;not received&rdquo; instead &mdash; the deal stays
+              on hold and you can give the buyer more time or end it.
             </p>
             <p style="text-align:center; margin: 24px 0;">
-              <a href="${dealLink(3, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">Open Your Deal</a>
+              <a href="${dealLink(3, sellerEmail)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">Verify the Deposit</a>
             </p>
           `)
         })
+      }
+      if (buyerEmail) {
+        await sendEmail({
+          to: buyerEmail,
+          subject: `${boat} — Deposit proof received, waiting on the seller`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">Your proof is in &mdash; the clock has stopped</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              We've recorded your deposit proof for <strong>${vesselName}</strong> (reference
+              <strong>${proofRef}</strong>) and the deposit deadline no longer applies to you.
+            </p>
+            <p style="color:#475569; font-size:14px; line-height:1.5;">
+              The seller is now confirming with their escrow agent that the funds arrived.
+              <strong>The deal is secured once they confirm</strong> &mdash; we'll email you the moment
+              they do. Wires often take 1&ndash;2 business days to show up, so a short wait is normal.
+            </p>
+          `)
+        })
+      }
+    }
+
+    // 2b. Seller's verdict on the deposit — this is the moment a deal is truly
+    //     secured, or the moment it stalls and both people need to talk.
+    const verdict = newNeg?.depositVerification?.status
+    const verdictJustIn = !!verdict && verdict !== prevNeg?.depositVerification?.status
+    if (verdictJustIn) {
+      const note = String(newNeg?.depositVerification?.note || '').replace(/</g, '&lt;')
+      if (verdict === 'confirmed') {
+        for (const email of [buyerEmail, sellerEmail].filter(Boolean)) {
+          await sendEmail({
+            to: email,
+            subject: `${boat} — ✓ Deposit verified, the deal is secured`,
+            html: emailLayout(`
+              <h2 style="color:#08152e; font-size:18px;">The deal is secured</h2>
+              <p style="color:#475569; font-size:14px; line-height:1.5;">
+                The seller has confirmed the earnest-money deposit on <strong>${vesselName}</strong>
+                arrived (reference <strong>${proofRef}</strong>).${note ? ` Seller's note: ${note}` : ''}
+              </p>
+              <p style="color:#475569; font-size:14px; line-height:1.5;">
+                The boat is now held off the market while due diligence is completed. Both sides
+                are protected: the buyer has the agreed time to inspect, and the seller has the
+                buyer's committed deposit.
+              </p>
+              <p style="color:#94a3b8; font-size:12px; line-height:1.5;">
+                BoatClosers records this confirmation &mdash; it does not hold or verify the funds.
+                Confirm status directly with your escrow agent at any time.
+              </p>
+              <p style="text-align:center; margin: 24px 0;">
+                <a href="${dealLink(3, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">Open Your Deal</a>
+              </p>
+            `)
+          })
+        }
+      } else if (verdict === 'disputed') {
+        if (buyerEmail) {
+          await sendEmail({
+            to: buyerEmail,
+            subject: `${boat} — ⚠️ The seller could not verify your deposit`,
+            html: emailLayout(`
+              <h2 style="color:#08152e; font-size:18px;">Your deposit hasn't shown up yet</h2>
+              <p style="color:#475569; font-size:14px; line-height:1.5;">
+                The seller reports that the earnest-money deposit on <strong>${vesselName}</strong>
+                has not arrived.${note ? ` Their note: ${note}` : ''} <strong>This deal is on hold</strong> until it's sorted out.
+              </p>
+              <p style="color:#475569; font-size:14px; line-height:1.5;">
+                Check with your escrow agent or bank first &mdash; wires can take 1&ndash;2 business
+                days to land, so this may simply be timing. Then submit corrected proof in the deal
+                and use the message thread to tell the seller what you found.
+              </p>
+              <p style="text-align:center; margin: 24px 0;">
+                <a href="${dealLink(3, buyerEmail)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">Open Your Deal</a>
+              </p>
+            `)
+          })
+        }
+        if (sellerEmail) {
+          await sendEmail({
+            to: sellerEmail,
+            subject: `${boat} — Deposit marked as not received, deal on hold`,
+            html: emailLayout(`
+              <h2 style="color:#08152e; font-size:18px;">You reported the deposit hasn't arrived</h2>
+              <p style="color:#475569; font-size:14px; line-height:1.5;">
+                The buyer has been notified and asked to check with their escrow agent or bank.
+                Nothing moves forward on <strong>${vesselName}</strong> until this is resolved.
+              </p>
+              <p style="color:#475569; font-size:14px; line-height:1.5;">
+                You can give the buyer more time, or end the deal, from the Due Diligence step.
+              </p>
+              <p style="text-align:center; margin: 24px 0;">
+                <a href="${dealLink(3, sellerEmail)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">Open Your Deal</a>
+              </p>
+            `)
+          })
+        }
       }
     }
 
