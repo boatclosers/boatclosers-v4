@@ -1415,6 +1415,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("initiator",249)}>💳 Pay $249 &amp; unlock the deal →</button>
                 <button style={{ ...S.btnOutline, fontSize:13, padding:"13px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
               </div>
+              <div style={{ background:"#eef4fb", borderLeft:"3px solid #08152e", borderRadius:6, padding:"10px 13px", marginTop:14, fontSize:12, fontFamily:"sans-serif", color:"#334155", lineHeight:1.6 }}>
+                <strong style={{ color:"#08152e" }}>If this deal falls through: </strong>
+                your $249 carries over. You have 60 days to start another deal &mdash; a different
+                buyer, or a different boat &mdash; at no additional fee, with this boat&rsquo;s details
+                already filled in. The fee is only fully used once a deal actually closes.
+              </div>
             </>
           ) : (
             <>
@@ -2480,7 +2486,21 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const depHasProof = !!(dep.depositProof && dep.depositProof.ref);
   const depDeadline = Number(dep.depositDeadline) || 0;
   const depEnded = !!dep.depositEnded;
-  const submitProof = () => { if (proofRef.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositProof: { ref: proofRef.trim(), note: proofNote.trim(), at: Date.now(), by: "buyer" } })); };
+  // Submitting proof no longer secures the deal by itself — it hands the claim to
+  // the seller to verify. Resubmitting after a dispute clears the old verdict.
+  const submitProof = () => { if (proofRef.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositProof: { ref: proofRef.trim(), note: proofNote.trim(), at: Date.now(), by: "buyer" } , depositVerification: null })); };
+  // ── Deposit verification handshake ──────────────────────────────────────────
+  // The buyer can only ever CLAIM the money was sent; the seller (or their escrow
+  // agent) is the one who can actually see it arrive. So the deal HOLDS between
+  // those two moments: proof submitted → seller confirms → secured. Without this,
+  // a typed reference number alone was enough to move a deal forward.
+  const depVerif = dep.depositVerification || null;
+  const depVerified = depVerif?.status === "confirmed";
+  const depDisputed = depVerif?.status === "disputed";
+  const depAwaitingVerify = depHasProof && !depVerif;
+  const [verifyNote, setVerifyNote] = useState("");
+  const confirmDeposit = () => { if (setNegotiate) setNegotiate(n => ({ ...n, depositVerification: { status: "confirmed", at: Date.now(), by: "seller", note: verifyNote.trim() } })); };
+  const disputeDeposit = () => { if (setNegotiate) setNegotiate(n => ({ ...n, depositVerification: { status: "disputed", at: Date.now(), by: "seller", note: verifyNote.trim() } })); };
   // ── Deposit checkpoint: the seller must say WHERE the money goes, and the buyer
   // must acknowledge it and commit to the deadline, before proof can be submitted.
   // This is what forces the deposit conversation to actually happen in the deal
@@ -2621,12 +2641,33 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         const hoursLeft = Math.max(0, Math.floor(msLeft/3600000));
         const minsLeft = Math.max(0, Math.floor((msLeft%3600000)/60000));
         return (
-          <div style={{ ...S.card, borderTop:`3px solid ${(depEnded || expired) ? C.red : depHasProof ? C.green : C.brass}`, marginBottom:16 }}>
+          <div style={{ ...S.card, borderTop:`3px solid ${(depEnded || expired || depDisputed) ? C.red : depVerified ? C.green : C.brass}`, marginBottom:16 }}>
             <h3 style={S.h3}>Earnest Money Deposit</h3>
             {depEnded ? (
               <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700, lineHeight:1.5 }}>✗ Deal void — the deposit window passed without proof. The agreement, including the signed Purchase Agreement, is no longer binding.</div>
-            ) : depHasProof ? (
-              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Deposit proof submitted — ref {dep.depositProof.ref}{dep.depositProof.note ? ` · ${dep.depositProof.note}` : ""}</div>
+            ) : depVerified ? (
+              <>
+                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Deposit verified by the seller — this deal is secured</div>
+                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>Ref {dep.depositProof.ref}{dep.depositProof.note ? ` · ${dep.depositProof.note}` : ""}{depVerif.note ? ` · Seller's note: ${depVerif.note}` : ""}. The boat is held off the market while due diligence is completed.</div>
+              </>
+            ) : depDisputed ? (
+              <>
+                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700, lineHeight:1.5 }}>⚠️ The seller could not verify this deposit — the deal is on hold</div>
+                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>The buyer submitted ref {dep.depositProof.ref}, but the seller reports the funds have not arrived.{depVerif.note ? ` Seller's note: ${depVerif.note}` : ""} Nothing moves forward until this is sorted out.</div>
+                {isBuyer ? (
+                  <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginTop:8, lineHeight:1.6 }}>Check with your escrow agent or bank, then submit corrected proof below. Wires can take 1&ndash;2 business days to land, so this may simply be timing. Use the message thread to tell the seller what you find.</div>
+                ) : (
+                  <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:8 }}>
+                    {[12,24,36].map(h => (<button key={h} style={{...S.btnOutline, fontSize:12, padding:"8px 12px"}} onClick={()=>extendDeposit(h)}>Give {h}h more</button>))}
+                    <button style={{...S.btn, background:C.red, fontSize:12, padding:"8px 14px"}} onClick={endDealForDeposit}>Void the deal (no deposit)</button>
+                  </div>
+                )}
+              </>
+            ) : depAwaitingVerify ? (
+              <>
+                <div style={{ fontSize:13, fontFamily:"sans-serif", color:"#7a5500", fontWeight:700, lineHeight:1.5 }}>⏸️ Deal on hold &mdash; waiting for the seller to verify the deposit</div>
+                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>The buyer submitted proof (ref {dep.depositProof.ref}{dep.depositProof.note ? ` · ${dep.depositProof.note}` : ""}). This deal is <b>not secured yet</b> &mdash; it becomes secured once the seller confirms the money actually arrived.</div>
+              </>
             ) : expired ? (
               <>
                 <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700, marginBottom:8, lineHeight:1.5 }}>⏰ Deposit window expired — no proof submitted. Without earnest money this deal can be declared <b>null and void, including the signed Purchase Agreement</b>, leaving the seller free to accept other offers.</div>
@@ -2645,7 +2686,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>Earnest money keeps this deal alive. If proof isn't provided before the timer runs out, the deal can be declared <b>null and void — including the signed Purchase Agreement</b>, and the <b>seller is then free to accept other offers</b>.</div>
               </>
             )}
-            {!depHasProof && !depEnded && (
+            {(!depHasProof || depDisputed) && !depEnded && (
               <div style={{ marginTop:14 }}>
                 {!depInstrPosted ? (
                   isBuyer ? (
@@ -2729,9 +2770,33 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 )}
               </div>
             )}
-            {isBuyer && !depHasProof && !depEnded && depInstrPosted && depCommitted && (
+            {depAwaitingVerify && !depEnded && !isBuyer && (
+              <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", marginTop:14, fontFamily:"sans-serif" }}>
+                <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:4 }}>⚠️ Action needed: has the deposit actually arrived?</div>
+                <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:8 }}>
+                  The buyer says they funded the deposit and gave reference <b>{dep.depositProof.ref}</b>{dep.depositProof.note ? <> &mdash; &ldquo;{dep.depositProof.note}&rdquo;</> : null}.
+                </div>
+                <div style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:6, padding:"10px 12px", fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
+                  <b>Before you confirm:</b> check with your escrow agent, attorney, or bank that the funds are actually <b>in the account</b> &mdash; don't rely on a screenshot, a receipt, or the buyer's word. A wire can be recalled, and a confirmation number is not proof the money landed. Only confirm what you can see.
+                </div>
+                <label style={S.label}>Note (optional &mdash; the buyer will see this)</label>
+                <input style={S.input} value={verifyNote} onChange={e=>setVerifyNote(e.target.value)} placeholder="e.g. Escrow.com shows funds received 8/14" />
+                <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap" }}>
+                  <button style={{...S.btn, background:C.green, color:"#fff", flex:1, minWidth:180, fontSize:13, padding:"11px"}} onClick={confirmDeposit}>✓ Confirm deposit received</button>
+                  <button style={{...S.btnOutline, flex:1, minWidth:180, fontSize:13, padding:"11px"}} onClick={disputeDeposit}>✗ Not received / can't verify</button>
+                </div>
+                <div style={{ fontSize:11, color:C.slate, lineHeight:1.5, marginTop:9 }}>Confirming secures the deal and takes the boat off the market. If it hasn't landed yet, choose &ldquo;not received&rdquo; &mdash; the deal holds and you can give the buyer more time or void it.</div>
+              </div>
+            )}
+            {depAwaitingVerify && !depEnded && isBuyer && (
+              <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", marginTop:14, fontFamily:"sans-serif" }}>
+                <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:3 }}>⏸️ Waiting for the seller to verify your deposit</div>
+                <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>You've done your part &mdash; your proof is submitted and the clock has stopped. The seller now confirms with their escrow agent that the funds arrived. Wires often take 1&ndash;2 business days to show up, so a short wait is normal. You'll be notified the moment they confirm, and the deal is secured at that point.</div>
+              </div>
+            )}
+            {isBuyer && (!depHasProof || depDisputed) && !depEnded && depInstrPosted && depCommitted && (
               <div style={{ marginTop:12 }}>
-                <label style={S.label}>Deposit confirmation / reference #</label>
+                <label style={S.label}>{depDisputed ? "Corrected deposit confirmation / reference #" : "Deposit confirmation / reference #"}</label>
                 <input style={S.input} value={proofRef} onChange={e=>setProofRef(e.target.value)} placeholder="Escrow.com or wire confirmation #" />
                 <div style={{ height:8 }}/>
                 <Field label="Note (optional)"><input style={S.input} value={proofNote} onChange={e=>setProofNote(e.target.value)} placeholder="e.g. Wired $7,500 to Escrow.com" /></Field>
@@ -4974,6 +5039,15 @@ export default function BoatClosers() {
     setVessel(emptyVessel); setParties(emptyParties); setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
     setStep(0); setMaxStep(0); setShowWelcome(true);
   };
+  // Same boat, next buyer. When a deal dies at the deposit stage the vessel hasn't
+  // changed — making someone re-type the year, make, model, HIN and specs is the
+  // friction that turns "let's find another buyer" into "I want my money back".
+  const relistBoat = () => {
+    setDealId(null);
+    setParties(emptyParties); setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
+    setStep(0); setMaxStep(0); setShowWelcome(false);
+    setToast({ text: "Your boat details carried over — invite a new buyer to start." });
+  };
 
   // ── LIVE SYNC ───────────────────────────────────────────────────────────
   // While a deal is open, quietly poll the server so each party sees the other
@@ -5297,9 +5371,38 @@ export default function BoatClosers() {
           <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.6, maxWidth:600, margin:"0 auto 10px" }}>
             {negotiate.canceled.byName} canceled this deal on {negotiate.canceled.date}{negotiate.canceled.reason?` — “${negotiate.canceled.reason}”`:""}. It's now closed for both parties.
           </div>
-          <button onClick={startNewDeal} style={{ ...S.btnBrass, fontSize:13, padding:"9px 20px" }}>Start a new deal →</button>
+          <button onClick={()=>relistBoat()} style={{ ...S.btnBrass, fontSize:13, padding:"9px 20px" }}>Start a new deal with this boat →</button>
         </div>
       )}
+
+      {negotiate.depositEnded && !negotiate.canceled && (() => {
+        // The deal ended because the earnest money never arrived. For whoever paid
+        // the $249 this is the moment they either roll into a new deal or ask for
+        // their money back — so both doors are here, with the better one first.
+        const iPaid = dealPaid && amInitiator;
+        return (
+          <div style={{ background:"#fdecec", borderBottom:`2px solid ${C.red}`, padding:"14px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
+            <div style={{ fontSize:14, fontWeight:800, color:C.red, marginBottom:4 }}>This deal ended — the earnest-money deposit was never funded</div>
+            <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.6, maxWidth:640, margin:"0 auto 12px" }}>
+              {iPaid
+                ? "The deposit didn't arrive before the agreed deadline, so this deal is closed. Your $249 isn't spent — it carries over. You have 60 days to start another deal with a different buyer, or a different boat, at no additional fee."
+                : "The deposit didn't arrive before the agreed deadline, so this deal is closed. Nothing further is owed by either party."}
+            </div>
+            {iPaid && (
+              <>
+                <button onClick={()=>relistBoat()} style={{ ...S.btnBrass, fontSize:13.5, padding:"11px 24px" }}>Find another buyer — start a new deal with this boat →</button>
+                <div style={{ marginTop:11 }}>
+                  <button
+                    onClick={()=>{ setSupportType("Request a refund of my $249 fee"); setSupportMsg(`The earnest-money deposit was never funded on this deal, so it ended before closing.\n\nDeal ID: ${dealId || "—"}\n\nWhat happened: `); setSupportSent(false); setSupportErr(""); setSupportModal(true); }}
+                    style={{ background:"none", border:"none", color:C.slate, fontSize:12, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }}>
+                    I'd rather request a refund
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {!negotiate.canceled && !dealPaid && (dealId || step>0) && (
         <div style={{ maxWidth:880, margin:"0 auto", padding:"8px 1.25rem 0", textAlign:"right" }}>
@@ -5307,25 +5410,49 @@ export default function BoatClosers() {
         </div>
       )}
 
-      {dealPaid && !negotiate.canceled && negotiate.depositDeadline && !negotiate.depositProof && negotiate.deposit > 0 && (() => {
-        const overdue = Date.now() > negotiate.depositDeadline;
+      {dealPaid && !negotiate.canceled && negotiate.deposit > 0 && negotiate.depositDeadline && !negotiate.depositEnded && (() => {
+        // One banner, five states, shown identically to BOTH parties so neither is
+        // ever guessing whose move it is: waiting to fund → on hold pending the
+        // seller's verification → secured → disputed → overdue.
+        const verif = negotiate.depositVerification || null;
+        const hasProof = !!(negotiate.depositProof && negotiate.depositProof.ref);
+        const verified = verif?.status === "confirmed";
+        const disputed = verif?.status === "disputed";
+        const awaiting = hasProof && !verif;
+        const overdue = !hasProof && Date.now() > negotiate.depositDeadline;
         const left = hoursLeft(negotiate.depositDeadline);
         const isBuyer = (myDealRole || user?.role) === "buyer";
+        const bg = verified ? "#eafaf1" : (overdue || disputed) ? "#fdecec" : "#fff8e6";
+        const bar = verified ? C.green : (overdue || disputed) ? C.red : C.brass;
+        const headColor = verified ? C.green : (overdue || disputed) ? C.red : "#7a5500";
+        const head = verified ? "✓ Deal secured — deposit verified by the seller"
+          : disputed ? "⚠️ Deal on hold — the seller could not verify the deposit"
+          : awaiting ? "⏸️ Deal on hold — waiting for the seller to verify the deposit"
+          : overdue ? "⚠️ Earnest-money deposit is overdue"
+          : `⏳ Earnest-money deposit due in ${left}`;
+        const body = verified
+          ? "The boat is held off the market while due diligence is completed. Both sides are protected: the buyer has the agreed time to inspect, and the seller has the buyer's committed deposit."
+          : disputed
+          ? (isBuyer
+              ? "The seller reports the funds haven't arrived. Check with your escrow agent or bank — wires can take 1–2 business days — then submit corrected proof on the Due Diligence step."
+              : "You reported the deposit hasn't arrived. Nothing moves forward until it's sorted. You can give the buyer more time or void the deal on the Due Diligence step.")
+          : awaiting
+          ? (isBuyer
+              ? "Your proof is in and the clock has stopped. The seller is confirming with their escrow agent that the funds arrived — this deal is not secured until they do."
+              : "The buyer submitted proof of their deposit. Confirm with your escrow agent that the money actually arrived, then verify it on the Due Diligence step — the deal is not secured until you do.")
+          : isBuyer
+          ? (overdue
+              ? "Your deposit proof is past the agreed deadline. Upload it on the Due Diligence step now — the seller may end the deal if it isn't provided."
+              : "Send your earnest-money deposit, then upload the proof on the Due Diligence step. The deposit is what holds this boat off the market for you.")
+          : (overdue
+              ? "The buyer's deposit proof is past the agreed deadline. You can give them more time or end the deal."
+              : "Waiting for the buyer to submit their earnest-money deposit proof within the agreed window.");
+        const showBtn = !verified && ((isBuyer && !awaiting) || (!isBuyer && (awaiting || disputed)));
         return (
-          <div style={{ background: overdue ? "#fdecec" : "#fff8e6", borderBottom:`2px solid ${overdue?C.red:C.brass}`, padding:"12px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
-            <div style={{ fontSize:13, fontWeight:800, color: overdue?C.red:"#7a5500", marginBottom:3 }}>
-              {overdue ? "⚠️ Earnest-money deposit is overdue" : `⏳ Earnest-money deposit due in ${left}`}
-            </div>
-            <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, maxWidth:620, margin:"0 auto" }}>
-              {isBuyer
-                ? (overdue
-                    ? "Your deposit proof is past the agreed deadline. Upload it on the Due Diligence step now — the seller may end the deal if it isn't provided."
-                    : "Send your earnest-money deposit, then upload the proof on the Due Diligence step before the window closes.")
-                : (overdue
-                    ? "The buyer's deposit proof is past the agreed deadline. You can give them more time or end the deal."
-                    : "Waiting for the buyer to submit their earnest-money deposit proof within the agreed window.")}
-            </div>
-            {isBuyer && <button onClick={()=>setStep(3)} style={{ ...S.btnBrass, fontSize:12, padding:"7px 16px", marginTop:8 }}>Go to Due Diligence →</button>}
+          <div style={{ background:bg, borderBottom:`2px solid ${bar}`, padding:"12px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
+            <div style={{ fontSize:13, fontWeight:800, color:headColor, marginBottom:3 }}>{head}</div>
+            <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, maxWidth:620, margin:"0 auto" }}>{body}</div>
+            {showBtn && <button onClick={()=>setStep(3)} style={{ ...S.btnBrass, fontSize:12, padding:"7px 16px", marginTop:8 }}>Go to Due Diligence →</button>}
           </div>
         );
       })()}
