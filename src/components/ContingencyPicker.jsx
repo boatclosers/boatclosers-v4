@@ -25,15 +25,16 @@ const OPTIONS = [
   { key:"title",     label:"Clear Title" },
 ];
 
-// Sensible default if the buyer hasn't chosen yet.
-function defaultSelection(paymentType) {
-  const base = ["survey", "seaTrial", "title"];
-  if (paymentType === "finance") base.push("financing");
-  return base;
-}
-
+// NOTHING is pre-selected. Contingencies are terms the buyer proposes and the
+// seller accepts or rejects — lighting them up automatically decides a negotiating
+// point on the buyer's behalf.
+//
+// It was also a live mismatch: the picker used to auto-display survey/seaTrial/title
+// while the parent state stayed empty, so a buyer who never touched this control saw
+// three contingencies selected and sent an offer carrying NONE. The Purchase Agreement
+// would then record a waived survey the buyer believed they had.
 export default function ContingencyPicker({ value, onChange, paymentType, ddEnd }) {
-  const selected = Array.isArray(value) && value.length ? value : defaultSelection(paymentType);
+  const selected = Array.isArray(value) ? value : [];
 
   const toggle = (key) => {
     const next = selected.includes(key)
@@ -52,6 +53,11 @@ export default function ContingencyPicker({ value, onChange, paymentType, ddEnd 
         anything you leave off is waived. Deadlines follow your due diligence window{ddEnd ? ` (by ${ddEnd})` : ""}.
       </div>
 
+      {selected.length === 0 && (
+        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"#b91c1c", fontWeight:700, marginBottom:8, lineHeight:1.5 }}>
+          Nothing selected yet — choose what this offer depends on. Most private boat offers are contingent on a survey, a sea trial, and clear title.
+        </div>
+      )}
       <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
         {OPTIONS.map(opt => {
           const on = selected.includes(opt.key);
