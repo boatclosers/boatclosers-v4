@@ -2029,7 +2029,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         </OfferSection>
 
         {/* 🔒 Escrow Terms — opt-in (deposit amount, terms, and where it's held all together) */}
-        <OfferSection icon="🔒" title="Escrow Terms" desc="The good-faith deposit that secures the boat — how much, what happens to it if the deal falls through, and where it's held. BoatClosers never holds funds." checked={inclDepositTerms} onToggle={()=>setInclDepositTerms(v=>!v)}>
+        <OfferSection icon="🔒" title="Escrow Terms" desc="Money the buyer puts down to take the boat off the market while they inspect it. It isn't an extra cost — it comes off the purchase price at closing. Set the amount, what happens to it if the deal falls apart, and who holds it in the meantime. BoatClosers never touches the money; a neutral third party you both agree on holds it." checked={inclDepositTerms} onToggle={()=>setInclDepositTerms(v=>!v)}>
           <label style={S.label}>Earnest Money Deposit</label>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:5 }}>
             {["0","2","3","5","7.5","10"].map(p => {
