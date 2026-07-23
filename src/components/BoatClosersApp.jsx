@@ -2309,61 +2309,58 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 // ESCROW SELECTOR — reusable expanded card picker
 // ─────────────────────────────────────────────────────────────────────────────
 function EscrowSelector({ value, onChange, depositAmt }) {
-  const [showEscrowInfo, setShowEscrowInfo] = useState(false);
+  // Nothing is pre-selected. This used to fall back to options[0] when `value` was
+  // empty, so the page rendered Escrow.com's full explanation, disclaimer and button
+  // before the buyer had chosen anything — it looked decided when it wasn't.
+  //
+  // The long explanations are also collapsed now. Five options each carrying a
+  // paragraph plus a warning box buried the rest of the offer form; the one-line
+  // description is enough to choose from, and the detail is one tap away.
+  const [showDetail, setShowDetail] = useState(false);
   const options = [
     {
-      id:"escrow_com",
-      icon:"🏦",
-      label:"Escrow.com",
-      badge:"Recommended",
-      badgeColor:C.green,
+      id:"escrow_com", icon:"🏦", label:"Escrow.com", badge:"Recommended", badgeColor:C.green,
+      tint:C.greenLight, line:"#a8d8b8",
       desc:"Licensed third-party escrow. Funds held securely until both parties confirm the deal is complete.",
       detail:"Escrow.com is a licensed, regulated escrow service. Neither buyer nor seller can access funds until conditions are met. BoatClosers has no affiliation with Escrow.com and earns nothing from their fees.",
+      warn:"BoatClosers.com has no affiliation with Escrow.com, earns no referral fee, and is not responsible for Escrow.com's services, fees, or outcomes. Deposit return is solely between buyer, seller, and Escrow.com per their agreement.",
     },
     {
-      id:"direct",
-      icon:"💵",
-      label:"Direct to Seller",
-      badge:"Simple",
-      badgeColor:C.slate,
-      desc:"Buyer sends deposit directly to seller by wire or check. Faster but no neutral third-party protection.",
+      id:"direct", icon:"💵", label:"Direct to Seller", badge:"Simple", badgeColor:C.slate,
+      tint:C.sandDark, line:C.mist,
+      desc:"Buyer sends the deposit straight to the seller. Faster, but no neutral third party holds the money.",
       detail:"Deposit return in the event of deal failure is entirely between buyer and seller. BoatClosers documents (Deposit Receipt, Rejection Notice) support your claim but we do not hold or release funds.",
+      warn:"This is the least protected option. If the deal falls apart, getting the deposit back depends entirely on the seller. BoatClosers provides the Deposit Receipt and Rejection Notice to support your claim, but we do not hold, verify, or release any funds.",
     },
     {
-      id:"attorney",
-      icon:"⚖️",
-      label:"Third Party Attorney",
-      badge:"Professional",
-      badgeColor:C.teal,
-      desc:"A licensed attorney or title company holds the deposit. Common for larger or complex transactions.",
+      id:"attorney", icon:"⚖️", label:"Third Party Attorney", badge:"Professional", badgeColor:C.teal,
+      tint:C.tealLight, line:C.teal,
+      desc:"A licensed attorney or title company holds the deposit. Common on larger or more complex deals.",
       detail:"Both parties agree on an attorney or title company to act as escrow agent. Their fees and terms are outside BoatClosers. Our documents support the transaction but we are not involved in fund handling.",
+      warn:"Agree on the attorney or title company in writing before transferring any funds. BoatClosers documents (Escrow Instructions, Closing Statement) can be shared with them to support their work.",
     },
     {
-      id:"brokerage",
-      icon:"🛥️",
-      label:"Licensed Broker",
-      badge:"Brokerage",
-      badgeColor:C.navy,
-      desc:"A state-licensed yacht/boat brokerage holds the deposit in their trust/escrow account.",
-      detail:"If the boat is listed with a broker — or you're using a buyer's broker — a state-licensed brokerage can hold the deposit in their trust/escrow account per state law. Confirm the broker's license and get the escrow terms in writing. Any commission and terms are between you and the broker; BoatClosers is not involved in fund handling.",
+      id:"brokerage", icon:"🛥️", label:"Licensed Broker", badge:"Brokerage", badgeColor:C.navy,
+      tint:"#eef2f7", line:C.navy,
+      desc:"A state-licensed yacht brokerage holds the deposit in their trust account.",
+      detail:"If the boat is listed with a broker — or you're using a buyer's broker — a state-licensed brokerage can hold the deposit in their trust/escrow account per state law. Any commission and terms are between you and the broker.",
+      warn:"Confirm the brokerage is licensed in the boat's state and get the escrow terms in writing before sending funds. The broker holds the deposit in their trust account; BoatClosers does not hold, verify, or release funds.",
     },
     {
-      id:"custom",
-      icon:"✍️",
-      label:"Custom / Other",
-      badge:"Your Terms",
-      badgeColor:C.slate,
+      id:"custom", icon:"✍️", label:"Custom / Other", badge:"Your Terms", badgeColor:C.slate,
+      tint:"#fff9ee", line:C.brass,
       desc:"You've agreed on another holder or method — describe it in your terms.",
-      detail:"Use this if you've agreed on a holder or method not listed (a bank, a mutual escrow agent, or another arrangement). Describe the specifics in Additional Contingencies above so both parties and the Purchase Agreement reflect it. BoatClosers does not hold or release funds.",
+      detail:"Use this if you've agreed on a holder or method not listed (a bank, a mutual escrow agent, or another arrangement). BoatClosers does not hold or release funds.",
+      warn:"Spell out who holds the deposit and the exact terms in Additional Contingencies above, so it appears on the Purchase Agreement.",
     },
   ];
-  const selected = options.find(o=>o.id===value)||options[0];
+  const selected = options.find(o => o.id === value) || null;
 
   return (
     <div>
       <div className="bc-grid3" style={{ gap:8, marginBottom:8 }}>
         {options.map(opt=>(
-          <button key={opt.id} onClick={()=>onChange(opt.id)} style={{ padding:"10px 8px", borderRadius:6, cursor:"pointer", border:`2px solid ${value===opt.id?opt.badgeColor:C.mist}`, background:value===opt.id?opt.badgeColor==="rgb(26,92,53)"||opt.id==="escrow_com"?"rgba(26,92,53,0.08)":opt.id==="attorney"?"rgba(14,107,124,0.08)":"rgba(61,81,102,0.06)":"transparent", textAlign:"center", fontFamily:"sans-serif", transition:"all 0.15s" }}>
+          <button key={opt.id} onClick={()=>{ onChange(opt.id); setShowDetail(false); }} style={{ padding:"10px 8px", borderRadius:6, cursor:"pointer", border:`2px solid ${value===opt.id?opt.badgeColor:C.mist}`, background:value===opt.id?opt.tint:"transparent", textAlign:"center", fontFamily:"sans-serif", transition:"all 0.15s" }}>
             <div style={{ fontSize:18, marginBottom:4 }}>{opt.icon}</div>
             <div style={{ fontSize:12, fontWeight:700, color:value===opt.id?opt.badgeColor:C.navy }}>{opt.label}</div>
             <div style={{ fontSize:9, color:value===opt.id?opt.badgeColor:C.slate, marginTop:2, fontWeight:600, textTransform:"uppercase", letterSpacing:0.5 }}>{opt.badge}</div>
@@ -2371,47 +2368,34 @@ function EscrowSelector({ value, onChange, depositAmt }) {
         ))}
       </div>
 
-      {/* Selected option detail card */}
-      <div style={{ background: value==="escrow_com"?C.greenLight:value==="attorney"?C.tealLight:C.sandDark, border:`1px solid ${value==="escrow_com"?"#a8d8b8":value==="attorney"?C.teal:C.mist}`, borderRadius:6, padding:"12px 14px" }}>
-        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.text, lineHeight:1.7, marginBottom:8 }}>{selected.detail}</div>
-
-        {value==="escrow_com" && (
-          <div style={{ marginTop:8 }}>
-            <div style={{ background:"rgba(26,92,53,0.1)", border:`1px solid #a8d8b8`, borderRadius:5, padding:"8px 12px", fontSize:11, fontFamily:"sans-serif", color:C.green, marginBottom:10, lineHeight:1.6 }}>
-              <strong>BoatClosers Disclaimer:</strong> BoatClosers.com has no affiliation with Escrow.com, earns no referral fee, and is not responsible for Escrow.com's services, fees, or outcomes. Deposit return is solely between buyer, seller, and Escrow.com per their agreement.
+      {!selected ? (
+        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"#b91c1c", fontWeight:700, lineHeight:1.5 }}>
+          Choose where the deposit will be held. A neutral third party protects both sides; sending it straight to the seller does not.
+        </div>
+      ) : (
+        <div style={{ background:selected.tint, border:`1px solid ${selected.line}`, borderRadius:6, padding:"10px 13px" }}>
+          <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10 }}>
+            <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.text, lineHeight:1.6, flex:1 }}>{selected.desc}</div>
+            <button onClick={()=>setShowDetail(v=>!v)} style={{ background:"none", border:`1px solid ${selected.line}`, borderRadius:5, color:selected.badgeColor, fontSize:10.5, fontFamily:"sans-serif", fontWeight:700, padding:"4px 9px", cursor:"pointer", whiteSpace:"nowrap" }}>
+              {showDetail ? "Hide details ▲" : "Details ▾"}
+            </button>
+          </div>
+          {showDetail && (
+            <div style={{ marginTop:10, paddingTop:10, borderTop:`1px solid ${selected.line}` }}>
+              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.text, lineHeight:1.7, marginBottom:8 }}>{selected.detail}</div>
+              <div style={{ background:"rgba(255,255,255,0.65)", border:`1px solid ${selected.line}`, borderRadius:5, padding:"8px 11px", fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+                {selected.warn}
+              </div>
             </div>
+          )}
+          {value==="escrow_com" && (
             <a href="https://www.escrow.com" target="_blank" rel="noopener noreferrer"
-              style={{ display:"inline-flex", alignItems:"center", gap:8, background:C.green, color:"#fff", borderRadius:5, padding:"8px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, textDecoration:"none" }}>
+              style={{ display:"inline-flex", alignItems:"center", gap:7, background:C.green, color:"#fff", borderRadius:5, padding:"7px 14px", fontSize:11.5, fontFamily:"sans-serif", fontWeight:700, textDecoration:"none", marginTop:9 }}>
               🏦 Open Escrow.com →
             </a>
-            <div style={{ fontSize:10, fontFamily:"sans-serif", color:C.slate, marginTop:6 }}>Opens in a new tab. Set up your escrow transaction directly with Escrow.com.</div>
-          </div>
-        )}
-
-        {value==="direct" && (
-          <div style={{ background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:5, padding:"8px 12px", fontSize:11, fontFamily:"sans-serif", color:"#7a5500", lineHeight:1.6 }}>
-            <strong>Note:</strong> BoatClosers provides the Deposit Receipt and Rejection Notice documents to support direct deposit agreements, but we do not hold, verify, or release any funds. Deposit return in the event of deal failure is entirely at the discretion of the parties.
-          </div>
-        )}
-
-        {value==="attorney" && (
-          <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:5, padding:"8px 12px", fontSize:11, fontFamily:"sans-serif", color:C.teal, lineHeight:1.6 }}>
-            Both parties should agree on the attorney or title company in writing before transferring any funds. BoatClosers documents (Escrow Instructions, Closing Statement) can be shared with the attorney to support their work.
-          </div>
-        )}
-
-        {value==="brokerage" && (
-          <div style={{ background:"#eef2f7", border:`1px solid ${C.navy}`, borderRadius:5, padding:"8px 12px", fontSize:11, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6 }}>
-            Confirm the brokerage is licensed in the boat's state and get the escrow terms in writing before sending funds. The broker holds the deposit in their trust account; BoatClosers does not hold, verify, or release funds.
-          </div>
-        )}
-
-        {value==="custom" && (
-          <div style={{ background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:5, padding:"8px 12px", fontSize:11, fontFamily:"sans-serif", color:"#7a5500", lineHeight:1.6 }}>
-            Spell out who holds the deposit and the exact terms in <strong>Additional Contingencies</strong> above so it appears on the Purchase Agreement. BoatClosers does not hold, verify, or release funds.
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
