@@ -898,6 +898,33 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
             The other party needs a free BoatClosers account to join this deal, respond to offers, and sign documents. When they join, your deal is pre-linked and they fill in their own side.
           </div>
 
+          {/* Asked here rather than at sign-up, because this is the moment the invite
+              actually goes out — and by now the boat details exist, so the request
+              can name the vessel. If they haven't seen it, the invite leads with a
+              viewing instead of paperwork. BoatClosers never sets or confirms a time. */}
+          {inviteMode === null && !inviteSent && !inviteLink && (
+            <div style={{ background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:6, padding:"11px 13px", marginBottom:14 }}>
+              <div style={{ fontSize:12, fontFamily:"sans-serif", color:"#fff", fontWeight:600, marginBottom:7 }}>
+                {userRole === "seller" ? "Has the buyer seen the boat in person?" : "Have you seen this boat in person?"}
+              </div>
+              <div style={{ display:"flex", gap:8, marginBottom:7 }}>
+                <button onClick={()=>setData(d=>({...d, viewingRequested:false}))} style={{ flex:1, background: data?.viewingRequested===false ? C.brass : "rgba(255,255,255,0.12)", color: data?.viewingRequested===false ? C.navy : "#fff", border:"1px solid rgba(255,255,255,0.25)", borderRadius:5, padding:"7px 10px", fontSize:11.5, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer" }}>
+                  Yes
+                </button>
+                <button onClick={()=>setData(d=>({...d, viewingRequested:true}))} style={{ flex:1, background: data?.viewingRequested===true ? C.brass : "rgba(255,255,255,0.12)", color: data?.viewingRequested===true ? C.navy : "#fff", border:"1px solid rgba(255,255,255,0.25)", borderRadius:5, padding:"7px 10px", fontSize:11.5, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer" }}>
+                  Not yet
+                </button>
+              </div>
+              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"rgba(255,255,255,0.7)", lineHeight:1.6 }}>
+                {data?.viewingRequested === true
+                  ? <>Your invite will ask to <b style={{color:"#fff"}}>arrange a viewing</b> instead of opening with paperwork. You two agree the time between yourselves &mdash; BoatClosers doesn&rsquo;t set or confirm appointments.</>
+                  : data?.viewingRequested === false
+                  ? <>Good &mdash; your invite will go straight to the deal.</>
+                  : <>If they haven&rsquo;t been aboard yet, the invite can ask for a viewing first.</>}
+              </div>
+            </div>
+          )}
+
           {/* Step 1: the one question that decides everything */}
           {inviteMode === null && !inviteSent && !inviteLink && (
             <div>
