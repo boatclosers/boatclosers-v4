@@ -52,7 +52,7 @@ export async function GET(req: Request) {
   try {
     const { data: deals, error } = await sb
       .from('deals')
-      .select('id, vessel, parties, negotiate, invite_role, invite_email, other_party_id')
+      .select('id, vessel, parties, negotiate, invite_role, invite_email, other_party_id, initiator_role')
 
     if (error) {
       return NextResponse.json({ error: 'Could not read deals: ' + error.message }, { status: 500 })
@@ -60,8 +60,81 @@ export async function GET(req: Request) {
 
     const base = process.env.NEXT_PUBLIC_APP_URL || ''
 
+    // ── Pass 1: the Purchase Agreement is signed but the fee hasn't been paid ──
+    // Nothing moves until it is — no due diligence, no documents, no closing — and
+    // the deal just sits there silently. These nudges are deliberately gentle and
+    // finite: three over a week, then we stop rather than nag forever.
+    const PAY_STEPS = [
+      { key: 'p1', afterHours: 24,  tone: 'Your deal is ready — one step left' },
+      { key: 'p2', afterHours: 72,  tone: 'Your boat deal is still waiting on you' },
+      { key: 'p3', afterHours: 168, tone: 'Last reminder about your boat deal' },
+    ]
+
     for (const deal of deals || []) {
       const neg = deal?.negotiate || {}
+      const offersList = Array.isArray(neg.offers) ? neg.offers : []
+      const agreed = offersList.find((o: any) => o.status === 'agreed')
+      const paSigned = !!(agreed && agreed.paBuyerSig && agreed.paSellerSig)
+      const unpaid = !neg.paid && !neg.dealLocked
+
+      if (paSigned && unpaid && !neg.canceled && deal.other_party_id) {
+        const pr = neg.payReminder || {}
+        // The cron records when it first saw this state, so no schema change is
+        // needed to know how long a deal has been sitting unpaid.
+        const firstSeen = Number(pr.firstSeen) || now
+        const sentPay: string[] = Array.isArray(pr.sent) ? pr.sent : []
+        const hoursWaiting = (now - firstSeen) / 3600000
+
+        let duePay: { key: string; tone: string } | null = null
+        for (let i = PAY_STEPS.length - 1; i >= 0; i--) {
+          const s = PAY_STEPS[i]
+          if (hoursWaiting >= s.afterHours && !sentPay.includes(s.key)) { duePay = s; break }
+        }
+
+        const initiatorRole = deal.initiator_role === 'seller' ? 'seller' : 'buyer'
+        let payerEmail = deal?.parties?.[initiatorRole]?.email
+        if (!payerEmail && deal.invite_role && deal.invite_role !== initiatorRole) {
+          // initiator is whichever side wasn't invited
+          payerEmail = deal?.parties?.[initiatorRole]?.email
+        }
+
+        if (!pr.firstSeen || duePay) {
+          if (duePay && payerEmail) {
+            const vv = deal?.vessel || {}
+            const boatName = [vv.year, vv.make, vv.model].filter(Boolean).join(' ') || vv.name || 'Your boat'
+            const price = agreed?.amount ? Number(agreed.amount).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) : ''
+            await sendEmail({
+              to: payerEmail,
+              subject: `${boatName} — ${duePay.tone}`,
+              html: emailLayout(`
+                <h2 style="color:#08152e; font-size:18px;">Both of you have signed &mdash; the deal just needs unlocking</h2>
+                <p style="color:#475569; font-size:14px; line-height:1.6;">
+                  You and the other party have both signed the Purchase Agreement for
+                  <strong>${boatName}</strong>${price ? ` at <strong>${price}</strong>` : ''}. The last step is the
+                  one-off <strong>$249</strong> platform fee, which you cover as the person who started this deal.
+                </p>
+                <p style="color:#475569; font-size:14px; line-height:1.6;">
+                  Until it's paid, the deal is on hold for <strong>both</strong> of you &mdash; due diligence,
+                  documents, and closing all stay locked. Nothing else is owed after this, and there's no
+                  commission on either side.
+                </p>
+                <p style="text-align:center; margin: 24px 0;">
+                  <a href="${base}/?dealId=${deal.id}&step=2" style="background:#b8863a; color:#08152e; padding:13px 26px; border-radius:8px; text-decoration:none; font-weight:700; font-size:15px;">Unlock the deal &mdash; $249 &rarr;</a>
+                </p>
+                <p style="color:#94a3b8; font-size:12px; line-height:1.6;">
+                  Changed your mind? You don't have to do anything &mdash; nothing is charged and the deal
+                  simply stays where it is. If this boat isn't happening, you can cancel it in the app so the
+                  other party knows where they stand.
+                </p>
+              `)
+            })
+            results.push({ deal: deal.id, to: 'initiator', reminder: duePay.key })
+          }
+          await sb.from('deals').update({
+            negotiate: { ...neg, payReminder: { firstSeen, sent: duePay ? [...sentPay, duePay.key] : sentPay } }
+          }).eq('id', deal.id)
+        }
+      }
 
       // Skip anything that isn't an open, funded-pending deposit.
       if (!neg.depositDeadline) continue
