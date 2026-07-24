@@ -5,6 +5,14 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const FROM_ADDRESS = 'BoatClosers <notifications@boatclosers.com>';
 
+// Gmail groups messages from the same sender into one conversation, which buries
+// the newest under the older ones — a customer opens a "3 hours left" reminder and
+// reads a two-day-old notice instead. A unique X-Entity-Ref-ID on every send stops
+// that grouping, so each notification lands as its own line in the inbox.
+function uniqueRef() {
+  return `bc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 export async function sendEmail({ to, subject, html, attachments, replyTo }: { to: string; subject: string; html: string; attachments?: { filename: string; content: string }[]; replyTo?: string }) {
   if (!RESEND_API_KEY) {
     console.error('RESEND_API_KEY is missing — email not sent.');
@@ -28,7 +36,8 @@ export async function sendEmail({ to, subject, html, attachments, replyTo }: { t
         subject,
         html,
         ...(replyTo ? { reply_to: replyTo } : {}),
-        ...(attachments && attachments.length ? { attachments } : {})
+        ...(attachments && attachments.length ? { attachments } : {}),
+        headers: { 'X-Entity-Ref-ID': uniqueRef() }
       })
     });
 
