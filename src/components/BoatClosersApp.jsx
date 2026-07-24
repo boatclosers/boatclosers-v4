@@ -2064,6 +2064,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
         {/* 🔒 Escrow Terms — opt-in (deposit amount, terms, and where it's held all together) */}
         <OfferSection icon="🔒" title="Escrow Terms" desc="Money the buyer puts down to take the boat off the market while they inspect it. It isn't an extra cost — it comes off the purchase price at closing. Set the amount, what happens to it if the deal falls apart, and who holds it in the meantime. BoatClosers never touches the money; a neutral third party you both agree on holds it." checked={inclDepositTerms} onToggle={()=>setInclDepositTerms(v=>!v)}>
+          <label style={S.label}>Escrow Method &mdash; where the deposit is held</label>
+          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:7 }}>
+            Choose this first. Who holds the money affects what it costs to hold &mdash; which is worth knowing before you settle on an amount.
+          </div>
+          <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
+          {escrowPath==="escrow_com" && (
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.5 }}>Opening Escrow.com launches a new tab. Everything above is already saved, so you can set it up there and come back to send your offer.</div>
+          )}
+          <div style={{ height:16 }}/>
           <label style={S.label}>Earnest Money Deposit</label>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:5 }}>
             {["0","2","3","5","7.5","10"].map(p => {
@@ -2115,7 +2124,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 <b>Thinking about it?</b> Earnest money is a good-faith deposit that takes the boat <b>off the market</b> while you inspect it. It shows the seller you&rsquo;re serious, and it buys you protected time for a survey and sea trial without worrying they&rsquo;ll sell it to someone else. Most private boat deals include one.
               </div>
               <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:7 }}>
-                Pick an amount above and we&rsquo;ll walk you through what happens to it if the deal falls through, and who holds it. Prefer no deposit? Leave it on <b>None</b> &mdash; the offer still works, it just doesn&rsquo;t hold the boat.
+                Pick an amount and we&rsquo;ll walk you through what happens to it if the deal falls through. Prefer no deposit? Leave it on <b>None</b> &mdash; the offer still works, it just doesn&rsquo;t hold the boat.
               </div>
             </div>
           ) : (
@@ -2124,7 +2133,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 {offerAmt ? <>✓ {fmt(Math.round(Number(offerAmt)*Number(escrowPct)/100))} earnest money ({pctLabel(escrowPct)}% of your offer)</> : <>✓ {pctLabel(escrowPct)}% earnest money &mdash; enter your offer price to see the amount</>}
               </div>
               <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:4 }}>
-                You&rsquo;ll send this after both sides sign, not now. Next, choose what happens to it if the deal falls through &mdash; and who holds it in the meantime.
+                You&rsquo;ll send this after both sides sign, not now. Next, choose what happens to it if the deal falls through.
               </div>
             </div>
           )}
@@ -2153,12 +2162,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </div>
           <div style={{ height:10 }}/>
           <Field label="Additional Contingencies (appears on the Purchase Agreement)"><textarea style={{...S.textarea, minHeight:48}} value={verbalNote} onChange={e=>setVerbalNote(e.target.value)} placeholder="e.g. Sale contingent on slip/dock transfer. Includes trailer and electronics. Closing at seller's marina." /></Field>
-          <div style={{ height:16 }}/>
-          <label style={S.label}>Escrow Method — where the deposit is held</label>
-          <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
-          {escrowPath==="escrow_com" && (
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.5 }}>Opening Escrow.com launches a new tab. Everything above is already saved, so you can set it up there and come back to send your offer.</div>
-          )}
           </>)}
         </OfferSection>
         </div>
@@ -2833,7 +2836,19 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const depInstrPosted = !!(depInstr && depInstr.details);
   const depCommit = dep.depositCommitment || null;
   const depCommitted = !!(depCommit && depCommit.name);
-  const [instrMethod, setInstrMethod] = useState("Escrow.com");
+  // The escrow method was negotiated in the offer and printed on the signed Purchase
+  // Agreement. This form used to default to "Escrow.com" regardless, so a deal agreed
+  // on an attorney trust account could be issued Escrow.com instructions — contract and
+  // instructions saying different things, with nothing flagging it.
+  const agreedMethod = ({
+    escrow_com: "Escrow.com",
+    attorney: "Attorney / title company trust account",
+    brokerage: "Licensed broker escrow account",
+    direct: "Direct to seller (no third party)",
+    custom: "Other",
+  })[dep.escrowPath] || "";
+  const [instrMethod, setInstrMethod] = useState(agreedMethod || "Escrow.com");
+  const methodDiffers = !!(agreedMethod && instrMethod !== agreedMethod);
   const [instrDetails, setInstrDetails] = useState("");
   const [commitName, setCommitName] = useState("");
   const postInstructions = () => { if (instrDetails.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositInstructions: { method: instrMethod, details: instrDetails.trim(), at: Date.now() } })); };
@@ -3023,12 +3038,23 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                       <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:3 }}>⚠️ Action needed: tell the buyer where to send the deposit</div>
                       <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>The buyer can't fund until you post this. Give them the escrow account or attorney trust account details &mdash; enough that they can send the money without texting you for it.</div>
                       <label style={S.label}>How is the deposit being held?</label>
+                      {agreedMethod && (
+                        <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginBottom:5 }}>
+                          The signed Purchase Agreement says <b style={{ color:C.navy }}>{agreedMethod}</b>. Keep it unless something has genuinely changed.
+                        </div>
+                      )}
                       <select style={S.input} value={instrMethod} onChange={e=>setInstrMethod(e.target.value)}>
                         <option>Escrow.com</option>
                         <option>Attorney / title company trust account</option>
                         <option>Licensed broker escrow account</option>
+                        <option>Direct to seller (no third party)</option>
                         <option>Other</option>
                       </select>
+                      {methodDiffers && (
+                        <div style={{ background:"#fdecec", border:`1px solid ${C.red}`, borderRadius:6, padding:"9px 11px", marginTop:7, fontSize:11.5, color:C.slate, lineHeight:1.6 }}>
+                          <b style={{ color:C.red }}>This differs from the signed agreement</b>, which says {agreedMethod}. The buyer agreed to that method &mdash; message them and get their agreement before posting different instructions. Changing where money goes late in a deal is also the most common sign of wire fraud, so expect them to check.
+                        </div>
+                      )}
                       <div style={{ height:8 }}/>
                       <label style={S.label}>Where to send it</label>
                       <textarea style={{ ...S.input, minHeight:78, resize:"vertical" }} value={instrDetails} onChange={e=>setInstrDetails(e.target.value)} placeholder="e.g. Escrow.com transaction #12345 — buyer opens it and funds there. Or: wire to Smith &amp; Co. Trust Account, routing 000000000, account 000000000, reference the vessel." />
@@ -3065,8 +3091,14 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                           <option>Escrow.com</option>
                           <option>Attorney / title company trust account</option>
                           <option>Licensed broker escrow account</option>
+                          <option>Direct to seller (no third party)</option>
                           <option>Other</option>
                         </select>
+                        {methodDiffers && (
+                          <div style={{ background:"#fdecec", border:`1px solid ${C.red}`, borderRadius:6, padding:"9px 11px", marginTop:7, fontSize:11.5, color:C.slate, lineHeight:1.6 }}>
+                            <b style={{ color:C.red }}>This differs from the signed agreement</b>, which says {agreedMethod}. Get the buyer&rsquo;s agreement in the message thread first.
+                          </div>
+                        )}
                         <div style={{ height:8 }}/>
                         <label style={S.label}>Where to send it</label>
                         <textarea style={{ ...S.input, minHeight:78, resize:"vertical" }} value={instrDetails} onChange={e=>setInstrDetails(e.target.value)} />
