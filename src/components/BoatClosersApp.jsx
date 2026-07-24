@@ -2057,6 +2057,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
         {/* 🔒 Escrow Terms — opt-in (deposit amount, terms, and where it's held all together) */}
         <OfferSection icon="🔒" title="Escrow Terms" desc="Money the buyer puts down to take the boat off the market while they inspect it. It isn't an extra cost — it comes off the purchase price at closing. Set the amount, what happens to it if the deal falls apart, and who holds it in the meantime. BoatClosers never touches the money; a neutral third party you both agree on holds it." checked={inclDepositTerms} onToggle={()=>setInclDepositTerms(v=>!v)}>
+          <label style={S.label}>Escrow Method &mdash; where the deposit is held</label>
+          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:7 }}>
+            Choose this first. Who holds the money affects what it costs to hold &mdash; which is worth knowing before you settle on an amount.
+          </div>
+          <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
+          {escrowPath==="escrow_com" && (
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.5 }}>Opening Escrow.com launches a new tab. Everything above is already saved, so you can set it up there and come back to send your offer.</div>
+          )}
+          <div style={{ height:16 }}/>
           <label style={S.label}>Earnest Money Deposit</label>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:5 }}>
             {["0","2","3","5","7.5","10"].map(p => {
@@ -2108,7 +2117,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 <b>Thinking about it?</b> Earnest money is a good-faith deposit that takes the boat <b>off the market</b> while you inspect it. It shows the seller you&rsquo;re serious, and it buys you protected time for a survey and sea trial without worrying they&rsquo;ll sell it to someone else. Most private boat deals include one.
               </div>
               <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:7 }}>
-                Pick an amount above and we&rsquo;ll walk you through what happens to it if the deal falls through, and who holds it. Prefer no deposit? Leave it on <b>None</b> &mdash; the offer still works, it just doesn&rsquo;t hold the boat.
+                Pick an amount and we&rsquo;ll walk you through what happens to it if the deal falls through. Prefer no deposit? Leave it on <b>None</b> &mdash; the offer still works, it just doesn&rsquo;t hold the boat.
               </div>
             </div>
           ) : (
@@ -2117,7 +2126,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 {offerAmt ? <>✓ {fmt(Math.round(Number(offerAmt)*Number(escrowPct)/100))} earnest money ({pctLabel(escrowPct)}% of your offer)</> : <>✓ {pctLabel(escrowPct)}% earnest money &mdash; enter your offer price to see the amount</>}
               </div>
               <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:4 }}>
-                You&rsquo;ll send this after both sides sign, not now. Next, choose what happens to it if the deal falls through &mdash; and who holds it in the meantime.
+                You&rsquo;ll send this after both sides sign, not now. Next, choose what happens to it if the deal falls through.
               </div>
             </div>
           )}
@@ -2146,12 +2155,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </div>
           <div style={{ height:10 }}/>
           <Field label="Additional Contingencies (appears on the Purchase Agreement)"><textarea style={{...S.textarea, minHeight:48}} value={verbalNote} onChange={e=>setVerbalNote(e.target.value)} placeholder="e.g. Sale contingent on slip/dock transfer. Includes trailer and electronics. Closing at seller's marina." /></Field>
-          <div style={{ height:16 }}/>
-          <label style={S.label}>Escrow Method — where the deposit is held</label>
-          <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
-          {escrowPath==="escrow_com" && (
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.5 }}>Opening Escrow.com launches a new tab. Everything above is already saved, so you can set it up there and come back to send your offer.</div>
-          )}
           </>)}
         </OfferSection>
         </div>
