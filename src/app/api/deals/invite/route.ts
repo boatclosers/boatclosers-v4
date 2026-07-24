@@ -70,15 +70,26 @@ export async function POST(req: Request) {
   const youAreLabel = derivedInviteRole === 'seller' ? 'selling' : 'buying';
   const counterpartLabel = derivedInviteRole === 'seller' ? 'buyer' : 'seller';
 
+  // The boat hasn't been seen yet, so this invite is a request to arrange a viewing
+  // rather than an invitation to do paperwork. Nothing else about the flow changes.
+  const viewingRequest = !!deal?.parties?.viewingRequested;
+
   const emailResult = await sendEmail({
     to: inviteEmail,
-    subject: `${inviterLabel} wants to handle the ${boat} sale with you on BoatClosers`,
+    subject: viewingRequest
+      ? `${inviterLabel} would like to see the ${boat}`
+      : `${inviterLabel} wants to handle the ${boat} sale with you on BoatClosers`,
     html: emailLayout(`
-      <h2 style="color:#08152e; font-size:19px; margin:0 0 4px;">You've been added to a boat deal</h2>
+      <h2 style="color:#08152e; font-size:19px; margin:0 0 4px;">${viewingRequest ? 'A request to see the boat' : "You've been added to a boat deal"}</h2>
       <p style="color:#475569; font-size:14px; line-height:1.6; margin:0 0 14px;">
-        <strong>${inviterLabel}</strong> has invited you to complete the sale of
-        <strong>${boat}</strong> with them on <strong>BoatClosers</strong>, where you'll be the
-        <strong>${derivedInviteRole}</strong> (the one ${youAreLabel} the boat).
+        ${viewingRequest
+          ? `<strong>${inviterLabel}</strong> would like to arrange a time to see
+             <strong>${boat}</strong>. Open the link below and message them directly to
+             agree a day and time &mdash; BoatClosers just passes the request along, you
+             two sort out the details between yourselves.`
+          : `<strong>${inviterLabel}</strong> has invited you to complete the sale of
+             <strong>${boat}</strong> with them on <strong>BoatClosers</strong>, where you'll be the
+             <strong>${derivedInviteRole}</strong> (the one ${youAreLabel} the boat).`}
       </p>
       <p style="color:#475569; font-size:14px; line-height:1.6; margin:0 0 14px;">
         BoatClosers is a private platform that walks a buyer and seller through a boat sale
