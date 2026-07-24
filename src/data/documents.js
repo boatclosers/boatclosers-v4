@@ -85,7 +85,8 @@ export const DOCUMENTS = [
 <p>Seller agrees to sell and Buyer agrees to purchase the following vessel together with its engines, equipment, and the gear and accessories listed in the Inventory Schedule attached to this Agreement (collectively, the \u201cVessel\u201d): a {{vesselYear}} {{vesselMake}} {{vesselModel}}, {{vesselLength}} in length, {{hullMaterial}} hull, Hull Identification Number {{hin}}, U.S. Coast Guard Official Number {{uscgOfficialNo}}, Title No. {{titleNo}}, Registration {{regNo}}, powered by {{engineDesc}}. Items not listed on the Inventory Schedule, and any personal effects of Seller, are excluded from the sale.</p>
 
 <h3>2. Purchase Price</h3>
-<p>The total purchase price is {{salePrice}} ({{salePriceWords}} U.S. Dollars), payable as: an earnest money deposit of {{depositAmount}} ({{depositPct}}) upon execution, and the balance of {{balanceDue}} in good funds at Closing.</p>
+<p>The total purchase price is {{salePrice}} ({{salePriceWords}} U.S. Dollars), payable as: an earnest money deposit of {{depositAmount}} ({{depositPct}}), and the balance of {{balanceDue}} in good funds at Closing.</p>
+{{DEPOSIT_TERMS}}
 
 <h3>3. Contingencies</h3>
 {{CONTINGENCY_CLAUSES}}
