@@ -1958,6 +1958,24 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             Your asking price of <b>{fmt(Number(vessel.askingPrice)) || "—"}</b> is set as the buyer's anchor. If you want to review or pre-set the full terms a buyer can offer against, you can open them below.
           </div>
           <button onClick={()=>setShowBuilder(true)} style={{ ...S.btnOutline, fontSize:12.5, padding:"9px 18px", marginTop:12 }}>View / set full terms &amp; conflicts</button>
+          {/* Shown while the seller is idle waiting on a buyer. This is the honest
+              moment for the offer: nothing is asked of them, and it's when someone
+              decides whether doing it themselves is worth it. */}
+          <div style={{ marginTop:18, paddingTop:16, borderTop:`1px solid ${C.mist}`, maxWidth:460, marginLeft:"auto", marginRight:"auto", textAlign:"left" }}>
+            <div style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy, marginBottom:4 }}>
+              Would you rather someone just sold it for you?
+            </div>
+            <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
+              <b>Sea Yachts</b> is a licensed, bonded Florida yacht brokerage with over 20 years in the marine
+              industry. They can take the whole sale off your hands: pricing and marketing the boat, vetting
+              buyers, paperwork, escrow, survey coordination and closing, the traditional full-service way.
+              A brokerage commission applies instead of this flat fee, and you don&rsquo;t touch any of the process.
+            </div>
+            <a href="mailto:support@boatclosers.com?subject=Full-service%20brokerage%20enquiry%20(Sea%20Yachts)&body=I%27d%20like%20to%20talk%20about%20having%20Sea%20Yachts%20sell%20my%20boat%20instead%20of%20doing%20it%20myself.%0A%0AThe%20boat%3A%0AWhat%20I%27m%20trying%20to%20do%3A"
+              style={{ display:"inline-block", marginTop:9, fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:"transparent", border:`1px solid ${C.brass}`, borderRadius:6, padding:"8px 15px", textDecoration:"none" }}>
+              Contact Sea Yachts &rarr;
+            </a>
+          </div>
         </div>
       ) : (!frozen && (offers.length === 0 || showBuilder)) ? (
       <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.brass}` }}>
@@ -2163,28 +2181,28 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ height:10 }}/>
           <Field label="Additional Contingencies (appears on the Purchase Agreement)"><textarea style={{...S.textarea, minHeight:48}} value={verbalNote} onChange={e=>setVerbalNote(e.target.value)} placeholder="e.g. Sale contingent on slip/dock transfer. Includes trailer and electronics. Closing at seller's marina." /></Field>
           </>)}
-          {/* An exit for people who'd rather not do this themselves. Deliberately NOT
-              one of the escrow tiles — those answer "where does the deposit sit", and
-              a brokerage referral is a different thing entirely. Placed last, because
-              this is the point where someone has seen every decision the deal asks of
-              them and may decide they'd rather pay a professional. Sea Yachts is named
-              as the operator's own brokerage rather than presented as a neutral tip. */}
-          <div style={{ marginTop:18, paddingTop:14, borderTop:`1px solid ${C.mist}` }}>
-            <div style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy, marginBottom:4 }}>
-              Would you rather someone just handled all of this?
-            </div>
-            <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
-              <b>Sea Yachts</b> &mdash; the licensed, bonded Florida yacht brokerage behind BoatClosers &mdash; can
-              take the whole sale off your hands: pricing, paperwork, escrow, survey coordination and closing,
-              the traditional full-service way. A brokerage commission applies instead of this flat fee, and you
-              don&rsquo;t touch any of the process.
-            </div>
-            <a href="mailto:support@boatclosers.com?subject=Full-service%20brokerage%20enquiry%20(Sea%20Yachts)&body=I%27d%20like%20to%20talk%20about%20having%20Sea%20Yachts%20handle%20my%20boat%20sale%20instead%20of%20doing%20it%20myself.%0A%0AThe%20boat%3A%0AWhat%20I%27m%20trying%20to%20do%3A"
-              style={{ display:"inline-block", marginTop:9, fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:"transparent", border:`1px solid ${C.brass}`, borderRadius:6, padding:"8px 15px", textDecoration:"none" }}>
-              Contact Sea Yachts &rarr;
-            </a>
-          </div>
         </OfferSection>
+        </div>
+
+        {/* Sits OUTSIDE the buyer-authored block above, which is wrapped in
+            pointerEvents:none for the seller. Inside it, this was greyed out and
+            unclickable for the one person most likely to want it — a full-service
+            brokerage is traditionally a seller-side service. */}
+        <div style={{ marginTop:14, background:"#fff", border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px 16px" }}>
+          <div style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy, marginBottom:4 }}>
+            {myRole==="seller" ? "Would you rather someone just sold it for you?" : "Would you rather someone just handled all of this?"}
+          </div>
+          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
+            <b>Sea Yachts</b> is a licensed, bonded Florida yacht brokerage with over 20 years in the marine industry. They can
+            {myRole==="seller"
+              ? <> take the whole sale off your hands: pricing and marketing the boat, vetting buyers, paperwork, escrow, survey coordination and closing, the traditional full-service way.</>
+              : <> represent you as a buyer&rsquo;s broker and handle the whole purchase: negotiating, paperwork, escrow, survey coordination and closing, the traditional full-service way.</>}
+            {" "}A brokerage commission applies instead of this flat fee, and you don&rsquo;t touch any of the process.
+          </div>
+          <a href="mailto:support@boatclosers.com?subject=Full-service%20brokerage%20enquiry%20(Sea%20Yachts)&body=I%27d%20like%20to%20talk%20about%20having%20Sea%20Yachts%20handle%20my%20boat%20deal%20instead%20of%20doing%20it%20myself.%0A%0AThe%20boat%3A%0AWhat%20I%27m%20trying%20to%20do%3A"
+            style={{ display:"inline-block", marginTop:9, fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:"transparent", border:`1px solid ${C.brass}`, borderRadius:6, padding:"8px 15px", textDecoration:"none" }}>
+            Contact Sea Yachts &rarr;
+          </a>
         </div>
 
         {/* Submit */}
