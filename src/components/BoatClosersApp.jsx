@@ -2163,6 +2163,27 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ height:10 }}/>
           <Field label="Additional Contingencies (appears on the Purchase Agreement)"><textarea style={{...S.textarea, minHeight:48}} value={verbalNote} onChange={e=>setVerbalNote(e.target.value)} placeholder="e.g. Sale contingent on slip/dock transfer. Includes trailer and electronics. Closing at seller's marina." /></Field>
           </>)}
+          {/* An exit for people who'd rather not do this themselves. Deliberately NOT
+              one of the escrow tiles — those answer "where does the deposit sit", and
+              a brokerage referral is a different thing entirely. Placed last, because
+              this is the point where someone has seen every decision the deal asks of
+              them and may decide they'd rather pay a professional. Sea Yachts is named
+              as the operator's own brokerage rather than presented as a neutral tip. */}
+          <div style={{ marginTop:18, paddingTop:14, borderTop:`1px solid ${C.mist}` }}>
+            <div style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy, marginBottom:4 }}>
+              Would you rather someone just handled all of this?
+            </div>
+            <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
+              <b>Sea Yachts</b> &mdash; the licensed, bonded Florida yacht brokerage behind BoatClosers &mdash; can
+              take the whole sale off your hands: pricing, paperwork, escrow, survey coordination and closing,
+              the traditional full-service way. A brokerage commission applies instead of this flat fee, and you
+              don&rsquo;t touch any of the process.
+            </div>
+            <a href="mailto:support@boatclosers.com?subject=Full-service%20brokerage%20enquiry%20(Sea%20Yachts)&body=I%27d%20like%20to%20talk%20about%20having%20Sea%20Yachts%20handle%20my%20boat%20sale%20instead%20of%20doing%20it%20myself.%0A%0AThe%20boat%3A%0AWhat%20I%27m%20trying%20to%20do%3A"
+              style={{ display:"inline-block", marginTop:9, fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:"transparent", border:`1px solid ${C.brass}`, borderRadius:6, padding:"8px 15px", textDecoration:"none" }}>
+              Contact Sea Yachts &rarr;
+            </a>
+          </div>
         </OfferSection>
         </div>
 
