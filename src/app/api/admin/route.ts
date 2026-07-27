@@ -98,9 +98,55 @@ function assess(d: any) {
 
 export async function POST(req: Request) {
   try {
-    const { password } = await req.json()
+    const body = await req.json()
+    const { password } = body
     if (!passwordOk(password)) {
       return NextResponse.json({ error: 'Not authorised.' }, { status: 401 })
+    }
+
+    // ── Escrow.com check, behind the same admin password ──────────────────────
+    // Read-only: given a transaction ID (or "1" to just test the connection),
+    // asks Escrow.com whether it's funded. Cannot move money. Lets the owner
+    // confirm a real deposit without relying on the seller's word.
+    if (body.action === 'escrowCheck') {
+      const base = process.env.ESCROW_API_BASE || 'https://api.escrow-sandbox.com'
+      const email = process.env.ESCROW_API_EMAIL || ''
+      const key = process.env.ESCROW_API_KEY || ''
+      if (!email || !key) {
+        return NextResponse.json({ escrow: { ok: false, configured: false, message: 'Escrow.com keys are not set on the server yet (ESCROW_API_EMAIL / ESCROW_API_KEY).' } })
+      }
+      const txId = String(body.transactionId || '1').trim()
+      if (!/^\d+$/.test(txId)) {
+        return NextResponse.json({ escrow: { ok: false, message: 'Transaction ID must be numbers only.' } })
+      }
+      try {
+        const auth = 'Basic ' + Buffer.from(`${email}:${key}`).toString('base64')
+        const r = await fetch(`${base}/2017-09-01/transaction/${txId}`, {
+          method: 'GET', headers: { Authorization: auth, Accept: 'application/json' }, cache: 'no-store',
+        })
+        const envLabel = base.includes('sandbox') ? 'sandbox' : 'LIVE'
+        if (r.status === 401 || r.status === 403) {
+          return NextResponse.json({ escrow: { ok: false, connected: true, env: envLabel, message: `Reached Escrow.com (${envLabel}), but it rejected the credentials. Check the API email and key.` } })
+        }
+        if (r.status === 404) {
+          return NextResponse.json({ escrow: { ok: true, connected: true, env: envLabel, funded: false, message: `✓ Connected to Escrow.com (${envLabel}). No transaction #${txId} exists yet — that's expected until you create one.` } })
+        }
+        if (!r.ok) {
+          const t = await r.text().catch(() => '')
+          return NextResponse.json({ escrow: { ok: false, connected: true, env: envLabel, message: `Escrow.com (${envLabel}) returned ${r.status}.`, detail: t.slice(0, 200) } })
+        }
+        const tx = await r.json().catch(() => null)
+        const status = String(tx?.status?.transaction || tx?.status?.state || '').toLowerCase()
+        const funded = ['secured','in_dispute','dispute','closed','completed','shipped','received','accepted','in_progress'].some(s => status.includes(s))
+        return NextResponse.json({ escrow: {
+          ok: true, connected: true, env: envLabel, funded, state: status || 'unknown',
+          message: funded
+            ? `✓ Transaction #${txId} on Escrow.com (${envLabel}) is FUNDED — the deposit is really in escrow.`
+            : `Transaction #${txId} exists on Escrow.com (${envLabel}) but is NOT funded yet (state: ${status || 'unknown'}).`,
+        } })
+      } catch (e: any) {
+        return NextResponse.json({ escrow: { ok: false, message: 'Could not reach Escrow.com: ' + (e?.message || 'unknown') } })
+      }
     }
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json({ error: 'Server is missing SUPABASE_SERVICE_ROLE_KEY.' }, { status: 500 })
