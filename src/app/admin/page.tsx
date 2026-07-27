@@ -36,6 +36,24 @@ export default function AdminPage() {
   const [filter, setFilter] = useState('attention')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
+  const [escTx, setEscTx] = useState('1')
+  const [escResult, setEscResult] = useState<any>(null)
+  const [escBusy, setEscBusy] = useState(false)
+
+  const runEscrowCheck = async () => {
+    setEscBusy(true); setEscResult(null)
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw, action: 'escrowCheck', transactionId: escTx || '1' })
+      })
+      const j = await res.json().catch(() => ({}))
+      setEscResult(j?.escrow || { ok: false, message: 'No response.' })
+    } catch {
+      setEscResult({ ok: false, message: 'Network error.' })
+    }
+    setEscBusy(false)
+  }
 
   const load = async (password: string) => {
     setBusy(true); setError('')
@@ -138,6 +156,29 @@ export default function AdminPage() {
       </div>
 
       <div style={{ padding: '1.25rem 1.5rem', maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ background: '#fff', border: `1px solid ${MIST}`, borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: NAVY, marginBottom: 3 }}>Escrow.com connection test</div>
+          <div style={{ fontSize: 11.5, color: SLATE, marginBottom: 10, lineHeight: 1.6 }}>
+            Read-only check. Enter an Escrow.com transaction ID to see whether it&rsquo;s funded, or leave it as 1 just to confirm the connection works.
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <input value={escTx} onChange={e => setEscTx(e.target.value)} placeholder="Transaction ID"
+              style={{ padding: '8px 12px', fontSize: 13, borderRadius: 7, border: `1px solid ${MIST}`, width: 160 }} />
+            <button onClick={runEscrowCheck} disabled={escBusy}
+              style={{ padding: '8px 16px', fontSize: 12.5, fontWeight: 700, color: NAVY, background: BRASS, border: 'none', borderRadius: 7, cursor: escBusy ? 'default' : 'pointer', opacity: escBusy ? 0.6 : 1 }}>
+              {escBusy ? 'Checking…' : 'Check Escrow.com'}
+            </button>
+          </div>
+          {escResult && (
+            <div style={{ marginTop: 10, padding: '10px 13px', borderRadius: 7, fontSize: 12.5, lineHeight: 1.6,
+              background: escResult.funded ? '#eafaf1' : escResult.ok ? '#eff6ff' : '#fdecec',
+              border: `1px solid ${escResult.funded ? '#a8d8b8' : escResult.ok ? '#bfdbfe' : '#f5b5b5'}`,
+              color: escResult.funded ? '#0f6e56' : escResult.ok ? '#1d4ed8' : '#b91c1c' }}>
+              {escResult.message}
+              {escResult.env === 'LIVE' && <div style={{ marginTop: 4, fontWeight: 800 }}>⚠️ This is the LIVE environment — real money.</div>}
+            </div>
+          )}
+        </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
           <Stat label="Needs attention" value={t.needsAttention ?? 0} tone={(t.needsAttention ?? 0) > 0 ? '#b45309' : undefined} />
           <Stat label="Live deals" value={t.live ?? 0} />
