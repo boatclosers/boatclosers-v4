@@ -2604,6 +2604,12 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
   const amt = fmt(negotiate.deposit||0);
   const price = fmt(negotiate.agreedPrice||0);
   const escrowLabel = escLabel(negotiate.escrowPath);
+  // For Escrow.com deals the "reference" the buyer enters IS the Escrow.com
+  // transaction ID — a number the app can later check against the API to confirm
+  // funding automatically. Captured as its own field so the automated pieces have a
+  // clean, validated value, separate from the free-text references used by
+  // attorney/broker/direct deals.
+  const isEscrowCom = negotiate.escrowPath === "escrow_com";
   const proof = negotiate.depositProof || null;
   const verif = negotiate.depositVerification || null;
   const buyerSigned = !!(proof && proof.sig);
@@ -2612,7 +2618,8 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
 
   const signAsBuyer = () => {
     if (!refNo.trim() || !sigName.trim() || !setNegotiate) return;
-    setNegotiate(n => ({ ...n, depositProof: { ref: refNo.trim(), note: note.trim(), sig: sigName.trim(), at: Date.now(), by: "buyer" }, depositVerification: null }));
+    if (isEscrowCom && !/^\d+$/.test(refNo.trim())) return;
+    setNegotiate(n => ({ ...n, depositProof: { ref: refNo.trim(), note: note.trim(), sig: sigName.trim(), at: Date.now(), by: "buyer" }, depositVerification: null, ...(isEscrowCom ? { escrowTxId: refNo.trim() } : {}) }));
     setRefNo(""); setSigName(""); setNote("");
   };
   const signAsSeller = () => {
@@ -2679,8 +2686,16 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
           {isBuyer && (!buyerSigned || disputed) && (
             <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"13px 15px", fontFamily:"sans-serif" }}>
               <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:7 }}>Sign as the buyer</div>
-              <label style={S.label}>Confirmation / reference #</label>
-              <input style={S.input} value={refNo} onChange={e=>setRefNo(e.target.value)} placeholder="Wire confirmation, escrow transaction #, or check #" />
+              <label style={S.label}>{isEscrowCom ? "Escrow.com transaction ID" : "Confirmation / reference #"}</label>
+              <input style={S.input} value={refNo} onChange={e=>setRefNo(e.target.value)} placeholder={isEscrowCom ? "e.g. 5588989 — the numbered ID from your Escrow.com transaction" : "Wire confirmation, escrow transaction #, or check #"} />
+              {isEscrowCom && (
+                <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:4 }}>
+                  You&rsquo;ll find this number on your transaction at escrow.com &mdash; it&rsquo;s how BoatClosers confirms your deposit automatically, so you won&rsquo;t have to wait on the seller to verify it by hand.
+                </div>
+              )}
+              {isEscrowCom && refNo.trim() && !/^\d+$/.test(refNo.trim()) && (
+                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.red, fontWeight:700, marginTop:4 }}>The Escrow.com transaction ID is numbers only.</div>
+              )}
               <div style={{ height:8 }}/>
               <label style={S.label}>Note (optional)</label>
               <input style={S.input} value={note} onChange={e=>setNote(e.target.value)} placeholder="e.g. Wired from Chase on 8/14" />
@@ -2688,7 +2703,7 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
                 By typing your full name you sign this receipt, confirming you have <b>actually sent</b> the {amt} earnest money as described. Your signature is recorded with the date and time.
               </div>
               <input style={S.input} value={sigName} onChange={e=>setSigName(e.target.value)} placeholder="Type your full name to sign" />
-              <button style={{...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"11px", opacity:(refNo.trim()&&sigName.trim())?1:0.5}} disabled={!refNo.trim()||!sigName.trim()} onClick={signAsBuyer}>Sign the receipt</button>
+              <button style={{...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"11px", opacity:(refNo.trim()&&sigName.trim()&&(!isEscrowCom||/^\d+$/.test(refNo.trim())))?1:0.5}} disabled={!refNo.trim()||!sigName.trim()||(isEscrowCom&&!/^\d+$/.test(refNo.trim()))} onClick={signAsBuyer}>Sign the receipt</button>
             </div>
           )}
 
