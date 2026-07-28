@@ -140,6 +140,10 @@ export async function POST(req: Request) {
         const funded = ['secured','in_dispute','dispute','closed','completed','shipped','received','accepted','in_progress'].some(s => status.includes(s))
         return NextResponse.json({ escrow: {
           ok: true, connected: true, env: envLabel, funded, state: status || 'unknown',
+          // The raw status + party states, so we can confirm the funded-mapping against
+          // a real funded transaction the first time one appears. Safe to show — it's
+          // status metadata, not money-moving controls.
+          raw: { status: tx?.status ?? null, parties: Array.isArray(tx?.parties) ? tx.parties.map((p: any) => ({ role: p?.role, status: p?.status ?? null })) : null },
           message: funded
             ? `✓ Transaction #${txId} on Escrow.com (${envLabel}) is FUNDED — the deposit is really in escrow.`
             : `Transaction #${txId} exists on Escrow.com (${envLabel}) but is NOT funded yet (state: ${status || 'unknown'}).`,
