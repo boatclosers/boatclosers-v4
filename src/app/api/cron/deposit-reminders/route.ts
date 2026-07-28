@@ -70,8 +70,44 @@ export async function GET(req: Request) {
       { key: 'p3', afterHours: 168, tone: 'Last reminder about your boat deal' },
     ]
 
+    // Escrow.com background auto-verify. If a deal's Escrow.com transaction is
+    // funded but the deal isn't verified yet, confirm it here — so a deposit that
+    // lands overnight advances the deal without anyone opening the app. Same
+    // server-side, tamper-proof confirmation as the on-open check, just unattended.
+    const escBase = process.env.ESCROW_API_BASE || 'https://api.escrow-sandbox.com'
+    const escEmail = process.env.ESCROW_API_EMAIL || ''
+    const escKey = process.env.ESCROW_API_KEY || ''
+    const escFundedStates = ['secured','in_dispute','dispute','closed','completed','shipped','received','accepted','in_progress','inspection']
+
     for (const deal of deals || []) {
       const neg = deal?.negotiate || {}
+
+      // ── background escrow auto-verify ──
+      if (escEmail && escKey && neg.escrowPath === 'escrow_com' && neg.escrowTxId
+          && neg.depositVerification?.status !== 'confirmed' && !neg.depositEnded && !neg.canceled) {
+        try {
+          const escAuth = 'Basic ' + Buffer.from(`${escEmail}:${escKey}`).toString('base64')
+          const er = await fetch(`${escBase}/2017-09-01/transaction/${String(neg.escrowTxId)}`, {
+            method: 'GET', headers: { Authorization: escAuth, Accept: 'application/json' }, cache: 'no-store',
+          })
+          if (er.ok) {
+            const etx = await er.json().catch(() => null)
+            const estate = String(etx?.status?.transaction || etx?.status?.state || '').toLowerCase()
+            if (escFundedStates.some(s => estate.includes(s))) {
+              const nn = { ...neg, depositVerification: {
+                status: 'confirmed', at: Date.now(), by: 'escrow_com_api',
+                note: `Automatically confirmed by Escrow.com — transaction #${neg.escrowTxId} is funded.`,
+                sig: 'Escrow.com (verified via API)', auto: true,
+              } }
+              await sb.from('deals').update({ negotiate: nn }).eq('id', deal.id)
+              results.push({ deal: deal.id, escrowAutoVerified: true })
+              // Use the freshly-verified neg for the rest of this iteration.
+              Object.assign(neg, nn)
+            }
+          }
+        } catch { /* a status check failing must never break the reminder run */ }
+      }
+
       const offersList = Array.isArray(neg.offers) ? neg.offers : []
       const agreed = offersList.find((o: any) => o.status === 'agreed')
       const paSigned = !!(agreed && agreed.paBuyerSig && agreed.paSellerSig)
