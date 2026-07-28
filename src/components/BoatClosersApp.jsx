@@ -2874,10 +2874,24 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const depositRequired = Number(dep.deposit) > 0;
   const depBuyerSigned = !!(dep.depositProof && dep.depositProof.sig);
   const depSellerSigned = !!(dep.depositVerification && dep.depositVerification.status === "confirmed" && dep.depositVerification.sig);
-  const ddOpen = !depositRequired || (depBuyerSigned && depSellerSigned);
   const depVerif = dep.depositVerification || null;
   const depVerified = depVerif?.status === "confirmed";
   const depDisputed = depVerif?.status === "disputed";
+  // ── Deposit no longer HARD-gates due diligence ────────────────────────────
+  // The buyer can start the lead-time work — booking a surveyor, arranging a sea
+  // trial — while the deposit is still being funded/verified, because those things
+  // take days to schedule and waiting wastes everyone's time. What the deposit
+  // still governs is the FINISH: the buyer can't ACCEPT or REJECT the vessel until
+  // the deposit is verified, so nobody reaches the closing line on an unfunded deal.
+  const depositSecured = !depositRequired || depVerified;
+  // The waived flag lets the initiator say "proceed without waiting" (below).
+  const depositWaived = !!dep.depositTimerWaived;
+  // "Paused" = a required deposit's deadline passed without verification and the
+  // initiator hasn't resolved it. Planning stays open; the decision gets locked.
+  const depTimerExpired = depositRequired && !depVerified && !depositWaived && depDeadline > 0 && Date.now() > depDeadline && !depEnded;
+  const decisionUnlocked = depositSecured || depositWaived;
+  // Kept for older references: DD content renders; only the decision is gated now.
+  const ddOpen = true;
   const depAwaitingVerify = depHasProof && !depVerif;
   const [verifyNote, setVerifyNote] = useState("");
   const [verifySig, setVerifySig] = useState("");
@@ -2919,7 +2933,12 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
     setEditingInstr(false);
   };
   const signCommitment = () => { if (commitName.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositCommitment: { name: commitName.trim(), at: Date.now(), amount: n.deposit, deadline: n.depositDeadline } })); };
-  const extendDeposit = (h) => { if (setNegotiate) setNegotiate(n => ({ ...n, depositDeadline: Date.now() + h*3600*1000, depositEnded: false })); };
+  const extendDeposit = (h) => { if (setNegotiate) setNegotiate(n => ({ ...n, depositDeadline: Date.now() + h*3600*1000, depositEnded: false, depositTimerWaived: false })); };
+  const [customExtend, setCustomExtend] = useState("");
+  const extendDepositTo = (dateStr) => { const t = Date.parse(dateStr + "T23:59:59"); if (t && setNegotiate) setNegotiate(n => ({ ...n, depositDeadline: t, depositEnded: false, depositTimerWaived: false })); setCustomExtend(""); };
+  // Initiator chooses to proceed without waiting for verification. One-time per
+  // expiry: it clears THIS lapse and unlocks the decision; a later stall re-arms.
+  const waiveDepositTimer = () => { if (setNegotiate) setNegotiate(n => ({ ...n, depositTimerWaived: true })); };
   const endDealForDeposit = () => { if (setNegotiate) setNegotiate(n => ({ ...n, depositEnded: true })); };
   // Seller readiness checklist (each party only sees/edits their own DD).
   const sellerPrep = data.sellerPrep || {};
@@ -3282,37 +3301,60 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         );
       })()}
 
-      {!ddOpen ? (
-        <div style={{ ...S.card, borderTop:`3px solid ${C.brass}`, textAlign:"center", padding:"26px 22px" }}>
-          <div style={{ fontSize:36, marginBottom:8 }}>🔒</div>
-          <div style={{ fontSize:19, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>Due diligence opens once the deposit is secured</div>
-          <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, maxWidth:520, margin:"0 auto 6px" }}>
-            {dep.depositEnded
-              ? "This deal ended because the earnest-money deposit was never funded. The survey, sea trial and inspection steps stay closed."
-              : isBuyer
-              ? `The ${fmt(dep.deposit)} earnest money is what takes this boat off the market so you can survey, sea-trial and inspect it without the seller selling it to someone else. Until it's funded and the seller has confirmed it arrived, there's nothing protecting your time or money — so due diligence stays closed.`
-              : `The buyer's ${fmt(dep.deposit)} earnest money is what commits them to this deal before you hold the boat for them through survey and sea trial. Once it's funded and you've confirmed it arrived, due diligence opens for both of you.`}
-          </div>
-          {!dep.depositEnded && (
-            <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, background:C.sandDark, borderRadius:6, padding:"11px 14px", maxWidth:520, margin:"14px auto 0" }}>
-              <b>Both parties sign one receipt:</b> the buyer signs that the deposit was sent, the seller signs that it arrived. The panel above shows whose move it is right now.
+      {/* Deposit-pause banner. Planning stays open below; only the vessel decision
+          is locked while a required deposit is unverified past its deadline. The
+          INITIATOR — who paid — chooses what to do, with role-appropriate options. */}
+      {depositRequired && !depVerified && !depositWaived && !dep.depositEnded && (() => {
+        const isInitiator = amInitiator;
+        const initiatorIsSeller = (negotiate.initiatorRole || (isBuyer ? "buyer" : "seller")) === "seller";
+        if (!depTimerExpired) {
+          // Not expired yet — a soft reminder that the clock is running, DD open.
+          return (
+            <div style={{ background:"#eff6ff", border:`1px solid #bfdbfe`, borderRadius:8, padding:"11px 14px", marginBottom:14, fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:12.5, fontWeight:800, color:"#1d4ed8", marginBottom:2 }}>Deposit is still being verified — you can start planning now</div>
+              <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>
+                Go ahead and line up your surveyor and sea trial. You&rsquo;ll be able to <b>accept or reject the vessel</b> once the {fmt(dep.deposit)} deposit is confirmed.
+              </div>
             </div>
-          )}
-          {!dep.depositEnded && depInstrPosted && ((isBuyer && depCommitted) || (!isBuyer && depBuyerSigned)) && (
-            <button style={{...S.btnBrass, marginTop:14, fontSize:13, padding:"11px 22px"}} onClick={()=>setShowReceipt(true)}>📄 Open the deposit receipt →</button>
-          )}
-          {/* A buyer whose money is already out must never be trapped waiting on a
-              silent seller. Support is a real door, not a dead end. */}
-          {!dep.depositEnded && isBuyer && depBuyerSigned && !depSellerSigned && (
-            <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, maxWidth:520, margin:"14px auto 0" }}>
-              Seller not responding? If it's been more than a couple of days since you sent the funds, open <b>Help</b> from the menu at the top and tell us what's happened &mdash; we'll step in and sort it out with them.
+          );
+        }
+        // Expired and unresolved → PAUSED. Initiator decides.
+        return (
+          <div style={{ background:"#fdecec", border:`1px solid ${C.red}`, borderRadius:8, padding:"13px 15px", marginBottom:14, fontFamily:"sans-serif" }}>
+            <div style={{ fontSize:13, fontWeight:800, color:C.red, marginBottom:3 }}>⏸️ Deal paused — the deposit deadline passed without verification</div>
+            <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:isInitiator?10:0 }}>
+              {initiatorIsSeller
+                ? `The ${fmt(dep.deposit)} earnest money wasn't confirmed in time. Your planning stays open, but the vessel decision is locked until this is sorted.`
+                : `Your ${fmt(dep.deposit)} deposit wasn't verified before the deadline. Your planning stays open, but you can't finalize the vessel decision until it's resolved.`}
             </div>
-          )}
-          <div style={{ marginTop:18 }}>
-            <button style={S.btnOutline} onClick={onBack}>← Back</button>
+            {isInitiator ? (
+              <>
+                <div style={{ fontSize:11.5, fontWeight:700, color:C.navy, marginBottom:6 }}>You started this deal — how would you like to proceed?</div>
+                <div style={{ fontSize:11.5, color:C.slate, marginBottom:5 }}>Give more time:</div>
+                <div style={{ display:"flex", gap:7, flexWrap:"wrap", marginBottom:8 }}>
+                  {[12,24,36].map(h => (
+                    <button key={h} style={{...S.btnOutline, fontSize:12, padding:"7px 13px"}} onClick={()=>extendDeposit(h)}>+{h} hours</button>
+                  ))}
+                  <input type="date" value={customExtend} onChange={e=>setCustomExtend(e.target.value)} style={{...S.input, width:150, fontSize:12, padding:"6px 9px"}} />
+                  <button style={{...S.btnOutline, fontSize:12, padding:"7px 13px", opacity:customExtend?1:0.5}} disabled={!customExtend} onClick={()=>extendDepositTo(customExtend)}>Set date</button>
+                </div>
+                <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
+                  <button style={{...S.btnOutline, fontSize:12, padding:"8px 14px"}} onClick={()=>{ onBack(); }}>← Back to the Deal Room</button>
+                  <button style={{...S.btn, background:C.red, color:"#fff", fontSize:12, padding:"8px 14px"}} onClick={()=>{ if (confirm("Cancel this deal? This ends it for both parties.")) endDealForDeposit(); }}>Cancel the deal</button>
+                </div>
+                <div style={{ fontSize:11, color:C.slate, lineHeight:1.6, marginTop:8 }}>
+                  Prefer to trust {initiatorIsSeller ? "the buyer" : "the seller"} and keep going? <button onClick={()=>waiveDepositTimer()} style={{ background:"none", border:"none", padding:0, color:C.brass, fontWeight:700, fontSize:11, cursor:"pointer", textDecoration:"underline" }}>Proceed without waiting</button> — you can accept or reject the vessel at your own risk.
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6 }}>
+                The person who started the deal has been asked how they&rsquo;d like to proceed &mdash; extend the deadline, return to the Deal Room, or cancel. You&rsquo;ll be notified of their decision.
+              </div>
+            )}
           </div>
-        </div>
-      ) : (
+        );
+      })()}
+
       <>
       {/* Header bar */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"1.5rem" }}>
@@ -3689,6 +3731,15 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         <p style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginBottom:14 }}>
           After due diligence you may accept the vessel as-is, reject it (earnest money returned, reason recorded), or propose a new final price — which reopens negotiation. Only you, the buyer, can make this decision.
         </p>
+        {!decisionUnlocked ? (
+          <div style={{ background:C.sandDark, border:`1px solid ${C.brass}`, borderRadius:8, padding:"16px 18px", marginBottom:16, textAlign:"center", fontFamily:"sans-serif" }}>
+            <div style={{ fontSize:24, marginBottom:6 }}>🔒</div>
+            <div style={{ fontSize:13.5, fontWeight:800, color:C.navy, marginBottom:5 }}>The vessel decision unlocks once the deposit is verified</div>
+            <div style={{ fontSize:12, color:C.slate, lineHeight:1.7, maxWidth:460, margin:"0 auto" }}>
+              Go ahead and complete your survey and sea trial &mdash; all your planning stays open. You&rsquo;ll be able to accept, reject, or propose a new price for the {fmt(dep.deposit)} vessel the moment the deposit is confirmed{depTimerExpired ? ", or once the deal initiator resolves the paused deadline above" : ""}. This protects everyone: you don&rsquo;t finalize a purchase before the money that holds the boat is actually secured.
+            </div>
+          </div>
+        ) : (
         <div className="bc-grid3" style={{ gap:10, marginBottom:16 }}>
           <button onClick={()=>{ setOutcome("accept"); setBuyerSigned(false); setVaSigned(false); set("outcome","accept"); }} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="accept"?C.green:"transparent", color:outcome==="accept"?"#fff":C.green, border:`2px solid ${C.green}` }}>
             ✓ Accept As-Is
@@ -3700,6 +3751,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             ✗ Reject Vessel
           </button>
         </div>
+        )}
 
         {outcome==="propose_price" && (
           <div style={{ background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:6, padding:"14px 16px", marginBottom:14 }}>
@@ -3850,7 +3902,6 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         </button>
       </div>
       </>
-      )}
     </div>
   );
 }
