@@ -1,7 +1,7 @@
 'use client'
 import DocumentsStepV2 from "./DocumentsStepV2";
 import ContingencyPicker from "./ContingencyPicker";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
 import VesselLookup from "./VesselLookup";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2938,6 +2938,28 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const [vaSigName, setVaSigName] = useState(negotiate?.vesselAcceptance?.sig || "");
   const [vaSigned, setVaSigned] = useState(!!negotiate?.vesselAcceptance);
   const [showReceipt, setShowReceipt] = useState(false);
+  // ── Live Escrow.com status (Piece 2) ───────────────────────────────────────
+  // For Escrow.com deals, ask the server what Escrow.com reports about this deal's
+  // transaction, and show the customer where it stands. Read-only display; it does
+  // not advance the deal (that's Piece 3). Runs on open and on a manual Refresh.
+  const [escStatus, setEscStatus] = useState(null);
+  const [escLoading, setEscLoading] = useState(false);
+  const dealIsEscrowCom = negotiate?.escrowPath === "escrow_com";
+  const dealTxId = negotiate?.escrowTxId || "";
+  const refreshEscrow = useCallback(async () => {
+    if (!dealIsEscrowCom || !dealTxId || !dealId) return;
+    setEscLoading(true);
+    try {
+      const r = await fetch("/api/deals/escrow-status", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dealId }),
+      });
+      const j = await r.json();
+      setEscStatus(j);
+    } catch { setEscStatus({ ok:false, error:"Couldn't reach the server." }); }
+    setEscLoading(false);
+  }, [dealIsEscrowCom, dealTxId, dealId]);
+  useEffect(() => { refreshEscrow(); }, [refreshEscrow]);
 
   // Survey upload state
   const [surveyFile, setSurveyFile] = useState(null);
@@ -3190,7 +3212,45 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 <button style={{...S.btnBrass, width:"100%", fontSize:13, padding:"11px"}} onClick={()=>setShowReceipt(true)}>📄 Open the receipt to sign →</button>
               </div>
             )}
-            {depAwaitingVerify && !depEnded && isBuyer && (
+            {dealIsEscrowCom && dealTxId && !depEnded && depBuyerSigned && !depSellerSigned && (() => {
+              // Live Escrow.com progress, drawn from the API. Both parties see the
+              // same thing — no more "take the seller's word for it".
+              const s = escStatus || {};
+              const funded = s.ok && s.found && s.funded;
+              const step = s.step || 1;
+              const steps = ["Agreement","Funded","In progress","Inspection","Closed"];
+              return (
+                <div style={{ background: funded ? C.greenLight : "#eff6ff", border:`1px solid ${funded ? C.green : "#bfdbfe"}`, borderRadius:8, padding:"13px 15px", marginTop:14, fontFamily:"sans-serif" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                    <div style={{ fontSize:12.5, fontWeight:800, color: funded ? C.green : "#1d4ed8" }}>
+                      🏦 Live status from Escrow.com — transaction #{dealTxId}
+                    </div>
+                    <button onClick={refreshEscrow} disabled={escLoading} style={{ ...S.btnOutline, fontSize:11, padding:"5px 11px" }}>{escLoading ? "Checking…" : "Refresh"}</button>
+                  </div>
+                  {/* progress rail */}
+                  <div style={{ display:"flex", gap:4, marginTop:11, marginBottom:8 }}>
+                    {steps.map((label, i) => {
+                      const on = (i+1) <= step;
+                      return (
+                        <div key={label} style={{ flex:1, textAlign:"center" }}>
+                          <div style={{ height:5, borderRadius:3, background: on ? (funded ? C.green : "#3b82f6") : C.mist }} />
+                          <div style={{ fontSize:8.5, color: on ? C.navy : C.slate, marginTop:3, fontWeight: on ? 700 : 400 }}>{label}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>
+                    {!s.ok ? (s.error || "Couldn't read status just now — try Refresh.")
+                      : !s.found ? (s.message || "That transaction wasn't found on Escrow.com yet.")
+                      : funded
+                        ? <><b style={{ color:C.green }}>✓ Escrow.com confirms the deposit is funded.</b> This deal is secured — no need to wait on a manual check.</>
+                        : <>{s.label || "Waiting for funding."} Once the {fmt(dep.deposit)} lands in escrow, this updates automatically and the deal moves forward on its own.</>}
+                    {s.env === "sandbox" && <span style={{ color:C.slate }}> (test mode)</span>}
+                  </div>
+                </div>
+              );
+            })()}
+            {depAwaitingVerify && !depEnded && isBuyer && !(dealIsEscrowCom && dealTxId) && (
               <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", marginTop:14, fontFamily:"sans-serif" }}>
                 <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:3 }}>⏸️ Waiting for the seller to verify your deposit</div>
                 <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>You've done your part &mdash; your proof is submitted and the clock has stopped. The seller now confirms with their escrow agent that the funds arrived. Wires often take 1&ndash;2 business days to show up, so a short wait is normal. You'll be notified the moment they confirm, and the deal is secured at that point.</div>
