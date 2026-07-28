@@ -2956,9 +2956,21 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
       });
       const j = await r.json();
       setEscStatus(j);
+      // Piece 3: the SERVER verifies (tamper-proof). If it just did, mirror that
+      // into local state so due diligence opens immediately, no reload needed.
+      if (j?.autoVerified && setNegotiate) {
+        setNegotiate(n => (n?.depositVerification?.status === "confirmed" ? n : ({
+          ...n,
+          depositVerification: {
+            status: "confirmed", at: Date.now(), by: "escrow_com_api",
+            note: `Automatically confirmed by Escrow.com — transaction #${dealTxId} is funded.`,
+            sig: "Escrow.com (verified via API)", auto: true,
+          },
+        })));
+      }
     } catch { setEscStatus({ ok:false, error:"Couldn't reach the server." }); }
     setEscLoading(false);
-  }, [dealIsEscrowCom, dealTxId, dealId]);
+  }, [dealIsEscrowCom, dealTxId, dealId, setNegotiate]);
   useEffect(() => { refreshEscrow(); }, [refreshEscrow]);
 
   // Survey upload state
@@ -3243,7 +3255,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                     {!s.ok ? (s.error || "Couldn't read status just now — try Refresh.")
                       : !s.found ? (s.message || "That transaction wasn't found on Escrow.com yet.")
                       : funded
-                        ? <><b style={{ color:C.green }}>✓ Escrow.com confirms the deposit is funded.</b> This deal is secured — no need to wait on a manual check.</>
+                        ? <><b style={{ color:C.green }}>✓ Escrow.com confirms the deposit is funded.</b> BoatClosers verified this automatically &mdash; no waiting on a manual check. Due diligence is now open.</>
                         : <>{s.label || "Waiting for funding."} Once the {fmt(dep.deposit)} lands in escrow, this updates automatically and the deal moves forward on its own.</>}
                     {s.env === "sandbox" && <span style={{ color:C.slate }}> (test mode)</span>}
                   </div>
