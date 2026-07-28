@@ -197,6 +197,12 @@ export default function AdminPage() {
               color: escResult.funded ? '#0f6e56' : escResult.ok ? '#1d4ed8' : '#b91c1c' }}>
               {escResult.message}
               {escResult.env === 'LIVE' && <div style={{ marginTop: 4, fontWeight: 800 }}>⚠️ This is the LIVE environment — real money.</div>}
+              {escResult.raw && (
+                <details style={{ marginTop: 8 }}>
+                  <summary style={{ cursor: 'pointer', fontSize: 11, color: SLATE }}>show raw status from Escrow.com</summary>
+                  <pre style={{ marginTop: 6, background: '#fff', border: `1px solid ${MIST}`, borderRadius: 6, padding: '8px 10px', fontSize: 10.5, color: NAVY, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>{JSON.stringify(escResult.raw, null, 2)}</pre>
+                </details>
+              )}
             </div>
           )}
         </div>
