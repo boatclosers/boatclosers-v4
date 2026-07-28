@@ -55,6 +55,23 @@ export default function AdminPage() {
     setEscBusy(false)
   }
 
+  const createTestTx = async () => {
+    setEscBusy(true); setEscResult(null)
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw, action: 'escrowCreateTest' })
+      })
+      const j = await res.json().catch(() => ({}))
+      const r = j?.escrow || { ok: false, message: 'No response.' }
+      setEscResult(r)
+      if (r?.transactionId) setEscTx(String(r.transactionId))
+    } catch {
+      setEscResult({ ok: false, message: 'Network error.' })
+    }
+    setEscBusy(false)
+  }
+
   const load = async (password: string) => {
     setBusy(true); setError('')
     try {
@@ -167,6 +184,10 @@ export default function AdminPage() {
             <button onClick={runEscrowCheck} disabled={escBusy}
               style={{ padding: '8px 16px', fontSize: 12.5, fontWeight: 700, color: NAVY, background: BRASS, border: 'none', borderRadius: 7, cursor: escBusy ? 'default' : 'pointer', opacity: escBusy ? 0.6 : 1 }}>
               {escBusy ? 'Checking…' : 'Check Escrow.com'}
+            </button>
+            <button onClick={createTestTx} disabled={escBusy}
+              style={{ padding: '8px 16px', fontSize: 12.5, fontWeight: 700, color: NAVY, background: 'transparent', border: `1px solid ${NAVY}`, borderRadius: 7, cursor: escBusy ? 'default' : 'pointer', opacity: escBusy ? 0.6 : 1 }}>
+              Create sandbox test transaction
             </button>
           </div>
           {escResult && (
