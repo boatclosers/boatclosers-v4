@@ -148,6 +148,59 @@ export async function POST(req: Request) {
         return NextResponse.json({ escrow: { ok: false, message: 'Could not reach Escrow.com: ' + (e?.message || 'unknown') } })
       }
     }
+
+    // ── Create a SANDBOX test transaction ────────────────────────────────────
+    // So the owner can prove the funded-flip without curl or the command line.
+    // Hard-stops if the base URL isn't sandbox — this must never run against live.
+    if (body.action === 'escrowCreateTest') {
+      const base = process.env.ESCROW_API_BASE || 'https://api.escrow-sandbox.com'
+      const email = process.env.ESCROW_API_EMAIL || ''
+      const key = process.env.ESCROW_API_KEY || ''
+      if (!base.includes('sandbox')) {
+        return NextResponse.json({ escrow: { ok: false, message: 'Refusing to create a test transaction against a LIVE environment. This is sandbox-only.' } })
+      }
+      if (!email || !key) {
+        return NextResponse.json({ escrow: { ok: false, configured: false, message: 'Escrow.com keys are not set on the server yet.' } })
+      }
+      try {
+        const auth = 'Basic ' + Buffer.from(`${email}:${key}`).toString('base64')
+        const payload = {
+          parties: [
+            { role: 'buyer', customer: 'me' },
+            { role: 'seller', customer: 'seller@test.escrow.com' },
+          ],
+          currency: 'usd',
+          description: 'BoatClosers sandbox test — safe to ignore',
+          items: [{
+            title: 'Test boat deposit',
+            description: 'Sandbox deposit test',
+            type: 'general_merchandise',
+            inspection_period: 259200,
+            quantity: 1,
+            schedule: [{ amount: 500, payer_customer: 'me', beneficiary_customer: 'seller@test.escrow.com' }],
+          }],
+        }
+        const r = await fetch(`${base}/2017-09-01/transaction`, {
+          method: 'POST',
+          headers: { Authorization: auth, 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+          cache: 'no-store',
+        })
+        const j = await r.json().catch(() => null)
+        if (!r.ok) {
+          return NextResponse.json({ escrow: { ok: false, message: `Escrow.com refused to create the test transaction (${r.status}).`, detail: JSON.stringify(j).slice(0, 400) } })
+        }
+        const newId = j?.id ? String(j.id) : ''
+        return NextResponse.json({ escrow: {
+          ok: true, created: true, transactionId: newId,
+          message: newId
+            ? `✓ Created sandbox transaction #${newId}. Put that number in the box above and click Check — it should say NOT funded. Then fund it on escrow-sandbox.com and check again.`
+            : 'Escrow.com accepted the request but returned no transaction ID.',
+        } })
+      } catch (e: any) {
+        return NextResponse.json({ escrow: { ok: false, message: 'Could not reach Escrow.com: ' + (e?.message || 'unknown') } })
+      }
+    }
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json({ error: 'Server is missing SUPABASE_SERVICE_ROLE_KEY.' }, { status: 500 })
     }
