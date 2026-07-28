@@ -3308,13 +3308,46 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         const isInitiator = amInitiator;
         const initiatorIsSeller = (negotiate.initiatorRole || (isBuyer ? "buyer" : "seller")) === "seller";
         if (!depTimerExpired) {
-          // Not expired yet — a soft reminder that the clock is running, DD open.
+          // Not expired yet. DD planning is open, but the banner must make the ONE
+          // next action obvious — a small corner button isn't enough. Figure out
+          // whose move it is and put a prominent button on it.
+          let head, sub, cta = null;
+          if (isBuyer) {
+            if (!depBuyerSigned) {
+              head = "Your next step: send the deposit, then sign the receipt";
+              sub = <>Send the {fmt(dep.deposit)} earnest money using the seller&rsquo;s instructions, then sign the receipt to confirm it&rsquo;s on the way. Meanwhile you can start booking your surveyor and sea trial.</>;
+              cta = depInstrPosted ? { label:"Send deposit & sign receipt →", onClick:()=>setShowReceipt(true) } : null;
+            } else if (!depSellerSigned) {
+              head = "You\u2019ve sent your deposit — waiting on the seller to confirm it arrived";
+              sub = <>Nothing more you need to do right now. The moment the seller confirms (or Escrow.com verifies it), the vessel decision unlocks. Keep prepping your survey and sea trial in the meantime.</>;
+              cta = { label:"View the receipt", onClick:()=>setShowReceipt(true) };
+            }
+          } else {
+            if (depBuyerSigned && !depSellerSigned) {
+              head = "Action needed: confirm you received the deposit";
+              sub = <>The buyer has signed that the {fmt(dep.deposit)} deposit was sent. Check your escrow account or bank, then confirm it arrived so the deal can move forward.</>;
+              cta = { label:"Confirm the deposit →", onClick:()=>setShowReceipt(true) };
+            } else if (!depInstrPosted) {
+              head = "Your next step: tell the buyer where to send the deposit";
+              sub = <>The buyer can&rsquo;t fund until you post where the {fmt(dep.deposit)} goes. Add the escrow or account details so they can send it.</>;
+              cta = null;
+            } else {
+              head = "Waiting for the buyer to send the deposit";
+              sub = <>You&rsquo;ve posted where it goes. Once the buyer sends the {fmt(dep.deposit)} and signs the receipt, you&rsquo;ll confirm it here.</>;
+              cta = null;
+            }
+          }
+          if (!head) {
+            head = "Deposit is being verified — you can start planning now";
+            sub = <>Go ahead and line up your surveyor and sea trial. The vessel decision unlocks once the {fmt(dep.deposit)} deposit is confirmed.</>;
+          }
           return (
-            <div style={{ background:"#eff6ff", border:`1px solid #bfdbfe`, borderRadius:8, padding:"11px 14px", marginBottom:14, fontFamily:"sans-serif" }}>
-              <div style={{ fontSize:12.5, fontWeight:800, color:"#1d4ed8", marginBottom:2 }}>Deposit is still being verified — you can start planning now</div>
-              <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>
-                Go ahead and line up your surveyor and sea trial. You&rsquo;ll be able to <b>accept or reject the vessel</b> once the {fmt(dep.deposit)} deposit is confirmed.
-              </div>
+            <div style={{ background:"#eff6ff", border:`1px solid #93c5fd`, borderLeft:`4px solid #1d4ed8`, borderRadius:8, padding:"14px 16px", marginBottom:14, fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:13.5, fontWeight:800, color:"#1d4ed8", marginBottom:4 }}>{head}</div>
+              <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:cta?12:0 }}>{sub}</div>
+              {cta && (
+                <button onClick={cta.onClick} style={{ ...S.btnBrass, fontSize:13.5, fontWeight:800, padding:"11px 22px" }}>{cta.label}</button>
+              )}
             </div>
           );
         }
