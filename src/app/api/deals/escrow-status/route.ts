@@ -108,6 +108,33 @@ export async function POST(req: Request) {
     }
 
     const prog = mapProgress(tx)
+
+    // ── Piece 3: auto-verify on the server ────────────────────────────────────
+    // If Escrow.com says funded and this deal isn't already verified, record the
+    // verification HERE, server-side, using the service-role key. This is what
+    // makes it trustworthy: the confirmation comes from Escrow.com via our server,
+    // not from anything the browser could fake. It opens due diligence exactly the
+    // way a seller's manual signature would — same downstream effect, no human in
+    // the loop. It never fires on a non-funded status, and never overwrites an
+    // existing verdict.
+    let autoVerified = false
+    const alreadyVerified = neg?.depositVerification?.status === 'confirmed'
+    if (prog.funded && !alreadyVerified && !neg?.depositEnded) {
+      const updatedNeg = {
+        ...neg,
+        depositVerification: {
+          status: 'confirmed',
+          at: Date.now(),
+          by: 'escrow_com_api',
+          note: `Automatically confirmed by Escrow.com — transaction #${txId} is funded.`,
+          sig: 'Escrow.com (verified via API)',
+          auto: true,
+        },
+      }
+      const { error: upErr } = await sb.from('deals').update({ negotiate: updatedNeg }).eq('id', dealId)
+      if (!upErr) autoVerified = true
+    }
+
     return NextResponse.json({
       ok: true,
       applicable: true,
@@ -119,6 +146,8 @@ export async function POST(req: Request) {
       step: prog.step,
       label: prog.label,
       state: prog.state,
+      autoVerified,
+      alreadyVerified: alreadyVerified || autoVerified,
       checkedAt: new Date().toISOString(),
     })
   } catch (e: any) {
