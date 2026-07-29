@@ -33,14 +33,28 @@ const OPTIONS = [
 // while the parent state stayed empty, so a buyer who never touched this control saw
 // three contingencies selected and sent an offer carrying NONE. The Purchase Agreement
 // would then record a waived survey the buyer believed they had.
-export default function ContingencyPicker({ value, onChange, paymentType, ddEnd }) {
+export default function ContingencyPicker({ value, onChange, paymentType, ddEnd, cashWaived, onCashWaived }) {
   const selected = Array.isArray(value) ? value : [];
 
   const toggle = (key) => {
+    // Choosing any contingency cancels a prior cash-waiver — they're opposites.
+    if (cashWaived && onCashWaived) onCashWaived(false);
     const next = selected.includes(key)
       ? selected.filter(k => k !== key)
       : [...selected, key];
     onChange(next);
+  };
+
+  // A cash buyer who has seen the boat may deliberately waive every contingency
+  // for a clean, fast "as-is" offer. That's a real choice — but a serious one, so
+  // it's an explicit, confirmed action rather than "just leave everything off",
+  // which is indistinguishable from forgetting to pick.
+  const waiveAll = () => {
+    if (typeof window !== "undefined" && !window.confirm(
+      "Make this a no-contingency cash offer?\n\nYou'll be waiving your survey, sea trial, financing, insurance, and title contingencies. That means no built-in right to walk away or renegotiate based on what an inspection finds — you'd be agreeing to buy the boat as-is.\n\nOnly do this if you've already seen the boat and accept its condition. Continue?"
+    )) return;
+    onChange([]);
+    if (onCashWaived) onCashWaived(true);
   };
 
   return (
@@ -53,9 +67,14 @@ export default function ContingencyPicker({ value, onChange, paymentType, ddEnd 
         anything you leave off is waived. Deadlines follow your due diligence window{ddEnd ? ` (by ${ddEnd})` : ""}.
       </div>
 
-      {selected.length === 0 && (
+      {selected.length === 0 && !cashWaived && (
         <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"#b91c1c", fontWeight:700, marginBottom:8, lineHeight:1.5 }}>
-          Nothing selected yet — choose what this offer depends on. Most private boat offers are contingent on a survey, a sea trial, and clear title.
+          Nothing selected yet — choose what this offer depends on. Most private boat offers are contingent on a survey, a sea trial, and clear title. Buying as-is for cash? Use the <b>cash offer</b> option below.
+        </div>
+      )}
+      {cashWaived && selected.length === 0 && (
+        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.navy, fontWeight:700, marginBottom:8, lineHeight:1.5, background:C.sandDark, borderRadius:6, padding:"9px 12px" }}>
+          💵 No-contingency cash offer. You're buying the boat as-is, with no survey, sea-trial, financing, insurance, or title contingency. You can add a contingency any time before sending by tapping one above.
         </div>
       )}
       <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
@@ -88,8 +107,21 @@ export default function ContingencyPicker({ value, onChange, paymentType, ddEnd 
         })}
       </div>
 
+      <button
+        type="button"
+        onClick={waiveAll}
+        style={{
+          marginTop:10, width:"100%", padding:"9px 14px", borderRadius:8, cursor:"pointer",
+          fontFamily:"sans-serif", fontSize:12, fontWeight:700,
+          border:`1.5px solid ${cashWaived ? C.brass : C.mist}`,
+          background: cashWaived ? C.brass : "transparent",
+          color: cashWaived ? C.navy : C.slate,
+        }}>
+        💵 {cashWaived ? "Cash offer — all contingencies waived" : "Make this a cash offer (waive all contingencies)"}
+      </button>
+
       <div style={{ marginTop:8, fontSize:11, fontFamily:"sans-serif", color:C.teal }}>
-        Contingent on: <strong>{selected.length ? OPTIONS.filter(o=>selected.includes(o.key)).map(o=>o.label).join(", ") : "None — buyer waives all contingencies"}</strong>
+        Contingent on: <strong>{selected.length ? OPTIONS.filter(o=>selected.includes(o.key)).map(o=>o.label).join(", ") : cashWaived ? "None — cash offer, buyer waives all contingencies" : "None selected yet"}</strong>
       </div>
     </div>
   );
