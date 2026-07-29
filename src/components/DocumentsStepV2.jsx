@@ -170,6 +170,20 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     ...((_ad && (_ad.newPrice || _ad.buyer))
       ? { renegotiation: { name: _ad.buyer || parties.buyer.name || "Buyer", date: _ad.date || today(), prefilled: true } }
       : {}),
+    // The Earnest Money Deposit Receipt is signed back in the deposit step (it lives
+    // on negotiate.depositProof / depositVerification). Without this, the Documents
+    // step didn't know that and kept showing "Sign →" for a receipt already completed —
+    // asking the customer to do the same thing twice. Mirror the deposit-step signatures
+    // here so a confirmed deposit shows the receipt as Done.
+    ...((negotiate?.depositProof && negotiate.depositProof.sig)
+      ? { deposit_receipt: {
+            name: negotiate?.depositVerification?.sig
+              ? `${negotiate.depositProof.sig} & ${negotiate.depositVerification.sig}`
+              : negotiate.depositProof.sig,
+            date: today(),
+            prefilled: true,
+          } }
+      : {}),
   };
   const [signed, setSigned] = useState({ ..._paPrefill, ...(data.signedDocs||{}) });
   const [sigName, setSigName] = useState({});
