@@ -2877,8 +2877,29 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const depBuyerSigned = !!(dep.depositProof && dep.depositProof.sig);
   const depSellerSigned = !!(dep.depositVerification && dep.depositVerification.status === "confirmed" && dep.depositVerification.sig);
   const depVerif = dep.depositVerification || null;
-  const depVerified = depVerif?.status === "confirmed";
   const depDisputed = depVerif?.status === "disputed";
+  // ── Who can actually confirm the deposit depends on WHERE it went ──────────
+  //   • escrow_com  → Escrow.com's API confirms it. No signatures.
+  //   • direct      → money hit the SELLER's own account; only they can see it,
+  //                   so the seller confirms. This is the one path where a seller
+  //                   confirmation is a real fact, not a guess.
+  //   • attorney/broker → money is in a third party's trust account the seller
+  //                   CAN'T see. Asking them to "confirm" is asking them to guess.
+  //                   Instead the BUYER's signed claim (with reference #) opens due
+  //                   diligence — a signed statement that makes the buyer liable if
+  //                   it's false. We trust the bonded professional holding the funds,
+  //                   not the buyer's honesty alone.
+  const escMethod = dep.escrowPath || "";
+  const sellerMustConfirm = escMethod === "direct";
+  const apiConfirms = escMethod === "escrow_com";
+  // "Verified" = the deposit is genuinely accounted for, by whichever mechanism
+  // fits this deal's escrow method.
+  const depConfirmedByStatus = depVerif?.status === "confirmed";
+  const depVerified = apiConfirms
+    ? depConfirmedByStatus                    // Escrow.com API wrote it
+    : sellerMustConfirm
+      ? (depConfirmedByStatus && !!depVerif?.sig) // direct: seller signed off
+      : depBuyerSigned;                        // attorney/broker: buyer's signed claim stands
   // ── Deposit no longer HARD-gates due diligence ────────────────────────────
   // The buyer can start the lead-time work — booking a surveyor, arranging a sea
   // trial — while the deposit is still being funded/verified, because those things
@@ -3322,17 +3343,30 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
               sub = <>Send the <b>{fmt(dep.deposit)}</b> earnest money using the seller&rsquo;s instructions, then sign the receipt to confirm it&rsquo;s on the way. There&rsquo;s nothing else to do on this step yet &mdash; you can start booking your surveyor and sea trial below while you&rsquo;re at it.</>;
               cta = depInstrPosted ? { label:"Send deposit & sign receipt →", onClick:()=>setShowReceipt(true) } : null;
               if (!depInstrPosted) sub = <>Waiting for the seller to post where to send the <b>{fmt(dep.deposit)}</b> deposit. As soon as they do, you&rsquo;ll sign the receipt here. Meanwhile you can start lining up your surveyor and sea trial below.</>;
-            } else if (!depSellerSigned) {
-              head = "You've sent your deposit — waiting on the seller to confirm";
-              sub = <>Nothing more for you to do right now. The moment the seller confirms it arrived (or Escrow.com verifies it), the vessel decision unlocks. Keep prepping your survey and sea trial below.</>;
+            } else if (apiConfirms && !depVerified) {
+              head = "You've entered your Escrow.com transaction — confirming automatically";
+              sub = <>Nothing more for you to do. BoatClosers is checking Escrow.com directly; the moment it shows funded, the vessel decision unlocks on its own. Keep prepping your survey and sea trial below.</>;
+              cta = { label:"View the receipt", onClick:()=>setShowReceipt(true) };
+              wait = true;
+            } else if (sellerMustConfirm && !depVerified) {
+              head = "You've signed for your deposit — waiting on the seller to confirm it landed";
+              sub = <>Because you&rsquo;re paying the seller directly, they&rsquo;ll confirm the money reached their account. Once they do, the vessel decision unlocks. Nothing else for you to do right now.</>;
               cta = { label:"View the receipt", onClick:()=>setShowReceipt(true) };
               wait = true;
             }
           } else {
-            if (depBuyerSigned && !depSellerSigned) {
-              head = "Action needed: confirm you received the deposit";
-              sub = <>The buyer has signed that the <b>{fmt(dep.deposit)}</b> deposit was sent. Check your escrow account or bank, then confirm it arrived so the deal can move forward.</>;
+            if (depBuyerSigned && sellerMustConfirm && !depVerified) {
+              head = "Action needed: confirm the deposit reached your account";
+              sub = <>The buyer has signed that they sent the <b>{fmt(dep.deposit)}</b> deposit directly to you. Check your account, then confirm it arrived so the vessel decision can unlock for the buyer.</>;
               cta = { label:"Confirm the deposit →", onClick:()=>setShowReceipt(true) };
+            } else if (depBuyerSigned && !sellerMustConfirm && !apiConfirms) {
+              head = "The buyer has funded the deposit — nothing needed from you";
+              sub = <>The buyer has signed that the <b>{fmt(dep.deposit)}</b> deposit is with {escMethod === "attorney" ? "the attorney/title company" : "the broker"}. Since it&rsquo;s held by a licensed third party, the deal moves forward on the buyer&rsquo;s signed record &mdash; no confirmation needed from you. Get your paperwork ready below.</>;
+              wait = true;
+            } else if (depBuyerSigned && apiConfirms && !depVerified) {
+              head = "Escrow.com is confirming the deposit automatically";
+              sub = <>The buyer has entered the Escrow.com transaction. BoatClosers is verifying it directly &mdash; nothing needed from you. Get your paperwork ready below.</>;
+              wait = true;
             } else if (!depInstrPosted) {
               head = "Your next step: tell the buyer where to send the deposit";
               sub = <>The buyer can&rsquo;t fund until you post where the <b>{fmt(dep.deposit)}</b> goes. Add the escrow or account details so they can send it.</>;
