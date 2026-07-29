@@ -5470,6 +5470,9 @@ export default function BoatClosers() {
   };
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  // Holds the live tokens so authedFetch can refresh without a stale closure.
+  const tokenRef = useRef({ token: null, refreshToken: null });
   const [savedOk, setSavedOk] = useState(false);
   const [booting, setBooting] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -5550,7 +5553,8 @@ export default function BoatClosers() {
           })
             .then(r => r.json())
             .then(data => {
-              setUser({ name: session.name, email: session.email, role: session.role, userId: session.userId, token: session.token });
+              tokenRef.current = { token: session.token, refreshToken: session.refreshToken || null };
+            setUser({ name: session.name, email: session.email, role: session.role, userId: session.userId, token: session.token, refreshToken: session.refreshToken || null });
               if (data?.deal) {
                 setDealId(data.deal.id);
                 setMyDealRole(computeDealRole(data.deal, session.userId, session.role));
@@ -5591,9 +5595,9 @@ export default function BoatClosers() {
     saveTimer.current = setTimeout(async () => {
       const s = latestState.current;
       try {
-        const res = await fetch("/api/deals", {
+        const res = await authedFetch("/api/deals", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + user.token },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             dealId, role: user?.role,
             vessel: s.vessel, parties: s.parties, negotiate: s.negotiate,
@@ -5621,9 +5625,9 @@ export default function BoatClosers() {
     if (!user?.token) return null;
     try {
       const s = latestState.current;
-      const res = await fetch("/api/deals", {
+      const res = await authedFetch("/api/deals", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + user.token },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           role: user?.role,
           vessel: s.vessel, parties: s.parties, negotiate: s.negotiate,
@@ -5824,7 +5828,7 @@ export default function BoatClosers() {
       if (!dealId || !user?.token) return;
       setRefreshing(true);
       try {
-        const res = await fetch("/api/deals?dealId=" + encodeURIComponent(dealId), { headers: { "Authorization": "Bearer " + user.token } });
+        const res = await authedFetch("/api/deals?dealId=" + encodeURIComponent(dealId));
         const data = await res.json();
         mergeFromServer(data?.deal);
       } catch (e) {}
@@ -5845,11 +5849,55 @@ export default function BoatClosers() {
   const dealPaid = !!(negotiate?.paid || negotiate?.dealLocked || (negotiate?.offers || []).some(o => o && o.status === "accepted"));
   const goToStep = (n) => { if (n >= 3 && !dealPaid) { setStep(2); return; } setStep(n); if (n > maxStep) setMaxStep(n); scheduleSave(); };
 
+  // ── Authenticated fetch with silent token refresh ─────────────────────────
+  // Supabase access tokens expire after ~1 hour. Rather than dying with a
+  // "Couldn't save" 401 when someone leaves a deal open, this wraps fetch: on a
+  // 401 it trades the long-lived refresh token for a fresh access token (once)
+  // and retries. Only if the refresh token itself is dead do we surface the
+  // clean "please sign in again" prompt — no more mysterious save failures.
+  const doRefresh = async () => {
+    const rt = tokenRef.current.refreshToken;
+    if (!rt) return null;
+    try {
+      const r = await fetch("/api/auth/refresh", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: rt }),
+      });
+      if (!r.ok) return null;
+      const j = await r.json();
+      if (!j?.token) return null;
+      tokenRef.current = { token: j.token, refreshToken: j.refreshToken || rt };
+      setUser(u => u ? { ...u, token: j.token, refreshToken: j.refreshToken || rt } : u);
+      try {
+        const s = JSON.parse(localStorage.getItem("bc_session") || "{}");
+        localStorage.setItem("bc_session", JSON.stringify({ ...s, token: j.token, refreshToken: j.refreshToken || rt }));
+      } catch (e) {}
+      return j.token;
+    } catch { return null; }
+  };
+
+  const authedFetch = async (url, opts = {}) => {
+    const tok = tokenRef.current.token || user?.token;
+    const withAuth = (t) => ({ ...opts, headers: { ...(opts.headers || {}), "Authorization": "Bearer " + t } });
+    let res = await fetch(url, withAuth(tok));
+    if (res.status === 401) {
+      const fresh = await doRefresh();
+      if (fresh) {
+        res = await fetch(url, withAuth(fresh)); // retry once with the new token
+      } else {
+        setSessionExpired(true); // refresh token dead → clean prompt
+      }
+    }
+    return res;
+  };
+
   const handleAuth = async (authData) => {
     setUser(authData);
+    tokenRef.current = { token: authData.token, refreshToken: authData.refreshToken || null };
+    setSessionExpired(false);
     try {
       localStorage.setItem("bc_session", JSON.stringify({
-        token: authData.token, userId: authData.userId,
+        token: authData.token, refreshToken: authData.refreshToken || null, userId: authData.userId,
         name: authData.name, email: authData.email, role: authData.role
       }));
     } catch (e) {}
@@ -5937,6 +5985,8 @@ export default function BoatClosers() {
 
   const handleSignOut = () => {
     try { localStorage.removeItem("bc_session"); } catch (e) {}
+    setSessionExpired(false);
+    tokenRef.current = { token: null, refreshToken: null };
     setUser(null); setDealId(null); setStep(0); setMaxStep(0);
     setVessel(emptyVessel); setParties(emptyParties);
     setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
@@ -5981,6 +6031,18 @@ export default function BoatClosers() {
           <div style={S.logoSub}>Private Vessel Transactions</div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          {sessionExpired && (
+            <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:4000, padding:"1rem", fontFamily:"sans-serif" }}>
+              <div style={{ background:"#fff", borderRadius:12, maxWidth:380, padding:"1.75rem", textAlign:"center", border:`2px solid ${C.brass}` }}>
+                <div style={{ fontSize:30, marginBottom:8 }}>🔐</div>
+                <div style={{ fontSize:17, fontWeight:800, color:C.navy, marginBottom:6 }}>Your session timed out</div>
+                <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:16 }}>
+                  For your security, you&rsquo;ve been signed out after a long period. Your deal is safe and saved &mdash; just sign in again to pick up exactly where you left off.
+                </div>
+                <button onClick={handleSignOut} style={{ ...S.btnBrass, width:"100%", fontSize:14, padding:"12px" }}>Sign in again</button>
+              </div>
+            </div>
+          )}
           {saveError ? (
             <button onClick={()=>{ setSaveError(false); scheduleSave(); }} title="Your last change didn't save. Click to try again — keep this tab open." style={{ fontSize:10.5, color:"#fff", background:C.red, border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }}>⚠️ Couldn't save — Retry</button>
           ) : saving ? (
