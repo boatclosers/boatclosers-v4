@@ -3310,13 +3310,50 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         const isInitiator = amInitiator;
         const initiatorIsSeller = (negotiate.initiatorRole || (isBuyer ? "buyer" : "seller")) === "seller";
         if (!depTimerExpired) {
-          // Not expired yet — a soft reminder that the clock is running, DD open.
+          // Until the deposit is verified, THIS is the only thing that matters on
+          // the screen — everything below is just planning. So the receipt action
+          // is inline and prominent right here, not a small button off to the side.
+          // Figure out whose move it is, give them a big obvious button, and say
+          // plainly when they're just waiting on the other party.
+          let head, sub, cta = null, wait = false;
+          if (isBuyer) {
+            if (!depBuyerSigned) {
+              head = "Your next step: send the deposit, then sign the receipt";
+              sub = <>Send the <b>{fmt(dep.deposit)}</b> earnest money using the seller&rsquo;s instructions, then sign the receipt to confirm it&rsquo;s on the way. There&rsquo;s nothing else to do on this step yet &mdash; you can start booking your surveyor and sea trial below while you&rsquo;re at it.</>;
+              cta = depInstrPosted ? { label:"Send deposit & sign receipt →", onClick:()=>setShowReceipt(true) } : null;
+              if (!depInstrPosted) sub = <>Waiting for the seller to post where to send the <b>{fmt(dep.deposit)}</b> deposit. As soon as they do, you&rsquo;ll sign the receipt here. Meanwhile you can start lining up your surveyor and sea trial below.</>;
+            } else if (!depSellerSigned) {
+              head = "You've sent your deposit — waiting on the seller to confirm";
+              sub = <>Nothing more for you to do right now. The moment the seller confirms it arrived (or Escrow.com verifies it), the vessel decision unlocks. Keep prepping your survey and sea trial below.</>;
+              cta = { label:"View the receipt", onClick:()=>setShowReceipt(true) };
+              wait = true;
+            }
+          } else {
+            if (depBuyerSigned && !depSellerSigned) {
+              head = "Action needed: confirm you received the deposit";
+              sub = <>The buyer has signed that the <b>{fmt(dep.deposit)}</b> deposit was sent. Check your escrow account or bank, then confirm it arrived so the deal can move forward.</>;
+              cta = { label:"Confirm the deposit →", onClick:()=>setShowReceipt(true) };
+            } else if (!depInstrPosted) {
+              head = "Your next step: tell the buyer where to send the deposit";
+              sub = <>The buyer can&rsquo;t fund until you post where the <b>{fmt(dep.deposit)}</b> goes. Add the escrow or account details so they can send it.</>;
+              cta = null;
+            } else {
+              head = "Waiting for the buyer to send the deposit";
+              sub = <>You&rsquo;ve posted where it goes. Once the buyer sends the <b>{fmt(dep.deposit)}</b> and signs the receipt, you&rsquo;ll confirm it here. Nothing else to do on this step yet.</>;
+              wait = true;
+            }
+          }
+          if (!head) {
+            head = "Deposit is being verified — you can start planning now";
+            sub = <>Go ahead and line up your surveyor and sea trial. The vessel decision unlocks once the {fmt(dep.deposit)} deposit is confirmed.</>;
+          }
           return (
-            <div style={{ background:"#eff6ff", border:`1px solid #bfdbfe`, borderRadius:8, padding:"11px 14px", marginBottom:14, fontFamily:"sans-serif" }}>
-              <div style={{ fontSize:12.5, fontWeight:800, color:"#1d4ed8", marginBottom:2 }}>Deposit is still being verified — you can start planning now</div>
-              <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>
-                Go ahead and line up your surveyor and sea trial. You&rsquo;ll be able to <b>accept or reject the vessel</b> once the {fmt(dep.deposit)} deposit is confirmed.
-              </div>
+            <div style={{ background: wait ? "#eff6ff" : "#fffdf5", border:`1px solid ${wait ? "#93c5fd" : C.brass}`, borderLeft:`5px solid ${wait ? "#1d4ed8" : C.brass}`, borderRadius:8, padding:"16px 18px", marginBottom:14, fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:14.5, fontWeight:800, color: wait ? "#1d4ed8" : "#7a5500", marginBottom:5 }}>{wait ? "" : "→ "}{head}</div>
+              <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:cta?13:0 }}>{sub}</div>
+              {cta && (
+                <button onClick={cta.onClick} style={{ ...S.btnBrass, fontSize:14, fontWeight:800, padding:"12px 24px", width:"100%", maxWidth:340 }}>{cta.label}</button>
+              )}
             </div>
           );
         }
@@ -3369,9 +3406,9 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             {daysLeft!==null && <span style={{ marginLeft:10, color:daysLeft<=3?C.red:daysLeft<=7?C.brass:C.green, fontWeight:700 }}>({daysLeft} days remaining)</span>}
           </p>
         </div>
-        {negotiate.deposit > 0 && (
-          <button onClick={()=>setShowReceipt(true)} style={{ ...S.btnBrass, fontSize:11, padding:"7px 14px", whiteSpace:"nowrap" }}>
-            📄 Earnest Receipt
+        {negotiate.deposit > 0 && depVerified && (
+          <button onClick={()=>setShowReceipt(true)} style={{ ...S.btnOutline, fontSize:11, padding:"7px 14px", whiteSpace:"nowrap" }}>
+            📄 View receipt
           </button>
         )}
       </div>
