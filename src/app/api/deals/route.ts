@@ -762,22 +762,37 @@ export async function GET(req: Request) {
       if (row) {
         const isInitiator = row.initiator_id === userId || row.party_a_user_id === userId
         const isPartyB = (row.other_party_id || row.party_b_user_id) === userId
-        // Open second slot + not the initiator → attach this user as party B now.
-        if (!isInitiator && !isPartyB && !(row.other_party_id || row.party_b_user_id)) {
-          const { data: attached } = await admin()
-            .from('deals')
-            .update({ other_party_id: userId, invite_status: 'accepted', invite_accepted_at: new Date().toISOString() })
-            .eq('id', dealId).select().single()
-          return NextResponse.json({ deal: attached || row })
-        }
-        // Already a member (initiator or party B) → return the deal.
+        // Already a member → just return the deal, never modify membership.
         if (isInitiator || isPartyB) {
           return NextResponse.json({ deal: row })
         }
-        // Slot is filled by someone else and this user isn't a member → do NOT
-        // expose the deal. Returning the row here would let any logged-in user
-        // read someone else's deal by guessing its id. Send nothing sensitive;
-        // the app treats a null deal as "no access".
+        // Not a member, and the party-B slot is open. Only attach this user as
+        // party B if they were ACTUALLY INVITED — i.e. there's a pending invite on
+        // the deal addressed to their email. Merely opening a ?dealId= link must
+        // NOT auto-join them; that was silently filling party_b and making deals
+        // show "both parties joined" with no invite ever sent, hiding the invite box.
+        const slotOpen = !(row.other_party_id || row.party_b_user_id)
+        if (slotOpen && row.invite_status === 'pending' && row.invite_email) {
+          // Match the invite to this user by email (from their auth profile).
+          let myEmail = ''
+          try {
+            const { data: prof } = await admin().auth.admin.getUserById(userId)
+            myEmail = (prof?.user?.email || '').trim().toLowerCase()
+          } catch {}
+          const invitedEmail = String(row.invite_email).trim().toLowerCase()
+          const isLinkShare = invitedEmail.startsWith('link-share-')
+          // Attach if this user's email matches the invite, OR the invite was a
+          // shareable link (no specific email — first accepter joins by design).
+          if (isLinkShare || (myEmail && myEmail === invitedEmail)) {
+            const { data: attached } = await admin()
+              .from('deals')
+              .update({ other_party_id: userId, invite_status: 'accepted', invite_accepted_at: new Date().toISOString() })
+              .eq('id', dealId).select().single()
+            return NextResponse.json({ deal: attached || row })
+          }
+        }
+        // Otherwise: not a member and not a valid invitee. Return read-only context
+        // without exposing it as theirs and without attaching them.
         return NextResponse.json({ deal: null, notAMember: true })
       }
       // dealId was requested but no such row — fall through to the member lookup
