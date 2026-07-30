@@ -1104,7 +1104,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const ddEndDate = (ddStart && ddDays) ? addDays(ddStart, Number(ddDays)) : "";
   const closingTooEarly = !!(inclDates && closingDate && ddEndDate && closingDate < ddEndDate);
   // Where the deposit is held only matters if there IS a deposit.
-  const needsEscrowPath = !!(inclDepositTerms && escrowPct !== "" && escrowPct !== "0" && !escrowPath);
+  const needsEscrowPath = !!(inclDepositTerms && escrowPath !== "none" && escrowPct !== "" && escrowPct !== "0" && !escrowPath);
   // Every term the buyer is meant to CHOOSE must actually be chosen before the
   // offer goes out. Nothing here is pre-decided, so nothing can be sent by accident.
   const offerBlocked = !offerAmt
@@ -2115,10 +2115,22 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:7 }}>
             Choose this first. Who holds the money affects what it costs to hold &mdash; which is worth knowing before you settle on an amount.
           </div>
-          <EscrowSelector value={escrowPath} onChange={setEscrowPath} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
+          <EscrowSelector value={escrowPath} onChange={(v)=>{ setEscrowPath(v); if (v === "none") { setEscrowPct("0"); setCustomMode(false); } }} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
           {escrowPath==="escrow_com" && (
             <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.5 }}>Opening Escrow.com launches a new tab. Everything above is already saved, so you can set it up there and come back to send your offer.</div>
           )}
+          {/* Percentage only appears AFTER a method is chosen — and never for "No deposit".
+              The method is the decision; the amount follows from it. */}
+          {escrowPath === "none" ? (
+            <div style={{ background:"#f4f4f5", border:`1px solid ${C.mist}`, borderRadius:6, padding:"11px 13px", marginTop:14, fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:12.5, color:C.navy, fontWeight:700, lineHeight:1.5 }}>🚫 No earnest money on this offer</div>
+              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:5 }}>The deal moves straight to due diligence with nothing to deposit or confirm. The boat isn&rsquo;t held off the market &mdash; the seller can keep showing it until closing.</div>
+            </div>
+          ) : !escrowPath ? (
+            <div style={{ background:C.sandDark, border:`1px solid ${C.mist}`, borderRadius:6, padding:"11px 13px", marginTop:14, fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>Choose how earnest money is handled above, then set the amount here.</div>
+            </div>
+          ) : (<>
           <div style={{ height:16 }}/>
           <label style={S.label}>Earnest Money Deposit</label>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:5 }}>
@@ -2209,6 +2221,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </div>
           <div style={{ height:10 }}/>
           <Field label="Additional Contingencies (appears on the Purchase Agreement)"><textarea style={{...S.textarea, minHeight:48}} value={verbalNote} onChange={e=>setVerbalNote(e.target.value)} placeholder="e.g. Sale contingent on slip/dock transfer. Includes trailer and electronics. Closing at seller's marina." /></Field>
+          </>)}
           </>)}
         </OfferSection>
         </div>
@@ -2561,6 +2574,13 @@ function EscrowSelector({ value, onChange, depositAmt }) {
       desc:"You've agreed on another holder or method — describe it in your terms.",
       detail:"Use this if you've agreed on a holder or method not listed (a bank, a mutual escrow agent, or another arrangement). BoatClosers does not hold or release funds.",
       warn:"Check who you're sending money to before you send it. Independent boat closing and documentation agents are not always bonded, licensed, or subject to fiduciary duty — the oversight on them is thin compared with attorneys, licensed brokerages, and regulated escrow companies. Ask whether they are bonded and licensed in their state, and get it in writing. Then spell out who holds the deposit and the exact terms in Additional Contingencies above, so it appears on the Purchase Agreement.",
+    },
+    {
+      id:"none", icon:"🚫", label:"No Deposit", badge:"None", badgeColor:C.slate,
+      tint:"#f4f4f5", line:C.mist,
+      desc:"No earnest money on this offer. The boat is not held off the market and the deal moves straight to due diligence.",
+      detail:"Some cash buyers or quick private sales skip earnest money entirely. There's nothing for either party to send or confirm — the deal proceeds directly. Be aware the seller isn't committing to hold the boat for you, and can keep showing it to other buyers.",
+      warn:"With no deposit, nothing holds the boat off the market. The seller can accept another offer at any time before closing, and you have no earnest money at stake to signal commitment.",
     },
   ];
   const selected = options.find(o => o.id === value) || null;
