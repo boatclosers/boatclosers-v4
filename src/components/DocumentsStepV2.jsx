@@ -21,6 +21,19 @@ const C = {
 };
 const fmt = (n) => n ? new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n)) : "";
 const today = () => new Date().toISOString().split("T")[0];
+// Full, provable timestamp: keeps the exact moment (ms) plus a human-readable
+// local string, so a signed document can show date AND time, not just the day.
+const signedStamp = () => { const d = new Date(); return { at: d.getTime(), when: d.toLocaleString() }; };
+// Signature must match the party name (flexible on middle names/initials, case,
+// and spacing). Empty party name → nothing to enforce.
+const _nameParts = (s) => String(s||"").toLowerCase().replace(/[.,]/g," ").split(/\s+/).filter(Boolean);
+const sigMatchesName = (signature, partyName) => {
+  const exp = _nameParts(partyName), got = _nameParts(signature);
+  if (exp.length === 0) return true;
+  if (got.length === 0) return false;
+  const first = exp[0], last = exp[exp.length - 1];
+  return exp.length === 1 ? got.includes(first) : (got.includes(first) && got.includes(last));
+};
 const addDays = (d,n) => { const dt=new Date(d); dt.setDate(dt.getDate()+n); return dt.toISOString().split("T")[0]; };
 
 const S = {
@@ -988,16 +1001,29 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                               <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600, lineHeight:1.5 }}>I have read the above, I consent to sign electronically, and I understand BoatClosers does not verify or store my signature.</span>
                             </label>
                           </div>
-                          <div style={{ display:"flex", gap:10, alignItems:"flex-end" }}>
-                            <div style={{ flex:1 }}>
-                              <label style={S.label}>Type your full legal name to sign electronically</label>
-                              <input style={S.input} placeholder="Full legal name" value={sigName[doc.id]||""} onChange={e=>setSigName(s=>({...s,[doc.id]:e.target.value}))}/>
-                            </div>
-                            <button style={{...S.btnBrass, opacity:(sigName[doc.id]?.trim() && esignConsent[doc.id])?1:0.45, cursor:(sigName[doc.id]?.trim() && esignConsent[doc.id])?"pointer":"not-allowed"}} disabled={!sigName[doc.id]?.trim() || !esignConsent[doc.id]} onClick={()=>{ setSigned(s=>({...s,[doc.id]:{name:sigName[doc.id],date:today(),consent:true}})); setAction(doc.id,"esign"); }}>Sign Document</button>
-                          </div>
+                          {(() => {
+                            const myName = myRole === "seller" ? parties.seller?.name : parties.buyer?.name;
+                            const typed = (sigName[doc.id]||"").trim();
+                            const nameOk = sigMatchesName(typed, myName);
+                            const canSign = !!typed && !!esignConsent[doc.id] && nameOk;
+                            return (
+                              <>
+                                <div style={{ display:"flex", gap:10, alignItems:"flex-end" }}>
+                                  <div style={{ flex:1 }}>
+                                    <label style={S.label}>Type your full legal name to sign electronically</label>
+                                    <input style={S.input} placeholder="Full legal name" value={sigName[doc.id]||""} onChange={e=>setSigName(s=>({...s,[doc.id]:e.target.value}))}/>
+                                  </div>
+                                  <button style={{...S.btnBrass, opacity:canSign?1:0.45, cursor:canSign?"pointer":"not-allowed"}} disabled={!canSign} onClick={()=>{ if(!sigMatchesName((sigName[doc.id]||"").trim(), myName)) return; const st=signedStamp(); setSigned(s=>({...s,[doc.id]:{name:sigName[doc.id],date:today(),at:st.at,when:st.when,consent:true}})); setAction(doc.id,"esign"); }}>Sign Document</button>
+                                </div>
+                                {myName && typed && !nameOk && (
+                                  <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:6, lineHeight:1.5 }}>Your signature must match your name on this deal: <b>{myName}</b>. To change it, update your name in the Parties step.</div>
+                                )}
+                              </>
+                            );
+                          })()}
                         </>
                       ) : (
-                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Already signed by {signed[doc.id].name} on {signed[doc.id].date}</div>
+                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Already signed by {signed[doc.id].name} on {signed[doc.id].when || signed[doc.id].date}</div>
                       )}
                     </div>
                   )}
