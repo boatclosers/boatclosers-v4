@@ -3231,7 +3231,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             ) : (
               <div style={{ background:"#fffdf5", border:`1px solid ${C.brass}`, borderRadius:8, padding:"15px 17px" }}>
                 <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:12 }}>
-                  The deposit is sent {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "broker" ? "to the broker's escrow account" : "directly to the seller"}, outside BoatClosers. <b>Both of you confirm</b> once it's done.
+                  The deposit is sent {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "brokerage" ? "to the broker's trust account" : escMethod === "custom" ? "to the holder you agreed on" : "directly to the seller"}, outside BoatClosers. <b>Both of you confirm</b> once it's done.
                 </div>
                 {(isBuyer ? !depBuyerConfirmed : !depSellerConfirmed) ? (
                   <button onClick={isBuyer ? confirmBuyerSent : confirmSellerReceived} style={{ ...S.btnBrass, width:"100%", fontSize:14, fontWeight:800, padding:"12px 20px", marginBottom:12 }}>
@@ -3389,7 +3389,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                   <div style={{ background:"#fffdf5", border:`1px solid ${C.brass}`, borderLeft:`5px solid ${C.brass}`, borderRadius:8, padding:"15px 17px", fontFamily:"sans-serif" }}>
                     <div style={{ fontSize:13.5, fontWeight:800, color:"#7a5500", marginBottom:5 }}>The {fmt(dep.deposit)} earnest-money deposit</div>
                     <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:12 }}>
-                      The deposit is sent {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "broker" ? "to the broker's escrow account" : "directly to the seller"}, outside BoatClosers. Once <b>both of you confirm</b> it's done, the deal moves forward. BoatClosers only records the confirmation &mdash; it doesn't hold the money.
+                      The deposit is sent {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "brokerage" ? "to the broker's trust account" : escMethod === "custom" ? "to the holder you agreed on" : "directly to the seller"}, outside BoatClosers. Once <b>both of you confirm</b> it's done, the deal moves forward. BoatClosers only records the confirmation &mdash; it doesn't hold the money.
                     </div>
                     {/* MY action */}
                     {(isBuyer ? !depBuyerConfirmed : !depSellerConfirmed) ? (
