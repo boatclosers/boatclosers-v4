@@ -3087,6 +3087,33 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
     setEscLoading(false);
   }, [dealIsEscrowCom, dealTxId, dealId, setNegotiate]);
   useEffect(() => { refreshEscrow(); }, [refreshEscrow]);
+  // ── Escrow.com 3-option flow (Piece 2) ─────────────────────────────────────
+  // Option A: app creates the transaction via API. Option B: buyer creates it on
+  // escrow.com and enters the ID. Option C: app creates it but buyer reviews first.
+  // Once a transaction exists (by any path), we show its LIVE status and auto-verify.
+  const [escChoice, setEscChoice] = useState(null); // "auto" | "manual" | null
+  const [escCreating, setEscCreating] = useState(false);
+  const [escCreateErr, setEscCreateErr] = useState("");
+  const createEscrowTx = useCallback(async () => {
+    if (!dealId) return;
+    setEscCreating(true); setEscCreateErr("");
+    try {
+      const r = await fetch("/api/deals/escrow-create", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dealId }),
+      });
+      const j = await r.json();
+      if (j?.ok && j?.transactionId) {
+        if (setNegotiate) setNegotiate(nn => ({ ...nn, escrowTxId: String(j.transactionId) }));
+        setTimeout(() => refreshEscrow(), 400);
+      } else {
+        setEscCreateErr(j?.error || "Escrow.com couldn't create the transaction. Try again or set it up on escrow.com yourself.");
+      }
+    } catch {
+      setEscCreateErr("Couldn't reach the server. Try again.");
+    }
+    setEscCreating(false);
+  }, [dealId, setNegotiate, refreshEscrow]);
 
   // Survey upload state
   const [surveyFile, setSurveyFile] = useState(null);
@@ -3294,25 +3321,68 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             {depositRequired && !depVerified && !depEnded && (
               <div style={{ marginTop:14 }}>
                 {apiConfirms ? (
-                  <div style={{ background:"#eff6ff", border:`1px solid #93c5fd`, borderLeft:`5px solid #1d4ed8`, borderRadius:8, padding:"14px 16px", fontFamily:"sans-serif" }}>
-                    <div style={{ fontSize:13.5, fontWeight:800, color:"#1d4ed8", marginBottom:4 }}>Verifying your Escrow.com deposit automatically</div>
-                    <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom: (isBuyer && !dealTxId) ? 11 : 0 }}>
-                      {dealTxId
-                        ? <>BoatClosers is connected to Escrow.com and checks transaction <b>#{dealTxId}</b> directly. The moment it shows funded, the vessel decision unlocks on its own &mdash; nobody needs to confirm anything by hand.</>
-                        : isBuyer
-                          ? <>Open your transaction at <b>escrow.com</b>, fund the {fmt(dep.deposit)} deposit there, then enter your transaction ID below so BoatClosers can verify it automatically.</>
-                          : <>The buyer funds the {fmt(dep.deposit)} deposit on Escrow.com. BoatClosers verifies it automatically &mdash; nothing needed from you.</>}
+                  dealTxId ? (
+                    // ── TRANSACTION EXISTS → show the LIVE status tracker ──────────
+                    (() => {
+                      const s = escStatus || {};
+                      const funded = s.ok && s.found && s.funded;
+                      const step = s.step || 1;
+                      const steps = ["Agreement","Funded","In progress","Inspection","Closed"];
+                      return (
+                        <div style={{ background: funded ? C.greenLight : "#eff6ff", border:`1px solid ${funded ? C.green : "#93c5fd"}`, borderLeft:`5px solid ${funded ? C.green : "#1d4ed8"}`, borderRadius:8, padding:"15px 17px", fontFamily:"sans-serif" }}>
+                          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:11 }}>
+                            <div style={{ fontSize:13.5, fontWeight:800, color: funded ? C.green : "#1d4ed8" }}>🏦 Escrow.com transaction #{dealTxId}</div>
+                            <button onClick={refreshEscrow} disabled={escLoading} style={{ ...S.btnOutline, fontSize:11, padding:"5px 11px" }}>{escLoading ? "Checking…" : "Refresh"}</button>
+                          </div>
+                          <div style={{ display:"flex", gap:4, marginBottom:10 }}>
+                            {steps.map((label, i) => {
+                              const on = (i+1) <= step;
+                              return (
+                                <div key={label} style={{ flex:1, textAlign:"center" }}>
+                                  <div style={{ height:6, borderRadius:3, background: on ? (funded ? C.green : "#3b82f6") : C.mist }} />
+                                  <div style={{ fontSize:8.5, color: on ? C.navy : C.slate, marginTop:3, fontWeight: on ? 700 : 400 }}>{label}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div style={{ fontSize:12, color:C.slate, lineHeight:1.7 }}>
+                            {funded
+                              ? <><b style={{color:C.green}}>✓ Funded — the {fmt(dep.deposit)} deposit is secured in escrow.</b> The deal moves forward automatically.</>
+                              : <>{s.label || "Waiting for funding."} {isBuyer && <>Fund the {fmt(dep.deposit)} on Escrow.com and this updates on its own.</>}</>}
+                            {s.env === "sandbox" && <span style={{ color:C.slate }}> (test mode)</span>}
+                          </div>
+                          {isBuyer && !funded && (
+                            <a href={`https://www.escrow.com/transaction/${dealTxId}`} target="_blank" rel="noopener noreferrer" style={{ display:"inline-block", marginTop:11, fontSize:12, fontWeight:700, color:C.navy, border:`1px solid ${C.brass}`, borderRadius:6, padding:"9px 14px", textDecoration:"none" }}>Open on Escrow.com to fund ↗</a>
+                          )}
+                        </div>
+                      );
+                    })()
+                  ) : !isBuyer ? (
+                    // Seller, no transaction yet — nothing for them to do.
+                    <div style={{ background:"#eff6ff", border:`1px solid #93c5fd`, borderRadius:8, padding:"14px 16px", fontFamily:"sans-serif" }}>
+                      <div style={{ fontSize:13, fontWeight:800, color:"#1d4ed8", marginBottom:3 }}>The buyer is setting up the Escrow.com deposit</div>
+                      <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7 }}>Once they create and fund the {fmt(dep.deposit)} transaction, BoatClosers verifies it automatically &mdash; nothing needed from you.</div>
                     </div>
-                    {isBuyer && !dealTxId && (
-                      <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-                        <a href="https://www.escrow.com/login" target="_blank" rel="noopener noreferrer" style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:"transparent", border:`1px solid ${C.brass}`, borderRadius:6, padding:"9px 14px", textDecoration:"none" }}>Open Escrow.com ↗</a>
-                        <button style={{...S.btnBrass, fontSize:12.5, padding:"9px 16px"}} onClick={()=>setShowReceipt(true)}>Enter my transaction ID →</button>
+                  ) : (
+                    // ── BUYER, no transaction yet → THE 3 OPTIONS ──────────────────
+                    <div style={{ background:"#eff6ff", border:`1px solid #93c5fd`, borderLeft:`5px solid #1d4ed8`, borderRadius:8, padding:"15px 17px", fontFamily:"sans-serif" }}>
+                      <div style={{ fontSize:13.5, fontWeight:800, color:"#1d4ed8", marginBottom:4 }}>Set up your {fmt(dep.deposit)} Escrow.com deposit</div>
+                      <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:13 }}>
+                        BoatClosers is connected to Escrow.com, so it can create the transaction for you &mdash; or you can set it up yourself and paste the ID. Either way, it then tracks live and verifies on its own.
                       </div>
-                    )}
-                    {isBuyer && dealTxId && (
-                      <button onClick={refreshEscrow} disabled={escLoading} style={{ ...S.btnOutline, fontSize:11.5, padding:"7px 13px", marginTop:10 }}>{escLoading ? "Checking…" : "Check Escrow.com now"}</button>
-                    )}
-                  </div>
+                      <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
+                        <button onClick={createEscrowTx} disabled={escCreating} style={{ ...S.btnBrass, width:"100%", fontSize:13.5, fontWeight:800, padding:"12px 16px", opacity:escCreating?0.6:1 }}>
+                          {escCreating ? "Creating your transaction…" : "⚡ Create the transaction for me"}
+                        </button>
+                        <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                          <div style={{ flex:1, height:1, background:C.mist }} /><div style={{ fontSize:10.5, color:C.slate }}>OR</div><div style={{ flex:1, height:1, background:C.mist }} />
+                        </div>
+                        <a href="https://www.escrow.com/login" target="_blank" rel="noopener noreferrer" style={{ textAlign:"center", fontSize:12.5, fontWeight:700, color:C.navy, border:`1px solid ${C.brass}`, borderRadius:6, padding:"11px 14px", textDecoration:"none" }}>I&rsquo;ll set it up on Escrow.com myself ↗</a>
+                        <button onClick={()=>setShowReceipt(true)} style={{ ...S.btnOutline, width:"100%", fontSize:12.5, padding:"10px 14px" }}>I already have a transaction ID — enter it</button>
+                      </div>
+                      {escCreateErr && <div style={{ fontSize:11.5, color:C.red, fontWeight:700, marginTop:9, lineHeight:1.5 }}>{escCreateErr}</div>}
+                    </div>
+                  )
                 ) : (
                   // Non-Escrow.com: both parties confirm. Shows the person their own
                   // action, plus the other side's status, in one box — no waiting loop.
