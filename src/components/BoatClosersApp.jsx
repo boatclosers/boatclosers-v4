@@ -3022,6 +3022,17 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const [vaSigName, setVaSigName] = useState(negotiate?.vesselAcceptance?.sig || "");
   const [vaSigned, setVaSigned] = useState(!!negotiate?.vesselAcceptance);
   const [showReceipt, setShowReceipt] = useState(false);
+  // ── DEPOSIT GATE ───────────────────────────────────────────────────────────
+  // The deposit is in control of forward motion. Any attempt to move the deal on
+  // (accept/reject/propose the vessel, continue to documents) runs through
+  // requireDeposit(). If the deposit isn't verified, it opens the deposit modal
+  // right there — reminding them and letting them finish it — instead of letting
+  // them proceed. Planning stays open; only forward motion is gated.
+  const [depositGateOpen, setDepositGateOpen] = useState(false);
+  const requireDeposit = (fn) => () => {
+    if (decisionUnlocked) { fn(); return; }
+    setDepositGateOpen(true);
+  };
   // ── Live Escrow.com status (Piece 2) ───────────────────────────────────────
   // For Escrow.com deals, ask the server what Escrow.com reports about this deal's
   // transaction, and show the customer where it stands. Read-only display; it does
@@ -3138,6 +3149,63 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   return (
     <div style={S.page}>
       <EarnestReceiptModal open={showReceipt} onClose={()=>setShowReceipt(false)} vessel={vessel} parties={parties} negotiate={negotiate} setNegotiate={setNegotiate} myRole={myRole} />
+      {/* ── DEPOSIT GATE MODAL ────────────────────────────────────────────────
+          Opens whenever someone tries to move the deal forward before the deposit
+          is verified. It contains the deposit action itself, so they finish it
+          right here rather than hunting for it. Closes automatically once verified. */}
+      {depositGateOpen && !decisionUnlocked && (
+        <div onClick={()=>setDepositGateOpen(false)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:4000, padding:"1rem", fontFamily:"sans-serif" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:"#fff", borderRadius:12, maxWidth:440, width:"100%", padding:"1.6rem", border:`2px solid ${C.brass}`, maxHeight:"90vh", overflowY:"auto" }}>
+            <div style={{ fontSize:26, textAlign:"center", marginBottom:6 }}>🔒</div>
+            <div style={{ fontSize:17, fontWeight:800, color:C.navy, textAlign:"center", marginBottom:5 }}>Finish the deposit to move forward</div>
+            <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, textAlign:"center", marginBottom:16 }}>
+              The vessel decision and the rest of the deal stay locked until the {fmt(dep.deposit)} earnest-money deposit is verified. Your survey and sea-trial planning stay open &mdash; but nothing moves forward until this is done.
+            </div>
+            {apiConfirms ? (
+              <div style={{ background:"#eff6ff", border:`1px solid #93c5fd`, borderRadius:8, padding:"14px 16px" }}>
+                <div style={{ fontSize:13, fontWeight:800, color:"#1d4ed8", marginBottom:4 }}>Verifying through Escrow.com</div>
+                <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom: (isBuyer && !dealTxId) ? 11 : 10 }}>
+                  {dealTxId
+                    ? <>BoatClosers checks transaction <b>#{dealTxId}</b> directly. Once it shows funded, this unlocks automatically.</>
+                    : isBuyer
+                      ? <>Open your transaction at <b>escrow.com</b>, fund the {fmt(dep.deposit)} deposit, then enter your transaction ID so we can verify it.</>
+                      : <>The buyer funds on Escrow.com and it verifies automatically. Nothing needed from you.</>}
+                </div>
+                {isBuyer && !dealTxId && (
+                  <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                    <a href="https://www.escrow.com/login" target="_blank" rel="noopener noreferrer" style={{ fontSize:12, fontWeight:700, color:C.navy, border:`1px solid ${C.brass}`, borderRadius:6, padding:"9px 14px", textDecoration:"none" }}>Open Escrow.com ↗</a>
+                    <button style={{...S.btnBrass, fontSize:12.5, padding:"9px 16px"}} onClick={()=>{ setDepositGateOpen(false); setShowReceipt(true); }}>Enter transaction ID →</button>
+                  </div>
+                )}
+                {isBuyer && dealTxId && (
+                  <button onClick={refreshEscrow} disabled={escLoading} style={{ ...S.btnOutline, fontSize:12, padding:"8px 14px" }}>{escLoading ? "Checking…" : "Check Escrow.com now"}</button>
+                )}
+              </div>
+            ) : (
+              <div style={{ background:"#fffdf5", border:`1px solid ${C.brass}`, borderRadius:8, padding:"15px 17px" }}>
+                <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:12 }}>
+                  The deposit is sent {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "broker" ? "to the broker's escrow account" : "directly to the seller"}, outside BoatClosers. <b>Both of you confirm</b> once it's done.
+                </div>
+                {(isBuyer ? !depBuyerConfirmed : !depSellerConfirmed) ? (
+                  <button onClick={isBuyer ? confirmBuyerSent : confirmSellerReceived} style={{ ...S.btnBrass, width:"100%", fontSize:14, fontWeight:800, padding:"12px 20px", marginBottom:12 }}>
+                    {isBuyer ? "✓ I've sent the deposit" : "✓ I've received the deposit"}
+                  </button>
+                ) : (
+                  <div style={{ background:C.greenLight, border:`1px solid ${C.green}`, borderRadius:6, padding:"9px 12px", marginBottom:12, fontSize:12, color:C.navy }}>
+                    ✓ You confirmed {isBuyer ? "you sent" : "you received"} the deposit.
+                  </div>
+                )}
+                <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, borderTop:`1px solid ${C.mist}`, paddingTop:10 }}>
+                  {isBuyer
+                    ? (depSellerConfirmed ? <><b style={{color:C.green}}>✓ The seller confirmed they received it.</b></> : <>Waiting on the seller to confirm they received it.</>)
+                    : (depBuyerConfirmed ? <><b style={{color:C.green}}>✓ The buyer confirmed they sent it.</b></> : <>Waiting on the buyer to confirm they've sent it.</>)}
+                </div>
+              </div>
+            )}
+            <button onClick={()=>setDepositGateOpen(false)} style={{ ...S.btnOutline, width:"100%", marginTop:14, fontSize:12.5, padding:"10px" }}>Close &mdash; I'll finish this first</button>
+          </div>
+        </div>
+      )}
       <TipBox tips={TIPS.diligence}/>
       <DealAssistant step="diligence" role={myRole} vessel={vessel} />
       {negotiate.vesselRejection && (
@@ -3689,13 +3757,13 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           </div>
         ) : (
         <div className="bc-grid3" style={{ gap:10, marginBottom:16 }}>
-          <button onClick={()=>{ setOutcome("accept"); setBuyerSigned(false); setVaSigned(false); set("outcome","accept"); }} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="accept"?C.green:"transparent", color:outcome==="accept"?"#fff":C.green, border:`2px solid ${C.green}` }}>
+          <button onClick={requireDeposit(()=>{ setOutcome("accept"); setBuyerSigned(false); setVaSigned(false); set("outcome","accept"); })} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="accept"?C.green:"transparent", color:outcome==="accept"?"#fff":C.green, border:`2px solid ${C.green}` }}>
             ✓ Accept As-Is
           </button>
-          <button onClick={()=>{ setOutcome("propose_price"); set("outcome","propose_price"); }} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="propose_price"?C.brass:"transparent", color:outcome==="propose_price"?C.navy:C.brass, border:`2px solid ${C.brass}` }}>
+          <button onClick={requireDeposit(()=>{ setOutcome("propose_price"); set("outcome","propose_price"); })} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="propose_price"?C.brass:"transparent", color:outcome==="propose_price"?C.navy:C.brass, border:`2px solid ${C.brass}` }}>
             ↺ Propose New Price
           </button>
-          <button onClick={()=>{ setOutcome("reject"); setBuyerSigned(false); setVaSigned(false); set("outcome","reject"); }} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="reject"?C.red:"transparent", color:outcome==="reject"?"#fff":C.red, border:`2px solid ${C.red}` }}>
+          <button onClick={requireDeposit(()=>{ setOutcome("reject"); setBuyerSigned(false); setVaSigned(false); set("outcome","reject"); })} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="reject"?C.red:"transparent", color:outcome==="reject"?"#fff":C.red, border:`2px solid ${C.red}` }}>
             ✗ Reject Vessel
           </button>
         </div>
@@ -3845,7 +3913,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
       <WhatsNext>Next are the documents &mdash; the bill of sale, title transfer, and the rest. You'll review and sign each required one, and the other party is emailed as they're signed.</WhatsNext>
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
-        <button style={S.btnBrass} disabled={!canProceed} onClick={()=>{ setData(d=>({...d,outcome,rejectionReasons,rejectionNotes,rejSolution,rejSigName,vaSigName,vaSigned,surveyFile:surveyFile?.name,surveyCompany,surveyorName})); if(setNegotiate){ if(outcome==="propose_price" && newPrice){ setNegotiate(n=>({...n, addendum:{ newPrice:Number(newPrice), reason:newPriceReason||"", buyer:parties.buyer.name||"Buyer", date:(n.addendum&&n.addendum.date)||today() }, vesselAcceptance: n.vesselAcceptance || { sig:parties.buyer.name||"Buyer", date:today() } })); } if(outcome==="accept" && vaSigName.trim()){ setNegotiate(n=>({...n, vesselAcceptance: n.vesselAcceptance || { sig:vaSigName.trim(), date:today() }})); } if(outcome==="reject" && rejectionReasons.length>0){ setNegotiate(n=>({...n, vesselRejection:{ reasons:rejectionReasons, notes:rejectionNotes, solution:rejSolution, sig:(rejSigName.trim()||parties.buyer.name||"Buyer"), date:today() }})); } } onNext(); }}>
+        <button style={S.btnBrass} disabled={!canProceed} onClick={()=>{ setData(d=>({...d,outcome,rejectionReasons,rejectionNotes,rejSolution,rejSigName,vaSigName,vaSigned,surveyFile:surveyFile?.name,surveyCompany,surveyorName})); if(setNegotiate){ if(outcome==="propose_price" && newPrice){ setNegotiate(n=>({...n, addendum:{ newPrice:Number(newPrice), reason:newPriceReason||"", buyer:parties.buyer.name||"Buyer", date:(n.addendum&&n.addendum.date)||today() }, vesselAcceptance: n.vesselAcceptance || { sig:parties.buyer.name||"Buyer", date:today() } })); } if(outcome==="accept" && vaSigName.trim()){ setNegotiate(n=>({...n, vesselAcceptance: n.vesselAcceptance || { sig:vaSigName.trim(), date:today() }})); } if(outcome==="reject" && rejectionReasons.length>0){ setNegotiate(n=>({...n, vesselRejection:{ reasons:rejectionReasons, notes:rejectionNotes, solution:rejSolution, sig:(rejSigName.trim()||parties.buyer.name||"Buyer"), date:today() }})); } } if(!decisionUnlocked){ setDepositGateOpen(true); return; } onNext(); }}>
           {outcome==="reject" ? "Proceed to Close (Rejected)" : "Continue to Documents →"}
         </button>
       </div>
