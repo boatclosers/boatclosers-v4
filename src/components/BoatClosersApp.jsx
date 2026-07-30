@@ -732,6 +732,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
   // (system auto-emails the link, no link shown); "link" = no email, show a
   // copyable link the initiator sends themselves.
   const [inviteMode, setInviteMode] = useState(null);
+  const [showOtherForm, setShowOtherForm] = useState(false);
 
   const otherSide = userRole === "buyer" ? "seller" : "buyer";
   const mySide = userRole === "seller" ? "seller" : "buyer";
@@ -839,55 +840,6 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
           <button onClick={onBack} style={{ ...S.btn, fontSize:12.5, padding:"9px 16px", whiteSpace:"nowrap" }}>Review boat details →</button>
         </div>
       )}
-      <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-        {sides.map(side => {
-          const isMine = side === userRole;
-          // You can edit your own side always. You can edit the OTHER side only
-          // to pre-fill it before that party has joined; once they're in, it
-          // locks to them.
-          const locked = !isMine && partyBJoined;
-          return (
-          <div key={side} style={{ ...S.card, border: side===userRole ? `2px solid ${C.brass}` : `0.5px solid ${C.mist}`, position:"relative" }}>
-            {side===userRole && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.brass, color:C.navy }}>You</span>}
-            {locked && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.mist, color:C.slate }}>🔒 Locked</span>}
-            <h3 style={S.h3}>{side==="buyer" ? "Buyer" : "Seller"}</h3>
-            <Grid2>
-              <Field label={`${side==="buyer"?"Buyer":"Seller"} Full Legal Name *`}>
-                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].name} readOnly={locked} onChange={e=>!locked&&set(side,"name",capFirst(e.target.value))} />
-              </Field>
-              <Field label="Email *">
-                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} type="email" value={data[side].email} readOnly={locked} onChange={e=>!locked&&set(side,"email",e.target.value)} />
-                {!locked && data[side].email && !isValidEmail(data[side].email) && <div style={{ fontSize:11, color:"#b91c1c", fontFamily:"sans-serif", marginTop:3 }}>Enter a valid email address.</div>}
-              </Field>
-              <Field label="Phone">
-                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].phone} readOnly={locked} onChange={e=>!locked&&set(side,"phone",e.target.value)} />
-                {!locked && !isValidPhone(data[side].phone) && <div style={{ fontSize:11, color:"#b91c1c", fontFamily:"sans-serif", marginTop:3 }}>Enter a valid phone number.</div>}
-              </Field>
-              <Field label="Address">
-                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].address} readOnly={locked} onChange={e=>!locked&&set(side,"address",e.target.value)} />
-              </Field>
-              <Field label="City">
-                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].city} readOnly={locked} onChange={e=>!locked&&set(side,"city",e.target.value)} />
-              </Field>
-              <Field label="State / Zip">
-                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].stateZip} readOnly={locked} onChange={e=>!locked&&set(side,"stateZip",e.target.value)} />
-              </Field>
-            </Grid2>
-            {locked && (
-              <div style={{ marginTop:12, padding:"10px 12px", background:C.sandDark, borderRadius:5, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
-                🔒 This is the other party's information. They control their own contact details and you can't edit them.
-              </div>
-            )}
-            {!isMine && !partyBJoined && (
-              <div style={{ marginTop:12, padding:"10px 12px", background:C.sandDark, borderRadius:5, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
-                The other party can fill in their own info after you invite them. You can also enter it on their behalf now — it locks to them once they join.
-              </div>
-            )}
-          </div>
-          );
-        })}
-      </div>
-
       {/* ── INVITE OTHER PARTY (only until the other side joins) ── */}
       {!partyBJoined ? (
       <div style={{ background:C.navy, borderRadius:8, padding:"14px 18px", marginTop:16, display:"flex", gap:14, alignItems:"flex-start" }}>
@@ -1010,6 +962,67 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
         <div style={{ background:"#eef7f0", border:"1px solid #22a06b", borderRadius:8, padding:"12px 16px", marginTop:16, fontSize:12.5, fontFamily:"sans-serif", color:"#176844", fontWeight:600 }}>✓ Both parties have joined this deal — you're all set. Confirm your details below are correct, then continue.</div>
       )}
       <WhatsNext>Next you'll build the offer &mdash; price, deposit, contingencies and dates. When you send it, the other party gets an email and can accept, counter, or flag a conflict.</WhatsNext>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+        {sides.map(side => {
+          const isMine = side === userRole;
+          // You can edit your own side always. You can edit the OTHER side only
+          // to pre-fill it before that party has joined; once they're in, it
+          // locks to them.
+          const locked = !isMine && partyBJoined;
+          return (
+          <div key={side} style={{ ...S.card, border: side===userRole ? `2px solid ${C.brass}` : `0.5px solid ${C.mist}`, position:"relative", ...(!isMine && !partyBJoined ? { background:C.sandDark, opacity:0.92 } : {}) }}>
+            {side===userRole && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.brass, color:C.navy }}>You</span>}
+            {locked && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.mist, color:C.slate }}>🔒 Locked</span>}
+            <h3 style={S.h3}>{side==="buyer" ? "Buyer" : "Seller"}</h3>
+            {!isMine && !partyBJoined && !showOtherForm ? (
+              <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
+                The {side} fills this in when they join &mdash; nothing needed from you here. Use the invite above to bring them in.
+                <div style={{ marginTop:8 }}>
+                  <button onClick={()=>setShowOtherForm(true)} style={{ background:"none", border:`1px solid ${C.mist}`, borderRadius:5, color:C.slate, fontSize:11, fontFamily:"sans-serif", padding:"5px 11px", cursor:"pointer" }}>
+                    I already know their details &mdash; enter them for them
+                  </button>
+                </div>
+              </div>
+            ) : (
+            <Grid2>
+              <Field label={`${side==="buyer"?"Buyer":"Seller"} Full Legal Name *`}>
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].name} readOnly={locked} onChange={e=>!locked&&set(side,"name",capFirst(e.target.value))} />
+              </Field>
+              <Field label="Email *">
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} type="email" value={data[side].email} readOnly={locked} onChange={e=>!locked&&set(side,"email",e.target.value)} />
+                {!locked && data[side].email && !isValidEmail(data[side].email) && <div style={{ fontSize:11, color:"#b91c1c", fontFamily:"sans-serif", marginTop:3 }}>Enter a valid email address.</div>}
+              </Field>
+              <Field label="Phone">
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].phone} readOnly={locked} onChange={e=>!locked&&set(side,"phone",e.target.value)} />
+                {!locked && !isValidPhone(data[side].phone) && <div style={{ fontSize:11, color:"#b91c1c", fontFamily:"sans-serif", marginTop:3 }}>Enter a valid phone number.</div>}
+              </Field>
+              <Field label="Address">
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].address} readOnly={locked} onChange={e=>!locked&&set(side,"address",e.target.value)} />
+              </Field>
+              <Field label="City">
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].city} readOnly={locked} onChange={e=>!locked&&set(side,"city",e.target.value)} />
+              </Field>
+              <Field label="State / Zip">
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].stateZip} readOnly={locked} onChange={e=>!locked&&set(side,"stateZip",e.target.value)} />
+              </Field>
+            </Grid2>
+            )}
+            {locked && (
+              <div style={{ marginTop:12, padding:"10px 12px", background:C.sandDark, borderRadius:5, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
+                🔒 This is the other party's information. They control their own contact details and you can't edit them.
+              </div>
+            )}
+            {!isMine && !partyBJoined && showOtherForm && (
+              <div style={{ marginTop:12, padding:"10px 12px", background:"#fff", borderRadius:5, fontSize:11.5, fontFamily:"sans-serif", color:C.slate }}>
+                Anything you enter here locks to them once they join. Leave blank if you're not sure &mdash; they'll complete it themselves.
+              </div>
+            )}
+          </div>
+          );
+        })}
+      </div>
+
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
         <div style={{ textAlign:"right" }}>
