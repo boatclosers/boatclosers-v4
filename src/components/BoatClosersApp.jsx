@@ -5542,7 +5542,7 @@ export default function BoatClosers() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            dealId, role: user?.role,
+            dealId, role: myDealRole || user?.role,
             vessel: s.vessel, parties: s.parties, negotiate: s.negotiate,
             dd_data: s.ddData, docs_data: s.docsData, step: s.step, max_step: s.maxStep
           })
@@ -5572,7 +5572,11 @@ export default function BoatClosers() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          role: user?.role,
+          // The DEAL role (what they chose for THIS deal) is authoritative — not the
+          // account signup role. A user who signed up as "buyer" can start a new deal
+          // as the seller; sending user.role here stored the wrong initiator_role and
+          // flipped everyone back to buyer after paying. Prefer myDealRole.
+          role: myDealRole || user?.role,
           vessel: s.vessel, parties: s.parties, negotiate: s.negotiate,
           dd_data: s.ddData, docs_data: s.docsData, step: s.step, max_step: s.maxStep
         })
