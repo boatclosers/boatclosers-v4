@@ -3262,9 +3262,9 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         </div>
       )}
 <VesselLookup />
-      {depDeadline > 0 && (() => {
-        const msLeft = depDeadline - Date.now();
-        const expired = !depHasProof && msLeft <= 0;
+      {depositRequired && !depVerified && (() => {
+        const msLeft = depDeadline > 0 ? (depDeadline - Date.now()) : 0;
+        const expired = depDeadline > 0 && !depHasProof && msLeft <= 0;
         const hoursLeft = Math.max(0, Math.floor(msLeft/3600000));
         const minsLeft = Math.max(0, Math.floor((msLeft%3600000)/60000));
         return (
@@ -3307,11 +3307,13 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                   </div>
                 )}
               </>
-            ) : (
+            ) : depDeadline > 0 ? (
               <>
                 <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, fontWeight:700 }}>⏳ Proof of deposit due in {hoursLeft}h {minsLeft}m</div>
                 <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>Earnest money keeps this deal alive. If proof isn't provided before the timer runs out, the deal can be declared <b>null and void — including the signed Purchase Agreement</b>, and the <b>seller is then free to accept other offers</b>.</div>
               </>
+            ) : (
+              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>The {fmt(dep.deposit)} earnest money secures this deal. Complete it below to unlock the vessel decision.</div>
             )}
             {/* ── DEPOSIT: the app only VERIFIES ──────────────────────────────
                 Escrow.com verifies automatically (it's connected). Every other
