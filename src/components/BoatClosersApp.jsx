@@ -3275,12 +3275,12 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             ) : depVerified ? (
               <>
                 <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Deposit verified by the seller — this deal is secured</div>
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>Ref {dep.depositProof.ref}{dep.depositProof.note ? ` · ${dep.depositProof.note}` : ""}{depVerif.note ? ` · Seller's note: ${depVerif.note}` : ""}. The boat is held off the market while due diligence is completed.</div>
+                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>Ref {dep.depositProof?.ref || "\u2014"}{dep.depositProof?.note ? ` · ${dep.depositProof.note}` : ""}{depVerif?.note ? ` · Seller's note: ${depVerif.note}` : ""}. The boat is held off the market while due diligence is completed.</div>
               </>
             ) : depDisputed ? (
               <>
                 <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700, lineHeight:1.5 }}>⚠️ The seller could not verify this deposit — the deal is on hold</div>
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>The buyer submitted ref {dep.depositProof.ref}, but the seller reports the funds have not arrived.{depVerif.note ? ` Seller's note: ${depVerif.note}` : ""} Nothing moves forward until this is sorted out.</div>
+                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>The buyer submitted ref {dep.depositProof?.ref || "\u2014"}, but the seller reports the funds have not arrived.{depVerif?.note ? ` Seller's note: ${depVerif.note}` : ""} Nothing moves forward until this is sorted out.</div>
                 {isBuyer ? (
                   <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginTop:8, lineHeight:1.6 }}>Check with your escrow agent or bank, then submit corrected proof below. Wires can take 1&ndash;2 business days to land, so this may simply be timing. Use the message thread to tell the seller what you find.</div>
                 ) : (
@@ -3293,7 +3293,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             ) : depAwaitingVerify ? (
               <>
                 <div style={{ fontSize:13, fontFamily:"sans-serif", color:"#7a5500", fontWeight:700, lineHeight:1.5 }}>⏸️ Deal on hold &mdash; waiting for the seller to verify the deposit</div>
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>The buyer submitted proof (ref {dep.depositProof.ref}{dep.depositProof.note ? ` · ${dep.depositProof.note}` : ""}). This deal is <b>not secured yet</b> &mdash; it becomes secured once the seller confirms the money actually arrived.</div>
+                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>The buyer submitted proof (ref {dep.depositProof?.ref || "\u2014"}{dep.depositProof?.note ? ` · ${dep.depositProof.note}` : ""}). This deal is <b>not secured yet</b> &mdash; it becomes secured once the seller confirms the money actually arrived.</div>
               </>
             ) : expired ? (
               <>
