@@ -3185,7 +3185,26 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             )}
             {(!depHasProof || depDisputed) && !depEnded && (
               <div style={{ marginTop:14 }}>
-                {!depInstrPosted ? (
+                {/* Escrow.com: buyer opens & funds the transaction and enters the tx ID.
+                    No seller "post instructions" step, so there's no deadlock. This box
+                    stays open after the deal locks until the deposit is actually proven. */}
+                {dealIsEscrowCom ? (
+                  isBuyer ? (
+                    <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", fontFamily:"sans-serif" }}>
+                      <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:3 }}>Your next step: fund the deposit on Escrow.com</div>
+                      <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
+                        Open your transaction at <b>escrow.com</b>, fund the {fmt(dep.deposit)} deposit there, then come back and sign the receipt with your <b>Escrow.com transaction ID</b>. BoatClosers confirms it automatically &mdash; the seller doesn&rsquo;t post anything.
+                      </div>
+                      <a href="https://www.escrow.com/login" target="_blank" rel="noopener noreferrer" style={{ display:"inline-block", marginRight:8, fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:"transparent", border:`1px solid ${C.brass}`, borderRadius:6, padding:"9px 14px", textDecoration:"none" }}>Open Escrow.com ↗</a>
+                      <button style={{...S.btnBrass, fontSize:13, padding:"9px 16px"}} onClick={()=>setShowReceipt(true)}>I&rsquo;ve funded it &mdash; sign the receipt &rarr;</button>
+                    </div>
+                  ) : (
+                    <div style={{ background:"#eff6ff", border:`1px solid #93c5fd`, borderRadius:8, padding:"12px 14px", fontFamily:"sans-serif" }}>
+                      <div style={{ fontSize:12.5, fontWeight:800, color:"#1d4ed8", marginBottom:3 }}>The buyer is funding through Escrow.com &mdash; nothing needed from you</div>
+                      <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>The buyer opens and funds the {fmt(dep.deposit)} deposit on Escrow.com, and BoatClosers verifies it automatically. You don&rsquo;t post instructions or confirm receipt. Get your paperwork ready below.</div>
+                    </div>
+                  )
+                ) : !depInstrPosted ? (
                   isBuyer ? (
                     <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", fontFamily:"sans-serif" }}>
                       <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:3 }}>⏳ Waiting on the seller</div>
@@ -3337,7 +3356,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>You've done your part &mdash; your proof is submitted and the clock has stopped. The seller now confirms with their escrow agent that the funds arrived. Wires often take 1&ndash;2 business days to show up, so a short wait is normal. You'll be notified the moment they confirm, and the deal is secured at that point.</div>
               </div>
             )}
-            {isBuyer && (!depHasProof || depDisputed) && !depEnded && depInstrPosted && depCommitted && (
+            {isBuyer && (!depHasProof || depDisputed) && !depEnded && !dealIsEscrowCom && depInstrPosted && depCommitted && (
               <div style={{ marginTop:12 }}>
                 <button style={{...S.btnBrass, width:"100%", fontSize:13, padding:"11px"}} onClick={()=>setShowReceipt(true)}>
                   📄 {depDisputed ? "Sign a corrected deposit receipt" : "Open the deposit receipt to sign"} →
