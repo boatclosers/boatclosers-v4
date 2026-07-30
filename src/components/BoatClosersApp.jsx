@@ -1937,10 +1937,24 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               : hasProof
               ? `The buyer has submitted proof of the ${fmt(acceptedOffer.deposit)} deposit. The seller is confirming it actually arrived — the deal is secured once they do.`
               : `The terms are signed, but the boat isn't secured yet. The ${fmt(acceptedOffer.deposit)} earnest money is what holds it off the market. Handle it on the Due Diligence step.`;
+            // The buyer is the one who sends the deposit; give them a real button to
+            // the step where it happens. Without this the banner says "handle it on
+            // Due Diligence" but offers no way to get there — a dead end after signing.
+            const showDepositCta = !verified && (myRole !== "seller");
             return (
               <div style={{ background:bg, border:`1px solid ${bd}`, borderRadius:6, padding:"11px 13px", marginTop:10, fontFamily:"sans-serif" }}>
                 <div style={{ fontSize:12.5, fontWeight:800, color: verified ? C.green : disputed ? C.red : "#7a5500", marginBottom:3 }}>{head}</div>
                 <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>{body}</div>
+                {showDepositCta && onNext && (
+                  <button onClick={onNext} style={{ ...S.btnBrass, marginTop:10, fontSize:12.5, fontWeight:800, padding:"9px 16px" }}>
+                    {disputed ? "Resolve the deposit on Due Diligence →" : hasProof ? "Check deposit status on Due Diligence →" : "Send your deposit on Due Diligence →"}
+                  </button>
+                )}
+                {!verified && myRole === "seller" && onNext && (
+                  <button onClick={onNext} style={{ ...S.btnOutline, marginTop:10, fontSize:12, padding:"8px 14px" }}>
+                    Go to Due Diligence →
+                  </button>
+                )}
               </div>
             );
           })()}
