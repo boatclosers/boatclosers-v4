@@ -2917,16 +2917,20 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   //                   it's false. We trust the bonded professional holding the funds,
   //                   not the buyer's honesty alone.
   const escMethod = dep.escrowPath || "";
-  const sellerMustConfirm = escMethod === "direct";
   const apiConfirms = escMethod === "escrow_com";
-  // "Verified" = the deposit is genuinely accounted for, by whichever mechanism
-  // fits this deal's escrow method.
-  const depConfirmedByStatus = depVerif?.status === "confirmed";
+  // ── THE APP ONLY VERIFIES. It is not part of moving the money. ─────────────
+  // The buyer sends the deposit outside the app (to the seller, an attorney, a
+  // broker escrow — the app has nothing to do with that). The app's ONLY job is
+  // to know the deposit happened so the deal can move forward.
+  //   • Escrow.com  → the app is CONNECTED, so it verifies AUTOMATICALLY. No clicks.
+  //   • Every other → the app can't see the money, so BOTH parties confirm:
+  //                   the buyer ("I've sent it") and the seller ("I received it").
+  //                   Two confirmations, one from each side, and the deal moves.
+  const depBuyerConfirmed = !!dep.depositBuyerConfirmed;
+  const depSellerConfirmed = !!dep.depositSellerConfirmed;
   const depVerified = apiConfirms
-    ? depConfirmedByStatus                    // Escrow.com API wrote it
-    : sellerMustConfirm
-      ? (depConfirmedByStatus && !!depVerif?.sig) // direct: seller signed off
-      : depBuyerSigned;                        // attorney/broker: buyer's signed claim stands
+    ? (depVerif?.status === "confirmed")        // Escrow.com API verified it
+    : (depBuyerConfirmed && depSellerConfirmed); // both sides confirmed it happened
   // ── Deposit no longer HARD-gates due diligence ────────────────────────────
   // The buyer can start the lead-time work — booking a surveyor, arranging a sea
   // trial — while the deposit is still being funded/verified, because those things
@@ -2942,7 +2946,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const decisionUnlocked = depositSecured || depositWaived;
   // Kept for older references: DD content renders; only the decision is gated now.
   const ddOpen = true;
-  const depAwaitingVerify = depHasProof && !depVerif;
+  const depAwaitingVerify = depositRequired && !depVerified && !depEnded;
   const [verifyNote, setVerifyNote] = useState("");
   const [verifySig, setVerifySig] = useState("");
   const confirmDeposit = () => { if (verifySig.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositVerification: { status: "confirmed", at: Date.now(), by: "seller", note: verifyNote.trim(), sig: verifySig.trim() } })); };
@@ -2971,6 +2975,17 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const [instrDetails, setInstrDetails] = useState("");
   const [commitName, setCommitName] = useState("");
   const postInstructions = () => { if (instrDetails.trim() && setNegotiate) setNegotiate(n => ({ ...n, depositInstructions: { method: instrMethod, details: instrDetails.trim(), at: Date.now() } })); };
+  // ── The two confirmations (non-Escrow.com deals) ──────────────────────────
+  // Each party marks their own side. The deal moves when both are in. No account
+  // details, no posting — the money moved outside the app; this just records that
+  // it happened, from both perspectives, so neither side can fake it alone.
+  const confirmBuyerSent = () => { if (setNegotiate) setNegotiate(n => ({ ...n, depositBuyerConfirmed: { at: Date.now(), name: (parties?.buyer?.name || "Buyer") } })); };
+  const confirmSellerReceived = () => { if (setNegotiate) setNegotiate(n => ({ ...n, depositSellerConfirmed: { at: Date.now(), name: (parties?.seller?.name || "Seller") } })); };
+  const undoMyDepositConfirm = () => {
+    if (!setNegotiate) return;
+    if (isBuyer) setNegotiate(n => { const c = { ...n }; delete c.depositBuyerConfirmed; return c; });
+    else setNegotiate(n => { const c = { ...n }; delete c.depositSellerConfirmed; return c; });
+  };
   // Wire-fraud guard: changing posted instructions VOIDS the buyer's commitment and
   // flags the change, so a swapped account number can never slip through on the back
   // of an agreement the buyer made to different details. This is the classic attack —
@@ -3183,187 +3198,59 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>Earnest money keeps this deal alive. If proof isn't provided before the timer runs out, the deal can be declared <b>null and void — including the signed Purchase Agreement</b>, and the <b>seller is then free to accept other offers</b>.</div>
               </>
             )}
-            {(!depHasProof || depDisputed) && !depEnded && (
+            {/* ── DEPOSIT: the app only VERIFIES ──────────────────────────────
+                Escrow.com verifies automatically (it's connected). Every other
+                method: the money moves OUTSIDE the app, and both parties confirm
+                it happened — buyer "I've sent it", seller "I've received it". When
+                both are in, the deal moves. No instructions, no account details. */}
+            {depositRequired && !depVerified && !depEnded && (
               <div style={{ marginTop:14 }}>
-                {/* Escrow.com: buyer opens & funds the transaction and enters the tx ID.
-                    No seller "post instructions" step, so there's no deadlock. This box
-                    stays open after the deal locks until the deposit is actually proven. */}
-                {dealIsEscrowCom ? (
-                  isBuyer ? (
-                    <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", fontFamily:"sans-serif" }}>
-                      <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:3 }}>Your next step: fund the deposit on Escrow.com</div>
-                      <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
-                        Open your transaction at <b>escrow.com</b>, fund the {fmt(dep.deposit)} deposit there, then come back and sign the receipt with your <b>Escrow.com transaction ID</b>. BoatClosers confirms it automatically &mdash; the seller doesn&rsquo;t post anything.
+                {apiConfirms ? (
+                  <div style={{ background:"#eff6ff", border:`1px solid #93c5fd`, borderLeft:`5px solid #1d4ed8`, borderRadius:8, padding:"14px 16px", fontFamily:"sans-serif" }}>
+                    <div style={{ fontSize:13.5, fontWeight:800, color:"#1d4ed8", marginBottom:4 }}>Verifying your Escrow.com deposit automatically</div>
+                    <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom: (isBuyer && !dealTxId) ? 11 : 0 }}>
+                      {dealTxId
+                        ? <>BoatClosers is connected to Escrow.com and checks transaction <b>#{dealTxId}</b> directly. The moment it shows funded, the vessel decision unlocks on its own &mdash; nobody needs to confirm anything by hand.</>
+                        : isBuyer
+                          ? <>Open your transaction at <b>escrow.com</b>, fund the {fmt(dep.deposit)} deposit there, then enter your transaction ID below so BoatClosers can verify it automatically.</>
+                          : <>The buyer funds the {fmt(dep.deposit)} deposit on Escrow.com. BoatClosers verifies it automatically &mdash; nothing needed from you.</>}
+                    </div>
+                    {isBuyer && !dealTxId && (
+                      <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                        <a href="https://www.escrow.com/login" target="_blank" rel="noopener noreferrer" style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:"transparent", border:`1px solid ${C.brass}`, borderRadius:6, padding:"9px 14px", textDecoration:"none" }}>Open Escrow.com ↗</a>
+                        <button style={{...S.btnBrass, fontSize:12.5, padding:"9px 16px"}} onClick={()=>setShowReceipt(true)}>Enter my transaction ID →</button>
                       </div>
-                      <a href="https://www.escrow.com/login" target="_blank" rel="noopener noreferrer" style={{ display:"inline-block", marginRight:8, fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:"transparent", border:`1px solid ${C.brass}`, borderRadius:6, padding:"9px 14px", textDecoration:"none" }}>Open Escrow.com ↗</a>
-                      <button style={{...S.btnBrass, fontSize:13, padding:"9px 16px"}} onClick={()=>setShowReceipt(true)}>I&rsquo;ve funded it &mdash; sign the receipt &rarr;</button>
-                    </div>
-                  ) : (
-                    <div style={{ background:"#eff6ff", border:`1px solid #93c5fd`, borderRadius:8, padding:"12px 14px", fontFamily:"sans-serif" }}>
-                      <div style={{ fontSize:12.5, fontWeight:800, color:"#1d4ed8", marginBottom:3 }}>The buyer is funding through Escrow.com &mdash; nothing needed from you</div>
-                      <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>The buyer opens and funds the {fmt(dep.deposit)} deposit on Escrow.com, and BoatClosers verifies it automatically. You don&rsquo;t post instructions or confirm receipt. Get your paperwork ready below.</div>
-                    </div>
-                  )
-                ) : !depInstrPosted ? (
-                  isBuyer ? (
-                    <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", fontFamily:"sans-serif" }}>
-                      <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:3 }}>⏳ Waiting on the seller</div>
-                      <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>The seller still needs to post <b>where to send the deposit</b>. You'll get an email the moment they do &mdash; don't wire anything until those instructions appear here.</div>
-                    </div>
-                  ) : (
-                    <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", fontFamily:"sans-serif" }}>
-                      <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:3 }}>⚠️ Action needed: tell the buyer where to send the deposit</div>
-                      <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>The buyer can't fund until you post this. Give them the escrow account or attorney trust account details &mdash; enough that they can send the money without texting you for it.</div>
-                      <label style={S.label}>How is the deposit being held?</label>
-                      {agreedMethod && (
-                        <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginBottom:5 }}>
-                          The signed Purchase Agreement says <b style={{ color:C.navy }}>{agreedMethod}</b>. Keep it unless something has genuinely changed.
-                        </div>
-                      )}
-                      <select style={S.input} value={instrMethod} onChange={e=>setInstrMethod(e.target.value)}>
-                        <option>Escrow.com</option>
-                        <option>Attorney / title company trust account</option>
-                        <option>Licensed broker escrow account</option>
-                        <option>Direct to seller (no third party)</option>
-                        <option>Other</option>
-                      </select>
-                      {methodDiffers && (
-                        <div style={{ background:"#fdecec", border:`1px solid ${C.red}`, borderRadius:6, padding:"9px 11px", marginTop:7, fontSize:11.5, color:C.slate, lineHeight:1.6 }}>
-                          <b style={{ color:C.red }}>This differs from the signed agreement</b>, which says {agreedMethod}. The buyer agreed to that method &mdash; message them and get their agreement before posting different instructions. Changing where money goes late in a deal is also the most common sign of wire fraud, so expect them to check.
-                        </div>
-                      )}
-                      <div style={{ height:8 }}/>
-                      <label style={S.label}>Where to send it</label>
-                      <textarea style={{ ...S.input, minHeight:78, resize:"vertical" }} value={instrDetails} onChange={e=>setInstrDetails(e.target.value)} placeholder="e.g. Escrow.com transaction #12345 — buyer opens it and funds there. Or: wire to Smith &amp; Co. Trust Account, routing 000000000, account 000000000, reference the vessel." />
-                      <button style={{...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"10px", opacity:instrDetails.trim()?1:0.5}} disabled={!instrDetails.trim()} onClick={postInstructions}>Post deposit instructions</button>
-                    </div>
-                  )
+                    )}
+                    {isBuyer && dealTxId && (
+                      <button onClick={refreshEscrow} disabled={escLoading} style={{ ...S.btnOutline, fontSize:11.5, padding:"7px 13px", marginTop:10 }}>{escLoading ? "Checking…" : "Check Escrow.com now"}</button>
+                    )}
+                  </div>
                 ) : (
-                  <>
-                    <div style={{ background:"#f1f5f9", border:"1px solid #cbd5e1", borderRadius:8, padding:"12px 14px", fontFamily:"sans-serif" }}>
-                      <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:4 }}>Where the deposit goes &mdash; posted by the seller</div>
-                      <div style={{ fontSize:12, color:C.slate, marginBottom:6 }}><b>Held by:</b> {depInstr.method}</div>
-                      <div style={{ fontSize:12.5, color:C.navy, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{depInstr.details}</div>
-                      <div style={{ fontSize:11, color:C.slate, lineHeight:1.5, marginTop:9, borderTop:"1px solid #cbd5e1", paddingTop:8 }}>BoatClosers records these instructions so both sides see the same thing &mdash; we do not hold the funds or verify them. Confirm the details directly with the escrow agent before sending money.</div>
+                  // Non-Escrow.com: both parties confirm. Shows the person their own
+                  // action, plus the other side's status, in one box — no waiting loop.
+                  <div style={{ background:"#fffdf5", border:`1px solid ${C.brass}`, borderLeft:`5px solid ${C.brass}`, borderRadius:8, padding:"15px 17px", fontFamily:"sans-serif" }}>
+                    <div style={{ fontSize:13.5, fontWeight:800, color:"#7a5500", marginBottom:5 }}>The {fmt(dep.deposit)} earnest-money deposit</div>
+                    <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:12 }}>
+                      The deposit is sent {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "broker" ? "to the broker's escrow account" : "directly to the seller"}, outside BoatClosers. Once <b>both of you confirm</b> it's done, the deal moves forward. BoatClosers only records the confirmation &mdash; it doesn't hold the money.
                     </div>
-                    {dep.depositInstrChangedAt && (
-                      <div style={{ background:"#fdecec", border:`1px solid ${C.red}`, borderRadius:8, padding:"12px 14px", marginTop:12, fontFamily:"sans-serif" }}>
-                        <div style={{ fontSize:12.5, fontWeight:800, color:C.red, marginBottom:3 }}>⚠️ These instructions were CHANGED after they were first posted</div>
-                        <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>Do not send money until you have verified the new details <b>by phone</b> with the escrow agent, using a number you looked up yourself. Changed payment details are the most common sign of wire fraud.</div>
+                    {/* MY action */}
+                    {(isBuyer ? !depBuyerConfirmed : !depSellerConfirmed) ? (
+                      <button onClick={isBuyer ? confirmBuyerSent : confirmSellerReceived} style={{ ...S.btnBrass, width:"100%", maxWidth:360, fontSize:14, fontWeight:800, padding:"12px 20px", marginBottom:12 }}>
+                        {isBuyer ? "✓ I've sent the deposit" : "✓ I've received the deposit"}
+                      </button>
+                    ) : (
+                      <div style={{ background:C.greenLight, border:`1px solid ${C.green}`, borderRadius:6, padding:"9px 12px", marginBottom:12, fontSize:12, color:C.navy }}>
+                        ✓ You confirmed {isBuyer ? "you sent" : "you received"} the deposit. <button onClick={undoMyDepositConfirm} style={{ background:"none", border:"none", color:C.slate, fontSize:11, textDecoration:"underline", cursor:"pointer", padding:0 }}>Undo</button>
                       </div>
                     )}
-                    <div style={{ background:"#fdecec", border:`1px solid ${C.red}`, borderRadius:8, padding:"12px 14px", marginTop:12, fontFamily:"sans-serif" }}>
-                      <div style={{ fontSize:12.5, fontWeight:800, color:C.red, marginBottom:3 }}>🛑 Protect yourself from wire fraud</div>
-                      <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>Before you send a wire, <b>call the escrow agent or attorney at a number you found yourself</b> &mdash; not one from an email or text &mdash; and read the account details back to them. <b>Never accept changed wire instructions</b> by email, text, or message. Criminals watch deals like this one and send convincing "updated" instructions at the last minute. Wired money is very hard to recover.</div>
+                    {/* OTHER side's status */}
+                    <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, borderTop:`1px solid ${C.mist}`, paddingTop:10 }}>
+                      {isBuyer
+                        ? (depSellerConfirmed ? <><b style={{color:C.green}}>✓ The seller has confirmed they received it.</b></> : <>Waiting on the seller to confirm they received it.</>)
+                        : (depBuyerConfirmed ? <><b style={{color:C.green}}>✓ The buyer has confirmed they sent it.</b></> : <>Waiting on the buyer to confirm they've sent it.</>)}
                     </div>
-                    {!isBuyer && !editingInstr && (
-                      <button style={{...S.btnOutline, width:"100%", marginTop:12, fontSize:12.5, padding:"9px"}} onClick={openInstrEditor}>Update deposit instructions</button>
-                    )}
-                    {!isBuyer && editingInstr && (
-                      <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", marginTop:12, fontFamily:"sans-serif" }}>
-                        <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:3 }}>Update deposit instructions</div>
-                        <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>Changing these will <b>cancel the buyer's commitment</b> and flag the change to them as a possible fraud warning. They'll have to review and agree again. Only change this if the details are genuinely wrong.</div>
-                        <label style={S.label}>How is the deposit being held?</label>
-                        <select style={S.input} value={instrMethod} onChange={e=>setInstrMethod(e.target.value)}>
-                          <option>Escrow.com</option>
-                          <option>Attorney / title company trust account</option>
-                          <option>Licensed broker escrow account</option>
-                          <option>Direct to seller (no third party)</option>
-                          <option>Other</option>
-                        </select>
-                        {methodDiffers && (
-                          <div style={{ background:"#fdecec", border:`1px solid ${C.red}`, borderRadius:6, padding:"9px 11px", marginTop:7, fontSize:11.5, color:C.slate, lineHeight:1.6 }}>
-                            <b style={{ color:C.red }}>This differs from the signed agreement</b>, which says {agreedMethod}. Get the buyer&rsquo;s agreement in the message thread first.
-                          </div>
-                        )}
-                        <div style={{ height:8 }}/>
-                        <label style={S.label}>Where to send it</label>
-                        <textarea style={{ ...S.input, minHeight:78, resize:"vertical" }} value={instrDetails} onChange={e=>setInstrDetails(e.target.value)} />
-                        <div style={{ display:"flex", gap:8, marginTop:10 }}>
-                          <button style={{...S.btnOutline, flex:1, fontSize:12.5, padding:"9px"}} onClick={()=>setEditingInstr(false)}>Cancel</button>
-                          <button style={{...S.btnBrass, flex:1, fontSize:12.5, padding:"9px", opacity:instrDetails.trim()?1:0.5}} disabled={!instrDetails.trim()} onClick={updateInstructions}>Save changes</button>
-                        </div>
-                      </div>
-                    )}
-                    {isBuyer && !depCommitted && (
-                      <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", marginTop:12, fontFamily:"sans-serif" }}>
-                        <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:4 }}>Commit to the deposit</div>
-                        <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>By typing your name you confirm you've read the instructions above and agree to fund the earnest-money deposit by the deadline shown. If it isn't funded in time, the seller may release the boat and pursue other buyers.</div>
-                        <input style={S.input} value={commitName} onChange={e=>setCommitName(e.target.value)} placeholder="Type your full name" />
-                        <button style={{...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"10px", opacity:commitName.trim()?1:0.5}} disabled={!commitName.trim()} onClick={signCommitment}>I agree to fund the deposit</button>
-                      </div>
-                    )}
-                    {depCommitted && (
-                      <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green, fontWeight:700, marginTop:10 }}>✓ Buyer committed to funding &mdash; signed by {depCommit.name}</div>
-                    )}
-                    {!isBuyer && !depCommitted && (
-                      <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginTop:10, lineHeight:1.6 }}>Instructions posted. Waiting for the buyer to acknowledge them and commit to the deadline.</div>
-                    )}
-                  </>
+                  </div>
                 )}
-              </div>
-            )}
-            {depAwaitingVerify && !depEnded && !isBuyer && (
-              <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", marginTop:14, fontFamily:"sans-serif" }}>
-                <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:4 }}>⚠️ Action needed: has the deposit actually arrived?</div>
-                <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
-                  The buyer has signed the deposit receipt for <b>{fmt(dep.deposit)}</b> (ref {dep.depositProof.ref}). Confirm with your escrow agent that the money is really in the account, then sign underneath their signature on the same receipt.
-                </div>
-                <button style={{...S.btnBrass, width:"100%", fontSize:13, padding:"11px"}} onClick={()=>setShowReceipt(true)}>📄 Open the receipt to sign →</button>
-              </div>
-            )}
-            {dealIsEscrowCom && dealTxId && !depEnded && depBuyerSigned && !depSellerSigned && (() => {
-              // Live Escrow.com progress, drawn from the API. Both parties see the
-              // same thing — no more "take the seller's word for it".
-              const s = escStatus || {};
-              const funded = s.ok && s.found && s.funded;
-              const step = s.step || 1;
-              const steps = ["Agreement","Funded","In progress","Inspection","Closed"];
-              return (
-                <div style={{ background: funded ? C.greenLight : "#eff6ff", border:`1px solid ${funded ? C.green : "#bfdbfe"}`, borderRadius:8, padding:"13px 15px", marginTop:14, fontFamily:"sans-serif" }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-                    <div style={{ fontSize:12.5, fontWeight:800, color: funded ? C.green : "#1d4ed8" }}>
-                      🏦 Live status from Escrow.com — transaction #{dealTxId}
-                    </div>
-                    <button onClick={refreshEscrow} disabled={escLoading} style={{ ...S.btnOutline, fontSize:11, padding:"5px 11px" }}>{escLoading ? "Checking…" : "Refresh"}</button>
-                  </div>
-                  {/* progress rail */}
-                  <div style={{ display:"flex", gap:4, marginTop:11, marginBottom:8 }}>
-                    {steps.map((label, i) => {
-                      const on = (i+1) <= step;
-                      return (
-                        <div key={label} style={{ flex:1, textAlign:"center" }}>
-                          <div style={{ height:5, borderRadius:3, background: on ? (funded ? C.green : "#3b82f6") : C.mist }} />
-                          <div style={{ fontSize:8.5, color: on ? C.navy : C.slate, marginTop:3, fontWeight: on ? 700 : 400 }}>{label}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>
-                    {!s.ok ? (s.error || "Couldn't read status just now — try Refresh.")
-                      : !s.found ? (s.message || "That transaction wasn't found on Escrow.com yet.")
-                      : funded
-                        ? <><b style={{ color:C.green }}>✓ Escrow.com confirms the deposit is funded.</b> BoatClosers verified this automatically &mdash; no waiting on a manual check. Due diligence is now open.</>
-                        : <>{s.label || "Waiting for funding."} Once the {fmt(dep.deposit)} lands in escrow, this updates automatically and the deal moves forward on its own.</>}
-                    {s.env === "sandbox" && <span style={{ color:C.slate }}> (test mode)</span>}
-                  </div>
-                </div>
-              );
-            })()}
-            {depAwaitingVerify && !depEnded && isBuyer && !(dealIsEscrowCom && dealTxId) && (
-              <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", marginTop:14, fontFamily:"sans-serif" }}>
-                <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:3 }}>⏸️ Waiting for the seller to verify your deposit</div>
-                <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>You've done your part &mdash; your proof is submitted and the clock has stopped. The seller now confirms with their escrow agent that the funds arrived. Wires often take 1&ndash;2 business days to show up, so a short wait is normal. You'll be notified the moment they confirm, and the deal is secured at that point.</div>
-              </div>
-            )}
-            {isBuyer && (!depHasProof || depDisputed) && !depEnded && !dealIsEscrowCom && depInstrPosted && depCommitted && (
-              <div style={{ marginTop:12 }}>
-                <button style={{...S.btnBrass, width:"100%", fontSize:13, padding:"11px"}} onClick={()=>setShowReceipt(true)}>
-                  📄 {depDisputed ? "Sign a corrected deposit receipt" : "Open the deposit receipt to sign"} →
-                </button>
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:7 }}>
-                  Send the deposit first, then sign the receipt with your confirmation number. The seller signs the same receipt to confirm it arrived.
-                </div>
               </div>
             )}
           </div>
@@ -3376,67 +3263,9 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
       {depositRequired && !depVerified && !depositWaived && !dep.depositEnded && (() => {
         const isInitiator = amInitiator;
         const initiatorIsSeller = (negotiate.initiatorRole || (isBuyer ? "buyer" : "seller")) === "seller";
-        if (!depTimerExpired) {
-          // Until the deposit is verified, THIS is the only thing that matters on
-          // the screen — everything below is just planning. So the receipt action
-          // is inline and prominent right here, not a small button off to the side.
-          // Figure out whose move it is, give them a big obvious button, and say
-          // plainly when they're just waiting on the other party.
-          let head, sub, cta = null, wait = false;
-          if (isBuyer) {
-            if (!depBuyerSigned) {
-              head = "Your next step: send the deposit, then sign the receipt";
-              sub = <>Send the <b>{fmt(dep.deposit)}</b> earnest money using the seller&rsquo;s instructions, then sign the receipt to confirm it&rsquo;s on the way. There&rsquo;s nothing else to do on this step yet &mdash; you can start booking your surveyor and sea trial below while you&rsquo;re at it.</>;
-              cta = depInstrPosted ? { label:"Send deposit & sign receipt →", onClick:()=>setShowReceipt(true) } : null;
-              if (!depInstrPosted) sub = <>Waiting for the seller to post where to send the <b>{fmt(dep.deposit)}</b> deposit. As soon as they do, you&rsquo;ll sign the receipt here. Meanwhile you can start lining up your surveyor and sea trial below.</>;
-            } else if (apiConfirms && !depVerified) {
-              head = "You've entered your Escrow.com transaction — confirming automatically";
-              sub = <>Nothing more for you to do. BoatClosers is checking Escrow.com directly; the moment it shows funded, the vessel decision unlocks on its own. Keep prepping your survey and sea trial below.</>;
-              cta = { label:"View the receipt", onClick:()=>setShowReceipt(true) };
-              wait = true;
-            } else if (sellerMustConfirm && !depVerified) {
-              head = "You've signed for your deposit — waiting on the seller to confirm it landed";
-              sub = <>Because you&rsquo;re paying the seller directly, they&rsquo;ll confirm the money reached their account. Once they do, the vessel decision unlocks. Nothing else for you to do right now.</>;
-              cta = { label:"View the receipt", onClick:()=>setShowReceipt(true) };
-              wait = true;
-            }
-          } else {
-            if (depBuyerSigned && sellerMustConfirm && !depVerified) {
-              head = "Action needed: confirm the deposit reached your account";
-              sub = <>The buyer has signed that they sent the <b>{fmt(dep.deposit)}</b> deposit directly to you. Check your account, then confirm it arrived so the vessel decision can unlock for the buyer.</>;
-              cta = { label:"Confirm the deposit →", onClick:()=>setShowReceipt(true) };
-            } else if (depBuyerSigned && !sellerMustConfirm && !apiConfirms) {
-              head = "The buyer has funded the deposit — nothing needed from you";
-              sub = <>The buyer has signed that the <b>{fmt(dep.deposit)}</b> deposit is with {escMethod === "attorney" ? "the attorney/title company" : "the broker"}. Since it&rsquo;s held by a licensed third party, the deal moves forward on the buyer&rsquo;s signed record &mdash; no confirmation needed from you. Get your paperwork ready below.</>;
-              wait = true;
-            } else if (depBuyerSigned && apiConfirms && !depVerified) {
-              head = "Escrow.com is confirming the deposit automatically";
-              sub = <>The buyer has entered the Escrow.com transaction. BoatClosers is verifying it directly &mdash; nothing needed from you. Get your paperwork ready below.</>;
-              wait = true;
-            } else if (!depInstrPosted) {
-              head = "Your next step: tell the buyer where to send the deposit";
-              sub = <>The buyer can&rsquo;t fund until you post where the <b>{fmt(dep.deposit)}</b> goes. Add the escrow or account details so they can send it.</>;
-              cta = null;
-            } else {
-              head = "Waiting for the buyer to send the deposit";
-              sub = <>You&rsquo;ve posted where it goes. Once the buyer sends the <b>{fmt(dep.deposit)}</b> and signs the receipt, you&rsquo;ll confirm it here. Nothing else to do on this step yet.</>;
-              wait = true;
-            }
-          }
-          if (!head) {
-            head = "Deposit is being verified — you can start planning now";
-            sub = <>Go ahead and line up your surveyor and sea trial. The vessel decision unlocks once the {fmt(dep.deposit)} deposit is confirmed.</>;
-          }
-          return (
-            <div style={{ background: wait ? "#eff6ff" : "#fffdf5", border:`1px solid ${wait ? "#93c5fd" : C.brass}`, borderLeft:`5px solid ${wait ? "#1d4ed8" : C.brass}`, borderRadius:8, padding:"16px 18px", marginBottom:14, fontFamily:"sans-serif" }}>
-              <div style={{ fontSize:14.5, fontWeight:800, color: wait ? "#1d4ed8" : "#7a5500", marginBottom:5 }}>{wait ? "" : "→ "}{head}</div>
-              <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:cta?13:0 }}>{sub}</div>
-              {cta && (
-                <button onClick={cta.onClick} style={{ ...S.btnBrass, fontSize:14, fontWeight:800, padding:"12px 24px", width:"100%", maxWidth:340 }}>{cta.label}</button>
-              )}
-            </div>
-          );
-        }
+        // The deposit box above handles all "what to do" messaging. This block now
+        // ONLY steps in when the deadline passes unverified → pause the deal.
+        if (!depTimerExpired) return null;
         // Expired and unresolved → PAUSED. Initiator decides.
         return (
           <div style={{ background:"#fdecec", border:`1px solid ${C.red}`, borderRadius:8, padding:"13px 15px", marginBottom:14, fontFamily:"sans-serif" }}>
