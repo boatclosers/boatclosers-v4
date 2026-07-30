@@ -39,6 +39,7 @@ const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e||"").trim());
 // FIRST and LAST name must match, but the signer may add middle names/initials
 // ("John A. Smith" signs fine for "John Smith"). Case- and spacing-insensitive.
 // If the party name isn't set yet, we can't check — allow it (nothing to match).
+const signedStamp = () => { const d = new Date(); return { at: d.getTime(), when: d.toLocaleString() }; };
 const _nameParts = (s) => String(s||"").toLowerCase().replace(/[.,]/g," ").split(/\s+/).filter(Boolean);
 const sigMatchesName = (signature, partyName) => {
   const exp = _nameParts(partyName);
@@ -1344,9 +1345,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     // the button is already disabled on a mismatch, but never let a bad sig through.
     const myPartyName = myRole === "buyer" ? parties.buyer?.name : parties.seller?.name;
     if (!sigMatchesName(myName, myPartyName)) return;
+    const _st = signedStamp();
     const patch = myRole === "buyer"
-      ? { paBuyerSig: myName, paBuyerDisc: true, paBuyerDate: today() }
-      : { paSellerSig: myName, paSellerDisc: true, paSellerDate: today() };
+      ? { paBuyerSig: myName, paBuyerDisc: true, paBuyerDate: today(), paBuyerAt: _st.at, paBuyerWhen: _st.when }
+      : { paSellerSig: myName, paSellerDisc: true, paSellerDate: today(), paSellerAt: _st.at, paSellerWhen: _st.when };
     setOffers(o => {
       const updated = o.map(of => of.id===offerId ? {...of, ...patch} : of);
       setData(d => ({ ...d, offers: updated }));
@@ -1746,7 +1748,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               <div style={{ background:C.sandDark, borderRadius:6, padding:"14px", border: buyerSigned ? `1.5px solid ${C.green}` : `1px solid ${C.mist}` }}>
                 <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>Buyer: {parties.buyer.name||"Buyer"}{iAmBuyer ? " (you)" : ""}</div>
                 {buyerSigned ? (
-                  <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Signed — {live.paBuyerSig}</div>
+                  <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Signed — {live.paBuyerSig}{live.paBuyerWhen ? <span style={{ display:"block", fontSize:10.5, fontWeight:400, color:C.slate, marginTop:2 }}>{live.paBuyerWhen}</span> : null}</div>
                 ) : iAmBuyer ? (
                   <>
                     <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
@@ -1767,7 +1769,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               <div style={{ background:C.sandDark, borderRadius:6, padding:"14px", border: sellerSigned ? `1.5px solid ${C.green}` : `1px solid ${C.mist}` }}>
                 <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>Seller: {parties.seller.name||"Seller"}{!iAmBuyer ? " (you)" : ""}</div>
                 {sellerSigned ? (
-                  <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Signed — {live.paSellerSig}</div>
+                  <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Signed — {live.paSellerSig}{live.paSellerWhen ? <span style={{ display:"block", fontSize:10.5, fontWeight:400, color:C.slate, marginTop:2 }}>{live.paSellerWhen}</span> : null}</div>
                 ) : !iAmBuyer ? (
                   <>
                     <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
@@ -4017,7 +4019,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                         <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the buyer name on this deal: <b>{parties.buyer.name}</b>.</div>
                       )}
                     </div>
-                    <button style={{ ...S.btnBrass, whiteSpace:"nowrap", opacity:(!buyerDisc||!vaSigName.trim()||!sigMatchesName(vaSigName, parties.buyer?.name))?0.4:1 }} disabled={!buyerDisc||!vaSigName.trim()||!sigMatchesName(vaSigName, parties.buyer?.name)} onClick={()=>{ if(!sigMatchesName(vaSigName, parties.buyer?.name)) return; setVaSigned(true); setBuyerSigned(true); if(setNegotiate) setNegotiate(n=>({...n, vesselAcceptance:{ sig:vaSigName.trim(), date:today() }})); }}>Sign Acceptance</button>
+                    <button style={{ ...S.btnBrass, whiteSpace:"nowrap", opacity:(!buyerDisc||!vaSigName.trim()||!sigMatchesName(vaSigName, parties.buyer?.name))?0.4:1 }} disabled={!buyerDisc||!vaSigName.trim()||!sigMatchesName(vaSigName, parties.buyer?.name)} onClick={()=>{ if(!sigMatchesName(vaSigName, parties.buyer?.name)) return; setVaSigned(true); setBuyerSigned(true); if(setNegotiate){ const _st=signedStamp(); setNegotiate(n=>({...n, vesselAcceptance:{ sig:vaSigName.trim(), date:today(), at:_st.at, when:_st.when }})); } }}>Sign Acceptance</button>
                   </div>
                 ) : (
                   <div style={{ fontSize:12, color:C.green, fontFamily:"sans-serif" }}>✓ Signed by {vaSigName} on {today()}</div>
@@ -4060,7 +4062,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
       <WhatsNext>Next are the documents &mdash; the bill of sale, title transfer, and the rest. You'll review and sign each required one, and the other party is emailed as they're signed.</WhatsNext>
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
-        <button style={S.btnBrass} disabled={!canProceed} onClick={()=>{ setData(d=>({...d,outcome,rejectionReasons,rejectionNotes,rejSolution,rejSigName,vaSigName,vaSigned,surveyFile:surveyFile?.name,surveyCompany,surveyorName})); if(setNegotiate){ if(outcome==="propose_price" && newPrice){ setNegotiate(n=>({...n, addendum:{ newPrice:Number(newPrice), reason:newPriceReason||"", buyer:parties.buyer.name||"Buyer", date:(n.addendum&&n.addendum.date)||today() }, vesselAcceptance: n.vesselAcceptance || { sig:parties.buyer.name||"Buyer", date:today() } })); } if(outcome==="accept" && vaSigName.trim()){ setNegotiate(n=>({...n, vesselAcceptance: n.vesselAcceptance || { sig:vaSigName.trim(), date:today() }})); } if(outcome==="reject" && rejectionReasons.length>0){ setNegotiate(n=>({...n, vesselRejection:{ reasons:rejectionReasons, notes:rejectionNotes, solution:rejSolution, sig:(rejSigName.trim()||parties.buyer.name||"Buyer"), date:today() }})); } } if(!decisionUnlocked){ setDepositGateOpen(true); return; } onNext(); }}>
+        <button style={S.btnBrass} disabled={!canProceed} onClick={()=>{ setData(d=>({...d,outcome,rejectionReasons,rejectionNotes,rejSolution,rejSigName,vaSigName,vaSigned,surveyFile:surveyFile?.name,surveyCompany,surveyorName})); if(setNegotiate){ if(outcome==="propose_price" && newPrice){ setNegotiate(n=>({...n, addendum:{ newPrice:Number(newPrice), reason:newPriceReason||"", buyer:parties.buyer.name||"Buyer", date:(n.addendum&&n.addendum.date)||today() }, vesselAcceptance: n.vesselAcceptance || { sig:parties.buyer.name||"Buyer", date:today() } })); } if(outcome==="accept" && vaSigName.trim()){ setNegotiate(n=>({...n, vesselAcceptance: n.vesselAcceptance || { sig:vaSigName.trim(), date:today() }})); } if(outcome==="reject" && rejectionReasons.length>0){ const _st=signedStamp(); setNegotiate(n=>({...n, vesselRejection:{ reasons:rejectionReasons, notes:rejectionNotes, solution:rejSolution, sig:(rejSigName.trim()||parties.buyer.name||"Buyer"), date:today(), at:_st.at, when:_st.when }})); } } if(!decisionUnlocked){ setDepositGateOpen(true); return; } onNext(); }}>
           {outcome==="reject" ? "Proceed to Close (Rejected)" : "Continue to Documents →"}
         </button>
       </div>
