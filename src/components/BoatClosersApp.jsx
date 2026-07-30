@@ -33,6 +33,23 @@ const fmt = (n) => n ? new Intl.NumberFormat("en-US",{style:"currency",currency:
 const today = () => new Date().toISOString().split("T")[0];
 const isValidYear = (y) => { const n = Number(y); return Number.isInteger(n) && n >= 1900 && n <= new Date().getFullYear() + 1; };
 const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e||"").trim());
+// ── SIGNATURE NAME MATCH ──────────────────────────────────────────────────────
+// An e-signature must match the name entered for that party in the Parties step,
+// so a signed document actually binds the named person. Flexible on purpose: the
+// FIRST and LAST name must match, but the signer may add middle names/initials
+// ("John A. Smith" signs fine for "John Smith"). Case- and spacing-insensitive.
+// If the party name isn't set yet, we can't check — allow it (nothing to match).
+const _nameParts = (s) => String(s||"").toLowerCase().replace(/[.,]/g," ").split(/\s+/).filter(Boolean);
+const sigMatchesName = (signature, partyName) => {
+  const exp = _nameParts(partyName);
+  const got = _nameParts(signature);
+  if (exp.length === 0) return true;      // no party name on file → nothing to enforce
+  if (got.length === 0) return false;     // empty signature never matches a real name
+  const first = exp[0], last = exp[exp.length - 1];
+  const hasFirst = got.includes(first);
+  const hasLast = got.includes(last);
+  return exp.length === 1 ? hasFirst : (hasFirst && hasLast);
+};
 const isValidPhone = (p) => { const d = (p||"").replace(/\D/g,""); return d.length===0 || (d.length >= 7 && d.length <= 15); };
 // Human-friendly time remaining until an offer's expiresAt timestamp.
 const hoursLeft = (expiresAt) => {
@@ -1323,6 +1340,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const signMyLine = (offerId) => {
     const myName = (myRole === "buyer" ? paBuyerName : paSellerName).trim();
     if (!myName) return;
+    // The signature must match this party's name on the deal. Belt-and-suspenders:
+    // the button is already disabled on a mismatch, but never let a bad sig through.
+    const myPartyName = myRole === "buyer" ? parties.buyer?.name : parties.seller?.name;
+    if (!sigMatchesName(myName, myPartyName)) return;
     const patch = myRole === "buyer"
       ? { paBuyerSig: myName, paBuyerDisc: true, paBuyerDate: today() }
       : { paSellerSig: myName, paSellerDisc: true, paSellerDate: today() };
@@ -1734,7 +1755,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                     </label>
                     <label style={S.label}>Type your full name to sign</label>
                     <input style={S.input} placeholder="Your full legal name" value={paBuyerName} onChange={e=>setPaBuyerName(e.target.value)} />
-                    <button style={{ ...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"9px", opacity:(paBuyerName.trim()&&paBuyerDisc)?1:0.4 }} disabled={!(paBuyerName.trim()&&paBuyerDisc)} onClick={()=>signMyLine(paModal.id)}>Sign as buyer</button>
+                    {parties.buyer?.name && paBuyerName.trim() && !sigMatchesName(paBuyerName, parties.buyer.name) && (
+                      <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the buyer name on this deal: <b>{parties.buyer.name}</b>. To change it, update the buyer name in the Parties step.</div>
+                    )}
+                    <button style={{ ...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"9px", opacity:(paBuyerName.trim()&&paBuyerDisc&&sigMatchesName(paBuyerName, parties.buyer?.name))?1:0.4 }} disabled={!(paBuyerName.trim()&&paBuyerDisc&&sigMatchesName(paBuyerName, parties.buyer?.name))} onClick={()=>signMyLine(paModal.id)}>Sign as buyer</button>
                   </>
                 ) : (
                   <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, fontStyle:"italic" }}>⏳ Awaiting the buyer's signature</div>
@@ -1752,7 +1776,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                     </label>
                     <label style={S.label}>Type your full name to sign</label>
                     <input style={S.input} placeholder="Your full legal name" value={paSellerName} onChange={e=>setPaSellerName(e.target.value)} />
-                    <button style={{ ...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"9px", opacity:(paSellerName.trim()&&paSellerDisc)?1:0.4 }} disabled={!(paSellerName.trim()&&paSellerDisc)} onClick={()=>signMyLine(paModal.id)}>Sign as seller</button>
+                    {parties.seller?.name && paSellerName.trim() && !sigMatchesName(paSellerName, parties.seller.name) && (
+                      <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the seller name on this deal: <b>{parties.seller.name}</b>. To change it, update the seller name in the Parties step.</div>
+                    )}
+                    <button style={{ ...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"9px", opacity:(paSellerName.trim()&&paSellerDisc&&sigMatchesName(paSellerName, parties.seller?.name))?1:0.4 }} disabled={!(paSellerName.trim()&&paSellerDisc&&sigMatchesName(paSellerName, parties.seller?.name))} onClick={()=>signMyLine(paModal.id)}>Sign as seller</button>
                   </>
                 ) : (
                   <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, fontStyle:"italic" }}>⏳ Awaiting the seller's signature</div>
@@ -2668,11 +2695,13 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
   const signAsBuyer = () => {
     if (!refNo.trim() || !sigName.trim() || !setNegotiate) return;
     if (isEscrowCom && !/^\d+$/.test(refNo.trim())) return;
+    if (!sigMatchesName(sigName, parties.buyer?.name)) return;
     setNegotiate(n => ({ ...n, depositProof: { ref: refNo.trim(), note: note.trim(), sig: sigName.trim(), at: Date.now(), by: "buyer" }, depositVerification: null, depositBuyerConfirmed: { at: Date.now(), name: sigName.trim(), ref: refNo.trim() }, ...(isEscrowCom ? { escrowTxId: refNo.trim() } : {}) }));
     setRefNo(""); setSigName(""); setNote("");
   };
   const signAsSeller = () => {
     if (!sigName.trim() || !setNegotiate) return;
+    if (!sigMatchesName(sigName, parties.seller?.name)) return;
     setNegotiate(n => ({ ...n, depositVerification: { status: "confirmed", at: Date.now(), by: "seller", note: note.trim(), sig: sigName.trim() } }));
     setSigName(""); setNote("");
   };
@@ -2752,7 +2781,10 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
                 By typing your full name you sign this receipt, confirming you have <b>actually sent</b> the {amt} earnest money as described. Your signature is recorded with the date and time.
               </div>
               <input style={S.input} value={sigName} onChange={e=>setSigName(e.target.value)} placeholder="Type your full name to sign" />
-              <button style={{...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"11px", opacity:(refNo.trim()&&sigName.trim()&&(!isEscrowCom||/^\d+$/.test(refNo.trim())))?1:0.5}} disabled={!refNo.trim()||!sigName.trim()||(isEscrowCom&&!/^\d+$/.test(refNo.trim()))} onClick={signAsBuyer}>Sign the receipt</button>
+              {parties.buyer?.name && sigName.trim() && !sigMatchesName(sigName, parties.buyer.name) && (
+                <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the buyer name on this deal: <b>{parties.buyer.name}</b>.</div>
+              )}
+              <button style={{...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"11px", opacity:(refNo.trim()&&sigName.trim()&&(!isEscrowCom||/^\d+$/.test(refNo.trim()))&&sigMatchesName(sigName, parties.buyer?.name))?1:0.5}} disabled={!refNo.trim()||!sigName.trim()||(isEscrowCom&&!/^\d+$/.test(refNo.trim()))||!sigMatchesName(sigName, parties.buyer?.name)} onClick={signAsBuyer}>Sign the receipt</button>
             </div>
           )}
 
@@ -2768,8 +2800,11 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
                 By typing your full name you sign this receipt, confirming the {amt} <b>has arrived</b> and you verified it yourself. Signing releases the deal into due diligence.
               </div>
               <input style={S.input} value={sigName} onChange={e=>setSigName(e.target.value)} placeholder="Type your full name to sign" />
+              {parties.seller?.name && sigName.trim() && !sigMatchesName(sigName, parties.seller.name) && (
+                <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the seller name on this deal: <b>{parties.seller.name}</b>.</div>
+              )}
               <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap" }}>
-                <button style={{...S.btn, background:C.green, color:"#fff", flex:1, minWidth:170, fontSize:13, padding:"11px", opacity:sigName.trim()?1:0.5}} disabled={!sigName.trim()} onClick={signAsSeller}>✓ Sign &mdash; funds received</button>
+                <button style={{...S.btn, background:C.green, color:"#fff", flex:1, minWidth:170, fontSize:13, padding:"11px", opacity:(sigName.trim()&&sigMatchesName(sigName, parties.seller?.name))?1:0.5}} disabled={!sigName.trim()||!sigMatchesName(sigName, parties.seller?.name)} onClick={signAsSeller}>✓ Sign &mdash; funds received</button>
                 <button style={{...S.btnOutline, flex:1, minWidth:170, fontSize:13, padding:"11px"}} onClick={disputeAsSeller}>Not received yet</button>
               </div>
             </div>
@@ -3172,7 +3207,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
     : outcome==="accept"
     ? (buyerDisc && buyerSigned && vaSigned)
     : outcome==="reject"
-      ? (buyerDisc && buyerSigned && rejectionReasons.length>0 && rejSigName.trim())
+      ? (buyerDisc && buyerSigned && rejectionReasons.length>0 && rejSigName.trim() && sigMatchesName(rejSigName, parties.buyer?.name))
     : outcome==="propose_price"
       ? !!newPrice
     : false;
@@ -3978,8 +4013,11 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                     <div style={{ flex:1 }}>
                       <label style={S.label}>Type your full legal name to sign</label>
                       <input style={S.input} placeholder="Buyer full legal name" value={vaSigName} onChange={e=>setVaSigName(e.target.value)} disabled={!buyerDisc} />
+                      {parties.buyer?.name && vaSigName.trim() && !sigMatchesName(vaSigName, parties.buyer.name) && (
+                        <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the buyer name on this deal: <b>{parties.buyer.name}</b>.</div>
+                      )}
                     </div>
-                    <button style={{ ...S.btnBrass, whiteSpace:"nowrap", opacity:(!buyerDisc||!vaSigName.trim())?0.4:1 }} disabled={!buyerDisc||!vaSigName.trim()} onClick={()=>{ setVaSigned(true); setBuyerSigned(true); if(setNegotiate) setNegotiate(n=>({...n, vesselAcceptance:{ sig:vaSigName.trim(), date:today() }})); }}>Sign Acceptance</button>
+                    <button style={{ ...S.btnBrass, whiteSpace:"nowrap", opacity:(!buyerDisc||!vaSigName.trim()||!sigMatchesName(vaSigName, parties.buyer?.name))?0.4:1 }} disabled={!buyerDisc||!vaSigName.trim()||!sigMatchesName(vaSigName, parties.buyer?.name)} onClick={()=>{ if(!sigMatchesName(vaSigName, parties.buyer?.name)) return; setVaSigned(true); setBuyerSigned(true); if(setNegotiate) setNegotiate(n=>({...n, vesselAcceptance:{ sig:vaSigName.trim(), date:today() }})); }}>Sign Acceptance</button>
                   </div>
                 ) : (
                   <div style={{ fontSize:12, color:C.green, fontFamily:"sans-serif" }}>✓ Signed by {vaSigName} on {today()}</div>
@@ -4009,7 +4047,10 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             </label>
             <label style={S.label}>Type your full legal name to sign the Rejection Notice</label>
             <input style={S.input} placeholder="Buyer full legal name" value={rejSigName} onChange={e=>setRejSigName(e.target.value)} disabled={!buyerDisc||!buyerSigned} />
-            {rejSigName.trim() && buyerDisc && buyerSigned && <div style={{ fontSize:11, color:C.green, fontFamily:"sans-serif", marginTop:8 }}>✓ Ready to sign — press "Proceed to Close (Rejected)" below to record the rejection and notify the seller.</div>}
+            {parties.buyer?.name && rejSigName.trim() && !sigMatchesName(rejSigName, parties.buyer.name) && (
+              <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:6, lineHeight:1.5 }}>Your signature must match the buyer name on this deal: <b>{parties.buyer.name}</b>.</div>
+            )}
+            {rejSigName.trim() && buyerDisc && buyerSigned && sigMatchesName(rejSigName, parties.buyer?.name) && <div style={{ fontSize:11, color:C.green, fontFamily:"sans-serif", marginTop:8 }}>✓ Ready to sign — press "Proceed to Close (Rejected)" below to record the rejection and notify the seller.</div>}
           </div>
         )}
         </>
