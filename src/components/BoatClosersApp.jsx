@@ -2704,7 +2704,12 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
   const signAsSeller = () => {
     if (!sigName.trim() || !setNegotiate) return;
     if (!sigMatchesName(sigName, parties.seller?.name)) return;
-    setNegotiate(n => ({ ...n, depositVerification: { status: "confirmed", at: Date.now(), by: "seller", note: note.trim(), sig: sigName.trim() } }));
+    // Set BOTH the verification record AND the depositSellerConfirmed flag that
+    // depVerified reads. Previously this only set depositVerification, so the
+    // seller's signature never counted toward "both confirmed" and the deal stayed
+    // locked forever. Now the seller signing the receipt IS their confirmation —
+    // exactly mirroring how signAsBuyer sets depositBuyerConfirmed.
+    setNegotiate(n => ({ ...n, depositVerification: { status: "confirmed", at: Date.now(), by: "seller", note: note.trim(), sig: sigName.trim() }, depositSellerConfirmed: { at: Date.now(), name: sigName.trim() } }));
     setSigName(""); setNote("");
   };
   const disputeAsSeller = () => {
@@ -3271,8 +3276,8 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                   The deposit is sent {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "brokerage" ? "to the broker's trust account" : escMethod === "custom" ? "to the holder you agreed on" : "directly to the seller"}, outside BoatClosers. <b>Both of you confirm</b> once it's done.
                 </div>
                 {(isBuyer ? !depBuyerConfirmed : !depSellerConfirmed) ? (
-                  <button onClick={isBuyer ? (()=>{ setDepositGateOpen(false); setShowReceipt(true); }) : confirmSellerReceived} style={{ ...S.btnBrass, width:"100%", fontSize:14, fontWeight:800, padding:"12px 20px", marginBottom:12 }}>
-                    {isBuyer ? "📄 Sign the earnest-money receipt →" : "✓ I confirm the deposit arrived"}
+                  <button onClick={()=>{ setDepositGateOpen(false); setShowReceipt(true); }} style={{ ...S.btnBrass, width:"100%", fontSize:14, fontWeight:800, padding:"12px 20px", marginBottom:12 }}>
+                    📄 Sign the earnest-money receipt →
                   </button>
                 ) : (
                   <div style={{ background:C.greenLight, border:`1px solid ${C.green}`, borderRadius:6, padding:"9px 12px", marginBottom:12, fontSize:12, color:C.navy }}>
@@ -3443,10 +3448,10 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                     ) : !isBuyer && !depSellerConfirmed ? (
                       <>
                         <div style={{ fontSize:12, color:C.slate, lineHeight:1.7, marginBottom:10 }}>
-                          Check your {escMethod === "attorney" ? "attorney/title company" : escMethod === "brokerage" ? "broker's trust account" : "account"}. Once the <b>{fmt(dep.deposit)}</b> has actually arrived, confirm it here.
+                          Check your {escMethod === "attorney" ? "attorney/title company" : escMethod === "brokerage" ? "broker's trust account" : "account"}. Once the <b>{fmt(dep.deposit)}</b> has actually arrived, sign the earnest-money receipt below to confirm you received it.
                         </div>
-                        <button onClick={confirmSellerReceived} style={{ ...S.btnBrass, width:"100%", maxWidth:360, fontSize:14, fontWeight:800, padding:"12px 20px", marginBottom:12 }}>
-                          ✓ I confirm the deposit arrived
+                        <button onClick={()=>setShowReceipt(true)} style={{ ...S.btnBrass, width:"100%", maxWidth:360, fontSize:14, fontWeight:800, padding:"12px 20px", marginBottom:12 }}>
+                          📄 Sign the earnest-money receipt →
                         </button>
                       </>
                     ) : (
