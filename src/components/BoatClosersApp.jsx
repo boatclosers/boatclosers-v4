@@ -2946,13 +2946,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   // ── Earnest-money deposit timeline: set at lock, buyer proves, seller may extend ──
   const [proofRef, setProofRef] = useState("");
   const [proofNote, setProofNote] = useState("");
-  // Resolve the deposit from negotiate first, then fall back to the accepted offer —
-  // the same source the Deal Room banner reads. This keeps the banner and this box
-  // in agreement so the "sign the receipt" action always renders when a deposit is due.
-  const _acceptedOffer = (negotiate?.offers || []).find(o => o && (o.status === "accepted" || o.status === "agreed")) || null;
-  const _depAmount = Number(negotiate?.deposit) > 0 ? Number(negotiate.deposit) : Number(_acceptedOffer?.deposit || 0);
-  const _escrowPath = negotiate?.escrowPath || _acceptedOffer?.escrowPath || "";
-  const dep = { ...(negotiate || {}), deposit: _depAmount, escrowPath: _escrowPath };
+  const dep = negotiate || {};
   const depHasProof = !!(dep.depositProof && dep.depositProof.ref);
   const depDeadline = Number(dep.depositDeadline) || 0;
   const depEnded = !!dep.depositEnded;
@@ -3115,7 +3109,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   // not advance the deal (that's Piece 3). Runs on open and on a manual Refresh.
   const [escStatus, setEscStatus] = useState(null);
   const [escLoading, setEscLoading] = useState(false);
-  const dealIsEscrowCom = (dep.escrowPath || negotiate?.escrowPath) === "escrow_com";
+  const dealIsEscrowCom = negotiate?.escrowPath === "escrow_com";
   const dealTxId = negotiate?.escrowTxId || "";
   const refreshEscrow = useCallback(async () => {
     if (!dealIsEscrowCom || !dealTxId || !dealId) return;
@@ -4517,9 +4511,11 @@ function DocPreview({ doc, D, negotiate }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 5 — CLOSING
 // ─────────────────────────────────────────────────────────────────────────────
-function StepClosing({ vessel, parties, terms, negotiate, ddData, docsData, myRole, amInitiator, onBack }) {
+function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, docsData, myRole, amInitiator, onBack }) {
   const isBuyer = myRole !== "seller";
   const [cleared, setCleared] = useState(false);
+  const [dealFinalized, setDealFinalized] = useState(!!negotiate.dealFinalized);
+  const [confirmFinalize, setConfirmFinalize] = useState(false);
   const [manualChecks, setManualChecks] = useState({});
   const [payMethod, setPayMethod] = useState(negotiate.paymentType || "wire");
   const [payMethodOpen, setPayMethodOpen] = useState(true);
@@ -4890,16 +4886,38 @@ function StepClosing({ vessel, parties, terms, negotiate, ddData, docsData, myRo
           <div>👤 <strong>Buyer:</strong> {parties.buyer.name||"—"} · {parties.buyer.email||"—"}</div>
           <div>👤 <strong>Seller:</strong> {parties.seller.name||"—"} · {parties.seller.email||"—"}</div>
           <div>📅 <strong>Closing:</strong> {terms.closingDate||"TBD"}</div>
-          <div>📋 <strong>Status:</strong> {isRejected ? "Rejected — Earnest Money Return Pending" : pct===100 ? "✓ All closing items complete" : `In Progress — ${pct}% complete`}</div>
+          <div>📋 <strong>Status:</strong> {isRejected ? "Rejected — Earnest Money Return Pending" : dealFinalized ? "✓ Finalized — Deal Closed" : "In Progress"}</div>
         </div>
       </div>
 
-      <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
-        <button style={S.btnOutline} onClick={onBack}>← Back to Documents</button>
-        <button style={{...S.btnOutline, color:C.red, borderColor:C.red}} onClick={()=>setCleared(true)}>
-          Clear Deal & Start Fresh
-        </button>
-      </div>
+      {dealFinalized ? (
+        <div style={{ background:C.greenLight, border:`1px solid ${C.green}`, borderRadius:8, padding:"18px 20px", marginTop:"1.5rem", textAlign:"center", fontFamily:"sans-serif" }}>
+          <div style={{ fontSize:15, fontWeight:800, color:C.green, marginBottom:4 }}>🔒 Deal Finalized &amp; Closed</div>
+          <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7 }}>This deal is locked. All terms, documents, and signatures are final and can no longer be changed. Keep or print your copies for your records.</div>
+        </div>
+      ) : (
+        <div style={{ marginTop:"1.5rem" }}>
+          <div style={{ background:C.sandDark, border:`1px solid ${C.brass}`, borderRadius:8, padding:"14px 16px", marginBottom:14, fontFamily:"sans-serif" }}>
+            <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:4 }}>Ready to close this deal?</div>
+            <div style={{ fontSize:12, color:C.slate, lineHeight:1.7 }}>Finalizing locks the entire deal &mdash; terms, documents, and signatures become permanent and can&rsquo;t be changed. Do this once the sale is fully complete and both sides have their copies.</div>
+          </div>
+          {!confirmFinalize ? (
+            <div style={{ display:"flex", justifyContent:"space-between", gap:10, flexWrap:"wrap" }}>
+              <button style={S.btnOutline} onClick={onBack}>&larr; Back to Documents</button>
+              <button style={{ ...S.btnBrass, fontSize:14, fontWeight:800, padding:"12px 22px" }} onClick={()=>setConfirmFinalize(true)}>✓ Finalize &mdash; Deal Closed</button>
+            </div>
+          ) : (
+            <div style={{ background:"#fff", border:`2px solid ${C.green}`, borderRadius:8, padding:"15px 17px", fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:8 }}>Lock this deal permanently?</div>
+              <div style={{ fontSize:12, color:C.slate, lineHeight:1.7, marginBottom:12 }}>This can&rsquo;t be undone. The deal, its documents, and all signatures will be frozen as the final record of the sale.</div>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+                <button style={{ ...S.btn, background:C.green, color:"#fff", fontSize:13.5, fontWeight:800, padding:"11px 20px", flex:1, minWidth:180 }} onClick={()=>{ setDealFinalized(true); setConfirmFinalize(false); if(setNegotiate) setNegotiate(n=>({ ...n, dealFinalized:{ at:Date.now(), by:myRole } })); }}>🔒 Yes, finalize &amp; close the deal</button>
+                <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={()=>setConfirmFinalize(false)}>Not yet</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -6338,7 +6356,7 @@ export default function BoatClosers() {
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} stripeReturn={stripeReturn} onRefresh={()=>window.location.reload()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
-      {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onBack={()=>setStep(4)}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
+      {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} setNegotiate={setNegotiateAndSave} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onBack={()=>setStep(4)}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
 
       {cancelModal && (
         <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.85)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem" }}>
