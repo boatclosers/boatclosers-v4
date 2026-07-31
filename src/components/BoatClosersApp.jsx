@@ -2946,7 +2946,13 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   // ── Earnest-money deposit timeline: set at lock, buyer proves, seller may extend ──
   const [proofRef, setProofRef] = useState("");
   const [proofNote, setProofNote] = useState("");
-  const dep = negotiate || {};
+  // Resolve the deposit from negotiate first, then fall back to the accepted offer —
+  // the same source the Deal Room banner reads. This keeps the banner and this box
+  // in agreement so the "sign the receipt" action always renders when a deposit is due.
+  const _acceptedOffer = (negotiate?.offers || []).find(o => o && (o.status === "accepted" || o.status === "agreed")) || null;
+  const _depAmount = Number(negotiate?.deposit) > 0 ? Number(negotiate.deposit) : Number(_acceptedOffer?.deposit || 0);
+  const _escrowPath = negotiate?.escrowPath || _acceptedOffer?.escrowPath || "";
+  const dep = { ...(negotiate || {}), deposit: _depAmount, escrowPath: _escrowPath };
   const depHasProof = !!(dep.depositProof && dep.depositProof.ref);
   const depDeadline = Number(dep.depositDeadline) || 0;
   const depEnded = !!dep.depositEnded;
@@ -3109,7 +3115,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   // not advance the deal (that's Piece 3). Runs on open and on a manual Refresh.
   const [escStatus, setEscStatus] = useState(null);
   const [escLoading, setEscLoading] = useState(false);
-  const dealIsEscrowCom = negotiate?.escrowPath === "escrow_com";
+  const dealIsEscrowCom = (dep.escrowPath || negotiate?.escrowPath) === "escrow_com";
   const dealTxId = negotiate?.escrowTxId || "";
   const refreshEscrow = useCallback(async () => {
     if (!dealIsEscrowCom || !dealTxId || !dealId) return;
