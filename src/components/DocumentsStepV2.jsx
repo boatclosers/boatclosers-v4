@@ -680,7 +680,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         <div>
           <h1 style={S.h1}>Documents</h1>
           <button onClick={()=>setShowDocFinder(true)} style={{ marginTop:8, background:"transparent", color:C.navy, border:`1px solid ${C.brass}`, borderRadius:7, padding:"8px 14px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>🧭 Which document do I need?</button>
-          <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>{requiredDocs.filter(d=>signed[d.id]).length} of {requiredDocs.length} required documents complete</p>
         </div>
         <span style={{...S.pill, background:C.greenLight, color:C.green}}>Paid ✓</span>
       </div>
@@ -692,10 +691,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         📤 <strong>Send</strong> — email the document &nbsp;·&nbsp;
         📎 <strong>Upload</strong> — attach a signed PDF &nbsp;·&nbsp;
         🖨️ <strong>Print</strong> — open print dialog
-      </div>
-
-      <div style={{ height:5, background:C.mist, borderRadius:3, marginBottom:20, overflow:"hidden" }}>
-        <div style={{ height:"100%", width:`${requiredDocs.length ? (requiredDocs.filter(d=>signed[d.id]).length/requiredDocs.length)*100 : 0}%`, background:C.green, borderRadius:3, transition:"width 0.4s" }}/>
       </div>
 
       {/* ── OPTIONAL: which documents does your deal need? (skippable) ── */}
