@@ -155,6 +155,7 @@ const DOCS = [
   { id:"closing_statement",   name:"Closing Statement",                 category:"Closing",       required:true  },
   { id:"title_transfer",      name:"Title Transfer Affidavit",          category:"Title",         required:false, suggested:true },
   { id:"as_is_acknowledgment",name:"As-Is Acknowledgment",              category:"Core",          required:true  },
+  { id:"inventory",           name:"Inventory Schedule",                category:"Closing",       required:false, suggested:true },
   { id:"escrow_instructions", name:"Escrow Instructions",               category:"Escrow",        required:false },
   { id:"wire_instructions",   name:"Wire Transfer Instructions",        category:"Escrow",        required:false },
   { id:"lien_release",        name:"Lien Release",                      category:"Title",         required:false },
