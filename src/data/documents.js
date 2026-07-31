@@ -862,6 +862,125 @@ export const DOCUMENTS = [
   // Trade-in, trailer, gift, and seller-financing instruments. The three
   // financing docs carry an attorney-review banner (lawBanner prepended to body).
   {
+    id: "extension_addendum",
+    group: "Deal Structures",
+    tab: "Extension Addendum",
+    eyebrow: "Deadline Change",
+    title: "Deadline Extension Addendum",
+    body: `
+<p class="lead recital">This addendum to the Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d), concerning the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}, records the Parties\u2019 mutual agreement to extend a deadline under the Agreement. All other terms of the Agreement remain unchanged and in full force.</p>
+
+<h3>1. Deadline Being Extended</h3>
+<div class="field"><span class="k">Deadline extended</span><span class="v">{{extensionType}}</span></div>
+<div class="field"><span class="k">Original date</span><span class="v">{{originalDeadline}}</span></div>
+<div class="field"><span class="k">New agreed date</span><span class="v">{{newDeadline}}</span></div>
+
+<h3>2. Reason for Extension</h3>
+<p>{{extensionReason}}</p>
+
+<h3>3. Effect on the Agreement</h3>
+<p>The Parties agree the deadline identified above is extended to the new agreed date. This is the only change; the price, contingencies, deposit terms, and all other provisions of the Purchase &amp; Sale Agreement remain exactly as executed. Time remains of the essence as to the extended deadline.</p>
+
+<div class="note">A written, signed extension protects both Parties: it prevents a missed-deadline dispute and keeps the deal enforceable on the new timeline. Both Parties should sign before the original deadline passes.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller<br>Date: ____________</small></div>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "repair_agreement",
+    group: "Deal Structures",
+    tab: "Repair Agreement",
+    eyebrow: "Seller Repairs",
+    title: "Post-Survey Repair Agreement",
+    body: `
+<p class="lead recital">This addendum to the Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d), concerning the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}, records repairs the Seller agrees to complete before Closing. All other terms of the Agreement remain unchanged.</p>
+
+<h3>1. Repairs Seller Agrees to Complete</h3>
+<p>Following the marine survey and/or inspection, Seller agrees to complete the following, at Seller\u2019s expense unless stated otherwise, on or before {{closingDate}}:</p>
+<ol>
+  <li>____________________________________________________________</li>
+  <li>____________________________________________________________</li>
+  <li>____________________________________________________________</li>
+</ol>
+
+<h3>2. Who Pays</h3>
+<div class="field"><span class="k">Cost borne by</span><span class="v">\u2610 Seller \u2003 \u2610 Buyer \u2003 \u2610 Split as noted above</span></div>
+<div class="field"><span class="k">Not-to-exceed amount (optional)</span><span class="v">$______________</span></div>
+
+<h3>3. Verification &amp; Re-Inspection</h3>
+<p>Buyer may re-inspect the completed repairs before Closing. If a repair is not completed to Buyer\u2019s reasonable satisfaction by the date above, Buyer may, at Buyer\u2019s option: accept a price adjustment equal to the cost to complete, extend Closing by written agreement, or terminate under the Agreement\u2019s contingency terms.</p>
+
+<div class="note">Post-survey repairs are one of the most common reasons a deal stalls. Putting exactly what, by when, and who pays in writing keeps the deal moving and prevents a dispute at the dock on closing day.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer<br>Date: ____________</small></div>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "contingency_waiver",
+    group: "Deal Structures",
+    tab: "Contingency Waiver",
+    eyebrow: "Waive a Condition",
+    title: "Contingency Waiver",
+    body: `
+<p class="lead recital">This addendum to the Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d), concerning the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}, records the Buyer\u2019s voluntary waiver of one or more contingencies. All other terms of the Agreement remain unchanged.</p>
+
+<h3>1. Contingency / Contingencies Waived</h3>
+<p>Buyer voluntarily waives the following contingency(ies) under the Agreement (check all that apply):</p>
+<div class="field"><span class="k">\u2610 Marine Survey</span><span class="v">\u2610 Sea Trial \u2003 \u2610 Financing \u2003 \u2610 Insurance \u2003 \u2610 Personal Inspection \u2003 \u2610 Other: __________</span></div>
+
+<h3>2. Buyer\u2019s Acknowledgment</h3>
+<p>Buyer understands that by waiving the contingency above, Buyer gives up the corresponding right to inspect, test, finance, insure, or otherwise condition the purchase on that item, and gives up the related right to terminate the Agreement or recover the earnest-money deposit on that ground. Buyer makes this waiver knowingly and voluntarily. The Vessel remains sold \u201cAS-IS, WHERE-IS\u201d per the Agreement.</p>
+
+<h3>3. Reason (optional)</h3>
+<p>____________________________________________________________</p>
+
+<div class="note">A signed waiver protects both Parties: it confirms the Buyer chose to give up a right rather than having it quietly lapse, which is exactly the kind of thing that gets disputed later if it isn\u2019t in writing.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller (acknowledged)<br>Date: ____________</small></div>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
+    id: "early_possession",
+    group: "Deal Structures",
+    tab: "Early Possession",
+    eyebrow: "Use Before Closing",
+    title: "Early Possession / Use Before Closing Agreement",
+    body: `
+<p class="lead recital">This addendum to the Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d), concerning the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}, governs possession or use of the Vessel before Closing. All other terms of the Agreement remain unchanged.</p>
+
+<h3>1. Who Takes Possession Before Closing</h3>
+<div class="field"><span class="k">Possession granted to</span><span class="v">\u2610 Buyer (early use) \u2003 \u2610 Seller (continued use after deposit)</span></div>
+<div class="field"><span class="k">From</span><span class="v">____________</span></div>
+<div class="field"><span class="k">Until Closing on</span><span class="v">{{closingDate}}</span></div>
+
+<h3>2. Risk, Insurance &amp; Responsibility</h3>
+<p>The party in possession assumes all risk of loss or damage to the Vessel during the possession period and must carry insurance naming the other Party. The party in possession is responsible for safe operation, dockage, fuel, and routine care, and returns the Vessel in the same condition, ordinary wear excepted. If the sale does not close, the Vessel is returned immediately to the Seller and the deposit is handled per the Agreement.</p>
+
+<h3>3. No Change of Ownership</h3>
+<p>Possession or use before Closing does not transfer title, ownership, or the risk allocation of the Agreement except as stated here. Title passes only at Closing upon delivery of the Bill of Sale and payment of the balance.</p>
+
+<div class="note">Using the boat before closing is risk-heavy \u2014 if something happens on the water before title transfers, this document decides who is responsible. Do not skip the insurance line.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller<br>Date: ____________</small></div>
+</div>
+<div class="footer-flag">BoatClosers</div>`
+  },
+
+  {
     id: "trade_in",
     group: "Deal Structures",
     tab: "Trade-In Addendum",
