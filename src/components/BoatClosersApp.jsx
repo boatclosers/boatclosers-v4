@@ -2988,11 +2988,16 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   //   • Every other → the app can't see the money, so BOTH parties confirm:
   //                   the buyer ("I've sent it") and the seller ("I received it").
   //                   Two confirmations, one from each side, and the deal moves.
-  const depBuyerConfirmed = !!dep.depositBuyerConfirmed;
-  const depSellerConfirmed = !!dep.depositSellerConfirmed;
+  // A party is confirmed if EITHER their explicit flag is set OR they've signed the
+  // earnest-money receipt. The receipt signature is the strongest confirmation, so
+  // a fully-signed receipt unlocks the deal even if the flags weren't written.
+  const buyerSignedReceipt = !!(dep.depositProof && dep.depositProof.sig);
+  const sellerSignedReceipt = !!(dep.depositVerification && dep.depositVerification.status === "confirmed" && dep.depositVerification.sig);
+  const depBuyerConfirmed = !!dep.depositBuyerConfirmed || buyerSignedReceipt;
+  const depSellerConfirmed = !!dep.depositSellerConfirmed || sellerSignedReceipt;
   const depVerified = apiConfirms
     ? (depVerif?.status === "confirmed")        // Escrow.com API verified it
-    : (depBuyerConfirmed && depSellerConfirmed); // both sides confirmed it happened
+    : (depBuyerConfirmed && depSellerConfirmed); // both sides confirmed (flag OR signed receipt)
   // ── Deposit no longer HARD-gates due diligence ────────────────────────────
   // The buyer can start the lead-time work — booking a surveyor, arranging a sea
   // trial — while the deposit is still being funded/verified, because those things
