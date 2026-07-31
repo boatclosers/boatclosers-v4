@@ -84,7 +84,7 @@ const pctLabel = (p) => {
   if (!isFinite(n) || !n) return "0";
   return String(Math.round(n * 100) / 100);
 };
-const CONTINGENCY_LABELS = { survey:"Survey", seaTrial:"Sea Trial", financing:"Financing", insurance:"Insurance", title:"Clear Title" };
+const CONTINGENCY_LABELS = { survey:"Survey", personalInspection:"Personal Inspection", seaTrial:"Sea Trial", financing:"Financing", insurance:"Insurance", title:"Clear Title" };
 const contingencyNames = (arr) => (Array.isArray(arr) ? arr : []).map(k => CONTINGENCY_LABELS[k] || k).join(", ");
 const capFirst = (s) => (typeof s === "string" && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 const priceToWords = (n) => {
@@ -182,6 +182,7 @@ const DOCS = [
 
 const REJECTION_REASONS = [
   { id:"survey_failed",    label:"Survey revealed unacceptable defects",       desc:"Hull damage, osmotic blistering, structural issues, or delamination found during marine survey." },
+  { id:"inspection_failed",label:"Personal inspection — vessel not as represented", desc:"On in-person inspection the vessel\u2019s condition, equipment, or appearance did not match what was represented." },
   { id:"engine_failed",    label:"Engine or mechanical failure",               desc:"Engines failed to start, ran poorly, or mechanical inspection revealed costly issues." },
   { id:"title_issue",      label:"Title or lien issue discovered",             desc:"Outstanding lien, ownership dispute, or title could not be verified clear." },
   { id:"sea_trial_failed", label:"Sea trial failed",                           desc:"Vessel did not perform as represented during underway sea trial." },
@@ -1690,7 +1691,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       balanceDue: fmt(Math.max(0, paAgreed - paDep)),
       closingDate: paModal.closingDate || "[Closing Date]",
       closingLocation: vessel.location || "the location where the Vessel is moored",
-      surveyDeadline: paDDEnd || "____________", seaTrialDeadline: paDDEnd || "____________", financingDeadline: paDDEnd || "____________",
+      surveyDeadline: paDDEnd || "____________", inspectionDeadline: paDDEnd || "____________", seaTrialDeadline: paDDEnd || "____________", financingDeadline: paDDEnd || "____________",
       brokerFee: "$249.00",
       selectedContingencies: (Array.isArray(paModal.contingencies) && paModal.contingencies.length) ? paModal.contingencies : ["survey","seaTrial","title"],
       paymentType: paModal.paymentType || "",
