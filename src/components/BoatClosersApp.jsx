@@ -4,6 +4,7 @@ import ContingencyPicker from "./ContingencyPicker";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
 import VesselLookup from "./VesselLookup";
+import DocFinder from "./DocFinder";
 // ─────────────────────────────────────────────────────────────────────────────
 // BOATCLOSERS v4
 // ─────────────────────────────────────────────────────────────────────────────
@@ -156,10 +157,6 @@ const DOCS = [
   { id:"title_transfer",      name:"Title Transfer Affidavit",          category:"Title",         required:false, suggested:true },
   { id:"as_is_acknowledgment",name:"As-Is Acknowledgment",              category:"Core",          required:true  },
   { id:"inventory",           name:"Inventory Schedule",                category:"Closing",       required:false, suggested:true },
-  { id:"extension_addendum",  name:"Deadline Extension Addendum",       category:"Deal Structures", required:false },
-  { id:"repair_agreement",    name:"Post-Survey Repair Agreement",      category:"Deal Structures", required:false },
-  { id:"contingency_waiver",  name:"Contingency Waiver",                category:"Deal Structures", required:false },
-  { id:"early_possession",    name:"Early Possession Agreement",        category:"Deal Structures", required:false },
   { id:"escrow_instructions", name:"Escrow Instructions",               category:"Escrow",        required:false },
   { id:"wire_instructions",   name:"Wire Transfer Instructions",        category:"Escrow",        required:false },
   { id:"lien_release",        name:"Lien Release",                      category:"Title",         required:false },
@@ -5064,6 +5061,7 @@ function AuthScreen({ onAuth, prefillEmail, notice, defaultMode, defaultRole }) 
 // LANDING PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 function Landing({ onStart, onLegal }) {
+  const [showDocFinder, setShowDocFinder] = useState(false);
   // Pull the real library so counts never go stale.
   const groupOrder = [...new Set(DOCUMENTS.map(d=>d.group))];
   const docGroups = groupOrder.map(g => ({ group:g, count: DOCUMENTS.filter(d=>d.group===g).length }));
@@ -5327,9 +5325,21 @@ function Landing({ onStart, onLegal }) {
       <div style={{ background:C.sandDark, padding:"4.5rem 2rem" }}>
         <div style={{ maxWidth:880, margin:"0 auto" }}>
           <h2 style={{ textAlign:"center", fontSize:30, marginBottom:8 }}>{DOC_COUNT} Professional Documents, {CAT_COUNT} Categories</h2>
-          <p style={{ textAlign:"center", fontSize:14, fontFamily:"sans-serif", color:C.slate, marginBottom:40, maxWidth:620, marginLeft:"auto", marginRight:"auto" }}>
+          <p style={{ textAlign:"center", fontSize:14, fontFamily:"sans-serif", color:C.slate, marginBottom:20, maxWidth:620, marginLeft:"auto", marginRight:"auto" }}>
             Every document auto-fills with your deal data and is organized by exactly when you need it. Your deal only shows the categories that apply to it.
           </p>
+          <div style={{ textAlign:"center", marginBottom:36 }}>
+            <button onClick={()=>setShowDocFinder(true)} style={{ background:C.navy, color:C.brass, border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 22px", fontSize:14, fontWeight:800, fontFamily:"sans-serif", cursor:"pointer" }}>
+              🧭 Not sure which you need? Answer a few questions →
+            </button>
+          </div>
+          {showDocFinder && (
+            <div onClick={()=>setShowDocFinder(false)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:5000, padding:"3vh 1rem", overflowY:"auto" }}>
+              <div onClick={e=>e.stopPropagation()} style={{ background:"#fff", borderRadius:12, maxWidth:600, width:"100%", padding:"1.6rem", border:`2px solid ${C.brass}` }}>
+                <DocFinder DOCUMENTS={DOCUMENTS} C={C} S={S} onClose={()=>setShowDocFinder(false)} onOpenDoc={()=>{ setShowDocFinder(false); onStart(); }} />
+              </div>
+            </div>
+          )}
           <div style={{ display:"grid", gridTemplateColumns:cols(3), gap:16 }}>
             {docGroups.map(({group,count})=>(
               <div key={group} style={{ background:C.white, borderRadius:8, padding:"1.1rem 1.25rem", border:`0.5px solid ${C.mist}` }}>
