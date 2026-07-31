@@ -11,6 +11,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
+import DocFinder from "./DocFinder";
 
 // ── palette (matches the main app) ──
 const C = {
@@ -216,6 +217,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [activeDoc, setActiveDoc] = useState(null); // the one document currently opened for work
   // Collapsible groups — required group open by default, the rest collapsed.
   const [openGroups, setOpenGroups] = useState({ "Closing Instruments": true });
+  const [showDocFinder, setShowDocFinder] = useState(false);
   const [quizOpen, setQuizOpen] = useState(true);
   const [quizMore, setQuizMore] = useState(false);
   const [quiz, setQuiz] = useState({ pay:"", trailer:false, documented:false, lien:false, estate:false, coowner:false, entity:false, poa:false, tradein:false, gift:false, sellerfin:false, losttitle:false, lostreg:false, survey:false, defects:false });
@@ -666,10 +668,18 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // ── DOCUMENTS VIEW ──
   return (
     <div style={S.page}>
+      {showDocFinder && (
+        <div onClick={()=>setShowDocFinder(false)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:5000, padding:"3vh 1rem", overflowY:"auto" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:"#fff", borderRadius:12, maxWidth:600, width:"100%", padding:"1.6rem", border:`2px solid ${C.brass}` }}>
+            <DocFinder DOCUMENTS={DOCUMENTS} C={C} S={S} onClose={()=>setShowDocFinder(false)} onOpenDoc={(id)=>{ setShowDocFinder(false); jumpToDoc(id); }} />
+          </div>
+        </div>
+      )}
       <style>{docCSS}</style>
       <div style={{ marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div>
           <h1 style={S.h1}>Documents</h1>
+          <button onClick={()=>setShowDocFinder(true)} style={{ marginTop:8, background:"transparent", color:C.navy, border:`1px solid ${C.brass}`, borderRadius:7, padding:"8px 14px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>🧭 Which document do I need?</button>
           <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>{requiredDocs.filter(d=>signed[d.id]).length} of {requiredDocs.length} required documents complete</p>
         </div>
         <span style={{...S.pill, background:C.greenLight, color:C.green}}>Paid ✓</span>
