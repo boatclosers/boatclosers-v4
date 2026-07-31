@@ -18,11 +18,12 @@ const C = {
 };
 
 const OPTIONS = [
-  { key:"survey",    label:"Survey" },
-  { key:"seaTrial",  label:"Sea Trial" },
-  { key:"financing", label:"Financing" },
-  { key:"insurance", label:"Insurance" },
-  { key:"title",     label:"Clear Title" },
+  { key:"survey",             label:"Survey" },
+  { key:"personalInspection", label:"Personal Inspection" },
+  { key:"seaTrial",           label:"Sea Trial" },
+  { key:"financing",          label:"Financing" },
+  { key:"insurance",          label:"Insurance" },
+  { key:"title",              label:"Clear Title" },
 ];
 
 // NOTHING is pre-selected. Contingencies are terms the buyer proposes and the
@@ -51,7 +52,7 @@ export default function ContingencyPicker({ value, onChange, paymentType, ddEnd,
   // which is indistinguishable from forgetting to pick.
   const waiveAll = () => {
     if (typeof window !== "undefined" && !window.confirm(
-      "Make this a no-contingency cash offer?\n\nYou'll be waiving your survey, sea trial, financing, insurance, and title contingencies. That means no built-in right to walk away or renegotiate based on what an inspection finds — you'd be agreeing to buy the boat as-is.\n\nOnly do this if you've already seen the boat and accept its condition. Continue?"
+      "Make this a no-contingency cash offer?\n\nYou'll be waiving your survey, personal inspection, sea trial, financing, insurance, and title contingencies. That means no built-in right to walk away or renegotiate based on what an inspection finds — you'd be agreeing to buy the boat as-is.\n\nOnly do this if you've already seen the boat and accept its condition. Continue?"
     )) return;
     onChange([]);
     if (onCashWaived) onCashWaived(true);
@@ -74,7 +75,7 @@ export default function ContingencyPicker({ value, onChange, paymentType, ddEnd,
       )}
       {cashWaived && selected.length === 0 && (
         <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.navy, fontWeight:700, marginBottom:8, lineHeight:1.5, background:C.sandDark, borderRadius:6, padding:"9px 12px" }}>
-          💵 No-contingency cash offer. You're buying the boat as-is, with no survey, sea-trial, financing, insurance, or title contingency. You can add a contingency any time before sending by tapping one above.
+          💵 No-contingency cash offer. You're buying the boat as-is, with no survey, personal inspection, sea-trial, financing, insurance, or title contingency. You can add a contingency any time before sending by tapping one above.
         </div>
       )}
       <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
