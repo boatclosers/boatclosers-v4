@@ -88,7 +88,7 @@ export const DOCUMENTS = [
 <p class="lead recital">This Vessel Purchase &amp; Sale Agreement (the \u201cAgreement\u201d) is made on {{effectiveDate}}, by and between {{sellerName}}, of {{sellerAddress}}, a citizen of {{sellerCitizen}} (the \u201cSeller\u201d), and {{buyerName}}, of {{buyerAddress}}, a citizen of {{buyerCitizen}} (the \u201cBuyer\u201d). The Parties may reside in different states or countries; their places of residence do not change the governing law set out in this Agreement.</p>
 
 <h3>1. The Vessel</h3>
-<p>Seller agrees to sell and Buyer agrees to purchase the following vessel together with its engines, equipment, and the gear and accessories listed in the Inventory Schedule attached to this Agreement (collectively, the \u201cVessel\u201d): a {{vesselYear}} {{vesselMake}} {{vesselModel}}, {{vesselLength}} in length, {{hullMaterial}} hull, Hull Identification Number {{hin}}, U.S. Coast Guard Official Number {{uscgOfficialNo}}, Title No. {{titleNo}}, Registration {{regNo}}, powered by {{engineDesc}}. Items not listed on the Inventory Schedule, and any personal effects of Seller, are excluded from the sale.</p>
+<p>Seller agrees to sell and Buyer agrees to purchase the following vessel, together with its engines, equipment, and gear as equipped (collectively, the \u201cVessel\u201d): a {{vesselYear}} {{vesselMake}} {{vesselModel}}, {{vesselLength}} in length, {{hullMaterial}} hull, Hull Identification Number {{hin}}, U.S. Coast Guard Official Number {{uscgOfficialNo}}, Title No. {{titleNo}}, Registration {{regNo}}, powered by {{engineDesc}}. The Seller\u2019s personal effects are excluded from the sale. If the Parties wish to itemize the specific gear and accessories that convey with the Vessel, they may complete and sign the optional Inventory Schedule.</p>
 
 <h3>2. Purchase Price</h3>
 <p>The total purchase price is {{salePrice}} ({{salePriceWords}} U.S. Dollars), payable as: an earnest money deposit of {{depositAmount}} ({{depositPct}}), and the balance of {{balanceDue}} in good funds at Closing.</p>
@@ -260,6 +260,70 @@ export const DOCUMENTS = [
 <p>Seller affirms this disclosure is true and complete to the best of Seller\u2019s knowledge and that no material defect has been knowingly concealed.</p>
 
 <div class="note">A written good-faith disclosure of known defects protects both Parties and reduces post-sale disputes, regardless of state.</div>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer<br>Date: ____________</small></div>
+</div>`
+  },
+
+  {
+    id: "inventory",
+    group: "Closing Instruments",
+    tab: "Inventory Schedule",
+    eyebrow: "What Conveys",
+    title: "Inventory Schedule",
+    optional: true,
+    body: `
+<p class="lead recital">This Inventory Schedule is an optional attachment to the Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d), concerning the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}. It itemizes the specific gear and accessories that convey with the Vessel at Closing.</p>
+
+<h3>1. Items Included in the Sale</h3>
+<p>The following equipment, gear, and accessories are included in the sale and convey with the Vessel (list each item; add "None" where a category does not apply):</p>
+
+<p><b>Electronics &amp; Navigation</b> (chartplotter, radar, VHF, autopilot, fishfinder, stereo):</p>
+<ol>
+  <li>____________________________________________________________</li>
+  <li>____________________________________________________________</li>
+</ol>
+
+<p><b>Safety Equipment</b> (PFDs, flares, fire extinguishers, EPIRB, life raft):</p>
+<ol>
+  <li>____________________________________________________________</li>
+  <li>____________________________________________________________</li>
+</ol>
+
+<p><b>Ground Tackle &amp; Deck</b> (anchor, rode, windlass, fenders, lines, boat hook):</p>
+<ol>
+  <li>____________________________________________________________</li>
+  <li>____________________________________________________________</li>
+</ol>
+
+<p><b>Tender / Dinghy &amp; Outboard</b> (make, model, serial, and its motor, if included):</p>
+<ol>
+  <li>____________________________________________________________</li>
+  <li>____________________________________________________________</li>
+</ol>
+
+<p><b>Canvas, Sails &amp; Covers</b> (bimini, enclosure, sail inventory, covers):</p>
+<ol>
+  <li>____________________________________________________________</li>
+  <li>____________________________________________________________</li>
+</ol>
+
+<p><b>Other Gear &amp; Accessories</b> (galley equipment, tools, spare parts, water toys):</p>
+<ol>
+  <li>____________________________________________________________</li>
+  <li>____________________________________________________________</li>
+</ol>
+
+<h3>2. Items Excluded from the Sale</h3>
+<p>The following items are the Seller\u2019s personal property and are <b>excluded</b> from the sale (Seller\u2019s personal effects are excluded whether or not listed):</p>
+<ol>
+  <li>____________________________________________________________</li>
+  <li>____________________________________________________________</li>
+</ol>
+
+<div class="note">Itemizing what conveys is optional, but it is the single best way to prevent post-sale disputes about missing electronics, tenders, or gear. If completed and signed, this Schedule controls what is included; if left incomplete, the Vessel conveys with its engines, equipment, and gear as equipped, per the Agreement.</div>
 
 <div class="sig">
   <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller<br>Date: ____________</small></div>
