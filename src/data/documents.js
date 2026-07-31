@@ -36,6 +36,12 @@ export const CONTINGENCIES = [
     clause: "This sale is contingent upon a marine survey satisfactory to Buyer, completed at Buyer\u2019s expense on or before {{surveyDeadline}}."
   },
   {
+    key: "personalInspection",
+    name: "Buyer\u2019s Personal Inspection",
+    dateField: "inspectionDeadline",
+    clause: "This sale is contingent upon Buyer\u2019s satisfactory in-person inspection of the Vessel, completed on or before {{inspectionDeadline}}. Buyer shall conduct this inspection diligently and in good faith; if Buyer does not complete the inspection by that date, this contingency is deemed waived and the Vessel accepted in the condition then existing, subject to the other terms of this Agreement."
+  },
+  {
     key: "seaTrial",
     name: "Sea Trial",
     dateField: "seaTrialDeadline",
