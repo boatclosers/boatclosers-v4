@@ -52,6 +52,10 @@ function assess(d: any) {
   const verif = neg.depositVerification || null
   const verified = verif?.status === 'confirmed'
   const disputed = verif?.status === 'disputed'
+  // Both-confirm / escrow model: a party is "confirmed" via their flag OR a signed receipt.
+  const buyerConfirmed = !!neg.depositBuyerConfirmed || !!(neg.depositProof && neg.depositProof.sig)
+  const sellerConfirmed = !!neg.depositSellerConfirmed || (verif?.status === 'confirmed' && !!verif?.sig)
+  const escrowVerified = verif?.status === 'confirmed'
   const joined = !!d.other_party_id
 
   let state = 'unknown', waitingOn = '—', urgency = 0, note = ''
@@ -67,9 +71,9 @@ function assess(d: any) {
     state = 'Awaiting PA signature'; waitingOn = who; urgency = 3; note = 'Price agreed, Purchase Agreement not fully signed.'
   }
   else if (!paid)                { state = 'Awaiting payment';     waitingOn = 'Initiator'; urgency = 4; note = 'Both signed the PA. The $249 has not been paid, so everything is locked.' }
-  else if (depositDue && !instr) { state = 'Awaiting deposit info'; waitingOn = 'Seller'; urgency = 4; note = 'Paid, but the seller has not posted where to send the deposit.' }
-  else if (depositDue && !proof) { state = 'Awaiting deposit';     waitingOn = 'Buyer'; urgency = 3; note = 'Instructions posted, buyer has not funded and signed the receipt.' }
-  else if (depositDue && !verified) { state = 'Awaiting verification'; waitingOn = 'Seller'; urgency = 4; note = 'Buyer signed the receipt. Seller has not confirmed the funds arrived.' }
+  else if (depositDue && neg.escrowPath === 'escrow_com' && !escrowVerified) { state = 'Awaiting Escrow.com funding'; waitingOn = 'Buyer'; urgency = 3; note = 'Escrow.com deposit not funded/verified yet.' }
+  else if (depositDue && !buyerConfirmed) { state = 'Awaiting deposit'; waitingOn = 'Buyer'; urgency = 3; note = 'Buyer has not sent the deposit / signed the receipt yet.' }
+  else if (depositDue && !sellerConfirmed) { state = 'Awaiting deposit confirmation'; waitingOn = 'Seller'; urgency = 4; note = 'Buyer confirmed sending; seller has not confirmed receipt.' }
   else if (dd.outcome === 'accept' || (d.max_step || 0) >= 4) { state = 'Documents / closing'; waitingOn = 'Both'; urgency = 1; note = 'Past due diligence.' }
   else                           { state = 'Due diligence';        waitingOn = 'Buyer'; urgency = 1; note = 'Deposit secured, survey and sea trial underway.' }
 
@@ -205,6 +209,91 @@ export async function POST(req: Request) {
         return NextResponse.json({ escrow: { ok: false, message: 'Could not reach Escrow.com: ' + (e?.message || 'unknown') } })
       }
     }
+    // ── CONTROL ACTIONS ───────────────────────────────────────────────────────
+    // Deliberate, single-purpose actions — never a free-form field editor. Each
+    // requires the admin password (already checked above), targets one deal by id,
+    // records what was done into negotiate.adminLog, and returns the updated deal.
+    // These exist so the owner can fix the exact problems that came up in testing
+    // (stuck role, stuck deposit, bad auto-join) without opening Supabase.
+    if (body.action && String(body.action).startsWith('admin')) {
+      if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        return NextResponse.json({ error: 'Server is missing SUPABASE_SERVICE_ROLE_KEY.' }, { status: 500 })
+      }
+      const sb2 = admin()
+      const dealId = String(body.dealId || '').trim()
+
+      // Delete a deal (test/spam cleanup). Hard delete — confirmed on the client.
+      if (body.action === 'adminDeleteDeal') {
+        if (!dealId) return NextResponse.json({ error: 'Missing dealId.' }, { status: 400 })
+        const { error } = await sb2.from('deals').delete().eq('id', dealId)
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+        return NextResponse.json({ ok: true, deleted: dealId })
+      }
+
+      // For every other action we read the deal first, patch, and write back.
+      if (!dealId) return NextResponse.json({ error: 'Missing dealId.' }, { status: 400 })
+      const { data: row, error: readErr } = await sb2.from('deals').select('*').eq('id', dealId).single()
+      if (readErr || !row) return NextResponse.json({ error: 'Deal not found.' }, { status: 404 })
+      const neg = row.negotiate || {}
+      const log = Array.isArray(neg.adminLog) ? neg.adminLog : []
+      const stamp = (what: string) => ([...log, { what, at: Date.now() }])
+      let patch: any = {}
+      let negPatch: any = {}
+      let done = ''
+
+      if (body.action === 'adminAddNote') {
+        const text = String(body.note || '').trim()
+        if (!text) return NextResponse.json({ error: 'Empty note.' }, { status: 400 })
+        const notes = Array.isArray(neg.adminNotes) ? neg.adminNotes : []
+        negPatch.adminNotes = [...notes, { text, at: Date.now() }]
+        done = 'Note added'
+      }
+      else if (body.action === 'adminResetRole') {
+        // Fix an inverted buyer/seller — set initiator_role explicitly.
+        const role = body.role === 'seller' ? 'seller' : 'buyer'
+        patch.initiator_role = role
+        patch.invite_role = role === 'buyer' ? 'seller' : 'buyer'
+        done = `Initiator role set to ${role}`
+      }
+      else if (body.action === 'adminResetDeposit') {
+        // Clear a stuck deposit so both parties can re-confirm cleanly.
+        delete neg.depositBuyerConfirmed; delete neg.depositSellerConfirmed
+        delete neg.depositProof; delete neg.depositVerification
+        negPatch = { ...neg, depositEnded: false, depositTimerWaived: false }
+        done = 'Deposit confirmations reset'
+      }
+      else if (body.action === 'adminReopenDeal') {
+        // Undo a finalize / cancel so the deal can move again.
+        delete neg.dealFinalized; delete neg.canceled; delete neg.depositEnded
+        negPatch = { ...neg }
+        done = 'Deal reopened'
+      }
+      else if (body.action === 'adminClearJoin') {
+        // Undo a bad auto-join (the party_b bug). Frees the invite slot.
+        patch.other_party_id = null
+        patch.invite_status = 'pending'
+        done = 'Second party detached — invite slot reopened'
+      }
+      else if (body.action === 'adminResendInvite') {
+        // Re-arm the invite so the notice can be re-sent from the app.
+        patch.invite_status = 'pending'
+        patch.invite_sent_at = new Date().toISOString()
+        done = 'Invite re-armed (pending)'
+      }
+      else {
+        return NextResponse.json({ error: 'Unknown action.' }, { status: 400 })
+      }
+
+      // Always append to the admin log so there's a record of every change.
+      const finalNeg = Object.keys(negPatch).length ? negPatch : neg
+      finalNeg.adminLog = stamp(done)
+      patch.negotiate = finalNeg
+
+      const { error: upErr } = await sb2.from('deals').update(patch).eq('id', dealId)
+      if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
+      return NextResponse.json({ ok: true, done, dealId })
+    }
+
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json({ error: 'Server is missing SUPABASE_SERVICE_ROLE_KEY.' }, { status: 500 })
     }
