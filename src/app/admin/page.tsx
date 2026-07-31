@@ -17,6 +17,7 @@ const NAVY = '#08152e'
 const BRASS = '#b8863a'
 const SLATE = '#475569'
 const MIST = '#e2e8f0'
+const ctlBtn: any = { fontSize: 11.5, fontWeight: 700, color: '#08152e', background: '#fff', border: '1px solid #cbd5e1', borderRadius: 6, padding: '6px 11px', cursor: 'pointer', fontFamily: 'sans-serif' }
 
 const money = (n: number) =>
   Number(n || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
@@ -39,6 +40,30 @@ export default function AdminPage() {
   const [escTx, setEscTx] = useState('1')
   const [escResult, setEscResult] = useState<any>(null)
   const [escBusy, setEscBusy] = useState(false)
+  const [actionBusy, setActionBusy] = useState('')
+  const [actionMsg, setActionMsg] = useState<any>(null)
+  const runAction = async (action: string, dealId: string, extra: any = {}) => {
+    const confirmText: any = {
+      adminDeleteDeal: 'Permanently DELETE this deal? This cannot be undone.',
+      adminResetDeposit: 'Reset both deposit confirmations so the parties can re-confirm?',
+      adminReopenDeal: 'Reopen this deal (undo finalize/cancel)?',
+      adminClearJoin: 'Detach the second party and reopen the invite slot?',
+      adminResetRole: `Set the initiator role to ${extra.role}? (fixes an inverted buyer/seller)`,
+      adminResendInvite: 'Re-arm the invite as pending?',
+    }
+    if (confirmText[action] && !window.confirm(confirmText[action])) return
+    setActionBusy(action + dealId); setActionMsg(null)
+    try {
+      const r = await fetch('/api/admin', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: sessionStorage.getItem('bc_admin') || '', action, dealId, ...extra }),
+      })
+      const j = await r.json()
+      if (j.ok) { setActionMsg({ ok: true, text: j.done || 'Done' }); load(sessionStorage.getItem('bc_admin') || '') }
+      else setActionMsg({ ok: false, text: j.error || 'Failed' })
+    } catch { setActionMsg({ ok: false, text: 'Network error' }) }
+    setActionBusy('')
+  }
 
   const runEscrowCheck = async () => {
     setEscBusy(true); setEscResult(null)
@@ -272,6 +297,30 @@ export default function AdminPage() {
                     <a href={`mailto:${d.buyer.email || d.inviteEmail}?subject=Your BoatClosers deal — ${d.boat}`} style={{ color: BRASS, fontWeight: 700 }}>email buyer</a>
                     {' · '}
                     <a href={`mailto:${d.seller.email}?subject=Your BoatClosers deal — ${d.boat}`} style={{ color: BRASS, fontWeight: 700 }}>email seller</a>
+                  </div>
+
+                  {/* ── CONTROLS ── deliberate, confirmed, logged actions ── */}
+                  <div style={{ marginTop: 12, paddingTop: 11, borderTop: `1px solid ${MIST}` }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: NAVY, marginBottom: 7, letterSpacing: 0.4 }}>CONTROLS</div>
+                    <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                      {!d.joined && (
+                        <button onClick={() => runAction('adminResendInvite', d.id)} disabled={!!actionBusy} style={ctlBtn}>Re-arm invite</button>
+                      )}
+                      {d.joined && (
+                        <button onClick={() => runAction('adminClearJoin', d.id)} disabled={!!actionBusy} style={ctlBtn}>Detach 2nd party</button>
+                      )}
+                      <button onClick={() => runAction('adminResetRole', d.id, { role: 'buyer' })} disabled={!!actionBusy} style={ctlBtn}>Role → buyer</button>
+                      <button onClick={() => runAction('adminResetRole', d.id, { role: 'seller' })} disabled={!!actionBusy} style={ctlBtn}>Role → seller</button>
+                      {d.deposit > 0 && (
+                        <button onClick={() => runAction('adminResetDeposit', d.id)} disabled={!!actionBusy} style={ctlBtn}>Reset deposit</button>
+                      )}
+                      <button onClick={() => runAction('adminReopenDeal', d.id)} disabled={!!actionBusy} style={ctlBtn}>Reopen deal</button>
+                      <button onClick={() => { const t = window.prompt('Add a private note to this deal:'); if (t && t.trim()) runAction('adminAddNote', d.id, { note: t.trim() }); }} disabled={!!actionBusy} style={ctlBtn}>+ Note</button>
+                      <button onClick={() => runAction('adminDeleteDeal', d.id)} disabled={!!actionBusy} style={{ ...ctlBtn, color: '#b91c1c', borderColor: '#fca5a5' }}>Delete deal</button>
+                    </div>
+                    {actionMsg && open === d.id && (
+                      <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: actionMsg.ok ? '#0f6e56' : '#b91c1c' }}>{actionMsg.ok ? '✓ ' : '⚠ '}{actionMsg.text}</div>
+                    )}
                   </div>
                 </div>
               )}
