@@ -3884,6 +3884,16 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             {negotiate.vesselRejection && (
               <RejectionNotice rejection={negotiate.vesselRejection} escrowPath={(negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.escrowPath} viewerRole="seller" vessel={vessel} isInitiator={amInitiator} />
             )}
+            {/* The seller has no vessel decision to make, so they need their OWN way
+                to move on to Documents once the deposit is verified. Without this the
+                seller got stuck on Due Diligence while the buyer moved ahead. */}
+            {decisionUnlocked ? (
+              <button onClick={onNext} style={{ ...S.btnBrass, width:"100%", marginTop:16, fontSize:14, fontWeight:800, padding:"13px 20px" }}>Continue to Documents &rarr;</button>
+            ) : (
+              <div style={{ background:C.sandDark, border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", marginTop:16, fontFamily:"sans-serif", fontSize:12.5, color:C.slate, lineHeight:1.6 }}>
+                Once the {fmt(dep.deposit)} deposit is confirmed by both sides, you&rsquo;ll continue to the documents here. Your paperwork prep above stays open in the meantime.
+              </div>
+            )}
           </div>
         ) : (
         <>
