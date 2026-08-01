@@ -3091,6 +3091,10 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const [buyerSigned, setBuyerSigned] = useState(false);
   const [vaSigName, setVaSigName] = useState(negotiate?.vesselAcceptance?.sig || "");
   const [vaSigned, setVaSigned] = useState(!!negotiate?.vesselAcceptance);
+  // The buyer must pass a plain-language commitment warning before the acceptance
+  // signing appears. Accepting the vessel waives contingencies and commits them to
+  // close — walking away after this risks their deposit. Make that unmissable.
+  const [acceptCommitAck, setAcceptCommitAck] = useState(!!negotiate?.vesselAcceptance);
   const [showReceipt, setShowReceipt] = useState(false);
   // ── DEPOSIT GATE ───────────────────────────────────────────────────────────
   // The deposit is in control of forward motion. Any attempt to move the deal on
@@ -3923,7 +3927,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           </div>
         ) : (
         <div className="bc-grid3" style={{ gap:10, marginBottom:16 }}>
-          <button onClick={requireDeposit(()=>{ setOutcome("accept"); setBuyerSigned(false); setVaSigned(false); set("outcome","accept"); })} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="accept"?C.green:"transparent", color:outcome==="accept"?"#fff":C.green, border:`2px solid ${C.green}` }}>
+          <button onClick={requireDeposit(()=>{ setOutcome("accept"); setBuyerSigned(false); setVaSigned(false); setAcceptCommitAck(!!negotiate?.vesselAcceptance); set("outcome","accept"); })} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="accept"?C.green:"transparent", color:outcome==="accept"?"#fff":C.green, border:`2px solid ${C.green}` }}>
             ✓ Accept As-Is
           </button>
           <button onClick={requireDeposit(()=>{ setOutcome("propose_price"); set("outcome","propose_price"); })} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="propose_price"?C.brass:"transparent", color:outcome==="propose_price"?C.navy:C.brass, border:`2px solid ${C.brass}` }}>
@@ -4005,7 +4009,30 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           </div>
         )}
 
-        {outcome==="accept" && (
+        {outcome==="accept" && !acceptCommitAck && (
+          <div style={{ border:`2px solid ${C.green}`, borderRadius:8, overflow:"hidden", marginBottom:14, fontFamily:"sans-serif" }}>
+            <div style={{ background:C.green, padding:"12px 16px", color:"#fff", fontSize:14, fontWeight:800 }}>Before you accept — this is a commitment</div>
+            <div style={{ background:"#fff", padding:"18px 20px" }}>
+              <div style={{ fontSize:13, color:C.navy, lineHeight:1.8, marginBottom:14 }}>
+                Accepting <b>{vessel.year} {vessel.make} {vessel.model}</b> as-is is the point of no return in this deal. Once you sign the acceptance:
+              </div>
+              <ul style={{ fontSize:12.5, color:C.slate, lineHeight:1.9, margin:"0 0 14px", paddingLeft:20 }}>
+                <li>You <b>waive your remaining contingencies</b> — survey, sea trial, inspection, and the rest. You can no longer walk away over those.</li>
+                <li>You are <b>committing to close</b> the purchase on the agreed terms and closing date.</li>
+                <li>If you back out after this, you may <b>forfeit your {fmt(dep.deposit)} earnest-money deposit</b> and could be held liable under the Purchase Agreement.</li>
+              </ul>
+              <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"11px 14px", fontSize:12, color:"#7a5500", lineHeight:1.7, marginBottom:16 }}>
+                If the survey found problems, don&rsquo;t accept yet &mdash; use <b>Propose New Price</b> to renegotiate, or <b>Reject</b> to end the deal and recover your deposit. Only accept when you are ready to buy this boat.
+              </div>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+                <button onClick={()=>setAcceptCommitAck(true)} style={{ ...S.btn, background:C.green, color:"#fff", fontSize:13.5, fontWeight:800, padding:"12px 20px", flex:1, minWidth:200 }}>I understand &mdash; continue to sign</button>
+                <button onClick={()=>{ setOutcome(""); set("outcome",""); }} style={{ ...S.btnOutline, fontSize:13, padding:"12px 18px" }}>Go back</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {outcome==="accept" && acceptCommitAck && (
           <div style={{ border:`1px solid #a8d8b8`, borderRadius:6, overflow:"hidden", marginBottom:14 }}>
             <div style={{ background:C.green, padding:"10px 14px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <div style={{ fontSize:13, fontWeight:700, color:"#fff", fontFamily:"sans-serif" }}>Vessel Acceptance Document — Required Before Proceeding</div>
