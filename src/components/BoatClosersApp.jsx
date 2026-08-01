@@ -2940,19 +2940,13 @@ function RejectionNotice({ rejection, escrowPath, viewerRole, vessel, isInitiato
   );
 }
 
-function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms, negotiate, myRole, amInitiator, dealId, onNext, onBack }) {
+function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms, negotiate, myRole, amInitiator, dealId, onNext, onBack, authToken }) {
   const set = (k,v) => setData(d => ({...d,[k]:v}));
   const isBuyer = myRole !== "seller";
   // ── Earnest-money deposit timeline: set at lock, buyer proves, seller may extend ──
   const [proofRef, setProofRef] = useState("");
   const [proofNote, setProofNote] = useState("");
-  // Resolve the deposit from negotiate first, then fall back to the accepted offer —
-  // the same source the Deal Room banner reads. Keeps the banner and this box in
-  // agreement so the "sign the receipt" action always renders when a deposit is due.
-  const _acceptedOffer = (negotiate?.offers || []).find(o => o && (o.status === "accepted" || o.status === "agreed")) || null;
-  const _depAmount = Number(negotiate?.deposit) > 0 ? Number(negotiate.deposit) : Number(_acceptedOffer?.deposit || 0);
-  const _escrowPath = negotiate?.escrowPath || _acceptedOffer?.escrowPath || "";
-  const dep = { ...(negotiate || {}), deposit: _depAmount, escrowPath: _escrowPath };
+  const dep = negotiate || {};
   const depHasProof = !!(dep.depositProof && dep.depositProof.ref);
   const depDeadline = Number(dep.depositDeadline) || 0;
   const depEnded = !!dep.depositEnded;
@@ -3115,7 +3109,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   // not advance the deal (that's Piece 3). Runs on open and on a manual Refresh.
   const [escStatus, setEscStatus] = useState(null);
   const [escLoading, setEscLoading] = useState(false);
-  const dealIsEscrowCom = (dep.escrowPath || negotiate?.escrowPath) === "escrow_com";
+  const dealIsEscrowCom = negotiate?.escrowPath === "escrow_com";
   const dealTxId = negotiate?.escrowTxId || "";
   const refreshEscrow = useCallback(async () => {
     if (!dealIsEscrowCom || !dealTxId || !dealId) return;
@@ -3155,7 +3149,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
     setEscCreating(true); setEscCreateErr("");
     try {
       const r = await fetch("/api/deals/escrow-create", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", ...(authToken ? { "Authorization": "Bearer " + authToken } : {}) },
         body: JSON.stringify({ dealId }),
       });
       const j = await r.json();
@@ -6360,7 +6354,7 @@ export default function BoatClosers() {
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} userRole={myDealRole || user?.role || "seller"} onNext={()=>goToStep(1)}/>}
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user} ensureSaved={ensureDealSaved}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} stripeReturn={stripeReturn} onRefresh={()=>window.location.reload()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
-      {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
+      {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} authToken={tokenRef.current?.token} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
       {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} setNegotiate={setNegotiateAndSave} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onBack={()=>setStep(4)}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
 
