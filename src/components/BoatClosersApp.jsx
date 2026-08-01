@@ -659,27 +659,23 @@ function StepVessel({ data, setData, userRole, onNext }) {
         <h1 style={S.h1}>Vessel Information</h1>
         <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Fill in what you have now. You can complete remaining fields before signing. Asking price, year, make, and model are required to continue.</p>
       </div>
-      <div style={{ background:C.navy, borderRadius:10, padding:"22px 24px", marginBottom:"1.25rem", boxShadow:"0 4px 18px rgba(8,21,46,0.15)" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-          <span style={{ fontSize:11, fontWeight:800, color:C.brass, letterSpacing:1.5, textTransform:"uppercase", fontFamily:"sans-serif" }}>Step 1 — The Anchor</span>
+      <div style={{ background:C.navy, borderRadius:9, padding:"15px 18px", marginBottom:"1.25rem", display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
+        <div style={{ flexShrink:0 }}>
+          <div style={{ fontSize:15, fontWeight:800, color:"#fff", fontFamily:"sans-serif" }}>Asking Price <span style={{ color:C.brass }}>*</span></div>
+          {data.askingPrice && Number(data.askingPrice) > 0 && (
+            <div style={{ fontSize:12, color:C.brass, fontWeight:700, fontFamily:"sans-serif", marginTop:2 }}>{fmt(Number(data.askingPrice))}</div>
+          )}
         </div>
-        <h2 style={{ fontSize:22, fontWeight:800, color:"#fff", margin:"2px 0 4px", fontFamily:"sans-serif" }}>Asking Price</h2>
-        <p style={{ fontSize:12.5, fontFamily:"sans-serif", color:"rgba(255,255,255,0.65)", margin:"0 0 16px", lineHeight:1.6, maxWidth:520 }}>
-          This is the starting number the entire deal is built on — buyers make their offer against it. It&rsquo;s the first and most important thing you set. Required to continue.
-        </p>
-        <div style={{ position:"relative", maxWidth:340 }}>
-          <span style={{ position:"absolute", left:16, top:"50%", transform:"translateY(-50%)", fontSize:26, fontWeight:800, color:C.brass, fontFamily:"sans-serif", pointerEvents:"none" }}>$</span>
+        <div style={{ position:"relative", flex:1, minWidth:200, maxWidth:300 }}>
+          <span style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)", fontSize:18, fontWeight:800, color:C.brass, fontFamily:"sans-serif", pointerEvents:"none" }}>$</span>
           <input
             type="number"
             value={data.askingPrice}
             onChange={e=>set("askingPrice",e.target.value)}
             placeholder="85,000"
-            style={{ width:"100%", boxSizing:"border-box", padding:"16px 16px 16px 40px", fontSize:28, fontWeight:800, fontFamily:"sans-serif", color:C.navy, background:"#fff", border:`2px solid ${C.brass}`, borderRadius:8, outline:"none" }}
+            style={{ width:"100%", boxSizing:"border-box", padding:"11px 14px 11px 32px", fontSize:19, fontWeight:800, fontFamily:"sans-serif", color:C.navy, background:"#fff", border:`2px solid ${C.brass}`, borderRadius:7, outline:"none" }}
           />
         </div>
-        {data.askingPrice && Number(data.askingPrice) > 0 && (
-          <div style={{ fontSize:13, color:C.brass, fontWeight:700, fontFamily:"sans-serif", marginTop:10 }}>{fmt(Number(data.askingPrice))} asking</div>
-        )}
       </div>
       <div style={S.card}>
         <h3 style={S.h3}>Identification</h3>
