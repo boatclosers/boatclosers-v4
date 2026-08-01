@@ -820,10 +820,18 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { dealId, vessel, parties, negotiate, dd_data, docs_data, step, max_step } = body
 
+    // SECURITY: strip payment/lock state from the client's negotiate up front. These
+    // are set ONLY by the verified Stripe webhook/redirect. This protects EVERY save
+    // path below (merge-update, plain-update, and insert) from a forged unlock.
+    const _clientNeg = { ...(negotiate || {}) }
+    delete _clientNeg.paid
+    delete _clientNeg.dealLocked
+    delete _clientNeg.paidInitiator
+    delete _clientNeg.paidOther
     const payload: any = {
       vessel: vessel || {},
       parties: parties || {},
-      negotiate: negotiate || {},
+      negotiate: _clientNeg,
       dd_data: dd_data || {},
       docs_data: docs_data || {},
       step: typeof step === 'number' ? step : 0,
@@ -938,8 +946,15 @@ export async function POST(req: Request) {
         mergedPayload.negotiate.offers = mergedPayload.negotiate.offers.map((o: any) =>
           (o && (o.status === 'accepted' || o.status === 'agreed')) ? { ...o, origAmount: (o.origAmount ?? o.amount), amount: amt } : o)
       }
-      if (!mergedPayload.negotiate.dealLocked && existingNeg.dealLocked) mergedPayload.negotiate.dealLocked = existingNeg.dealLocked
-      if (!mergedPayload.negotiate.paid && existingNeg.paid) mergedPayload.negotiate.paid = existingNeg.paid
+      // ── PAYMENT-STATE LOCKDOWN (security) ────────────────────────────────────
+      // A client save can NEVER set these — they are set only by the verified
+      // Stripe webhook/redirect. Force each to the server's existing value,
+      // discarding whatever the client sent. Without this, a member could POST
+      // negotiate.paid=true and unlock the $249 paywall without paying.
+      mergedPayload.negotiate.paid = !!existingNeg.paid
+      mergedPayload.negotiate.dealLocked = !!existingNeg.dealLocked
+      mergedPayload.negotiate.paidInitiator = !!existingNeg.paidInitiator
+      mergedPayload.negotiate.paidOther = !!existingNeg.paidOther
       if ((Number(existingNeg.depositDeadline)||0) > (Number(mergedPayload.negotiate.depositDeadline)||0)) mergedPayload.negotiate.depositDeadline = existingNeg.depositDeadline
 
       // Update by id ALONE — authorization already checked. The old .or() filter
