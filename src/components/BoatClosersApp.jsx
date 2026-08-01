@@ -4570,7 +4570,7 @@ function DocPreview({ doc, D, negotiate }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 5 — CLOSING
 // ─────────────────────────────────────────────────────────────────────────────
-function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, docsData, myRole, amInitiator, onBack }) {
+function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, docsData, myRole, amInitiator, onBack, onFinalize }) {
   const isBuyer = myRole !== "seller";
   const [cleared, setCleared] = useState(false);
   const [dealFinalized, setDealFinalized] = useState(!!negotiate.dealFinalized);
@@ -4970,7 +4970,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
               <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:8 }}>Lock this deal permanently?</div>
               <div style={{ fontSize:12, color:C.slate, lineHeight:1.7, marginBottom:12 }}>This can&rsquo;t be undone. The deal, its documents, and all signatures will be frozen as the final record of the sale.</div>
               <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-                <button style={{ ...S.btn, background:C.green, color:"#fff", fontSize:13.5, fontWeight:800, padding:"11px 20px", flex:1, minWidth:180 }} onClick={()=>{ setDealFinalized(true); setConfirmFinalize(false); if(setNegotiate) setNegotiate(n=>({ ...n, dealFinalized:{ at:Date.now(), by:myRole } })); }}>🔒 Yes, finalize &amp; close the deal</button>
+                <button style={{ ...S.btn, background:C.green, color:"#fff", fontSize:13.5, fontWeight:800, padding:"11px 20px", flex:1, minWidth:180 }} onClick={()=>{ setDealFinalized(true); setConfirmFinalize(false); if(setNegotiate) setNegotiate(n=>({ ...n, dealFinalized:{ at:Date.now(), by:myRole } })); if(typeof onFinalize==="function") onFinalize(); }}>🔒 Yes, finalize &amp; close the deal</button>
                 <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={()=>setConfirmFinalize(false)}>Not yet</button>
               </div>
             </div>
@@ -5776,6 +5776,8 @@ export default function BoatClosers() {
                 setDealId(data.deal.id);
                 setMyDealRole(computeDealRole(data.deal, session.userId, session.role));
                 setPartyBJoined(!!(data.deal.other_party_id || data.deal.party_b_user_id));
+          finalizedRef.current = !!(data.deal.negotiate && data.deal.negotiate.dealFinalized);
+                finalizedRef.current = !!(data.deal.negotiate && data.deal.negotiate.dealFinalized);
                 setAmInitiator((data.deal.initiator_id || data.deal.party_a_user_id) === session.userId);
                 setVessel(data.deal.vessel || emptyVessel);
                 setParties(data.deal.parties || emptyParties);
@@ -5807,6 +5809,11 @@ export default function BoatClosers() {
   const scheduleSave = () => {
     if (!user?.token) return;
     if (booting) return; // never autosave before the deal has finished loading
+    // A finalized deal is a permanent, frozen record — never save changes to it.
+    // Guard on the SERVER-confirmed finalized status (set at load), so the single
+    // finalize action itself still persists; every save AFTER that is blocked, and
+    // after reload the deal loads finalized and stays frozen.
+    if (finalizedRef.current) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaving(true);
     saveTimer.current = setTimeout(async () => {
@@ -5871,6 +5878,10 @@ export default function BoatClosers() {
   // and lands straight in the deal room). Without this, their name is blank in the
   // Purchase Agreement, the generated documents, and notification emails.
   const namePrefilledRef = useRef(false);
+  // Server-confirmed finalized status. Once a loaded deal is finalized, this stays
+  // true and blocks all further saves. It is NOT set by the local finalize click,
+  // so that first finalize save persists; it flips true only from loaded state.
+  const finalizedRef = useRef(false);
   useEffect(() => { namePrefilledRef.current = false; }, [dealId]);
   useEffect(() => {
     if (booting || screen !== "deal" || !user || !dealId || namePrefilledRef.current) return;
@@ -6343,6 +6354,15 @@ export default function BoatClosers() {
       )}
       <ProgressBar step={step} setStep={setStep} maxStep={maxStep} dealPaid={dealPaid}/>
 
+      {negotiate.dealFinalized && (
+        <div style={{ background:C.greenLight, borderBottom:`2px solid ${C.green}`, padding:"12px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
+          <div style={{ fontSize:14, fontWeight:800, color:"#0f6e56", marginBottom:3 }}>🔒 Deal Finalized &amp; Closed — permanent record</div>
+          <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, maxWidth:600, margin:"0 auto" }}>
+            Everything here is frozen: terms, documents, and signatures are final and can no longer be changed, added, or deleted. You can view and print any part of it as your record of the sale, but nothing can be edited.
+          </div>
+        </div>
+      )}
+
       {negotiate.canceled && (
         <div style={{ background:"#fdecec", borderBottom:`2px solid ${C.red}`, padding:"14px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
           <div style={{ fontSize:14, fontWeight:800, color:C.red, marginBottom:4 }}>This deal was canceled</div>
@@ -6478,7 +6498,7 @@ export default function BoatClosers() {
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} stripeReturn={stripeReturn} onRefresh={()=>window.location.reload()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} authToken={tokenRef.current?.token} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
-      {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} setNegotiate={setNegotiateAndSave} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onBack={()=>setStep(4)}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
+      {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} setNegotiate={setNegotiateAndSave} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onBack={()=>setStep(4)} onFinalize={()=>{ setTimeout(()=>{ finalizedRef.current = true; }, 2500); }}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
 
       {cancelModal && (
         <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.85)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem" }}>
