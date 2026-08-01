@@ -5578,6 +5578,12 @@ export default function BoatClosers() {
     }
   }, []);
   const [toast, setToast] = useState(null);
+  // ── Cross-app messaging: a header button + unread badge that follows the user
+  //    onto every step, so a message sent while they're on Due Diligence or
+  //    Closing is never missed. Data lives in negotiate.messages (already polled).
+  const [msgPanelOpen, setMsgPanelOpen] = useState(false);
+  const [msgLastSeen, setMsgLastSeen] = useState(0);
+  const [msgDraft, setMsgDraft] = useState("");
   const seenRef = useRef({ offers: 0, msgs: 0, init: false });
   const stepSyncRef = useRef({ dd: "", docs: "" });
   const refreshRef = useRef(null);
@@ -5818,6 +5824,25 @@ export default function BoatClosers() {
     }
   }, [booting, screen, user, dealId, myDealRole, parties]);
   const setNegotiateAndSave = withSave(setNegotiate);
+  // ── Messaging helpers ──────────────────────────────────────────────────────
+  const _msgs = Array.isArray(negotiate?.messages) ? negotiate.messages : [];
+  const _myRole = myDealRole || user?.role || "buyer";
+  // Unread = messages from the OTHER party (or system) with a timestamp newer than
+  // the last time this user opened the panel. System/other-party only — never your own.
+  const msgUnread = _msgs.filter(m => {
+    if (!m) return false;
+    const mine = m.from === _myRole || m.from === "me";
+    if (mine) return false;
+    const t = m.at || (m.time ? Date.parse("1970/01/01 " + m.time) : 0) || 0;
+    return t > msgLastSeen || (!t && msgLastSeen === 0 && _msgs.indexOf(m) >= 0 && msgLastSeen < 1);
+  }).length;
+  const openMsgPanel = () => { setMsgPanelOpen(true); setMsgLastSeen(Date.now()); };
+  const sendDealMessage = () => {
+    const text = msgDraft.trim(); if (!text) return;
+    const note = { from: _myRole, text, time: new Date().toLocaleTimeString(), at: Date.now() };
+    setNegotiateAndSave(n => ({ ...n, messages: [ ...(Array.isArray(n.messages) ? n.messages : []), note ] }));
+    setMsgDraft("");
+  };
   const setDdDataAndSave = withSave(setDdData);
   const setDocsDataAndSave = withSave(setDocsData);
 
@@ -6208,15 +6233,53 @@ export default function BoatClosers() {
           ) : null}
           {user && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1 }}>{myDealRole || user.role}</span>}
           {vessel.year && <span style={{ fontSize:11, color:C.brass, fontFamily:"sans-serif" }}>{vessel.year} {vessel.make} {vessel.model}</span>}
+          <button title="Messages with the other party" onClick={openMsgPanel} style={{ position:"relative", fontSize:11, color:"#fff", background: msgUnread>0 ? C.red : "rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }}>💬 Messages{msgUnread>0 && <span style={{ marginLeft:5, background:"#fff", color:C.red, borderRadius:10, padding:"0 6px", fontSize:10, fontWeight:800 }}>{msgUnread}</span>}</button>
           <button title="Reload to pull the other party's latest offers, messages, and updates" style={{ fontSize:11, color:"#fff", background:C.brass, border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={()=>window.location.reload()}>🔄 Check for updates</button>
           <button title="Get help or report a problem or conflict" style={{ fontSize:11, color:"rgba(255,255,255,0.85)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={()=>{ setSupportSent(false); setSupportErr(""); setSupportModal(true); }}>help</button>
           <button style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }} onClick={handleSignOut}>Sign Out</button>
         </div>
       </nav>
       {toast && (
-        <div onClick={()=>setToast(null)} style={{ position:"fixed", top:14, left:"50%", transform:"translateX(-50%)", zIndex:1000, background:C.navy, color:"#fff", padding:"11px 18px", borderRadius:10, boxShadow:"0 6px 22px rgba(0,0,0,0.22)", fontSize:13, fontFamily:"sans-serif", fontWeight:600, cursor:"pointer", maxWidth:"92%", textAlign:"center" }}>
+        <div onClick={()=>{ if(toast.text && toast.text.includes("message")) { openMsgPanel(); } setToast(null); }} style={{ position:"fixed", top:14, left:"50%", transform:"translateX(-50%)", zIndex:1000, background:C.navy, color:"#fff", padding:"11px 18px", borderRadius:10, boxShadow:"0 6px 22px rgba(0,0,0,0.22)", fontSize:13, fontFamily:"sans-serif", fontWeight:600, cursor:"pointer", maxWidth:"92%", textAlign:"center" }}>
           {toast.text}
           <span style={{ opacity:0.6, marginLeft:10, fontSize:11, fontWeight:400 }}>tap to dismiss</span>
+        </div>
+      )}
+      {/* ── CROSS-APP MESSAGE PANEL — slides in from the right on any step ── */}
+      {msgPanelOpen && (
+        <div onClick={()=>setMsgPanelOpen(false)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.45)", zIndex:2000, display:"flex", justifyContent:"flex-end" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ width:"min(420px, 94vw)", height:"100%", background:"#fff", display:"flex", flexDirection:"column", boxShadow:"-8px 0 30px rgba(0,0,0,0.2)" }}>
+            <div style={{ background:C.navy, color:"#fff", padding:"15px 18px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <div>
+                <div style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif" }}>💬 Messages</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontFamily:"sans-serif", marginTop:2 }}>You &amp; the other party on this deal</div>
+              </div>
+              <button onClick={()=>setMsgPanelOpen(false)} style={{ background:"none", border:"none", color:"#fff", fontSize:22, cursor:"pointer", lineHeight:1 }}>×</button>
+            </div>
+            <div style={{ flex:1, overflowY:"auto", padding:"16px 18px", background:"#f8fafc", fontFamily:"sans-serif" }}>
+              {_msgs.length === 0 ? (
+                <div style={{ textAlign:"center", color:C.slate, fontSize:13, marginTop:30, lineHeight:1.7 }}>No messages yet.<br/>Send one below to reach the other party.</div>
+              ) : _msgs.map((m, i) => {
+                if (!m) return null;
+                const mine = m.from === _myRole || m.from === "me";
+                const sys = m.from === "system";
+                if (sys) return <div key={i} style={{ textAlign:"center", fontSize:11.5, color:C.slate, margin:"10px 0", fontStyle:"italic" }}>{m.text}</div>;
+                return (
+                  <div key={i} style={{ display:"flex", justifyContent: mine ? "flex-end" : "flex-start", marginBottom:10 }}>
+                    <div style={{ maxWidth:"78%", background: mine ? C.brass : "#fff", color: mine ? "#fff" : C.navy, border: mine ? "none" : `1px solid ${C.mist}`, borderRadius:12, padding:"9px 13px", fontSize:13, lineHeight:1.5 }}>
+                      <div style={{ fontSize:10, fontWeight:800, opacity:0.7, marginBottom:3, textTransform:"uppercase", letterSpacing:0.5 }}>{mine ? "You" : (m.from || "Other party")}</div>
+                      {m.text}
+                      {m.time && <div style={{ fontSize:9.5, opacity:0.6, marginTop:4, textAlign:"right" }}>{m.time}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ borderTop:`1px solid ${C.mist}`, padding:"12px 14px", background:"#fff", display:"flex", gap:8 }}>
+              <input value={msgDraft} onChange={e=>setMsgDraft(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter") sendDealMessage(); }} placeholder="Type a message…" style={{ flex:1, border:`1px solid ${C.mist}`, borderRadius:8, padding:"10px 12px", fontSize:13, fontFamily:"sans-serif", outline:"none" }} />
+              <button onClick={sendDealMessage} disabled={!msgDraft.trim()} style={{ background: msgDraft.trim() ? C.navy : C.mist, color:"#fff", border:"none", borderRadius:8, padding:"10px 16px", fontSize:13, fontWeight:800, fontFamily:"sans-serif", cursor: msgDraft.trim() ? "pointer" : "default" }}>Send</button>
+            </div>
+          </div>
         </div>
       )}
       <ProgressBar step={step} setStep={setStep} maxStep={maxStep} dealPaid={dealPaid}/>
