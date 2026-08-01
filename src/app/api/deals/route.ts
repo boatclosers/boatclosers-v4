@@ -855,6 +855,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'You are not a party on this deal.' }, { status: 403 })
       }
 
+      // ── FINALIZE FREEZE (immutability) ───────────────────────────────────────
+      // Once a deal is finalized & closed, it is a permanent record. NO party may
+      // change, add, or delete anything — the server rejects every write. Members
+      // can still READ it (the GET path is untouched), so the initiator can sign in
+      // and retrieve it as a resource, but it can never be modified again. This is
+      // the real lock; the client read-only UI is convenience on top of this.
+      const existingNegForLock = existingRow.negotiate || {}
+      if (existingNegForLock.dealFinalized) {
+        return NextResponse.json({ error: 'This deal is finalized and closed. It is a permanent record and can no longer be changed.', finalized: true }, { status: 423 })
+      }
+
       // Determine which side this user owns. initiator_role tells us party A's
       // side; the other side belongs to party B.
       const initiatorRole = existingRow.initiator_role || 'buyer'
