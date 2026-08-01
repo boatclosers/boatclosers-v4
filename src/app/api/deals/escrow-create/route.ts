@@ -23,6 +23,14 @@ function admin() {
 
 export async function POST(req: Request) {
   try {
+    // SECURITY: verify the caller is signed in and is a member of THIS deal before
+    // creating a real-money Escrow.com transaction. Without this, anyone could POST
+    // any dealId and trigger transaction creation on a deal they do not belong to.
+    const authHeader = req.headers.get('authorization') || ''
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+    if (!token) {
+      return NextResponse.json({ ok: false, error: 'Not signed in.' }, { status: 401 })
+    }
     const base = process.env.ESCROW_API_BASE || 'https://api.escrow-sandbox.com'
     const email = process.env.ESCROW_API_EMAIL || ''
     const key = process.env.ESCROW_API_KEY || ''
@@ -40,14 +48,24 @@ export async function POST(req: Request) {
     }
 
     const sb = admin()
+    const { data: authData, error: authErr } = await sb.auth.getUser(token)
+    const callerId = authData?.user?.id
+    if (authErr || !callerId) {
+      return NextResponse.json({ ok: false, error: 'Could not verify your session.' }, { status: 401 })
+    }
     const { data: deal, error } = await sb
       .from('deals')
-      .select('id, negotiate, parties')
+      .select('id, negotiate, parties, initiator_id, party_a_user_id, other_party_id, party_b_user_id')
       .eq('id', dealId)
       .single()
 
     if (error || !deal) {
       return NextResponse.json({ ok: false, error: 'Deal not found.' }, { status: 404 })
+    }
+    const d: any = deal
+    const isMember = d.initiator_id === callerId || d.party_a_user_id === callerId || d.other_party_id === callerId || d.party_b_user_id === callerId
+    if (!isMember) {
+      return NextResponse.json({ ok: false, error: 'You are not a party on this deal.' }, { status: 403 })
     }
 
     const neg = deal.negotiate || {}
