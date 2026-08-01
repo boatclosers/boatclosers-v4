@@ -633,6 +633,7 @@ function WhatsNext({ children }) {
 
 function StepVessel({ data, setData, userRole, onNext }) {
   const set = (k,v) => setData(d => ({...d,[k]:v}));
+  const [showGenerator, setShowGenerator] = useState(!!(data.genMake || data.genKw || data.genHours));
   // Only year, make, model required — rest optional until paywall
   const canContinue = data.year && data.make && data.model && data.askingPrice && isValidYear(data.year);
   return (
@@ -658,10 +659,27 @@ function StepVessel({ data, setData, userRole, onNext }) {
         <h1 style={S.h1}>Vessel Information</h1>
         <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Fill in what you have now. You can complete remaining fields before signing. Asking price, year, make, and model are required to continue.</p>
       </div>
-      <div style={{ ...S.card, borderTop:`3px solid ${C.brass}` }}>
-        <h3 style={S.h3}>Asking Price</h3>
-        <p style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginTop:-6, marginBottom:12 }}>The seller's starting number — buyers build their offer against this anchor. Required to continue.</p>
-        <Field label="Asking Price ($) *"><input style={S.input} type="number" value={data.askingPrice} onChange={e=>set("askingPrice",e.target.value)} placeholder="85000" /></Field>
+      <div style={{ background:C.navy, borderRadius:10, padding:"22px 24px", marginBottom:"1.25rem", boxShadow:"0 4px 18px rgba(8,21,46,0.15)" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+          <span style={{ fontSize:11, fontWeight:800, color:C.brass, letterSpacing:1.5, textTransform:"uppercase", fontFamily:"sans-serif" }}>Step 1 — The Anchor</span>
+        </div>
+        <h2 style={{ fontSize:22, fontWeight:800, color:"#fff", margin:"2px 0 4px", fontFamily:"sans-serif" }}>Asking Price</h2>
+        <p style={{ fontSize:12.5, fontFamily:"sans-serif", color:"rgba(255,255,255,0.65)", margin:"0 0 16px", lineHeight:1.6, maxWidth:520 }}>
+          This is the starting number the entire deal is built on — buyers make their offer against it. It&rsquo;s the first and most important thing you set. Required to continue.
+        </p>
+        <div style={{ position:"relative", maxWidth:340 }}>
+          <span style={{ position:"absolute", left:16, top:"50%", transform:"translateY(-50%)", fontSize:26, fontWeight:800, color:C.brass, fontFamily:"sans-serif", pointerEvents:"none" }}>$</span>
+          <input
+            type="number"
+            value={data.askingPrice}
+            onChange={e=>set("askingPrice",e.target.value)}
+            placeholder="85,000"
+            style={{ width:"100%", boxSizing:"border-box", padding:"16px 16px 16px 40px", fontSize:28, fontWeight:800, fontFamily:"sans-serif", color:C.navy, background:"#fff", border:`2px solid ${C.brass}`, borderRadius:8, outline:"none" }}
+          />
+        </div>
+        {data.askingPrice && Number(data.askingPrice) > 0 && (
+          <div style={{ fontSize:13, color:C.brass, fontWeight:700, fontFamily:"sans-serif", marginTop:10 }}>{fmt(Number(data.askingPrice))} asking</div>
+        )}
       </div>
       <div style={S.card}>
         <h3 style={S.h3}>Identification</h3>
@@ -698,6 +716,24 @@ function StepVessel({ data, setData, userRole, onNext }) {
             </select>
           </Field>
         </Grid2>
+        {/* Generator — optional, collapsed by default so it doesn't crowd the page. */}
+        {!showGenerator ? (
+          <button onClick={()=>setShowGenerator(true)} style={{ marginTop:12, background:"transparent", color:C.navy, border:`1px dashed ${C.brass}`, borderRadius:7, padding:"9px 14px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>
+            + Add generator details (optional)
+          </button>
+        ) : (
+          <div style={{ marginTop:12, border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px 16px", background:C.sandDark }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <div style={{ fontSize:13, fontWeight:800, color:C.navy, fontFamily:"sans-serif" }}>⚡ Generator</div>
+              <button onClick={()=>{ setShowGenerator(false); set("genMake",""); set("genKw",""); set("genHours",""); }} style={{ background:"none", border:"none", color:C.slate, fontSize:12, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }}>Remove</button>
+            </div>
+            <Grid2>
+              <Field label="Generator Make"><input style={S.input} value={data.genMake||""} onChange={e=>set("genMake",e.target.value)} placeholder="Onan / Kohler / Northern Lights" /></Field>
+              <Field label="Output (kW)"><input style={S.input} type="number" value={data.genKw||""} onChange={e=>set("genKw",e.target.value)} placeholder="7.5" /></Field>
+              <Field label="Generator Hours"><input style={S.input} type="number" value={data.genHours||""} onChange={e=>set("genHours",e.target.value)} placeholder="320" /></Field>
+            </Grid2>
+          </div>
+        )}
         <hr style={S.divider}/>
         <h3 style={S.h3}>Registration & Documentation</h3>
         <Grid2>
