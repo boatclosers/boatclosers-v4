@@ -343,7 +343,7 @@ export const DOCUMENTS = [
     desc: "The official Bill of Sale for a U.S. Coast Guard DOCUMENTED vessel. Must be notarized and list every owner on the Certificate of Documentation. Your deal data is summarized below to copy onto the official PDF.",
     viewOnly: true,
     documented: true,
-    externalUrl: "https://unitedstatesvessel.us/CG-1340_Bill_of_Sale.pdf",
+    externalUrl: "https://www.dco.uscg.mil/Portals/9/DCO%20Documents/NVDC/Forms/CG-1340_Bill_of_Sale_11_30_2026_v2.pdf",
     body: `
 <p class="lead recital">This is the <b>U.S. Coast Guard Bill of Sale (CG-1340)</b> \u2014 the form required to transfer ownership of a Coast Guard <b>documented</b> vessel. Open the official form using the button above, then copy the details below onto it.</p>
 
@@ -380,7 +380,7 @@ export const DOCUMENTS = [
     desc: "The new owner files this with the National Vessel Documentation Center to document the vessel in their name after the sale. Your deal data is summarized below for the official form.",
     viewOnly: true,
     documented: true,
-    externalUrl: "https://www.dco.uscg.mil/Portals/9/DCO%20Documents/NVDC/Forms/CG-1258.pdf",
+    externalUrl: "https://www.dco.uscg.mil/Portals/9/DCO%20Documents/NVDC/Forms/CG-1258_11_30_2026.pdf",
     body: `
 <p class="lead recital">This is the <b>USCG Application for Initial Issue / Exchange / Transfer of Documentation (CG-1258)</b>. The <b>buyer</b> (new owner) files this with the National Vessel Documentation Center (NVDC), together with the signed CG-1340 Bill of Sale and the original Certificate of Documentation, to document the vessel in their name.</p>
 
