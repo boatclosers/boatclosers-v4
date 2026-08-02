@@ -6022,6 +6022,16 @@ export default function BoatClosers() {
           depositDeadline: Math.max(Number(sNeg.depositDeadline)||0, Number(prev?.depositDeadline)||0) || prev?.depositDeadline || sNeg.depositDeadline,
           depositProof: sNeg.depositProof || prev?.depositProof,
           depositEnded: prev?.depositEnded || sNeg.depositEnded,
+          // Deposit confirmation fields — the seller's "funds received" signature
+          // lives here. Without these in the merge, the buyer's screen wouldn't
+          // unlock the vessel decision until a full page refresh.
+          depositVerification: sNeg.depositVerification || prev?.depositVerification,
+          depositSellerConfirmed: sNeg.depositSellerConfirmed || prev?.depositSellerConfirmed,
+          depositBuyerConfirmed: sNeg.depositBuyerConfirmed || prev?.depositBuyerConfirmed,
+          depositDisputed: sNeg.depositDisputed || prev?.depositDisputed,
+          depositTimerWaived: prev?.depositTimerWaived || sNeg.depositTimerWaived,
+          canceled: prev?.canceled || sNeg.canceled,
+          dealFinalized: prev?.dealFinalized || sNeg.dealFinalized,
           vesselAcceptance: sNeg.vesselAcceptance || prev?.vesselAcceptance,
           vesselRejection: sNeg.vesselRejection || prev?.vesselRejection,
           addendum: sNeg.addendum || prev?.addendum,
