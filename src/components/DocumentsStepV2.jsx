@@ -218,6 +218,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // Collapsible groups — required group open by default, the rest collapsed.
   const [openGroups, setOpenGroups] = useState({ "Closing Instruments": true });
   const [showDocFinder, setShowDocFinder] = useState(false);
+  // ── Florida detection ──────────────────────────────────────────────────────
+  // Look for Florida in the buyer, seller, or vessel location. If found, the
+  // official FL state forms are surfaced automatically. If not found, the user can
+  // still opt in ("this transfer is happening in Florida").
+  const _isFL = (s) => /\b(fl|fla|florida)\b/i.test(String(s || ""));
+  const flDetected = _isFL(parties.buyer?.stateZip) || _isFL(parties.seller?.stateZip)
+    || _isFL(vessel?.location) || _isFL(vessel?.regState);
+  const [flOptIn, setFlOptIn] = useState(false);
+  const floridaActive = flDetected || flOptIn;
   const [quizOpen, setQuizOpen] = useState(true);
   const [quizMore, setQuizMore] = useState(false);
   const [quiz, setQuiz] = useState({ pay:"", trailer:false, documented:false, lien:false, estate:false, coowner:false, entity:false, poa:false, tradein:false, gift:false, sellerfin:false, losttitle:false, lostreg:false, survey:false, defects:false });
@@ -356,6 +365,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const hasAddendum = !!(negotiate?.addendum && (negotiate.addendum.newPrice || negotiate.addendum.buyer));
   const DOC_SET = DOCUMENTS
     .filter(d => typeof d.showIf !== "function" || d.showIf(deal))
+    .filter(d => !d.florida || floridaActive)   // FL state forms only on Florida deals
     .map(d => { const mid = ID_MAP[d.id]||d.id; return { ...d, id: mid, required: REQUIRED.has(mid) || (mid==="renegotiation" && hasAddendum) }; });
   const GROUPS = [...new Set(DOC_SET.map(d=>d.group))];
 
@@ -680,6 +690,20 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         <div>
           <h1 style={S.h1}>Documents</h1>
           <button onClick={()=>setShowDocFinder(true)} style={{ marginTop:8, background:"transparent", color:C.navy, border:`1px solid ${C.brass}`, borderRadius:7, padding:"8px 14px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>🧭 Which document do I need?</button>
+          {floridaActive ? (
+            <div style={{ marginTop:12, background:"#eaf4ff", border:"1px solid #4a90d9", borderRadius:8, padding:"12px 15px", fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:13, fontWeight:800, color:"#08152e", marginBottom:3 }}>🌴 Florida transfer — official state forms available</div>
+              <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>
+                {flDetected ? "This deal looks like a Florida transfer, so " : "You've marked this as a Florida transfer, so "}
+                the official FLHSMV forms (Bill of Sale 82050, Vessel Title 82040-VS, and others) are included in your documents below, each pre-summarized with your deal data. Florida counties often require the state forms — check with your local tax collector.
+                {flOptIn && !flDetected && <button onClick={()=>setFlOptIn(false)} style={{ marginLeft:6, background:"none", border:"none", color:C.brass, fontWeight:700, textDecoration:"underline", cursor:"pointer", fontSize:12 }}>not Florida</button>}
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginTop:12, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
+              Transferring in Florida? <button onClick={()=>setFlOptIn(true)} style={{ background:"none", border:"none", color:C.brass, fontWeight:800, textDecoration:"underline", cursor:"pointer", fontSize:12 }}>Add the official Florida state forms →</button>
+            </div>
+          )}
         </div>
         <span style={{...S.pill, background:C.greenLight, color:C.green}}>Paid ✓</span>
       </div>
