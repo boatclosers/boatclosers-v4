@@ -226,16 +226,17 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const flDetected = _isFL(parties.buyer?.stateZip) || _isFL(parties.seller?.stateZip)
     || _isFL(vessel?.location) || _isFL(vessel?.regState);
   const [flOptIn, setFlOptIn] = useState(false);
-  const floridaActive = flDetected || flOptIn;
   // ── USCG-documented detection ──────────────────────────────────────────────
   // A vessel with a Coast Guard Official Number is federally documented, so the
   // CG-1340 / CG-1258 forms apply. Detect from the official number; allow opt-in.
-  const docDetected = !!String(vessel?.uscgOfficialNo || vessel?.officialNo || "").trim();
+  const docDetected = !!String(vessel?.uscgNumber || vessel?.uscgOfficialNo || vessel?.officialNo || "").trim();
   const [docOptIn, setDocOptIn] = useState(false);
-  const documentedActive = docDetected || docOptIn;
   const [quizOpen, setQuizOpen] = useState(true);
   const [quizMore, setQuizMore] = useState(false);
-  const [quiz, setQuiz] = useState({ pay:"", trailer:false, documented:false, lien:false, estate:false, coowner:false, entity:false, poa:false, tradein:false, gift:false, sellerfin:false, losttitle:false, lostreg:false, survey:false, defects:false });
+  const [quiz, setQuiz] = useState({ pay:"", trailer:false, documented:false, florida:false, lien:false, estate:false, coowner:false, entity:false, poa:false, tradein:false, gift:false, sellerfin:false, losttitle:false, lostreg:false, survey:false, defects:false });
+  // documentedActive / floridaActive computed after quiz so the quiz answers count.
+  const documentedActive = docDetected || docOptIn || !!quiz.documented;
+  const floridaActive = flDetected || flOptIn || !!quiz.florida;
   const [esignConsent, setEsignConsent] = useState({}); // per-doc consent before e-signing
   const toggleGroup = (g) => setOpenGroups(o => ({ ...o, [g]: !o[g] }));
   const [sendEmail, setSendEmail] = useState({});
@@ -767,7 +768,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
               </div>
             </div>
             {/* Yes/No toggles — most pertinent up front */}
-            {[["trailer","Is a trailer included in the sale?"],["documented","Is the vessel U.S. Coast Guard documented?"],["lien","Does the seller still owe money on the boat (a lien to pay off)?"],["estate","Is this an estate or inherited sale?"]].map(([k,label])=>(
+            {[["trailer","Is a trailer included in the sale?"],["documented","Is the vessel U.S. Coast Guard documented?"],["florida","Is this transfer happening in Florida?"],["lien","Does the seller still owe money on the boat (a lien to pay off)?"],["estate","Is this an estate or inherited sale?"]].map(([k,label])=>(
               <div key={k} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
                 <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>{label}</span>
                 <div style={{ display:"flex", gap:6 }}>
