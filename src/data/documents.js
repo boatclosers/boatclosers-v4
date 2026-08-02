@@ -164,6 +164,45 @@ export const DOCUMENTS = [
   },
 
   {
+    id: "bos_notary",
+    group: "Closing Instruments",
+    tab: "Bill of Sale (Notarized)",
+    eyebrow: "Transfer of Ownership",
+    title: "Vessel Bill of Sale (Notarized)",
+    desc: "Same as the standard Bill of Sale, with a notary block \u2014 use when the buyer, a lender, or your county wants the bill of sale notarized even though it isn\u2019t a Coast Guard or state form.",
+    body: `
+<p class="lead recital">For consideration of {{salePrice}} ({{salePriceWords}} U.S. Dollars), the receipt of which is acknowledged, {{sellerName}}, of {{sellerAddress}} (the \u201cSeller\u201d), hereby sells, transfers, and conveys to {{buyerName}}, of {{buyerAddress}} (the \u201cBuyer\u201d), all right, title, and interest in the following vessel:</p>
+
+<h3>Vessel Described</h3>
+<ol>
+  <li>Year / Make / Model: {{vesselYear}} {{vesselMake}} {{vesselModel}}</li>
+  <li>Length &amp; Hull: {{vesselLength}}, {{hullMaterial}}</li>
+  <li>Hull Identification Number (HIN): {{hin}}</li>
+  <li>U.S. Coast Guard Official Number: {{uscgOfficialNo}}</li>
+  <li>Title No. / Registration: {{titleNo}} / {{regNo}}</li>
+  <li>Propulsion: {{engineDesc}}</li>
+</ol>
+
+<h3>Warranties</h3>
+<p>Seller warrants lawful ownership; that the Vessel is sold free of all liens except as disclosed in writing; and that Seller will defend the title against the lawful claims of all persons. The Vessel is otherwise sold \u201cAS-IS, WHERE-IS,\u201d without warranty of condition, merchantability, or fitness for a particular purpose.</p>
+
+<p>Executed this {{effectiveDate}}.</p>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer</small></div>
+</div>
+
+<div class="notary">
+  <div class="nt">Notary Acknowledgment \u2014 Seller (the Seller signs this before a notary)</div>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>The foregoing instrument was acknowledged before me by means of \u2610 physical presence or \u2610 online notarization, this ______ day of __________, 20____, by {{sellerName}}, who is personally known to me or who produced ____________________ as identification.</p>
+  <p style="margin-top:14px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
+  <p class="recital" style="font-size:11.5px">Print this, sign it before a notary, then come back and mark it done (optionally uploading the notarized copy).</p>
+</div>`
+  },
+
+  {
     id: "bos_plain",
     group: "Closing Instruments",
     tab: "Bill of Sale (Quick)",
@@ -330,6 +369,75 @@ export const DOCUMENTS = [
 <div class="field"><span class="k">Title No. / Registration</span><span class="v">{{titleNo}} / {{regNo}}</span></div>
 
 <div class="note">The 82101 must be completed and filed per its own instructions. This is the actual form the seller submits to replace a lost Florida title.</div>`
+  },
+
+  {
+    id: "cg_1340",
+    group: "Closing Instruments",
+    tab: "Coast Guard Bill of Sale (CG-1340)",
+    eyebrow: "USCG Documented Vessel",
+    title: "U.S. Coast Guard Bill of Sale — CG-1340",
+    desc: "The official Bill of Sale for a U.S. Coast Guard DOCUMENTED vessel. Must be notarized and list every owner on the Certificate of Documentation. Your deal data is summarized below to copy onto the official PDF.",
+    viewOnly: true,
+    documented: true,
+    externalUrl: "https://unitedstatesvessel.us/CG-1340_Bill_of_Sale.pdf",
+    body: `
+<p class="lead recital">This is the <b>U.S. Coast Guard Bill of Sale (CG-1340)</b> \u2014 the form required to transfer ownership of a Coast Guard <b>documented</b> vessel. Open the official form using the button above, then copy the details below onto it.</p>
+
+<div class="bc-notary-flag">\u2696 <strong>Must be notarized.</strong> The CG-1340 must be signed before a notary and must list <b>every</b> owner shown on the Certificate of Documentation. An unsigned or un-notarized bill of sale is not a valid transfer for a documented vessel.</div>
+
+<div class="note">BoatClosers can\u2019t type onto the federal PDF, but here is your deal data in one place so filling the official form is quick. Everything below is pulled from this deal.</div>
+
+<h3>Vessel</h3>
+<div class="field"><span class="k">Documented / Vessel name</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">USCG Official Number</span><span class="v">{{uscgOfficialNo}}</span></div>
+<div class="field"><span class="k">Hull ID Number (HIN)</span><span class="v">{{hin}}</span></div>
+
+<h3>Seller(s) \u2014 all owners on the COD</h3>
+<div class="field"><span class="k">Name</span><span class="v">{{sellerName}}</span></div>
+<div class="field"><span class="k">Address</span><span class="v">{{sellerAddress}}</span></div>
+
+<h3>Buyer(s)</h3>
+<div class="field"><span class="k">Name</span><span class="v">{{buyerName}}</span></div>
+<div class="field"><span class="k">Address</span><span class="v">{{buyerAddress}}</span></div>
+
+<h3>Sale</h3>
+<div class="field"><span class="k">Sale Price</span><span class="v">{{salePrice}}</span></div>
+<div class="field"><span class="k">Date of Sale</span><span class="v">{{effectiveDate}}</span></div>
+
+<div class="note">Alternative: instead of the CG-1340, the seller may complete and notarize the <b>back side of the CG-1270 Certificate of Documentation</b>. Either one is a valid transfer document. After completing, come back and mark this item done (and optionally upload the notarized copy).</div>`
+  },
+
+  {
+    id: "cg_1258",
+    group: "Title & Government",
+    tab: "USCG Documentation App (CG-1258)",
+    eyebrow: "USCG Documented Vessel",
+    title: "USCG Application for Documentation / Transfer — CG-1258",
+    desc: "The new owner files this with the National Vessel Documentation Center to document the vessel in their name after the sale. Your deal data is summarized below for the official form.",
+    viewOnly: true,
+    documented: true,
+    externalUrl: "https://www.dco.uscg.mil/Portals/9/DCO%20Documents/NVDC/Forms/CG-1258.pdf",
+    body: `
+<p class="lead recital">This is the <b>USCG Application for Initial Issue / Exchange / Transfer of Documentation (CG-1258)</b>. The <b>buyer</b> (new owner) files this with the National Vessel Documentation Center (NVDC), together with the signed CG-1340 Bill of Sale and the original Certificate of Documentation, to document the vessel in their name.</p>
+
+<div class="note">Your deal data, ready to transcribe onto the official form.</div>
+
+<h3>Applicant / New Owner (Buyer)</h3>
+<div class="field"><span class="k">Name</span><span class="v">{{buyerName}}</span></div>
+<div class="field"><span class="k">Address</span><span class="v">{{buyerAddress}}</span></div>
+
+<h3>Vessel</h3>
+<div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">USCG Official Number</span><span class="v">{{uscgOfficialNo}}</span></div>
+<div class="field"><span class="k">Hull ID Number (HIN)</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Length / Hull</span><span class="v">{{vesselLength}} / {{hullMaterial}}</span></div>
+<div class="field"><span class="k">Propulsion</span><span class="v">{{engineDesc}}</span></div>
+
+<h3>Prior Owner (Seller)</h3>
+<div class="field"><span class="k">Name</span><span class="v">{{sellerName}}</span></div>
+
+<div class="note">Submit the CG-1258 with: the signed/notarized CG-1340 (or notarized back of the CG-1270), the original Certificate of Documentation, and the required NVDC fees. If there is an outstanding mortgage, a Satisfaction of Mortgage is also required.</div>`
   },
 
   {
