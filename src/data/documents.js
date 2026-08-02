@@ -202,6 +202,7 @@ export const DOCUMENTS = [
     id: "fl_82050",
     group: "Closing Instruments",
     tab: "FL Official Bill of Sale (82050)",
+    florida: true,
     eyebrow: "Florida Official Form",
     title: "Florida Bill of Sale — HSMV 82050",
     desc: "The state of Florida\u2019s official Bill of Sale. Use this when the county tax collector or FLHSMV requires the state form. Your deal data is summarized below to copy onto the official PDF.",
@@ -236,6 +237,99 @@ export const DOCUMENTS = [
 <div class="field"><span class="k">Date of Sale</span><span class="v">{{effectiveDate}}</span></div>
 
 <div class="note">After you complete the official 82050, you can come back and mark this item done (and optionally upload a copy). Also confirm whether your county wants the state form, our Vessel Bill of Sale, or both.</div>`
+  },
+
+  {
+    id: "fl_82040vs",
+    group: "Closing Instruments",
+    tab: "FL Vessel Title App (82040-VS)",
+    eyebrow: "Florida Official Form",
+    title: "Florida Vessel Title Application — HSMV 82040-VS",
+    desc: "The buyer files this with a Florida tax collector to title the vessel in their name. Required for most Florida vessel transfers. Your deal data is summarized below to copy onto the official PDF.",
+    viewOnly: true,
+    florida: true,
+    externalUrl: "https://www.flhsmv.gov/pdf/forms/82040-vs.pdf",
+    body: `
+<p class="lead recital">This is Florida\u2019s official <b>Application for Vessel Certificate of Title (HSMV 82040-VS)</b>. The <b>buyer</b> files this with a Florida county tax collector to put the vessel in their name. Open the official form using the button above, then copy the details below onto it.</p>
+
+<div class="note">BoatClosers can\u2019t type onto the state PDF, but here is your deal data in one place so the official form fills fast. Everything below is pulled from this deal.</div>
+
+<h3>Applicant / New Owner (Buyer)</h3>
+<div class="field"><span class="k">Name</span><span class="v">{{buyerName}}</span></div>
+<div class="field"><span class="k">Address</span><span class="v">{{buyerAddress}}</span></div>
+
+<h3>Vessel</h3>
+<div class="field"><span class="k">Year / Make / Model</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">Length</span><span class="v">{{vesselLength}}</span></div>
+<div class="field"><span class="k">Hull material</span><span class="v">{{hullMaterial}}</span></div>
+<div class="field"><span class="k">Hull ID Number (HIN)</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Registration / Title No.</span><span class="v">{{regNo}} / {{titleNo}}</span></div>
+<div class="field"><span class="k">USCG Official No.</span><span class="v">{{uscgOfficialNo}}</span></div>
+<div class="field"><span class="k">Propulsion</span><span class="v">{{engineDesc}}</span></div>
+
+<h3>Prior Owner (Seller)</h3>
+<div class="field"><span class="k">Name</span><span class="v">{{sellerName}}</span></div>
+<div class="field"><span class="k">Address</span><span class="v">{{sellerAddress}}</span></div>
+
+<h3>Sale</h3>
+<div class="field"><span class="k">Purchase Price</span><span class="v">{{salePrice}}</span></div>
+<div class="field"><span class="k">Date of Sale</span><span class="v">{{effectiveDate}}</span></div>
+
+<div class="note">A HIN/vessel inspection and Florida sales tax may apply on the 82040-VS. Confirm your county tax collector\u2019s exact requirements. After filing, come back and mark this item done.</div>`
+  },
+
+  {
+    id: "fl_82053",
+    group: "Deal Structures",
+    tab: "FL Power of Attorney (82053)",
+    eyebrow: "Florida Official Form",
+    title: "Florida Power of Attorney — HSMV 82053",
+    desc: "Florida\u2019s official Power of Attorney for a vessel transfer \u2014 use if one party is signing on another\u2019s behalf. Official alternative to the BoatClosers POA.",
+    viewOnly: true,
+    florida: true,
+    externalUrl: "https://www.flhsmv.gov/pdf/forms/82053.pdf",
+    body: `
+<p class="lead recital">This is Florida\u2019s official <b>Power of Attorney for a Motor Vehicle, Mobile Home or Vessel (HSMV 82053)</b>. Use it when one person authorizes another to sign the vessel transfer for them. Open the official form above and copy the details below onto it.</p>
+
+<div class="note">Your deal data, ready to transcribe onto the official form.</div>
+
+<h3>Vessel</h3>
+<div class="field"><span class="k">Year / Make / Model</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">Hull ID Number (HIN)</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Title No. / Registration</span><span class="v">{{titleNo}} / {{regNo}}</span></div>
+
+<h3>Parties</h3>
+<div class="field"><span class="k">Seller</span><span class="v">{{sellerName}}</span></div>
+<div class="field"><span class="k">Buyer</span><span class="v">{{buyerName}}</span></div>
+
+<div class="note">The 82053 must be completed per its own instructions (it may require notarization). Confirm your county\u2019s requirements.</div>`
+  },
+
+  {
+    id: "fl_82101",
+    group: "Title & Government",
+    tab: "FL Duplicate Title (82101)",
+    eyebrow: "Florida Official Form",
+    title: "Florida Duplicate/Lost Title — HSMV 82101",
+    desc: "Florida\u2019s official application for a duplicate or lost vessel title. Use if the seller\u2019s Florida title is lost. Official alternative to the BoatClosers lost-title affidavit.",
+    viewOnly: true,
+    florida: true,
+    externalUrl: "https://www.flhsmv.gov/pdf/forms/82101.pdf",
+    body: `
+<p class="lead recital">This is Florida\u2019s official <b>Application for Duplicate or Lost Title (HSMV 82101)</b>. Use it when a Florida vessel title is lost, destroyed, or otherwise unavailable. Open the official form above and copy the details below onto it.</p>
+
+<div class="note">Your deal data, ready to transcribe onto the official form.</div>
+
+<h3>Owner (Seller)</h3>
+<div class="field"><span class="k">Name</span><span class="v">{{sellerName}}</span></div>
+<div class="field"><span class="k">Address</span><span class="v">{{sellerAddress}}</span></div>
+
+<h3>Vessel</h3>
+<div class="field"><span class="k">Year / Make / Model</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">Hull ID Number (HIN)</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Title No. / Registration</span><span class="v">{{titleNo}} / {{regNo}}</span></div>
+
+<div class="note">The 82101 must be completed and filed per its own instructions. This is the actual form the seller submits to replace a lost Florida title.</div>`
   },
 
   {
