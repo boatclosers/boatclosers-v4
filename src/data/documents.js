@@ -199,6 +199,46 @@ export const DOCUMENTS = [
   },
 
   {
+    id: "fl_82050",
+    group: "Closing Instruments",
+    tab: "FL Official Bill of Sale (82050)",
+    eyebrow: "Florida Official Form",
+    title: "Florida Bill of Sale — HSMV 82050",
+    desc: "The state of Florida\u2019s official Bill of Sale. Use this when the county tax collector or FLHSMV requires the state form. Your deal data is summarized below to copy onto the official PDF.",
+    viewOnly: true,
+    externalUrl: "https://www.flhsmv.gov/pdf/forms/82050.pdf",
+    body: `
+<p class="lead recital">This is Florida\u2019s official <b>Bill of Sale (Form HSMV 82050)</b>. Some Florida county tax collectors require the state form to transfer a vessel. Open the official form using the button above, then copy the details below onto it. Sign per the form\u2019s instructions (a notary is <b>not</b> required on the 82050 itself, but confirm your county\u2019s requirements).</p>
+
+<div class="note">BoatClosers can\u2019t type directly onto the state\u2019s PDF, but here is all of your deal data in one place so filling out the official form takes a minute. Everything below is pulled from this deal.</div>
+
+<h3>Vessel / Motor Information</h3>
+<div class="field"><span class="k">Year</span><span class="v">{{vesselYear}}</span></div>
+<div class="field"><span class="k">Make</span><span class="v">{{vesselMake}}</span></div>
+<div class="field"><span class="k">Model</span><span class="v">{{vesselModel}}</span></div>
+<div class="field"><span class="k">Length</span><span class="v">{{vesselLength}}</span></div>
+<div class="field"><span class="k">Hull material</span><span class="v">{{hullMaterial}}</span></div>
+<div class="field"><span class="k">Hull ID Number (HIN)</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Registration / Title No.</span><span class="v">{{regNo}} / {{titleNo}}</span></div>
+<div class="field"><span class="k">USCG Official No.</span><span class="v">{{uscgOfficialNo}}</span></div>
+<div class="field"><span class="k">Propulsion</span><span class="v">{{engineDesc}}</span></div>
+
+<h3>Seller</h3>
+<div class="field"><span class="k">Name</span><span class="v">{{sellerName}}</span></div>
+<div class="field"><span class="k">Address</span><span class="v">{{sellerAddress}}</span></div>
+
+<h3>Buyer / Purchaser</h3>
+<div class="field"><span class="k">Name</span><span class="v">{{buyerName}}</span></div>
+<div class="field"><span class="k">Address</span><span class="v">{{buyerAddress}}</span></div>
+
+<h3>Sale</h3>
+<div class="field"><span class="k">Sale Price</span><span class="v">{{salePrice}}</span></div>
+<div class="field"><span class="k">Date of Sale</span><span class="v">{{effectiveDate}}</span></div>
+
+<div class="note">After you complete the official 82050, you can come back and mark this item done (and optionally upload a copy). Also confirm whether your county wants the state form, our Vessel Bill of Sale, or both.</div>`
+  },
+
+  {
     id: "dep",
     group: "Closing Instruments",
     tab: "Deposit Receipt",
