@@ -43,6 +43,7 @@ const TREE = {
       { id: "dep", why: "Records the earnest-money deposit that holds the boat." },
       { id: "asis", why: "Buyer accepts condition; seller discloses known defects." },
       { id: "bos", why: "Transfers ownership at closing." },
+      { id: "fl_82050", why: "Florida\u2019s official Bill of Sale — use if your county tax collector requires the state form." },
       { id: "stmt", why: "The final money tally for both sides." },
       { id: "inventory", why: "Optional — itemize exactly what gear conveys, if it matters." },
     ],
