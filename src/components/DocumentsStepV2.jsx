@@ -911,10 +911,28 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                           <div className="bc-doc-eyebrow">{doc.eyebrow}</div>
                           <div className="bc-doc-title">{doc.title}</div>
                           <div className="bc-doc-ref">Ref {deal.dealRef} · {deal.vesselYear} {deal.vesselMake} {deal.vesselModel}</div>
+                          {doc.externalUrl && (
+                            <div style={{ textAlign:"center", margin:"10px 0 4px" }}>
+                              <a href={doc.externalUrl} target="_blank" rel="noopener noreferrer" style={{ display:"inline-block", background:C.navy, color:"#fff", textDecoration:"none", borderRadius:7, padding:"10px 18px", fontSize:13, fontWeight:800, fontFamily:"sans-serif" }}>↗ Open the official Florida form (HSMV 82050)</a>
+                            </div>
+                          )}
                           <div className="bc-doc-rule"></div>
                           {needsNotary && (
                             <div className="bc-notary-flag">
-                              ⚖ <strong>Must be notarized.</strong> A typed e-signature can't be notarized. Print this, sign it in front of a notary, then upload the notarized copy. Use <em>Manual</em> to record the signed names.
+                              ⚖ <strong>Must be notarized.</strong> A typed e-signature can't be notarized. Print this, sign it in front of a notary, then come back and mark it done below (optionally uploading the notarized copy as proof).
+                              {!signed[doc.id] ? (
+                                <div style={{ marginTop:12, display:"flex", gap:8, flexWrap:"wrap" }}>
+                                  <button onClick={()=>setSigned(sg=>({ ...sg, [doc.id]: { name:"Completed offline (notarized)", date:today(), at:signedStamp().at, when:signedStamp().when, manual:true, notarizedOffline:true } }))} style={{ background:"#8a6d1a", color:"#fff", border:"none", borderRadius:6, padding:"9px 14px", fontSize:12, fontWeight:800, fontFamily:"sans-serif", cursor:"pointer" }}>✓ I've had this notarized — mark it done</button>
+                                  <label style={{ background:"#fff", color:"#8a6d1a", border:"1px solid #8a6d1a", borderRadius:6, padding:"9px 14px", fontSize:12, fontWeight:800, fontFamily:"sans-serif", cursor:"pointer" }}>
+                                    📎 Upload notarized copy (optional)
+                                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
+                                  </label>
+                                </div>
+                              ) : (
+                                <div style={{ marginTop:10, fontSize:12, fontWeight:800, color:"#0f6e56", fontFamily:"sans-serif" }}>✓ {signed[doc.id].uploaded ? "Notarized copy uploaded" : "Marked notarized (completed offline)"} — {signed[doc.id].when || signed[doc.id].date}
+                                  <button onClick={()=>setSigned(sg=>{ const c={...sg}; delete c[doc.id]; return c; })} style={{ marginLeft:10, background:"none", border:"none", color:C.slate, fontSize:11, textDecoration:"underline", cursor:"pointer", fontWeight:400 }}>undo</button>
+                                </div>
+                              )}
                             </div>
                           )}
                           {(() => {
