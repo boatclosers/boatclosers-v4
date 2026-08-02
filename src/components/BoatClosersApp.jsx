@@ -4751,9 +4751,6 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
     }
   ];
 
-  const totalDocs = closingDocSections.flatMap(s=>s.docs);
-  const completedCount = totalDocs.filter(d => d.signed || (d.manual && manualChecks[d.manualKey])).length;
-  const pct = Math.round((completedCount / totalDocs.length) * 100);
   const selectedMethod = PAYMENT_METHODS.find(m=>m.id===payMethod)||PAYMENT_METHODS[0];
 
   return (
@@ -4767,14 +4764,6 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
               : `${vessel.year} ${vessel.make} ${vessel.model} · ${fmt(negotiate.agreedPrice)} · Closing ${terms.closingDate||"TBD"}`}
           </p>
         </div>
-        <div style={{ textAlign:"right" }}>
-          <div style={{ fontSize:22, fontWeight:800, fontFamily:"sans-serif", color: pct===100 ? C.green : C.navy }}>{pct}%</div>
-          <div style={{ fontSize:10, fontFamily:"sans-serif", color:C.slate }}>{completedCount}/{totalDocs.length} complete</div>
-        </div>
-      </div>
-
-      <div style={{ height:5, background:C.mist, borderRadius:3, marginBottom:20, overflow:"hidden" }}>
-        <div style={{ height:"100%", width:`${pct}%`, background: pct===100 ? C.green : C.brass, borderRadius:3, transition:"width 0.4s" }}/>
       </div>
 
       {!isRejected && (
