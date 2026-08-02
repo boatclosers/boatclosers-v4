@@ -128,10 +128,10 @@ export const DOCUMENTS = [
   {
     id: "bos",
     group: "Closing Instruments",
-    tab: "Bill of Sale",
+    tab: "Bill of Sale (Notarized)",
     eyebrow: "Transfer of Ownership",
-    title: "Vessel Bill of Sale (Standard)",
-    desc: "The everyday Bill of Sale for most private boat sales. Includes a notary block you can use if needed.",
+    title: "Vessel Bill of Sale (Notarized)",
+    desc: "The Bill of Sale with a notary block \u2014 the standard choice for most sales, and the one to use when a buyer, lender, or county wants it notarized.",
     body: `
 <p class="lead recital">For consideration of {{salePrice}} ({{salePriceWords}} U.S. Dollars), the receipt of which is acknowledged, {{sellerName}}, of {{sellerAddress}} (the \u201cSeller\u201d), hereby sells, transfers, and conveys to {{buyerName}}, of {{buyerAddress}} (the \u201cBuyer\u201d), all right, title, and interest in the following vessel:</p>
 
@@ -164,44 +164,6 @@ export const DOCUMENTS = [
 </div>`
   },
 
-  {
-    id: "bos_notary",
-    group: "Closing Instruments",
-    tab: "Bill of Sale (Notarized)",
-    eyebrow: "Transfer of Ownership",
-    title: "Vessel Bill of Sale (Notarized)",
-    desc: "Same as the standard Bill of Sale, with a notary block \u2014 use when the buyer, a lender, or your county wants the bill of sale notarized even though it isn\u2019t a Coast Guard or state form.",
-    body: `
-<p class="lead recital">For consideration of {{salePrice}} ({{salePriceWords}} U.S. Dollars), the receipt of which is acknowledged, {{sellerName}}, of {{sellerAddress}} (the \u201cSeller\u201d), hereby sells, transfers, and conveys to {{buyerName}}, of {{buyerAddress}} (the \u201cBuyer\u201d), all right, title, and interest in the following vessel:</p>
-
-<h3>Vessel Described</h3>
-<ol>
-  <li>Year / Make / Model: {{vesselYear}} {{vesselMake}} {{vesselModel}}</li>
-  <li>Length &amp; Hull: {{vesselLength}}, {{hullMaterial}}</li>
-  <li>Hull Identification Number (HIN): {{hin}}</li>
-  <li>U.S. Coast Guard Official Number: {{uscgOfficialNo}}</li>
-  <li>Title No. / Registration: {{titleNo}} / {{regNo}}</li>
-  <li>Propulsion: {{engineDesc}}</li>
-</ol>
-
-<h3>Warranties</h3>
-<p>Seller warrants lawful ownership; that the Vessel is sold free of all liens except as disclosed in writing; and that Seller will defend the title against the lawful claims of all persons. The Vessel is otherwise sold \u201cAS-IS, WHERE-IS,\u201d without warranty of condition, merchantability, or fitness for a particular purpose.</p>
-
-<p>Executed this {{effectiveDate}}.</p>
-
-<div class="sig">
-  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller</small></div>
-  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer</small></div>
-</div>
-
-<div class="notary">
-  <div class="nt">Notary Acknowledgment \u2014 Seller (the Seller signs this before a notary)</div>
-  <p>State of __________________ \u00b7 County of __________________</p>
-  <p>The foregoing instrument was acknowledged before me by means of \u2610 physical presence or \u2610 online notarization, this ______ day of __________, 20____, by {{sellerName}}, who is personally known to me or who produced ____________________ as identification.</p>
-  <p style="margin-top:14px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
-  <p class="recital" style="font-size:11.5px">Print this, sign it before a notary, then come back and mark it done (optionally uploading the notarized copy).</p>
-</div>`
-  },
 
   {
     id: "bos_plain",
