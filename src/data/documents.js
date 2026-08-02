@@ -130,7 +130,8 @@ export const DOCUMENTS = [
     group: "Closing Instruments",
     tab: "Bill of Sale",
     eyebrow: "Transfer of Ownership",
-    title: "Vessel Bill of Sale",
+    title: "Vessel Bill of Sale (Standard)",
+    desc: "The everyday Bill of Sale for most private boat sales. Includes a notary block you can use if needed.",
     body: `
 <p class="lead recital">For consideration of {{salePrice}} ({{salePriceWords}} U.S. Dollars), the receipt of which is acknowledged, {{sellerName}}, of {{sellerAddress}} (the \u201cSeller\u201d), hereby sells, transfers, and conveys to {{buyerName}}, of {{buyerAddress}} (the \u201cBuyer\u201d), all right, title, and interest in the following vessel:</p>
 
@@ -205,9 +206,9 @@ export const DOCUMENTS = [
   {
     id: "bos_plain",
     group: "Closing Instruments",
-    tab: "Bill of Sale (Quick)",
+    tab: "Bill of Sale (Simple)",
     eyebrow: "Transfer of Ownership",
-    title: "Vessel Bill of Sale",
+    title: "Vessel Bill of Sale (Simple, No Notary)",
     desc: "Quick-sale version \u2014 fill the price in the app or write it in by hand. No notary block.",
     viewOnly: true,
     body: `
