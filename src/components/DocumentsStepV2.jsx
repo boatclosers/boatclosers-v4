@@ -379,8 +379,14 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
   // Bill of Sale gets its own dedicated box — it's the document that actually
   // transfers ownership, second only to the title. Collect every BoS variant.
-  const BOS_IDS = new Set(["bill_of_sale","bos_notary","bos_plain","fl_82050","cg_1340","trailer_bos","uscg_transfer"]);
-  const bosDocs = DOC_SET.filter(d => BOS_IDS.has(d.id));
+  const BOS_IDS = new Set(["bill_of_sale","bos_plain","fl_82050","cg_1340","trailer_bos","uscg_transfer"]);
+  // The Bill of Sale box always shows EVERY bill-of-sale option (standard, simple,
+  // Florida, Coast Guard) so a seller can always pick the right one — even if the
+  // deal wasn't auto-detected as FL/documented. Built from the full doc list, then
+  // mapped through ID_MAP so ids match (bos → bill_of_sale).
+  const bosDocs = DOCUMENTS
+    .map(d => ({ ...d, id: ID_MAP[d.id] || d.id }))
+    .filter(d => BOS_IDS.has(d.id));
   const bosPrimary = bosDocs.find(d => d.id === "bill_of_sale");
   const bosSigned = bosDocs.some(d => signed[d.id]); // any BoS variant signed = satisfied
   // The main required list EXCLUDES the bill of sale (it has its own box).
@@ -705,36 +711,46 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         <div>
           <h1 style={S.h1}>Documents</h1>
           <button onClick={()=>setShowDocFinder(true)} style={{ marginTop:8, background:"transparent", color:C.navy, border:`1px solid ${C.brass}`, borderRadius:7, padding:"8px 14px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>🧭 Which document do I need?</button>
-          {floridaActive ? (
-            <div style={{ marginTop:12, background:"#eaf4ff", border:"1px solid #4a90d9", borderRadius:8, padding:"12px 15px", fontFamily:"sans-serif" }}>
-              <div style={{ fontSize:13, fontWeight:800, color:"#08152e", marginBottom:3 }}>🌴 Florida transfer — official state forms available</div>
-              <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>
-                {flDetected ? "This deal looks like a Florida transfer, so " : "You've marked this as a Florida transfer, so "}
-                the official FLHSMV forms (Bill of Sale 82050, Vessel Title 82040-VS, and others) are included in your documents below, each pre-summarized with your deal data. Florida counties often require the state forms — check with your local tax collector.
-                {flOptIn && !flDetected && <button onClick={()=>setFlOptIn(false)} style={{ marginLeft:6, background:"none", border:"none", color:C.brass, fontWeight:700, textDecoration:"underline", cursor:"pointer", fontSize:12 }}>not Florida</button>}
-              </div>
-            </div>
-          ) : (
-            <div style={{ marginTop:12, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
-              Transferring in Florida? <button onClick={()=>setFlOptIn(true)} style={{ background:"none", border:"none", color:C.brass, fontWeight:800, textDecoration:"underline", cursor:"pointer", fontSize:12 }}>Add the official Florida state forms →</button>
-            </div>
-          )}
-          {documentedActive ? (
-            <div style={{ marginTop:8, background:"#eef7f0", border:"1px solid #4a9d6e", borderRadius:8, padding:"12px 15px", fontFamily:"sans-serif" }}>
-              <div style={{ fontSize:13, fontWeight:800, color:"#08152e", marginBottom:3 }}>⚓ Coast Guard documented vessel — federal forms available</div>
-              <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>
-                {docDetected ? "This vessel has a USCG Official Number, so " : "You've marked this as a documented vessel, so "}
-                the federal forms (CG-1340 Bill of Sale and CG-1258 documentation application) are included below with your deal data. A documented vessel transfers by notarized CG-1340 (or the back of the CG-1270), filed with the NVDC.
-                {docOptIn && !docDetected && <button onClick={()=>setDocOptIn(false)} style={{ marginLeft:6, background:"none", border:"none", color:C.brass, fontWeight:700, textDecoration:"underline", cursor:"pointer", fontSize:12 }}>not documented</button>}
-              </div>
-            </div>
-          ) : (
-            <div style={{ marginTop:8, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
-              Coast Guard documented vessel? <button onClick={()=>setDocOptIn(true)} style={{ background:"none", border:"none", color:"#2f7d55", fontWeight:800, textDecoration:"underline", cursor:"pointer", fontSize:12 }}>Add the federal CG-1340 / CG-1258 forms →</button>
-            </div>
-          )}
         </div>
         <span style={{...S.pill, background:C.greenLight, color:C.green}}>Paid ✓</span>
+      </div>
+
+      {/* ── OFFICIAL GOVERNMENT FORMS — a proper section, not a stray link ── */}
+      <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px 16px", marginBottom:16, background:C.white }}>
+        <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:800, color:C.navy, marginBottom:3 }}>🏛️ Official government forms</div>
+        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.55, marginBottom:11 }}>
+          Some transfers need official state or federal forms in addition to the documents below. Turn on the ones that apply — they'll appear in your document list, pre-filled with your deal data.
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+          {/* Florida */}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap", padding:"9px 12px", borderRadius:7, background: floridaActive ? "#eaf4ff" : "#faf7f0", border:`1px solid ${floridaActive ? "#4a90d9" : C.mist}` }}>
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy }}>🌴 Florida state forms</div>
+              <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:1 }}>{floridaActive ? (flDetected ? "On — this looks like a Florida transfer." : "On — you turned these on.") : "Bill of Sale 82050, Vessel Title 82040-VS, and more."}</div>
+            </div>
+            {floridaActive ? (
+              flDetected
+                ? <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:800, color:"#2b6cb0" }}>Included ✓</span>
+                : <button onClick={()=>setFlOptIn(false)} style={{ background:"none", border:`1px solid ${C.mist}`, borderRadius:6, color:C.slate, fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", padding:"6px 12px", cursor:"pointer" }}>Remove</button>
+            ) : (
+              <button onClick={()=>setFlOptIn(true)} style={{ background:"#2b6cb0", border:"none", borderRadius:6, color:"#fff", fontSize:11.5, fontWeight:800, fontFamily:"sans-serif", padding:"6px 14px", cursor:"pointer" }}>Add →</button>
+            )}
+          </div>
+          {/* Coast Guard */}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap", padding:"9px 12px", borderRadius:7, background: documentedActive ? "#eef7f0" : "#faf7f0", border:`1px solid ${documentedActive ? "#4a9d6e" : C.mist}` }}>
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy }}>⚓ Coast Guard federal forms</div>
+              <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:1 }}>{documentedActive ? (docDetected ? "On — vessel has a USCG Official Number." : "On — you turned these on.") : "CG-1340 Bill of Sale, CG-1258 documentation app."}</div>
+            </div>
+            {documentedActive ? (
+              docDetected
+                ? <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:800, color:"#2f7d55" }}>Included ✓</span>
+                : <button onClick={()=>setDocOptIn(false)} style={{ background:"none", border:`1px solid ${C.mist}`, borderRadius:6, color:C.slate, fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", padding:"6px 12px", cursor:"pointer" }}>Remove</button>
+            ) : (
+              <button onClick={()=>setDocOptIn(true)} style={{ background:"#2f7d55", border:"none", borderRadius:6, color:"#fff", fontSize:11.5, fontWeight:800, fontFamily:"sans-serif", padding:"6px 14px", cursor:"pointer" }}>Add →</button>
+            )}
+          </div>
+        </div>
       </div>
 
       <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"10px 14px", marginBottom:16, fontSize:11, fontFamily:"sans-serif", color:C.teal, lineHeight:1.8 }}>
