@@ -227,6 +227,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     || _isFL(vessel?.location) || _isFL(vessel?.regState);
   const [flOptIn, setFlOptIn] = useState(false);
   const floridaActive = flDetected || flOptIn;
+  // ── USCG-documented detection ──────────────────────────────────────────────
+  // A vessel with a Coast Guard Official Number is federally documented, so the
+  // CG-1340 / CG-1258 forms apply. Detect from the official number; allow opt-in.
+  const docDetected = !!String(vessel?.uscgOfficialNo || vessel?.officialNo || "").trim();
+  const [docOptIn, setDocOptIn] = useState(false);
+  const documentedActive = docDetected || docOptIn;
   const [quizOpen, setQuizOpen] = useState(true);
   const [quizMore, setQuizMore] = useState(false);
   const [quiz, setQuiz] = useState({ pay:"", trailer:false, documented:false, lien:false, estate:false, coowner:false, entity:false, poa:false, tradein:false, gift:false, sellerfin:false, losttitle:false, lostreg:false, survey:false, defects:false });
@@ -366,10 +372,18 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const DOC_SET = DOCUMENTS
     .filter(d => typeof d.showIf !== "function" || d.showIf(deal))
     .filter(d => !d.florida || floridaActive)   // FL state forms only on Florida deals
+    .filter(d => !d.documented || documentedActive)   // USCG forms only on documented vessels
     .map(d => { const mid = ID_MAP[d.id]||d.id; return { ...d, id: mid, required: REQUIRED.has(mid) || (mid==="renegotiation" && hasAddendum) }; });
   const GROUPS = [...new Set(DOC_SET.map(d=>d.group))];
 
-  const requiredDocs = DOC_SET.filter(d => d.required);
+  // Bill of Sale gets its own dedicated box — it's the document that actually
+  // transfers ownership, second only to the title. Collect every BoS variant.
+  const BOS_IDS = new Set(["bill_of_sale","bos_notary","bos_plain","fl_82050","cg_1340","trailer_bos","uscg_transfer"]);
+  const bosDocs = DOC_SET.filter(d => BOS_IDS.has(d.id));
+  const bosPrimary = bosDocs.find(d => d.id === "bill_of_sale");
+  const bosSigned = bosDocs.some(d => signed[d.id]); // any BoS variant signed = satisfied
+  // The main required list EXCLUDES the bill of sale (it has its own box).
+  const requiredDocs = DOC_SET.filter(d => d.required && d.id !== "bill_of_sale");
   // Questionnaire → suggested documents (additive; the full list stays browsable).
   const REC_MAP = {
     core: ["psa","bos","dep","asis","stmt","title_app","delivery_receipt"],
@@ -397,7 +411,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   })();
   const recDocs = recIds.map(id => DOC_SET.find(d => d.id === id)).filter(Boolean);
   const quizStarted = !!quiz.pay || Object.keys(quiz).some(k => k !== "pay" && quiz[k]);
-  const allRequiredSigned = requiredDocs.every(d => signed[d.id]);
+  const allRequiredSigned = requiredDocs.every(d => signed[d.id]) && bosSigned;
   const reqMissing = requiredDocs.filter(d => !signed[d.id]);
   const reqNotaryMissing = reqMissing.filter(d => (d.body||"").includes("Notary Acknowledgment"));
   const signedCount = Object.keys(signed).length;
@@ -704,6 +718,20 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
               Transferring in Florida? <button onClick={()=>setFlOptIn(true)} style={{ background:"none", border:"none", color:C.brass, fontWeight:800, textDecoration:"underline", cursor:"pointer", fontSize:12 }}>Add the official Florida state forms →</button>
             </div>
           )}
+          {documentedActive ? (
+            <div style={{ marginTop:8, background:"#eef7f0", border:"1px solid #4a9d6e", borderRadius:8, padding:"12px 15px", fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:13, fontWeight:800, color:"#08152e", marginBottom:3 }}>⚓ Coast Guard documented vessel — federal forms available</div>
+              <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>
+                {docDetected ? "This vessel has a USCG Official Number, so " : "You've marked this as a documented vessel, so "}
+                the federal forms (CG-1340 Bill of Sale and CG-1258 documentation application) are included below with your deal data. A documented vessel transfers by notarized CG-1340 (or the back of the CG-1270), filed with the NVDC.
+                {docOptIn && !docDetected && <button onClick={()=>setDocOptIn(false)} style={{ marginLeft:6, background:"none", border:"none", color:C.brass, fontWeight:700, textDecoration:"underline", cursor:"pointer", fontSize:12 }}>not documented</button>}
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginTop:8, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
+              Coast Guard documented vessel? <button onClick={()=>setDocOptIn(true)} style={{ background:"none", border:"none", color:"#2f7d55", fontWeight:800, textDecoration:"underline", cursor:"pointer", fontSize:12 }}>Add the federal CG-1340 / CG-1258 forms →</button>
+            </div>
+          )}
         </div>
         <span style={{...S.pill, background:C.greenLight, color:C.green}}>Paid ✓</span>
       </div>
@@ -785,6 +813,38 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       {!quizOpen && (
         <button onClick={()=>setQuizOpen(true)} style={{ background:"transparent", border:`1px dashed ${C.mist}`, color:C.slate, borderRadius:6, padding:"8px 14px", fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", marginBottom:16 }}>🧭 Help me pick the right documents</button>
       )}
+
+      {/* ── BILL OF SALE — its own box (the ownership-transfer document) ── */}
+      <div style={{ border:`2px solid ${bosSigned ? C.green : "#4a90d9"}`, borderRadius:8, padding:"13px 16px", marginBottom:16, background: bosSigned ? C.greenLight : "#eaf4ff" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+          <div style={{ fontSize:13.5, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}>
+            {bosSigned ? "✓ Bill of Sale complete" : "📜 Bill of Sale — required"}
+          </div>
+          <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color: bosSigned ? C.green : "#2b6cb0" }}>transfers ownership</span>
+        </div>
+        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginBottom:11, lineHeight:1.55 }}>
+          This is the document that legally transfers the boat. Choose the version that fits your sale — you only need <b>one</b>. {documentedActive ? "Your vessel is Coast Guard documented, so the CG-1340 applies." : floridaActive ? "Florida\u2019s official 82050 is included." : ""}
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
+          {bosDocs.map(doc => {
+            const done = !!signed[doc.id];
+            const rowNotary = (doc.body||"").includes("Notary Acknowledgment") || (doc.body||"").includes("bc-notary-flag") || doc.id==="cg_1340";
+            const isPrimary = doc.id === "bill_of_sale";
+            return (
+              <button key={doc.id} onClick={()=>jumpToDoc(doc.id)}
+                style={{ display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left", background:"transparent", border:"none", borderBottom:`1px solid ${bosSigned ? "#cfe6d8" : "#cfe0f5"}`, padding:"9px 2px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                <span style={{ width:18, height:18, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, background: done ? C.green : "transparent", color: done ? "#fff" : C.slate, border: done ? "none" : `1.5px solid ${C.mist}` }}>{done ? "✓" : ""}</span>
+                <span style={{ flex:1, fontSize:12.5, color:C.navy, fontWeight: done ? 400 : (isPrimary?700:600), textDecoration: done ? "line-through" : "none", opacity: done ? 0.7 : 1 }}>
+                  {doc.title}
+                  {isPrimary && <span style={{ fontSize:10, color:"#2b6cb0", fontWeight:700, marginLeft:6 }}>· standard</span>}
+                  {rowNotary && !done ? <span style={{ fontSize:10.5, color:"#8a6d1a", fontWeight:600 }}> · needs notary</span> : null}
+                </span>
+                <span style={{ fontSize:11, color: done ? C.green : "#2b6cb0", fontWeight:600, whiteSpace:"nowrap" }}>{done ? "Done" : "Open →"}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* ── REQUIRED DOCUMENTS TRACKER ── */}
       <div style={{ border:`2px solid ${allRequiredSigned ? C.green : C.brass}`, borderRadius:8, padding:"13px 16px", marginBottom:22, background: allRequiredSigned ? C.greenLight : "#fff9ee" }}>
@@ -1157,7 +1217,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
           <div style={{ border:`1.5px solid ${C.brass}`, background:"#fff9ee", borderRadius:8, padding:"14px 16px", marginBottom:14 }}>
             <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, color:"#7a5500", marginBottom:6 }}>⚠️ A few documents still need finishing before this sale is truly closed</div>
             <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:10 }}>
-              Still outstanding: {reqMissing.map(d=>d.title).join(", ")}.
+              Still outstanding: {[...(!bosSigned ? ["a Bill of Sale (choose one in the Bill of Sale box above)"] : []), ...reqMissing.map(d=>d.title)].join(", ")}.
               {reqNotaryMissing.length > 0 && <> Note that <b>{reqNotaryMissing.map(d=>d.title).join(", ")}</b> must be printed, signed in front of a notary, and uploaded. <b>BoatClosers can't verify notarization</b> — completing that correctly is your responsibility.</>}
             </div>
             <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", fontSize:12, fontFamily:"sans-serif", color:C.navy, lineHeight:1.5 }}>
