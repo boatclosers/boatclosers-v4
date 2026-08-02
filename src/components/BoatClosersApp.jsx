@@ -4997,7 +4997,7 @@ function Welcome({ name, onStart, onSignOut }) {
     <div style={{ minHeight:"100vh", background:C.navy, display:"flex", flexDirection:"column" }}>
       <div style={{ padding:"1.5rem 2rem", display:"flex", alignItems:"center", justifyContent:"space-between", borderBottom:"1px solid rgba(184,134,58,0.2)" }}>
         <div>
-          <div style={{ ...S.logo, fontSize:20 }}>BOATCLOSERS</div>
+          <div style={{ ...S.logo, fontSize:20 }}>BOATCLOSERS<span style={{ color:C.brass }}>.COM</span></div>
           <div style={{ ...S.logoSub }}>PRIVATE VESSEL TRANSACTIONS</div>
         </div>
         {onSignOut && <button onClick={onSignOut} style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }}>Sign Out</button>}
@@ -5076,7 +5076,7 @@ function AuthScreen({ onAuth, prefillEmail, notice, defaultMode, defaultRole }) 
     <div style={{ minHeight:"100vh", background:C.navy, display:"flex", flexDirection:"column" }}>
       <div style={{ padding:"1.5rem 2rem", display:"flex", alignItems:"center", justifyContent:"center", borderBottom:"1px solid rgba(184,134,58,0.2)" }}>
         <div style={{ textAlign:"center" }}>
-          <div style={{ ...S.logo, fontSize:22 }}>BOATCLOSERS</div>
+          <div style={{ ...S.logo, fontSize:22 }}>BOATCLOSERS<span style={{ color:C.brass }}>.COM</span></div>
           <div style={{ ...S.logoSub, color:"rgba(255,255,255,0.35)" }}>PRIVATE VESSEL TRANSACTIONS</div>
         </div>
       </div>
