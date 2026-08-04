@@ -1122,6 +1122,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const [ddDays, setDdDays] = useState(data.dueDiligenceDays || "10");
   const [ddStart, setDdStart] = useState(data.ddStartDate || today());
   const [offerExpiry, setOfferExpiry] = useState("48"); // hours the offer stays valid; "0" = no expiry
+  // Offer countdowns are worked out when the screen draws, so without a nudge they
+  // sit frozen at whatever they said when the page loaded — an offer could read
+  // "expires in 3h" long after it had lapsed. Redrawing once a minute keeps the
+  // countdown honest and flips an offer to expired the moment it does.
+  const [, setClockTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setClockTick(n => n + 1), 60000);
+    return () => clearInterval(t);
+  }, []);
   const [feePayer, setFeePayer] = useState("full"); // who pays the $249: full=initiator, split, other
   const [closingDate, setClosingDate] = useState(data.closingDate || "");
   const [offers, setOffers] = useState(data.offers || []);
