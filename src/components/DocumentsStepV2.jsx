@@ -678,11 +678,23 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     const heads = lead.match(/<(?:b|strong|h3)[^>]*>[\s\S]*?<\/(?:b|strong|h3)>/gi);
     const sec = heads ? plain(heads[heads.length - 1]) : "";
     if (inList && sec) return sec;
-    let t = plain(lead);
+    // The most useful label is the words between the last heading and the blank —
+    // on a power of attorney that is "Agent name", not the whole recital.
+    // Start after the last heading AND after the previous blank, so each box is
+    // labelled by its own words instead of inheriting the one before it.
+    let afterHead = lead.replace(/[\s\S]*<\/(?:b|strong|h3)>/i, "");
+    afterHead = afterHead.replace(/[\s\S]*(?:bc-fill-in|bc-check)[^>]*>[\s\S]*?<\/span>/i, "");
+    const tail = plain(afterHead).replace(/_{2,}/g, " ").replace(/\s+/g, " ").trim()
+      .replace(/^[\/\-\u2013\u2014,;:.]+\s*/, "").replace(/[:;,]$/, "").trim();
+    if (tail.length >= 3 && tail.length <= 60) return tail;
+    // Strip out the underscores belonging to OTHER blanks — they are noise in a label.
+    let t = plain(lead).replace(/_{2,}/g, " ").replace(/\s+/g, " ").trim();
     const cut = Math.max(t.lastIndexOf(". "), t.lastIndexOf(": "), t.lastIndexOf("; "));
     if (cut > -1 && t.length - cut > 4) t = t.slice(cut + 1);
-    t = t.trim().replace(/[:;,]$/, "").slice(-90);
-    // A stub like "excluded" tells the user nothing \u2014 fall back to the heading.
+    // Never cut a word in half: trimming to a fixed length turned "Registration"
+    // into "egistration". Drop the partial word the cut leaves behind.
+    if (t.length > 90) t = t.slice(-90).replace(/^\S*\s+/, "");
+    t = t.trim().replace(/^[\/\-\u2013\u2014,;:.]+\s*/, "").replace(/[:;,]$/, "").trim();
     if (t.length < 12 && sec) return sec;
     return t || sec || "Fill in";
   };
