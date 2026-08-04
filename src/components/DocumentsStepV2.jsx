@@ -250,19 +250,23 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     "Closing-Day": "Sign these at the handoff — delivery and possession receipt, the seller's disclosure of known defects, and the engine-hours statement.",
   };
 
-  const toggleCheck = (docId, idx) => setCheckState(s => {
-    const next = { ...s, [docId]: { ...(s[docId]||{}), [idx]: !(s[docId]||{})[idx] } };
+  // These both used to call setData from INSIDE the state updater. React treats an
+  // updater as pure and may run it more than once, so the save to the deal was
+  // unreliable — which is why filled-in answers did not stick. Work the new
+  // value out first, then set state and save it as two plain, separate steps.
+  const toggleCheck = (docId, idx) => {
+    const next = { ...checkState, [docId]: { ...(checkState[docId]||{}), [idx]: !(checkState[docId]||{})[idx] } };
+    setCheckState(next);
     setData(d => ({ ...d, docChecks: next }));
-    return next;
-  });
-  const setField = (docId, key, val) => setFieldState(s => {
+  };
+  const setField = (docId, key, val) => {
     // Typed values are plain text only — scrub anything markup-like before it is
     // stored, printed, or emailed to the other party.
     const clean = sanitizeHtml(String(val || "")).replace(/<[^>]*>/g, "").slice(0, 300);
-    const next = { ...s, [docId]: { ...(s[docId]||{}), [key]: clean } };
+    const next = { ...fieldState, [docId]: { ...(fieldState[docId]||{}), [key]: clean } };
+    setFieldState(next);
     setData(d => ({ ...d, docFields: next }));
-    return next;
-  });
+  };
   // A document can be locked to one role with editRole. Only that role fills it
   // in-app; the other party prints/uploads instead.
   const canEditDoc = (doc) => !doc.editRole || doc.editRole === myRole;
@@ -551,6 +555,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       const v = saved[fk];
       return `<span class="bc-fill-in">${(v != null && v !== "") ? String(v).replace(/</g, "&lt;").replace(/>/g, "&gt;") : "________"}</span>`;
     });
+    // Ticked boxes travel with the document too, not just typed answers.
+    body = body.replace(/<span class="bc-check" data-fk="([^"]+)">[\s\S]*?<\/span>/g,
+      (m, fk) => `<span class="bc-check">${saved[fk] === "on" ? "\u2611" : "\u2610"}</span>`);
     body = body.replace("<!--CHECKLIST-->", "");
     const css = docCSS +
       "\n.bc-doc-paper{max-height:none;overflow:visible;border:none;border-top:4px solid " + C.brass + ";padding:26px 28px}" +
@@ -629,8 +636,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     reader.onerror = () => { setUploadErr(e => ({ ...e, [docId]: "Couldn't read that file — please try a different one." })); };
     reader.readAsDataURL(file);
   };
-  const printDoc = (docId, title) => {
+  const printDoc = (docId, title, retry) => {
     const node = docId != null ? document.getElementById("bc-print-" + docId) : null;
+    // If Print is tapped straight from the Fill In screen the finished document is
+    // not on screen yet — switch to it, then print a moment later.
+    if (!node && docId != null && !retry) {
+      setDocAction(d => ({ ...d, [docId]: "view" }));
+      setTimeout(() => printDoc(docId, title, true), 250);
+      return;
+    }
     if (!node) { window.print(); return; }
     const w = window.open("", "_blank", "width=820,height=1040");
     if (!w) { alert("Please allow pop-ups for this site to print the document."); return; }
