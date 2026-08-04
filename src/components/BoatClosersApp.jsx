@@ -5915,8 +5915,9 @@ export default function BoatClosers() {
   const setDdDataAndSave = withSave(setDdData);
   const setDocsDataAndSave = withSave(setDocsData);
 
-  // Cancel/withdraw the current deal: mark it canceled, drop a note in the thread,
-  // and save so the other party sees it. Either party can do this before lock.
+  // End the current deal: mark it canceled, drop a note in the thread, and save so
+  // the other party sees it. Available at ANY stage, deliberately — the moment you
+  // most need a way out is after the deal is locked and the other side goes quiet.
   const cancelDeal = () => {
     const who = myDealRole || user?.role || "a party";
     const whoName = user?.name || who;
@@ -6313,6 +6314,9 @@ export default function BoatClosers() {
           {user && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1 }}>{myDealRole || user.role}</span>}
           {vessel.year && <span style={{ fontSize:11, color:C.brass, fontFamily:"sans-serif" }}>{vessel.year} {vessel.make} {vessel.model}</span>}
           <button title="Messages with the other party" onClick={openMsgPanel} style={{ position:"relative", fontSize:11, color:"#fff", background: msgUnread>0 ? C.red : "rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }}>💬 Messages{msgUnread>0 && <span style={{ marginLeft:5, background:"#fff", color:C.red, borderRadius:10, padding:"0 6px", fontSize:10, fontWeight:800 }}>{msgUnread}</span>}</button>
+          {(dealId || step>0) && !negotiate.canceled && (
+            <button title="End this deal and free yourself to start another" onClick={()=>setCancelModal(true)} style={{ fontSize:11, color:"rgba(255,255,255,0.85)", background:"rgba(255,255,255,0.07)", border:`1px solid rgba(214,110,110,0.5)`, borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }}>End deal</button>
+          )}
           <button title="Reload to pull the other party's latest offers, messages, and updates" style={{ fontSize:11, color:"#fff", background:C.brass, border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={()=>window.location.reload()}>🔄 Check for updates</button>
           <button title="Get help or report a problem or conflict" style={{ fontSize:11, color:"rgba(255,255,255,0.85)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={()=>{ setSupportSent(false); setSupportErr(""); setSupportModal(true); }}>help</button>
           <button style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }} onClick={handleSignOut}>Sign Out</button>
@@ -6378,7 +6382,10 @@ export default function BoatClosers() {
           <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.6, maxWidth:600, margin:"0 auto 10px" }}>
             {negotiate.canceled.byName} canceled this deal on {negotiate.canceled.date}{negotiate.canceled.reason?` — “${negotiate.canceled.reason}”`:""}. It's now closed for both parties.
           </div>
-          <button onClick={()=>relistBoat()} style={{ ...S.btnBrass, fontSize:13, padding:"9px 20px" }}>Start a new deal with this boat →</button>
+          <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
+            <button onClick={()=>relistBoat()} style={{ ...S.btnBrass, fontSize:13, padding:"9px 20px" }}>Same boat, new buyer →</button>
+            <button onClick={()=>startNewDeal()} style={{ ...S.btnOutline, fontSize:13, padding:"9px 20px" }}>Start a fresh deal (different boat)</button>
+          </div>
         </div>
       )}
 
@@ -6440,9 +6447,9 @@ export default function BoatClosers() {
         );
       })()}
 
-      {!negotiate.canceled && !dealPaid && (dealId || step>0) && (
+      {!negotiate.canceled && (dealId || step>0) && (
         <div style={{ maxWidth:880, margin:"0 auto", padding:"8px 1.25rem 0", textAlign:"right" }}>
-          <button onClick={()=>setCancelModal(true)} style={{ background:"none", border:"none", color:C.slate, fontSize:11.5, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }}>Cancel this deal</button>
+          <button onClick={()=>setCancelModal(true)} style={{ background:"none", border:"none", color:C.slate, fontSize:11.5, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }}>End this deal</button>
         </div>
       )}
 
@@ -6512,16 +6519,23 @@ export default function BoatClosers() {
       {cancelModal && (
         <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.85)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem" }}>
           <div style={{ background:"#fff", borderRadius:12, padding:"1.75rem", maxWidth:440, width:"100%" }}>
-            <div style={{ fontSize:18, fontWeight:800, color:C.navy, fontFamily:"'Georgia',serif", marginBottom:8 }}>Cancel this deal?</div>
+            <div style={{ fontSize:18, fontWeight:800, color:C.navy, fontFamily:"'Georgia',serif", marginBottom:8 }}>End this deal?</div>
             <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, marginBottom:14 }}>
-              This ends the deal for both you and the other party. Your offers and terms stay on record, but no one can move it forward. You can start a new deal afterward. This can't be undone.
+              {dealPaid ? (
+                <>This deal is locked and the Purchase &amp; Sale Agreement is signed. Ending it closes the deal for both parties and no one can move it forward. Your offers, terms, and signed documents stay on record as evidence of what was agreed.
+                {" "}{amInitiator ? <b>Your $249 isn&rsquo;t lost — you have 60 days to start another deal, with a different buyer or a different boat, at no extra charge.</b> : "The party who paid keeps their fee as a 60-day credit toward another deal."}
+                {" "}If earnest money is being held, settle that between yourselves or with your escrow provider. This can&rsquo;t be undone.</>
+              ) : (
+                <>This ends the deal for both you and the other party. Your offers and terms stay on record, but no one can move it forward. You can start a new deal afterward. This can&rsquo;t be undone.</>
+              )}
             </div>
-            <Field label="Reason (optional — shared with the other party)">
+            <Field label={dealPaid ? "Reason (required — shared with the other party)" : "Reason (optional — shared with the other party)"}>
               <textarea style={{...S.textarea, minHeight:60}} value={cancelReason} onChange={e=>setCancelReason(e.target.value)} placeholder="e.g. Decided to keep the boat / found another buyer / changed my mind" />
             </Field>
             <div style={{ display:"flex", gap:10, marginTop:16 }}>
               <button onClick={()=>{ setCancelModal(false); setCancelReason(""); }} style={{ ...S.btnOutline, flex:1 }}>Keep the deal</button>
-              <button onClick={cancelDeal} style={{ ...S.btn, flex:1, background:C.red, color:"#fff", border:"none" }}>Cancel deal</button>
+              <button onClick={cancelDeal} disabled={dealPaid && !cancelReason.trim()}
+                style={{ ...S.btn, flex:1, background:C.red, color:"#fff", border:"none", opacity:(dealPaid && !cancelReason.trim())?0.45:1, cursor:(dealPaid && !cancelReason.trim())?"not-allowed":"pointer" }}>End deal</button>
             </div>
           </div>
         </div>
