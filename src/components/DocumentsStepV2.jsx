@@ -402,7 +402,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     let n = 0, c = 0;
     let head2 = head.replace(/_{4,}/g, () => `<span class="bc-fill-in" data-fk="${docId}:${n++}">________</span>`);
     head2 = head2.replace(/[\u2610\u2611\u2612]/g, () => `<span class="bc-check" data-fk="${docId}:chk${c++}">\u2610</span>`);
-    return head2 + tail;
+    // Missing deal values become a plain locked line, AFTER the fillable blanks
+    // have been worked out — so they are shown, but never offered for typing.
+    const miss = /\u2591MISSING\u2591/g;
+    head2 = head2.replace(miss, '<span class="bc-missing" title="Comes from your Vessel, Parties or Terms">________</span>');
+    return head2 + tail.replace(miss, '<span class="bc-missing">________</span>');
   };
 
   // Open one document into focused view: mark it active, show its filled body,
@@ -439,7 +443,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // (prepHtml turns 4+ underscores into a tap-to-type box) instead of dead "[label]"
   // text — so a missing buyer name, HIN, closing date, etc. can be filled right in
   // the document. Fields that are entered elsewhere simply convey their value.
-  const BLANK = "____________________";
+  // A deal value that has not been entered yet (no HIN, no closing date, and so on).
+  // This deliberately contains NO underscores: a run of underscores is how a
+  // document marks a blank for the customer to complete, and an empty HIN is not
+  // that — it belongs to Vessel and must never become a typeable box.
+  const BLANK = "\u2591MISSING\u2591";
   const engineParts = `${vessel.engineMake||""} ${vessel.engineModel||""}`.trim();
   // The deal reference must stay identical between renders. It used to be built
   // from Date.now(), so every re-render produced a different document, React
@@ -687,6 +695,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       "\nbody{margin:0;padding:24px;background:#fff}" +
       "\n.bc-fill-hint,.bc-lock-note{display:none}" +
       "\n.bc-fill-in{border-bottom:1px solid " + C.brass + ";padding:0 4px;min-width:80px;display:inline-block}" +
+      "\n.bc-missing{border-bottom:1px solid #bbb;padding:0 4px;min-width:80px;display:inline-block;color:transparent}" +
       "\n@page{margin:0.6in}";
     return '<!doctype html><html><head><meta charset="utf-8"><title>' + (docObj.title || "Document") + '</title><style>' + css + '</style></head><body>' +
       '<div class="bc-doc-paper">' +
@@ -833,6 +842,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 .bc-notary-flag strong{color:#8a6d1a}
 .bc-checklist{margin:6px 0 14px}
 .bc-fill-in{display:inline-block;min-width:90px;border-bottom:1px solid ${C.mist};padding:0 5px;line-height:1.7}
+.bc-missing{display:inline-block;min-width:90px;border-bottom:1px solid ${C.mist};padding:0 5px;line-height:1.7;color:transparent;user-select:none}
 .bc-fill-in.filled{border-bottom:1.5px solid ${C.brass};color:${C.navy};font-weight:600}
 .bc-check{font-size:16px;color:${C.slate};user-select:none;padding:0 2px}
 .bc-check.editable{cursor:pointer;color:${C.navy}}
