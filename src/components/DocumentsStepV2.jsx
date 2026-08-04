@@ -92,6 +92,17 @@ const priceToWords = (n) => {
   return out.trim();
 };
 
+// Everything typed into a document's blanks is stashed here the instant it is
+// typed, outside of React. Background syncing and re-mounts kept wiping answers a
+// second or two after they appeared; this stash always wins over whatever the
+// deal currently says, so what you typed cannot be taken off the screen.
+const LOCAL_FILLS = { dealId: null, fields: {}, checks: {} };
+const mergeLocal = (base, mine) => {
+  const out = { ...(base || {}) };
+  Object.keys(mine).forEach(docId => { out[docId] = { ...(out[docId] || {}), ...mine[docId] }; });
+  return out;
+};
+
 // Renders a filled document. Checkbox lists (doc.checklist) and "____" blanks
 // become interactive in-app when `editable` is true; otherwise read-only.
 function DocPaper({ doc, html, editable, checkState, toggleCheck, savedFields, onField }) {
@@ -233,8 +244,17 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [uploading, setUploading] = useState({});
   const [manualSig, setManualSig] = useState({});
   const [manualFields, setManualFields] = useState({});
-  const [checkState, setCheckState] = useState(data.docChecks || {}); // docId -> { itemIndex: true }
-  const [fieldState, setFieldState] = useState(data.docFields || {}); // docId -> { fieldKey: text }
+  // A new deal starts with an empty stash.
+  if (LOCAL_FILLS.dealId !== (dealId || null)) { LOCAL_FILLS.dealId = dealId || null; LOCAL_FILLS.fields = {}; LOCAL_FILLS.checks = {}; }
+  const [checkState, setCheckState] = useState(() => mergeLocal(data.docChecks, LOCAL_FILLS.checks)); // docId -> { itemIndex: true }
+  const [fieldState, setFieldState] = useState(() => mergeLocal(data.docFields, LOCAL_FILLS.fields)); // docId -> { fieldKey: text }
+  // When the deal updates in the background, take what is new but keep every
+  // answer entered on this device on top of it.
+  const dealFillsKey = JSON.stringify([data.docFields || {}, data.docChecks || {}]);
+  useEffect(() => {
+    setFieldState(mergeLocal(data.docFields, LOCAL_FILLS.fields));
+    setCheckState(mergeLocal(data.docChecks, LOCAL_FILLS.checks));
+  }, [dealFillsKey]); // eslint-disable-line
   const [closeAck, setCloseAck] = useState(false); // acknowledge offline/notary docs before closing
 
   // One-line "is this section for me?" descriptions under each group header.
@@ -256,6 +276,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // value out first, then set state and save it as two plain, separate steps.
   const toggleCheck = (docId, idx) => {
     const next = { ...checkState, [docId]: { ...(checkState[docId]||{}), [idx]: !(checkState[docId]||{})[idx] } };
+    LOCAL_FILLS.checks[docId] = { ...(LOCAL_FILLS.checks[docId] || {}), [idx]: next[docId][idx] };
     setCheckState(next);
     setData(d => ({ ...d, docChecks: next }));
   };
@@ -264,6 +285,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     // stored, printed, or emailed to the other party.
     const clean = sanitizeHtml(String(val || "")).replace(/<[^>]*>/g, "").slice(0, 300);
     const next = { ...fieldState, [docId]: { ...(fieldState[docId]||{}), [key]: clean } };
+    LOCAL_FILLS.fields[docId] = { ...(LOCAL_FILLS.fields[docId] || {}), [key]: clean };
     setFieldState(next);
     setData(d => ({ ...d, docFields: next }));
   };
@@ -1158,8 +1180,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                             The tick-boxes on this document stay on the document itself — tap <strong>View</strong> to check them off.
                           </div>
                         )}
-                        <button onClick={()=>setDocAction(d => ({ ...d, [doc.id]: "view" }))}
-                          style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"10px 22px", fontSize:13, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>✓ Done — show the document</button>
+                        <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
+                          <button onClick={()=>setDocAction(d => ({ ...d, [doc.id]: "view" }))}
+                            style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"10px 22px", fontSize:13, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>✓ Done — show the document</button>
+                          {blanks.some(b => (saved[b.fk] || "") !== "") && (
+                            <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>
+                              ✓ {blanks.filter(b => (saved[b.fk] || "") !== "").length} of {blanks.length} saved to your deal
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })()}
