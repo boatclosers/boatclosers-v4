@@ -104,14 +104,22 @@ function DocPaper({ doc, html, editable, checkState, toggleCheck, savedFields, o
     blanks.forEach((el) => {
       const fk = el.getAttribute("data-fk");
       const saved = savedFields[fk];
+      const isTyping = typeof document !== "undefined" && document.activeElement === el;
       if (editable) {
         el.setAttribute("contenteditable", "true");
         el.classList.add("editable");
-        el.textContent = (saved != null && saved !== "") ? saved : "";
-        const onBlur = () => onField(fk, (el.textContent || "").trim());
+        // Never overwrite a blank the user is actively typing into.
+        if (!isTyping) el.textContent = (saved != null && saved !== "") ? saved : "";
+        // Save as they type (settled after a short pause) as well as on blur, so
+        // nothing is lost if the page updates mid-word.
+        let t = null;
+        const commit = () => onField(fk, (el.textContent || "").trim());
+        const onInput = () => { clearTimeout(t); t = setTimeout(commit, 400); };
+        const onBlur = () => { clearTimeout(t); commit(); };
+        el.addEventListener("input", onInput);
         el.addEventListener("blur", onBlur);
-        handlers.push([el, onBlur, "blur"]);
-      } else {
+        handlers.push([el, onInput, "input"], [el, onBlur, "blur"]);
+      } else if (!isTyping) {
         el.textContent = (saved != null && saved !== "") ? saved : "________";
       }
     });
@@ -329,8 +337,16 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // the document. Fields that are entered elsewhere simply convey their value.
   const BLANK = "____________________";
   const engineParts = `${vessel.engineMake||""} ${vessel.engineModel||""}`.trim();
+  // The deal reference must stay identical between renders. It used to be built
+  // from Date.now(), so every re-render produced a different document, React
+  // rewrote the page, and whatever was being typed into a blank was destroyed.
+  const dealRefSeed = useRef(data.dealRef || ("BC-" + String(Date.now()).slice(-5)));
+  const dealRef = data.dealRef || dealRefSeed.current;
+  useEffect(() => {
+    if (!data.dealRef) setData(d => (d.dealRef ? d : { ...d, dealRef: dealRefSeed.current }));
+  }, []); // eslint-disable-line
   const deal = {
-    dealRef: data.dealRef || ("BC-" + String(Date.now()).slice(-5)),
+    dealRef,
     effectiveDate: today(),
     sellerName: parties.seller.name || _accOffer?.paSellerSig || BLANK,
     sellerAddress: `${parties.seller.address||""} ${parties.seller.city||""} ${parties.seller.stateZip||""}`.trim() || BLANK,
@@ -498,11 +514,23 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // ── helpers ──
   const setAction = (id, action) => setDocAction(d => ({ ...d, [id]: d[id] === action ? null : action }));
   // Turn a filled in-app document into a self-contained HTML file so it can be
+  // One built copy of each document per unique deal state. Handing React the very
+  // same string on re-render means it leaves the page alone — so a blank being
+  // typed into is never torn out from under the user.
+  const htmlCache = useRef({ key: "", map: {} });
+  const getDocHtml = (docObj) => {
+    const key = JSON.stringify(deal);
+    if (htmlCache.current.key !== key) htmlCache.current = { key, map: {} };
+    const m = htmlCache.current.map;
+    if (!m[docObj.id]) m[docObj.id] = prepHtml(fillDocument(docObj, deal), docObj.id);
+    return m[docObj.id];
+  };
+
   // attached to the "send" email. Bakes in merge fields AND any values typed into
   // the tap-to-fill blanks, then wraps it in the same document styling.
   const b64Unicode = (str) => { try { return btoa(unescape(encodeURIComponent(str))); } catch (e) { return btoa(str); } };
   const buildDocFile = (docObj) => {
-    let body = prepHtml(fillDocument(docObj, deal), docObj.id);
+    let body = getDocHtml(docObj);
     const saved = fieldState[docObj.id] || {};
     body = body.replace(/<span class="bc-fill-in" data-fk="([^"]+)">________<\/span>/g, (m, fk) => {
       const v = saved[fk];
@@ -950,7 +978,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                           {doc.required && <span style={{...S.tag, background:"#fff3cd", color:"#7a5500"}}>Required</span>}
                           {!doc.required && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Optional</span>}
                           {needsNotary && <span style={{...S.tag, background:"#fbf4e3", color:"#8a6d1a"}}>Notary required</span>}
-                          {(doc.checklist || prepHtml(fillDocument(doc, deal), doc.id).includes("bc-fill-in")) && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>{doc.editRole ? `Fill in app · ${doc.editRole} only` : "Fill in app"}</span>}
+                          {(doc.checklist || getDocHtml(doc).includes("bc-fill-in")) && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>{doc.editRole ? `Fill in app · ${doc.editRole} only` : "Fill in app"}</span>}
                           {signed[doc.id] && <span style={{...S.tag, background:C.greenLight, color:C.green}}>✓ {signed[doc.id].date} · {signed[doc.id].name}</span>}
                           {sentLog[doc.id]?.length > 0 && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Sent ×{sentLog[doc.id].length}</span>}
                           {uploadedFile[doc.id] && !signed[doc.id]?.uploaded && <span style={{...S.tag}}>📎 {uploadedFile[doc.id]}</span>}
@@ -1037,7 +1065,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                             </div>
                           )}
                           {(() => {
-                            const filledHtml = prepHtml(fillDocument(doc, deal), doc.id);
+                            const filledHtml = getDocHtml(doc);
                             const editable = canEditDoc(doc);
                             const interactive = !!doc.checklist || filledHtml.includes("bc-fill-in");
                             return (
