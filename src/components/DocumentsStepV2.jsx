@@ -97,6 +97,22 @@ const priceToWords = (n) => {
 // second or two after they appeared; this stash always wins over whatever the
 // deal currently says, so what you typed cannot be taken off the screen.
 const LOCAL_FILLS = { dealId: null, fields: {}, checks: {} };
+// A second copy lives in the browser itself, so answers survive a rebuilt screen,
+// a refresh, or a closed tab even before the deal has finished saving them.
+const FILLS_KEY = (id) => "bc_fills_" + (id || "pending");
+const loadFills = (id) => {
+  try {
+    const raw = window.localStorage.getItem(FILLS_KEY(id));
+    if (!raw) return null;
+    const v = JSON.parse(raw);
+    return (v && typeof v === "object") ? { fields: v.fields || {}, checks: v.checks || {} } : null;
+  } catch (e) { return null; }
+};
+const saveFills = (id) => {
+  try {
+    window.localStorage.setItem(FILLS_KEY(id), JSON.stringify({ fields: LOCAL_FILLS.fields, checks: LOCAL_FILLS.checks }));
+  } catch (e) {}
+};
 const mergeLocal = (base, mine) => {
   const out = { ...(base || {}) };
   Object.keys(mine).forEach(docId => { out[docId] = { ...(out[docId] || {}), ...mine[docId] }; });
@@ -245,7 +261,25 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [manualSig, setManualSig] = useState({});
   const [manualFields, setManualFields] = useState({});
   // A new deal starts with an empty stash.
-  if (LOCAL_FILLS.dealId !== (dealId || null)) { LOCAL_FILLS.dealId = dealId || null; LOCAL_FILLS.fields = {}; LOCAL_FILLS.checks = {}; }
+  // Only wipe the stash when moving between two REAL deals. The deal id often
+  // arrives a moment after the page does, and treating that as "a different deal"
+  // was itself throwing away answers a second or two after they were typed.
+  if (dealId && LOCAL_FILLS.dealId && LOCAL_FILLS.dealId !== dealId) { LOCAL_FILLS.fields = {}; LOCAL_FILLS.checks = {}; }
+  if (dealId) LOCAL_FILLS.dealId = dealId;
+  // Pick the browser copy back up on a fresh screen, and carry over anything that
+  // was typed before the deal id had arrived.
+  const fillsLoaded = useRef(false);
+  if (!fillsLoaded.current && typeof window !== "undefined") {
+    fillsLoaded.current = true;
+    const pending = loadFills(null);
+    const mine = loadFills(dealId);
+    [pending, mine].forEach(src => {
+      if (!src) return;
+      Object.keys(src.fields).forEach(k => { LOCAL_FILLS.fields[k] = { ...(LOCAL_FILLS.fields[k] || {}), ...src.fields[k] }; });
+      Object.keys(src.checks).forEach(k => { LOCAL_FILLS.checks[k] = { ...(LOCAL_FILLS.checks[k] || {}), ...src.checks[k] }; });
+    });
+    if (dealId && pending) { saveFills(dealId); try { window.localStorage.removeItem(FILLS_KEY(null)); } catch (e) {} }
+  }
   const [checkState, setCheckState] = useState(() => mergeLocal(data.docChecks, LOCAL_FILLS.checks)); // docId -> { itemIndex: true }
   const [fieldState, setFieldState] = useState(() => mergeLocal(data.docFields, LOCAL_FILLS.fields)); // docId -> { fieldKey: text }
   // When the deal updates in the background, take what is new but keep every
@@ -277,6 +311,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const toggleCheck = (docId, idx) => {
     const next = { ...checkState, [docId]: { ...(checkState[docId]||{}), [idx]: !(checkState[docId]||{})[idx] } };
     LOCAL_FILLS.checks[docId] = { ...(LOCAL_FILLS.checks[docId] || {}), [idx]: next[docId][idx] };
+    saveFills(dealId);
     setCheckState(next);
     setData(d => ({ ...d, docChecks: next }));
   };
@@ -286,6 +321,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     const clean = sanitizeHtml(String(val || "")).replace(/<[^>]*>/g, "").slice(0, 300);
     const next = { ...fieldState, [docId]: { ...(fieldState[docId]||{}), [key]: clean } };
     LOCAL_FILLS.fields[docId] = { ...(LOCAL_FILLS.fields[docId] || {}), [key]: clean };
+    saveFills(dealId);
     setFieldState(next);
     setData(d => ({ ...d, docFields: next }));
   };
@@ -1183,11 +1219,20 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                         <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
                           <button onClick={()=>setDocAction(d => ({ ...d, [doc.id]: "view" }))}
                             style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"10px 22px", fontSize:13, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>✓ Done — show the document</button>
-                          {blanks.some(b => (saved[b.fk] || "") !== "") && (
-                            <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>
-                              ✓ {blanks.filter(b => (saved[b.fk] || "") !== "").length} of {blanks.length} saved to your deal
-                            </span>
-                          )}
+                          {(() => {
+                            const inDeal = (data.docFields || {})[doc.id] || {};
+                            const typed = blanks.filter(b => (saved[b.fk] || "") !== "");
+                            const stored = typed.filter(b => (inDeal[b.fk] || "") === saved[b.fk]);
+                            if (!typed.length) return null;
+                            const done = stored.length === typed.length;
+                            return (
+                              <span style={{ fontSize:11.5, fontFamily:"sans-serif", fontWeight:700, color: done ? C.green : C.slate }}>
+                                {done
+                                  ? `✓ ${stored.length} of ${blanks.length} stored in your deal`
+                                  : `… saving ${typed.length - stored.length} answer${typed.length - stored.length === 1 ? "" : "s"}`}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
                     );
