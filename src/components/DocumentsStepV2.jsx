@@ -203,7 +203,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [sigName, setSigName] = useState({});
 
   const [docAction, setDocAction] = useState({});
-  const [editedHtml, setEditedHtml] = useState({}); // { docId: custom fully-edited HTML }
   // Strip anything executable so an edited doc can't carry injected scripts when
   // it's later sent to the other party. Formatting/text is preserved.
   const sanitizeHtml = (html) => String(html || '')
@@ -213,7 +212,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
     .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
     .replace(/(href|src)\s*=\s*(["']?)\s*javascript:[^"'>]*\2/gi, '$1="#"');
-  const editRefs = useRef({}); // contentEditable surfaces, keyed by docId
   const [activeDoc, setActiveDoc] = useState(null); // the one document currently opened for work
   // Collapsible groups — required group open by default, the rest collapsed.
   const [openGroups, setOpenGroups] = useState({ "Closing Instruments": true });
@@ -273,7 +271,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     return next;
   });
   const setField = (docId, key, val) => setFieldState(s => {
-    const next = { ...s, [docId]: { ...(s[docId]||{}), [key]: val } };
+    // Typed values are plain text only — scrub anything markup-like before it is
+    // stored, printed, or emailed to the other party.
+    const clean = sanitizeHtml(String(val || "")).replace(/<[^>]*>/g, "").slice(0, 300);
+    const next = { ...s, [docId]: { ...(s[docId]||{}), [key]: clean } };
     setData(d => ({ ...d, docFields: next }));
     return next;
   });
@@ -501,7 +502,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // the tap-to-fill blanks, then wraps it in the same document styling.
   const b64Unicode = (str) => { try { return btoa(unescape(encodeURIComponent(str))); } catch (e) { return btoa(str); } };
   const buildDocFile = (docObj) => {
-    let body = editedHtml[docObj.id] || prepHtml(fillDocument(docObj, deal), docObj.id);
+    let body = prepHtml(fillDocument(docObj, deal), docObj.id);
     const saved = fieldState[docObj.id] || {};
     body = body.replace(/<span class="bc-fill-in" data-fk="([^"]+)">________<\/span>/g, (m, fk) => {
       const v = saved[fk];
@@ -958,7 +959,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                     </div>
                     <div className="bc-docbtns">
                       <ActionBtn docId={doc.id} action="view"   icon="👁" label="View"   />
-                      {doc.kind !== "upload" && !doc.viewOnly && <ActionBtn docId={doc.id} action="edit" icon="📝" label="Edit" color={C.brass} />}
                       {doc.kind !== "upload" && !needsNotary && !doc.viewOnly && <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />}
                       {doc.kind !== "upload" && !doc.viewOnly && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
                       <ActionBtn docId={doc.id} action="send"   icon="📤" label="Send"   color={C.brass} />
@@ -1037,25 +1037,18 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                             </div>
                           )}
                           {(() => {
-                            const hasEdit = !!editedHtml[doc.id];
-                            const filledHtml = editedHtml[doc.id] || prepHtml(fillDocument(doc, deal), doc.id);
+                            const filledHtml = prepHtml(fillDocument(doc, deal), doc.id);
                             const editable = canEditDoc(doc);
-                            const interactive = !hasEdit && (!!doc.checklist || filledHtml.includes("bc-fill-in"));
-                            if (hasEdit) {
-                              return (
-                                <>
-                                  <div className="bc-fill-hint">📝 Showing your edited version. Use the <strong>Edit</strong> tab to change it further (or Reset to the original there).</div>
-                                  <div className="bc-doc" dangerouslySetInnerHTML={{ __html: filledHtml.replace("<!--CHECKLIST-->","") }} />
-                                </>
-                              );
-                            }
+                            const interactive = !!doc.checklist || filledHtml.includes("bc-fill-in");
                             return (
                               <>
-                                {interactive && (editable ? (
-                                  <div className="bc-fill-hint">✏️ Tap the boxes and blank lines to fill this in — or use the 📝 <strong>Edit</strong> tab to type anywhere. Some details come from your <strong>Vessel</strong> &amp; <strong>Parties</strong> info; if anything looks blank or wrong, go back to those steps and correct it so your documents come out right. Then print or send — no need to scan.</div>
+                                {interactive ? (editable ? (
+                                  <div className="bc-fill-hint">✏️ <strong>Tap the gold blank lines and boxes to fill them in.</strong> Everything else on this document comes straight from your <strong>Vessel</strong>, <strong>Parties</strong>, and agreed <strong>Terms</strong> — it is locked here so it can never disagree with your deal. If any of that looks wrong, go back and fix it at the source and every document updates. Then print or send — no scanning needed.</div>
                                 ) : (
-                                  <div className="bc-lock-note">🔒 Only the {doc.editRole} fills this one in here. If you need to change it, use the 📝 Edit tab, or print it and upload a signed copy.</div>
-                                ))}
+                                  <div className="bc-lock-note">🔒 Only the {doc.editRole} fills this one in here. You can still view it, print it, and upload a signed copy.</div>
+                                )) : (
+                                  <div className="bc-lock-note">🔒 <strong>Nothing to fill in on this one.</strong> It builds itself from your deal, and the signature and notary lines are left blank on purpose — those get completed at signing.</div>
+                                )}
                                 <DocPaper
                                   doc={doc}
                                   html={filledHtml}
@@ -1070,33 +1063,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                           })()}
                         </div>
                       )}
-                    </div>
-                  )}
-
-                  {/* EDIT — free-edit the whole document, since they've paid */}
-                  {docAction[doc.id]==="edit" && (
-                    <div style={{ marginTop:12 }}>
-                      <div style={{ background:"#fffaf0", border:`1px solid ${C.brass}`, borderRadius:8, padding:"10px 12px", marginBottom:10, fontSize:12, fontFamily:"sans-serif", color:C.navy, lineHeight:1.55 }}>
-                        📝 <strong>Edit mode</strong> — you've paid, so this document is yours to adjust. Click anywhere below and type to add, change, fill in, or check anything you need. When you're done, tap <strong>💾 Save Changes</strong> — your saved version is what gets signed, sent, or printed.
-                      </div>
-                      <style dangerouslySetInnerHTML={{ __html: docCSS }} />
-                      <div
-                        ref={el => { editRefs.current[doc.id] = el; }}
-                        contentEditable
-                        suppressContentEditableWarning
-                        className="bc-doc-paper"
-                        style={{ outline:`2px solid ${C.brass}`, maxHeight:"none", overflow:"visible", minHeight:360, cursor:"text" }}
-                        dangerouslySetInnerHTML={{ __html: (editedHtml[doc.id] || prepHtml(fillDocument(doc, deal), doc.id)).replace("<!--CHECKLIST-->","") }}
-                      />
-                      <div style={{ marginTop:10, display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
-                        <button onClick={()=>{ const h = sanitizeHtml(editRefs.current[doc.id]?.innerHTML || ""); setEditedHtml(e => ({ ...e, [doc.id]: h })); setDocAction(d => ({ ...d, [doc.id]: "view" })); }}
-                          style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"8px 18px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>💾 Save Changes</button>
-                        {editedHtml[doc.id] && (
-                          <button onClick={()=>{ setEditedHtml(e => { const n={...e}; delete n[doc.id]; return n; }); setDocAction(d => ({ ...d, [doc.id]: null })); }}
-                            style={{ background:"transparent", color:C.slate, border:`1px solid ${C.mist}`, borderRadius:20, padding:"8px 16px", fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>↺ Reset to original</button>
-                        )}
-                        {editedHtml[doc.id] && <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Custom version saved</span>}
-                      </div>
                     </div>
                   )}
 
