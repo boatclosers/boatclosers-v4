@@ -119,6 +119,62 @@ const mergeLocal = (base, mine) => {
   return out;
 };
 
+// The fill-in form. It holds the answers entirely on its own while you type and
+// says nothing to the rest of the app until Save is pressed \u2014 so a background
+// refresh cannot rebuild the screen mid-sentence and clear the boxes. Every
+// keystroke is still quietly copied to the browser, purely as a safety net.
+function FillInForm({ doc, blanks, initial, C, onKeep, onSave, onCancel }) {
+  const [draft, setDraft] = useState(initial);
+  const [savedAt, setSavedAt] = useState(0);
+  const set = (fk, v) => {
+    setDraft(d => { const n = { ...d, [fk]: v }; onKeep(fk, v); return n; });
+    if (savedAt) setSavedAt(0);
+  };
+  const answered = blanks.filter(b => (draft[b.fk] || "") !== "").length;
+  return (
+    <div style={{ marginTop:12, background:"#fffaf0", border:`1px solid ${C.brass}`, borderRadius:8, padding:"14px 14px 16px" }}>
+      <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:14 }}>
+        ✏️ <strong>Fill in {doc.title}</strong> — these are the only blanks on this document. Everything else fills itself from your deal and stays locked. Fill in what you need, then press <strong>Save</strong> at the bottom.
+      </div>
+      {blanks.map((b, i) => (
+        <div key={b.fk} style={{ marginBottom:12 }}>
+          <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:4, lineHeight:1.45 }}>{b.label}</div>
+          {b.kind === "check" ? (
+            <label style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, fontFamily:"sans-serif", color:C.navy, cursor:"pointer" }}>
+              <input type="checkbox" checked={draft[b.fk]==="on"} onChange={e=>set(b.fk, e.target.checked ? "on" : "")} style={{ width:17, height:17 }} />
+              <span>Yes</span>
+            </label>
+          ) : (
+            <input
+              type="text"
+              value={draft[b.fk] || ""}
+              onChange={e=>set(b.fk, e.target.value)}
+              placeholder={"Blank " + (i+1)}
+              style={{ width:"100%", boxSizing:"border-box", padding:"10px 12px", fontSize:16, fontFamily:"sans-serif", color:C.navy, border:`1px solid ${C.mist}`, borderRadius:6, outline:"none", background:"#fff" }}
+            />
+          )}
+        </div>
+      ))}
+      {doc.checklist && (
+        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:4, marginBottom:12 }}>
+          The tick-boxes on this document stay on the document itself — press Save, then tap <strong>View</strong> to check them off.
+        </div>
+      )}
+      <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap", marginTop:4 }}>
+        <button onClick={()=>{ onSave(draft); setSavedAt(Date.now()); }}
+          style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"11px 24px", fontSize:13.5, fontWeight:800, fontFamily:"sans-serif", cursor:"pointer" }}>
+          💾 Save {answered > 0 ? `(${answered} of ${blanks.length})` : ""}
+        </button>
+        <button onClick={()=>{ onSave(draft); onCancel(); }}
+          style={{ background:"transparent", color:C.slate, border:`1px solid ${C.mist}`, borderRadius:20, padding:"10px 18px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>
+          Save &amp; show the document
+        </button>
+        {savedAt > 0 && <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.green, fontWeight:800 }}>✓ Saved</span>}
+      </div>
+    </div>
+  );
+}
+
 // Renders a filled document. Checkbox lists (doc.checklist) and "____" blanks
 // become interactive in-app when `editable` is true; otherwise read-only.
 function DocPaper({ doc, html, editable, checkState, toggleCheck, savedFields, onField }) {
@@ -314,6 +370,24 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     saveFills(dealId);
     setCheckState(next);
     setData(d => ({ ...d, docChecks: next }));
+  };
+  // Keep a keystroke in the browser only \u2014 no app-wide update, so typing is never
+  // interrupted. This is the safety net if the tab closes before Save is pressed.
+  const keepField = (docId, key, val) => {
+    LOCAL_FILLS.fields[docId] = { ...(LOCAL_FILLS.fields[docId] || {}), [key]: String(val || "").slice(0, 300) };
+    saveFills(dealId);
+  };
+  // Save a whole form at once, on the Save button.
+  const saveFields = (docId, draft) => {
+    const clean = {};
+    Object.keys(draft || {}).forEach(k => {
+      clean[k] = sanitizeHtml(String(draft[k] || "")).replace(/<[^>]*>/g, "").slice(0, 300);
+    });
+    const next = { ...fieldState, [docId]: { ...(fieldState[docId] || {}), ...clean } };
+    LOCAL_FILLS.fields[docId] = { ...(LOCAL_FILLS.fields[docId] || {}), ...clean };
+    saveFills(dealId);
+    setFieldState(next);
+    setData(d => ({ ...d, docFields: next }));
   };
   const setField = (docId, key, val) => {
     // Typed values are plain text only — scrub anything markup-like before it is
@@ -1184,59 +1258,18 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
                   {/* FILL IN — plain form boxes, one per blank. Nothing from the
                       deal itself appears here, so vessel & parties stay locked. */}
-                  {docAction[doc.id]==="fill" && (() => {
-                    const blanks = getBlanks(doc);
-                    const saved = fieldState[doc.id] || {};
-                    return (
-                      <div style={{ marginTop:12, background:"#fffaf0", border:`1px solid ${C.brass}`, borderRadius:8, padding:"14px 14px 16px" }}>
-                        <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:14 }}>
-                          ✏️ <strong>Fill in {doc.title}</strong> — these are the only blanks on this document. Everything else fills itself from your deal and stays locked. Your answers save as you type.
-                        </div>
-                        {blanks.map((b, i) => (
-                          <div key={b.fk} style={{ marginBottom:12 }}>
-                            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:4, lineHeight:1.45 }}>{b.label}</div>
-                            {b.kind === "check" ? (
-                              <label style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, fontFamily:"sans-serif", color:C.navy, cursor:"pointer" }}>
-                                <input type="checkbox" checked={saved[b.fk]==="on"} onChange={e=>setField(doc.id, b.fk, e.target.checked ? "on" : "")} style={{ width:17, height:17 }} />
-                                <span>Yes</span>
-                              </label>
-                            ) : (
-                              <input
-                                type="text"
-                                value={saved[b.fk] || ""}
-                                onChange={e=>setField(doc.id, b.fk, e.target.value)}
-                                placeholder={"Blank " + (i+1)}
-                                style={{ width:"100%", boxSizing:"border-box", padding:"10px 12px", fontSize:16, fontFamily:"sans-serif", color:C.navy, border:`1px solid ${C.mist}`, borderRadius:6, outline:"none", background:"#fff" }}
-                              />
-                            )}
-                          </div>
-                        ))}
-                        {doc.checklist && (
-                          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:4, marginBottom:12 }}>
-                            The tick-boxes on this document stay on the document itself — tap <strong>View</strong> to check them off.
-                          </div>
-                        )}
-                        <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
-                          <button onClick={()=>setDocAction(d => ({ ...d, [doc.id]: "view" }))}
-                            style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"10px 22px", fontSize:13, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>✓ Done — show the document</button>
-                          {(() => {
-                            const inDeal = (data.docFields || {})[doc.id] || {};
-                            const typed = blanks.filter(b => (saved[b.fk] || "") !== "");
-                            const stored = typed.filter(b => (inDeal[b.fk] || "") === saved[b.fk]);
-                            if (!typed.length) return null;
-                            const done = stored.length === typed.length;
-                            return (
-                              <span style={{ fontSize:11.5, fontFamily:"sans-serif", fontWeight:700, color: done ? C.green : C.slate }}>
-                                {done
-                                  ? `✓ ${stored.length} of ${blanks.length} stored in your deal`
-                                  : `… saving ${typed.length - stored.length} answer${typed.length - stored.length === 1 ? "" : "s"}`}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  {docAction[doc.id]==="fill" && (
+                    <FillInForm
+                      key={doc.id}
+                      doc={doc}
+                      blanks={getBlanks(doc)}
+                      initial={fieldState[doc.id] || {}}
+                      C={C}
+                      onKeep={(fk, v) => keepField(doc.id, fk, v)}
+                      onSave={(draft) => saveFields(doc.id, draft)}
+                      onCancel={() => setDocAction(d => ({ ...d, [doc.id]: "view" }))}
+                    />
+                  )}
 
                   {/* E-SIGN */}
                   {docAction[doc.id]==="esign" && (
