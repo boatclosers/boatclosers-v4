@@ -336,15 +336,13 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     });
     if (dealId && pending) { saveFills(dealId); try { window.localStorage.removeItem(FILLS_KEY(null)); } catch (e) {} }
   }
-  const [checkState, setCheckState] = useState(() => mergeLocal(data.docChecks, LOCAL_FILLS.checks)); // docId -> { itemIndex: true }
-  const [fieldState, setFieldState] = useState(() => mergeLocal(data.docFields, LOCAL_FILLS.fields)); // docId -> { fieldKey: text }
-  // When the deal updates in the background, take what is new but keep every
-  // answer entered on this device on top of it.
-  const dealFillsKey = JSON.stringify([data.docFields || {}, data.docChecks || {}]);
-  useEffect(() => {
-    setFieldState(mergeLocal(data.docFields, LOCAL_FILLS.fields));
-    setCheckState(mergeLocal(data.docChecks, LOCAL_FILLS.checks));
-  }, [dealFillsKey]); // eslint-disable-line
+  // No stored copy of the answers lives here, deliberately. Something in the app
+  // was resetting that copy a few seconds after the page loaded, which is what made
+  // filled-in answers vanish from the screen while the database still held them.
+  // They are now worked out fresh on every draw: what the deal says, with anything
+  // typed on this device laid on top. There is no copy left to reset.
+  const checkState = mergeLocal(data.docChecks, LOCAL_FILLS.checks);
+  const fieldState = mergeLocal(data.docFields, LOCAL_FILLS.fields);
   const [closeAck, setCloseAck] = useState(false); // acknowledge offline/notary docs before closing
 
   // One-line "is this section for me?" descriptions under each group header.
@@ -360,18 +358,13 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     "Closing-Day": "Sign these at the handoff — delivery and possession receipt, the seller's disclosure of known defects, and the engine-hours statement.",
   };
 
-  // These both used to call setData from INSIDE the state updater. React treats an
-  // updater as pure and may run it more than once, so the save to the deal was
-  // unreliable — which is why filled-in answers did not stick. Work the new
-  // value out first, then set state and save it as two plain, separate steps.
   const toggleCheck = (docId, idx) => {
     const next = { ...checkState, [docId]: { ...(checkState[docId]||{}), [idx]: !(checkState[docId]||{})[idx] } };
     LOCAL_FILLS.checks[docId] = { ...(LOCAL_FILLS.checks[docId] || {}), [idx]: next[docId][idx] };
     saveFills(dealId);
-    setCheckState(next);
     setData(d => ({ ...d, docChecks: next }));
   };
-  // Keep a keystroke in the browser only \u2014 no app-wide update, so typing is never
+  // Keep a keystroke in the browser only — no app-wide update, so typing is never
   // interrupted. This is the safety net if the tab closes before Save is pressed.
   const keepField = (docId, key, val) => {
     LOCAL_FILLS.fields[docId] = { ...(LOCAL_FILLS.fields[docId] || {}), [key]: String(val || "").slice(0, 300) };
@@ -386,7 +379,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     const next = { ...fieldState, [docId]: { ...(fieldState[docId] || {}), ...clean } };
     LOCAL_FILLS.fields[docId] = { ...(LOCAL_FILLS.fields[docId] || {}), ...clean };
     saveFills(dealId);
-    setFieldState(next);
     setData(d => ({ ...d, docFields: next }));
   };
   const setField = (docId, key, val) => {
@@ -396,7 +388,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     const next = { ...fieldState, [docId]: { ...(fieldState[docId]||{}), [key]: clean } };
     LOCAL_FILLS.fields[docId] = { ...(LOCAL_FILLS.fields[docId] || {}), [key]: clean };
     saveFills(dealId);
-    setFieldState(next);
     setData(d => ({ ...d, docFields: next }));
   };
   // A document can be locked to one role with editRole. Only that role fills it
