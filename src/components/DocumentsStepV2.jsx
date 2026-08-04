@@ -638,6 +638,32 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     return m[docObj.id];
   };
 
+  // Put the signing date onto the signature line, for the side that actually
+  // signed. Signature dates are never typed by hand \u2014 they are stamped from the
+  // moment of signing, so a document cannot claim a date nobody agreed to.
+  const niceDate = (iso) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ""));
+    return m ? `${m[2]}/${m[3]}/${m[1]}` : String(iso || "");
+  };
+  const stampSignatures = (html, docId) => {
+    const sig = signed[docId];
+    if (!sig || !sig.date) return html;
+    const stamp = niceDate(sig.date);
+    // Signing offline or uploading a notarised copy covers both sides at once.
+    const bothSides = !!(sig.manual || sig.uploaded || sig.notarizedOffline);
+    const who = sig.role === "seller" ? "seller" : sig.role === "buyer" ? "buyer" : null;
+    const lines = (html.match(/Date:\s*_{4,}/g) || []).length;
+    return html.replace(/(Date:\s*)(_{4,})/g, (m, lead, blank, off) => {
+      if (bothSides || lines === 1 || !who) return lead + `<span class="bc-stamp">${stamp}</span>`;
+      // Work out whose signature box this date belongs to: whichever side is
+      // named last before it.
+      const ctx = html.slice(Math.max(0, off - 260), off).toLowerCase();
+      const sAt = ctx.lastIndexOf("seller"), bAt = ctx.lastIndexOf("buyer");
+      const side = sAt > bAt ? "seller" : (bAt > -1 ? "buyer" : null);
+      return (side === who) ? lead + `<span class="bc-stamp">${stamp}</span>` : m;
+    });
+  };
+
   // Every blank and checkbox in a document, each labelled with the words that come
   // just before it, so the Fill In form reads like the document itself.
   const plain = (h) => String(h).replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ")
@@ -680,7 +706,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // the tap-to-fill blanks, then wraps it in the same document styling.
   const b64Unicode = (str) => { try { return btoa(unescape(encodeURIComponent(str))); } catch (e) { return btoa(str); } };
   const buildDocFile = (docObj) => {
-    let body = getDocHtml(docObj);
+    let body = stampSignatures(getDocHtml(docObj), docObj.id);
     const saved = fieldState[docObj.id] || {};
     body = body.replace(/<span class="bc-fill-in" data-fk="([^"]+)">________<\/span>/g, (m, fk) => {
       const v = saved[fk];
@@ -695,6 +721,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       "\nbody{margin:0;padding:24px;background:#fff}" +
       "\n.bc-fill-hint,.bc-lock-note{display:none}" +
       "\n.bc-fill-in{border-bottom:1px solid " + C.brass + ";padding:0 4px;min-width:80px;display:inline-block}" +
+      "\n.bc-stamp{font-weight:700;padding:0 6px;border-bottom:1px solid " + C.brass + "}" +
       "\n.bc-missing{border-bottom:1px solid #bbb;padding:0 4px;min-width:80px;display:inline-block;color:transparent}" +
       "\n@page{margin:0.6in}";
     return '<!doctype html><html><head><meta charset="utf-8"><title>' + (docObj.title || "Document") + '</title><style>' + css + '</style></head><body>' +
@@ -842,6 +869,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 .bc-notary-flag strong{color:#8a6d1a}
 .bc-checklist{margin:6px 0 14px}
 .bc-fill-in{display:inline-block;min-width:90px;border-bottom:1px solid ${C.mist};padding:0 5px;line-height:1.7}
+.bc-stamp{font-weight:700;color:${C.navy};border-bottom:1px solid ${C.brass};padding:0 6px}
 .bc-missing{display:inline-block;min-width:90px;border-bottom:1px solid ${C.mist};padding:0 5px;line-height:1.7;color:transparent;user-select:none}
 .bc-fill-in.filled{border-bottom:1.5px solid ${C.brass};color:${C.navy};font-weight:600}
 .bc-check{font-size:16px;color:${C.slate};user-select:none;padding:0 2px}
@@ -1228,7 +1256,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                             </div>
                           )}
                           {(() => {
-                            const filledHtml = getDocHtml(doc);
+                            const filledHtml = stampSignatures(getDocHtml(doc), doc.id);
                             const editable = canEditDoc(doc);
                             const interactive = !!doc.checklist || filledHtml.includes("bc-fill-in");
                             return (
@@ -1309,7 +1337,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                                     <label style={S.label}>Type your full legal name to sign electronically</label>
                                     <input style={S.input} placeholder="Full legal name" value={sigName[doc.id]||""} onChange={e=>setSigName(s=>({...s,[doc.id]:e.target.value}))}/>
                                   </div>
-                                  <button style={{...S.btnBrass, opacity:canSign?1:0.45, cursor:canSign?"pointer":"not-allowed"}} disabled={!canSign} onClick={()=>{ if(!sigMatchesName((sigName[doc.id]||"").trim(), myName)) return; const st=signedStamp(); setSigned(s=>({...s,[doc.id]:{name:sigName[doc.id],date:today(),at:st.at,when:st.when,consent:true}})); setAction(doc.id,"esign"); }}>Sign Document</button>
+                                  <button style={{...S.btnBrass, opacity:canSign?1:0.45, cursor:canSign?"pointer":"not-allowed"}} disabled={!canSign} onClick={()=>{ if(!sigMatchesName((sigName[doc.id]||"").trim(), myName)) return; const st=signedStamp(); setSigned(s=>({...s,[doc.id]:{name:sigName[doc.id],date:today(),at:st.at,when:st.when,consent:true,role:myRole}})); setAction(doc.id,"esign"); }}>Sign Document</button>
                                 </div>
                                 {myName && typed && !nameOk && (
                                   <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:6, lineHeight:1.5 }}>Your signature must match your name on this deal: <b>{myName}</b>. To change it, update your name in the Parties step.</div>
