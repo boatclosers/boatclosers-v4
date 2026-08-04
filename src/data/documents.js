@@ -587,7 +587,6 @@ export const DOCUMENTS = [
 
 <div class="sig">
   <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer<br>Date: ____________</small></div>
-  <div class="sigbox"><div class="ln"></div><small>Acknowledged \u2014 <b>{{sellerName}}</b> (Seller)<br>Date: ____________</small></div>
 </div>`
   },
 
