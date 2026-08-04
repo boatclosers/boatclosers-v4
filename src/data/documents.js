@@ -172,7 +172,6 @@ export const DOCUMENTS = [
     eyebrow: "Transfer of Ownership",
     title: "Vessel Bill of Sale (Simple, No Notary)",
     desc: "Quick-sale version \u2014 fill the price in the app or write it in by hand. No notary block.",
-    viewOnly: true,
     body: `
 <p class="lead recital">{{sellerName}}, of {{sellerAddress}} (the \u201cSeller\u201d), hereby sells, transfers, and conveys to {{buyerName}}, of {{buyerAddress}} (the \u201cBuyer\u201d), all right, title, and interest in the following vessel:</p>
 
