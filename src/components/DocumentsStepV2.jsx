@@ -101,46 +101,23 @@ function DocPaper({ doc, html, editable, checkState, toggleCheck, savedFields, o
     if (!root) return;
     const blanks = root.querySelectorAll(".bc-fill-in");
     const handlers = [];
+    // Blanks are never typed on directly — they only display what was entered in
+    // the Fill In form. Nothing here is editable, so nothing can be clobbered.
     blanks.forEach((el) => {
-      const fk = el.getAttribute("data-fk");
-      const saved = savedFields[fk];
-      const isTyping = typeof document !== "undefined" && document.activeElement === el;
-      if (editable) {
-        el.setAttribute("contenteditable", "true");
-        el.classList.add("editable");
-        // Never overwrite a blank the user is actively typing into.
-        if (!isTyping) el.textContent = (saved != null && saved !== "") ? saved : "";
-        // Save as they type (settled after a short pause) as well as on blur, so
-        // nothing is lost if the page updates mid-word.
-        let t = null;
-        const commit = () => onField(fk, (el.textContent || "").trim());
-        const onInput = () => { clearTimeout(t); t = setTimeout(commit, 400); };
-        const onBlur = () => { clearTimeout(t); commit(); };
-        el.addEventListener("input", onInput);
-        el.addEventListener("blur", onBlur);
-        handlers.push([el, onInput, "input"], [el, onBlur, "blur"]);
-      } else if (!isTyping) {
-        el.textContent = (saved != null && saved !== "") ? saved : "________";
-      }
+      const saved = savedFields[el.getAttribute("data-fk")];
+      const has = saved != null && saved !== "";
+      el.removeAttribute("contenteditable");
+      el.classList.toggle("filled", has);
+      el.textContent = has ? saved : "________";
     });
     // Checkboxes (☐/☑) embedded in the document body — clickable when editable.
     const checks = root.querySelectorAll(".bc-check");
     checks.forEach((el) => {
       const fk = el.getAttribute("data-fk");
       el.textContent = savedFields[fk] === "on" ? "\u2611" : "\u2610";
-      if (editable) {
-        el.classList.add("editable");
-        const onClick = () => {
-          const nowOn = el.textContent === "\u2611";
-          el.textContent = nowOn ? "\u2610" : "\u2611";
-          onField(fk, nowOn ? "" : "on");
-        };
-        el.addEventListener("click", onClick);
-        handlers.push([el, onClick, "click"]);
-      }
     });
     return () => handlers.forEach(([el, h, ev]) => el.removeEventListener(ev, h));
-  }, [html, editable]); // eslint-disable-line
+  }, [html, editable, savedFields]); // eslint-disable-line
 
   if (doc.checklist && html.includes("<!--CHECKLIST-->")) {
     const [before, after] = html.split("<!--CHECKLIST-->");
@@ -526,6 +503,44 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     return m[docObj.id];
   };
 
+  // Every blank and checkbox in a document, each labelled with the words that come
+  // just before it, so the Fill In form reads like the document itself.
+  const plain = (h) => String(h).replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+  const labelFor = (lead) => {
+    const inList = /<li[^>]*>\s*$/i.test(lead);
+    const heads = lead.match(/<(?:b|strong|h3)[^>]*>[\s\S]*?<\/(?:b|strong|h3)>/gi);
+    const sec = heads ? plain(heads[heads.length - 1]) : "";
+    if (inList && sec) return sec;
+    let t = plain(lead);
+    const cut = Math.max(t.lastIndexOf(". "), t.lastIndexOf(": "), t.lastIndexOf("; "));
+    if (cut > -1 && t.length - cut > 4) t = t.slice(cut + 1);
+    t = t.trim().replace(/[:;,]$/, "").slice(-90);
+    // A stub like "excluded" tells the user nothing \u2014 fall back to the heading.
+    if (t.length < 12 && sec) return sec;
+    return t || sec || "Fill in";
+  };
+  const getBlanks = (docObj) => {
+    const html = getDocHtml(docObj);
+    const out = [];
+    const re = /<span class="bc-(fill-in|check)" data-fk="([^"]+)">/g;
+    let m;
+    while ((m = re.exec(html))) {
+      out.push({ fk: m[2], kind: m[1], label: labelFor(html.slice(0, m.index)) });
+    }
+    // Where a heading covers several blanks in a row, number them 1, 2, 3\u2026
+    const counts = {};
+    out.forEach(b => { counts[b.label] = (counts[b.label] || 0) + 1; });
+    const seen = {};
+    out.forEach(b => {
+      if (counts[b.label] > 1) {
+        seen[b.label] = (seen[b.label] || 0) + 1;
+        b.label = b.label + " \u2014 " + seen[b.label];
+      }
+    });
+    return out;
+  };
+
   // attached to the "send" email. Bakes in merge fields AND any values typed into
   // the tap-to-fill blanks, then wraps it in the same document styling.
   const b64Unicode = (str) => { try { return btoa(unescape(encodeURIComponent(str))); } catch (e) { return btoa(str); } };
@@ -680,8 +695,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 .bc-notary-flag{background:#fbf4e3;border:1px solid #8a6d1a;border-radius:6px;padding:10px 13px;margin-bottom:16px;font-size:11.5px;line-height:1.55;color:#6b540f;font-family:sans-serif}
 .bc-notary-flag strong{color:#8a6d1a}
 .bc-checklist{margin:6px 0 14px}
-.bc-fill-in.editable{display:inline-block;min-width:90px;border-bottom:1.5px solid ${C.brass};padding:0 5px;outline:none;color:${C.navy};font-weight:600;line-height:1.7}
-.bc-fill-in.editable:focus{background:#fffaf0}
+.bc-fill-in{display:inline-block;min-width:90px;border-bottom:1px solid ${C.mist};padding:0 5px;line-height:1.7}
+.bc-fill-in.filled{border-bottom:1.5px solid ${C.brass};color:${C.navy};font-weight:600}
 .bc-check{font-size:16px;color:${C.slate};user-select:none;padding:0 2px}
 .bc-check.editable{cursor:pointer;color:${C.navy}}
 .bc-check.editable:hover{color:${C.brass}}
@@ -987,6 +1002,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                     </div>
                     <div className="bc-docbtns">
                       <ActionBtn docId={doc.id} action="view"   icon="👁" label="View"   />
+                      {canEditDoc(doc) && (getBlanks(doc).length > 0 || !!doc.checklist) && <ActionBtn docId={doc.id} action="fill" icon="✏️" label="Fill In" color={C.brass} />}
                       {doc.kind !== "upload" && !needsNotary && !doc.viewOnly && <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />}
                       {doc.kind !== "upload" && !doc.viewOnly && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
                       <ActionBtn docId={doc.id} action="send"   icon="📤" label="Send"   color={C.brass} />
@@ -1071,7 +1087,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                             return (
                               <>
                                 {interactive ? (editable ? (
-                                  <div className="bc-fill-hint">✏️ <strong>Tap the gold blank lines and boxes to fill them in.</strong> Everything else on this document comes straight from your <strong>Vessel</strong>, <strong>Parties</strong>, and agreed <strong>Terms</strong> — it is locked here so it can never disagree with your deal. If any of that looks wrong, go back and fix it at the source and every document updates. Then print or send — no scanning needed.</div>
+                                  <div className="bc-fill-hint">✏️ <strong>This document has blanks to complete — tap “Fill In” above.</strong> Everything else comes straight from your <strong>Vessel</strong>, <strong>Parties</strong>, and agreed <strong>Terms</strong> and is locked, so it can never disagree with your deal. If any of that looks wrong, fix it at the source and every document updates.</div>
                                 ) : (
                                   <div className="bc-lock-note">🔒 Only the {doc.editRole} fills this one in here. You can still view it, print it, and upload a signed copy.</div>
                                 )) : (
@@ -1093,6 +1109,46 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                       )}
                     </div>
                   )}
+
+                  {/* FILL IN — plain form boxes, one per blank. Nothing from the
+                      deal itself appears here, so vessel & parties stay locked. */}
+                  {docAction[doc.id]==="fill" && (() => {
+                    const blanks = getBlanks(doc);
+                    const saved = fieldState[doc.id] || {};
+                    return (
+                      <div style={{ marginTop:12, background:"#fffaf0", border:`1px solid ${C.brass}`, borderRadius:8, padding:"14px 14px 16px" }}>
+                        <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:14 }}>
+                          ✏️ <strong>Fill in {doc.title}</strong> — these are the only blanks on this document. Everything else fills itself from your deal and stays locked. Your answers save as you type.
+                        </div>
+                        {blanks.map((b, i) => (
+                          <div key={b.fk} style={{ marginBottom:12 }}>
+                            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:4, lineHeight:1.45 }}>{b.label}</div>
+                            {b.kind === "check" ? (
+                              <label style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, fontFamily:"sans-serif", color:C.navy, cursor:"pointer" }}>
+                                <input type="checkbox" checked={saved[b.fk]==="on"} onChange={e=>setField(doc.id, b.fk, e.target.checked ? "on" : "")} style={{ width:17, height:17 }} />
+                                <span>Yes</span>
+                              </label>
+                            ) : (
+                              <input
+                                type="text"
+                                value={saved[b.fk] || ""}
+                                onChange={e=>setField(doc.id, b.fk, e.target.value)}
+                                placeholder={"Blank " + (i+1)}
+                                style={{ width:"100%", boxSizing:"border-box", padding:"10px 12px", fontSize:16, fontFamily:"sans-serif", color:C.navy, border:`1px solid ${C.mist}`, borderRadius:6, outline:"none", background:"#fff" }}
+                              />
+                            )}
+                          </div>
+                        ))}
+                        {doc.checklist && (
+                          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:4, marginBottom:12 }}>
+                            The tick-boxes on this document stay on the document itself — tap <strong>View</strong> to check them off.
+                          </div>
+                        )}
+                        <button onClick={()=>setDocAction(d => ({ ...d, [doc.id]: "view" }))}
+                          style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"10px 22px", fontSize:13, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>✓ Done — show the document</button>
+                      </div>
+                    );
+                  })()}
 
                   {/* E-SIGN */}
                   {docAction[doc.id]==="esign" && (
