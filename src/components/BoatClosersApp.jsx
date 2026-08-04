@@ -4959,6 +4959,27 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
             <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:4 }}>Ready to close this deal?</div>
             <div style={{ fontSize:12, color:C.slate, lineHeight:1.7 }}>Finalizing locks the entire deal &mdash; terms, documents, and signatures become permanent and can&rsquo;t be changed. Do this once the sale is fully complete and both sides have their copies.</div>
           </div>
+          {(() => {
+            // Finalizing is permanent and the server refuses every later write, so a
+            // document left unsigned here can never be signed. Say so plainly before
+            // they commit — but don't block them: a seller may knowingly close with
+            // the notarised Bill of Sale handled on paper.
+            const unsigned = closingDocSections.flatMap(sec => (sec.docs||[]).filter(d => d && d.signed === false));
+            if (!unsigned.length) return null;
+            return (
+              <div style={{ background:"#fff4e5", border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", marginBottom:14, fontFamily:"sans-serif" }}>
+                <div style={{ fontSize:13, fontWeight:800, color:"#8a5a12", marginBottom:6 }}>
+                  ⚠️ {unsigned.length} document{unsigned.length===1?" is":"s are"} still unsigned
+                </div>
+                <ul style={{ margin:"0 0 8px", paddingLeft:18, fontSize:12.5, color:C.slate, lineHeight:1.7 }}>
+                  {unsigned.map(d => <li key={d.id}>{d.label}</li>)}
+                </ul>
+                <div style={{ fontSize:12, color:C.slate, lineHeight:1.65 }}>
+                  Once you finalize, <b>these can never be signed in the app</b> — the deal becomes a permanent record. If you mean to sign {unsigned.length===1?"it":"them"} here, go back to Documents first. If {unsigned.length===1?"it is":"they are"} being handled on paper or at the notary, carry on.
+                </div>
+              </div>
+            );
+          })()}
           {!confirmFinalize ? (
             <div style={{ display:"flex", justifyContent:"space-between", gap:10, flexWrap:"wrap" }}>
               <button style={S.btnOutline} onClick={onBack}>&larr; Back to Documents</button>
@@ -5812,7 +5833,12 @@ export default function BoatClosers() {
     // Guard on the SERVER-confirmed finalized status (set at load), so the single
     // finalize action itself still persists; every save AFTER that is blocked, and
     // after reload the deal loads finalized and stays frozen.
-    if (finalizedRef.current) return;
+    if (finalizedRef.current) {
+      // Silently discarding someone's typing is worse than refusing it out loud —
+      // that silence is what made a locked deal look like it was still editable.
+      setToast({ k: Date.now(), text: "🔒 This deal is finalized — nothing can be changed. Start a new deal to sell again." });
+      return;
+    }
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaving(true);
     saveTimer.current = setTimeout(async () => {
@@ -6108,6 +6134,11 @@ export default function BoatClosers() {
   // Everything past the negotiation — due diligence, documents, closing — is
   // locked until the deal is finalized: both sign the PA and the $249 is paid.
   const dealPaid = !!(negotiate?.paid || negotiate?.dealLocked || (negotiate?.offers || []).some(o => o && o.status === "accepted"));
+  // A finalized deal is a closed, permanent record. The server already refuses every
+  // write to one (423), but until now the screen still LOOKED editable: you could
+  // retype the HIN, move on, and never be told the change went nowhere. That made a
+  // properly locked deal feel reusable. The earlier steps are now visibly sealed.
+  const dealFrozen = !!negotiate?.dealFinalized;
   const goToStep = (n) => { if (n >= 3 && !dealPaid) { setStep(2); return; } setStep(n); if (n > maxStep) setMaxStep(n); scheduleSave(); };
 
   // ── Authenticated fetch with silent token refresh ─────────────────────────
@@ -6509,11 +6540,23 @@ export default function BoatClosers() {
           </div>
         </div>
       )}
+      {dealFrozen && step <= 3 && (
+        <div style={{ maxWidth:880, margin:"12px auto 0", padding:"0 1.25rem" }}>
+          <div style={{ background:"#f4f7f5", border:`1px solid ${C.green}`, borderRadius:8, padding:"12px 14px", fontFamily:"sans-serif", fontSize:12.5, color:C.slate, lineHeight:1.6 }}>
+            🔒 <b>Sealed.</b> This deal is finalized, so the vessel, parties, terms and due-diligence pages are read-only from here on. You can still open <b>Documents</b> to view, print or send anything from the sale. To sell another boat, or the same boat to someone else, start a new deal.
+            <div style={{ marginTop:10 }}>
+              <button onClick={()=>startNewDeal()} style={{ ...S.btnBrass, fontSize:12.5, padding:"8px 18px" }}>Start a new deal →</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <div style={dealFrozen && step <= 3 ? { pointerEvents:"none", opacity:0.6, userSelect:"text" } : undefined} aria-disabled={dealFrozen && step <= 3 ? "true" : undefined}>
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} userRole={myDealRole || user?.role || "seller"} onNext={()=>goToStep(1)}/>}
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user} ensureSaved={ensureDealSaved}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} stripeReturn={stripeReturn} onRefresh={()=>window.location.reload()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} authToken={tokenRef.current?.token} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
+      </div>
       {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} setNegotiate={setNegotiateAndSave} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onBack={()=>setStep(4)} onFinalize={()=>{ setTimeout(()=>{ finalizedRef.current = true; }, 2500); }}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
 
       {cancelModal && (
