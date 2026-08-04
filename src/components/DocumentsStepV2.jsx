@@ -392,7 +392,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   };
   // A document can be locked to one role with editRole. Only that role fills it
   // in-app; the other party prints/uploads instead.
-  const canEditDoc = (doc) => !doc.editRole || doc.editRole === myRole;
+  // A finalized deal is a closed record. The server refuses every write to one, so
+  // offering Fill In, E-Sign or Upload would only fail quietly and make a properly
+  // locked deal look editable. Viewing, printing and sending stay open — that record
+  // of the sale is exactly what the parties paid for.
+  const frozen = !!(negotiate && negotiate.dealFinalized);
+  const canEditDoc = (doc) => !frozen && (!doc.editRole || doc.editRole === myRole);
   // Turn the "____" blanks in a document (outside the signature block) into
   // fillable spans the right party can type into.
   const prepHtml = (rawHtml, docId) => {
@@ -929,10 +934,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       <div style={{ marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div>
           <h1 style={S.h1}>Documents</h1>
-          <button onClick={()=>setShowDocFinder(true)} style={{ marginTop:8, background:"transparent", color:C.navy, border:`1px solid ${C.brass}`, borderRadius:7, padding:"8px 14px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>🧭 Which document do I need?</button>
+          {!frozen && <button onClick={()=>setShowDocFinder(true)} style={{ marginTop:8, background:"transparent", color:C.navy, border:`1px solid ${C.brass}`, borderRadius:7, padding:"8px 14px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>🧭 Which document do I need?</button>}
         </div>
         <span style={{...S.pill, background:C.greenLight, color:C.green}}>Paid ✓</span>
       </div>
+      {frozen && (
+        <div style={{ background:"#f4f7f5", border:`1px solid ${C.green}`, borderRadius:8, padding:"12px 14px", marginBottom:18, fontFamily:"sans-serif", fontSize:12.5, color:C.slate, lineHeight:1.6 }}>
+          🔒 <b>This deal is finalized.</b> Your documents are a closed record and can no longer be signed, filled in, replaced or added to. You can still open, print, download and email any of them, for as long as you need them.
+        </div>
+      )}
 
       {/* ── OFFICIAL GOVERNMENT FORMS — a proper section, not a stray link ── */}
       <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px 16px", marginBottom:16, background:C.white }}>
@@ -952,7 +962,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                 ? <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:800, color:"#2b6cb0" }}>Included ✓</span>
                 : <button onClick={()=>setFlOptIn(false)} style={{ background:"none", border:`1px solid ${C.mist}`, borderRadius:6, color:C.slate, fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", padding:"6px 12px", cursor:"pointer" }}>Remove</button>
             ) : (
-              <button onClick={()=>setFlOptIn(true)} style={{ background:"#2b6cb0", border:"none", borderRadius:6, color:"#fff", fontSize:11.5, fontWeight:800, fontFamily:"sans-serif", padding:"6px 14px", cursor:"pointer" }}>Add →</button>
+              frozen ? null : (<button onClick={()=>setFlOptIn(true)} style={{ background:"#2b6cb0", border:"none", borderRadius:6, color:"#fff", fontSize:11.5, fontWeight:800, fontFamily:"sans-serif", padding:"6px 14px", cursor:"pointer" }}>Add →</button>)
             )}
           </div>
           {/* Coast Guard */}
@@ -966,7 +976,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                 ? <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:800, color:"#2f7d55" }}>Included ✓</span>
                 : <button onClick={()=>setDocOptIn(false)} style={{ background:"none", border:`1px solid ${C.mist}`, borderRadius:6, color:C.slate, fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", padding:"6px 12px", cursor:"pointer" }}>Remove</button>
             ) : (
-              <button onClick={()=>setDocOptIn(true)} style={{ background:"#2f7d55", border:"none", borderRadius:6, color:"#fff", fontSize:11.5, fontWeight:800, fontFamily:"sans-serif", padding:"6px 14px", cursor:"pointer" }}>Add →</button>
+              frozen ? null : (<button onClick={()=>setDocOptIn(true)} style={{ background:"#2f7d55", border:"none", borderRadius:6, color:"#fff", fontSize:11.5, fontWeight:800, fontFamily:"sans-serif", padding:"6px 14px", cursor:"pointer" }}>Add →</button>)
             )}
           </div>
         </div>
@@ -1178,10 +1188,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                     <div className="bc-docbtns">
                       <ActionBtn docId={doc.id} action="view"   icon="👁" label="View"   />
                       {canEditDoc(doc) && (getBlanks(doc).length > 0 || !!doc.checklist) && <ActionBtn docId={doc.id} action="fill" icon="✏️" label="Fill In" color={C.brass} />}
-                      {doc.kind !== "upload" && !needsNotary && !doc.viewOnly && <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />}
-                      {doc.kind !== "upload" && !doc.viewOnly && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
+                      {!frozen && doc.kind !== "upload" && !needsNotary && !doc.viewOnly && <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />}
+                      {!frozen && doc.kind !== "upload" && !doc.viewOnly && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
                       <ActionBtn docId={doc.id} action="send"   icon="📤" label="Send"   color={C.brass} />
-                      {!doc.viewOnly && <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />}
+                      {!frozen && !doc.viewOnly && <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />}
                       <button onClick={()=>printDoc(doc.id, doc.title)} title="Print" style={{ fontSize:13, padding:"7px 11px", borderRadius:20, cursor:"pointer", border:`1.5px solid #e3ddd0`, background:C.white, color:C.slate }}>🖨️</button>
                     </div>
                   </div>
