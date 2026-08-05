@@ -12,6 +12,7 @@
 import { useState, useRef, useEffect } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
 import DocFinder from "./DocFinder";
+import DocNeeds, { readKnownFacts } from "./DocNeeds";
 
 // ── palette (matches the main app) ──
 const C = {
@@ -284,6 +285,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // Collapsible groups — required group open by default, the rest collapsed.
   const [openGroups, setOpenGroups] = useState({ "Closing Instruments": true });
   const [showDocFinder, setShowDocFinder] = useState(false);
+  // "Which documents do I need?" — a full-screen flow that reads what the deal
+  // already knows, asks only what it cannot, and builds a suggested set.
+  const [showNeeds, setShowNeeds] = useState(false);
   // ── Florida detection ──────────────────────────────────────────────────────
   // Look for Florida in the buyer, seller, or vessel location. If found, the
   // official FL state forms are surfaced automatically. If not found, the user can
@@ -942,11 +946,22 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
           </div>
         </div>
       )}
+      {showNeeds && (
+        <DocNeeds
+          DOCUMENTS={DOC_SET}
+          C={C} S={S}
+          facts={readKnownFacts({ vessel, parties, negotiate, terms })}
+          initial={data.docNeeds || {}}
+          onClose={()=>setShowNeeds(false)}
+          onUse={(groups, answers)=>setData(d => ({ ...d, docNeeds: answers, docNeedsList: groups.flatMap(g=>g.ids) }))}
+          onOpenDoc={(id)=>{ setShowNeeds(false); jumpToDoc(id); }}
+        />
+      )}
       <style>{docCSS}</style>
       <div style={{ marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div>
           <h1 style={S.h1}>Documents</h1>
-          {!frozen && <button onClick={()=>setShowDocFinder(true)} style={{ marginTop:8, background:"transparent", color:C.navy, border:`1px solid ${C.brass}`, borderRadius:7, padding:"8px 14px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>🧭 Which document do I need?</button>}
+          {!frozen && <button onClick={()=>setShowNeeds(true)} style={{ marginTop:8, background:"transparent", color:C.navy, border:`1px solid ${C.brass}`, borderRadius:7, padding:"8px 14px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>🧭 Which document do I need?</button>}
         </div>
         <span style={{...S.pill, background:C.greenLight, color:C.green}}>Paid ✓</span>
       </div>
