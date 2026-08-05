@@ -84,6 +84,8 @@ export const DOCUMENTS = [
     tab: "Purchase Agreement",
     eyebrow: "Master Contract",
     title: "Vessel Purchase & Sale Agreement",
+    useWhen: "Use once you and the other party agree on a price. This is the contract that binds the deal.",
+    keywords: "purchase agreement contract offer accepted binding sale terms psa buy sell",
     body: `
 <p class="lead recital">This Vessel Purchase &amp; Sale Agreement (the \u201cAgreement\u201d) is made on {{effectiveDate}}, by and between {{sellerName}}, of {{sellerAddress}}, a citizen of {{sellerCitizen}} (the \u201cSeller\u201d), and {{buyerName}}, of {{buyerAddress}}, a citizen of {{buyerCitizen}} (the \u201cBuyer\u201d). The Parties may reside in different states or countries; their places of residence do not change the governing law set out in this Agreement.</p>
 
@@ -131,6 +133,8 @@ export const DOCUMENTS = [
     tab: "Bill of Sale (Notarized)",
     eyebrow: "Transfer of Ownership",
     title: "Vessel Bill of Sale (Notarized)",
+    useWhen: "Use to actually transfer ownership when your state wants it notarized \u2014 most titled vessels.",
+    keywords: "bill of sale notarized notary transfer ownership title deed proof of purchase",
     desc: "The Bill of Sale with a notary block \u2014 the standard choice for most sales, and the one to use when a buyer, lender, or county wants it notarized.",
     body: `
 <p class="lead recital">For consideration of {{salePrice}} ({{salePriceWords}} U.S. Dollars), the receipt of which is acknowledged, {{sellerName}}, of {{sellerAddress}} (the \u201cSeller\u201d), hereby sells, transfers, and conveys to {{buyerName}}, of {{buyerAddress}} (the \u201cBuyer\u201d), all right, title, and interest in the following vessel:</p>
@@ -171,7 +175,10 @@ export const DOCUMENTS = [
     tab: "Bill of Sale (Simple)",
     eyebrow: "Transfer of Ownership",
     title: "Vessel Bill of Sale (Simple, No Notary)",
+    useWhen: "Use for a quick sale where no notary is required. Check your state accepts it before relying on it.",
+    keywords: "bill of sale simple no notary quick cash sale receipt proof of purchase",
     desc: "Quick-sale version \u2014 fill the price in the app or write it in by hand. No notary block.",
+    viewOnly: true,
     body: `
 <p class="lead recital">{{sellerName}}, of {{sellerAddress}} (the \u201cSeller\u201d), hereby sells, transfers, and conveys to {{buyerName}}, of {{buyerAddress}} (the \u201cBuyer\u201d), all right, title, and interest in the following vessel:</p>
 
@@ -206,6 +213,8 @@ export const DOCUMENTS = [
     florida: true,
     eyebrow: "Florida Official Form",
     title: "Florida Bill of Sale — HSMV 82050",
+    useWhen: "Use for a Florida transfer. The state's own bill of sale form, accepted at any tag office.",
+    keywords: "florida state form 82050 hsmv bill of sale tag office dmv",
     desc: "The state of Florida\u2019s official Bill of Sale. Use this when the county tax collector or FLHSMV requires the state form. Your deal data is summarized below to copy onto the official PDF.",
     viewOnly: true,
     externalUrl: "https://www.flhsmv.gov/pdf/forms/82050.pdf",
@@ -246,6 +255,8 @@ export const DOCUMENTS = [
     tab: "FL Vessel Title App (82040-VS)",
     eyebrow: "Florida Official Form",
     title: "Florida Vessel Title Application — HSMV 82040-VS",
+    useWhen: "Use to put the Florida title into the buyer's name. Filed at the tag office after closing.",
+    keywords: "florida title application 82040 hsmv register registration transfer title tag office dmv",
     desc: "The buyer files this with a Florida tax collector to title the vessel in their name. Required for most Florida vessel transfers. Your deal data is summarized below to copy onto the official PDF.",
     viewOnly: true,
     florida: true,
@@ -285,6 +296,8 @@ export const DOCUMENTS = [
     tab: "FL Power of Attorney (82053)",
     eyebrow: "Florida Official Form",
     title: "Florida Power of Attorney — HSMV 82053",
+    useWhen: "Use when someone signs Florida title paperwork on another person's behalf.",
+    keywords: "florida power of attorney 82053 hsmv signing for someone else agent authorize",
     desc: "Florida\u2019s official Power of Attorney for a vessel transfer \u2014 use if one party is signing on another\u2019s behalf. Official alternative to the BoatClosers POA.",
     viewOnly: true,
     florida: true,
@@ -312,6 +325,8 @@ export const DOCUMENTS = [
     tab: "FL Duplicate Title (82101)",
     eyebrow: "Florida Official Form",
     title: "Florida Duplicate/Lost Title — HSMV 82101",
+    useWhen: "Use when the Florida title is lost, destroyed, or never arrived, and you need a duplicate.",
+    keywords: "florida lost title duplicate 82101 hsmv missing title replace title cant find title",
     desc: "Florida\u2019s official application for a duplicate or lost vessel title. Use if the seller\u2019s Florida title is lost. Official alternative to the BoatClosers lost-title affidavit.",
     viewOnly: true,
     florida: true,
@@ -339,6 +354,8 @@ export const DOCUMENTS = [
     tab: "Coast Guard Bill of Sale (CG-1340)",
     eyebrow: "USCG Documented Vessel",
     title: "U.S. Coast Guard Bill of Sale — CG-1340",
+    useWhen: "Use to transfer a Coast Guard documented vessel. The federal bill of sale.",
+    keywords: "coast guard federal cg-1340 documented vessel uscg bill of sale documentation",
     desc: "The official Bill of Sale for a U.S. Coast Guard DOCUMENTED vessel. Must be notarized and list every owner on the Certificate of Documentation. Your deal data is summarized below to copy onto the official PDF.",
     viewOnly: true,
     documented: true,
@@ -376,6 +393,8 @@ export const DOCUMENTS = [
     tab: "USCG Documentation App (CG-1258)",
     eyebrow: "USCG Documented Vessel",
     title: "USCG Application for Documentation / Transfer — CG-1258",
+    useWhen: "Use to document a vessel with the Coast Guard, or move existing documentation to the buyer.",
+    keywords: "coast guard cg-1258 uscg documentation application transfer documented vessel",
     desc: "The new owner files this with the National Vessel Documentation Center to document the vessel in their name after the sale. Your deal data is summarized below for the official form.",
     viewOnly: true,
     documented: true,
@@ -408,6 +427,8 @@ export const DOCUMENTS = [
     tab: "Deposit Receipt",
     eyebrow: "Earnest Money",
     title: "Earnest Money Deposit Receipt",
+    useWhen: "Use when the buyer hands over earnest money. Proves who holds it and on what terms.",
+    keywords: "deposit receipt earnest money down payment good faith escrow holding money",
     body: `
 <p class="lead">This receipt confirms that {{buyerName}} (the \u201cBuyer\u201d) has paid an earnest money deposit toward the purchase of the Vessel below, under the Purchase &amp; Sale Agreement dated {{effectiveDate}}.</p>
 
@@ -445,6 +466,8 @@ export const DOCUMENTS = [
     tab: "As-Is & Disclosure",
     eyebrow: "Condition & Defects",
     title: "As-Is Acknowledgment & Disclosure of Known Defects",
+    useWhen: "Use on nearly every sale. Confirms the boat sells as it sits and lists the faults disclosed.",
+    keywords: "as is acknowledgment disclosure known defects problems faults condition no warranty",
     body: `
 <p class="lead recital">This Acknowledgment is part of the Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d), concerning the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}.</p>
 
@@ -477,6 +500,8 @@ export const DOCUMENTS = [
     tab: "Inventory Schedule",
     eyebrow: "What Conveys",
     title: "Inventory Schedule",
+    useWhen: "Use to list exactly what gear stays with the boat \u2014 and what the seller is keeping.",
+    keywords: "inventory schedule equipment gear included electronics safety what conveys extras",
     optional: true,
     body: `
 <p class="lead recital">This Inventory Schedule is an optional attachment to the Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d), concerning the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}. It itemizes the specific gear and accessories that convey with the Vessel at Closing.</p>
@@ -541,6 +566,8 @@ export const DOCUMENTS = [
     tab: "Settlement Statement",
     eyebrow: "Final Tally",
     title: "Closing & Settlement Statement",
+    useWhen: "Use at closing. The final figures showing who paid what and who owes what.",
+    keywords: "closing statement settlement final numbers payoff figures money breakdown",
     body: `
 <p class="lead">This statement summarizes funds and credits for the closing of the Vessel below, finalized on {{closingDate}}.</p>
 
@@ -575,6 +602,8 @@ export const DOCUMENTS = [
     tab: "Acceptance",
     eyebrow: "Contingencies Satisfied",
     title: "Contingency Removal & Vessel Acceptance",
+    useWhen: "Use after the survey and sea trial to formally accept the boat and release contingencies.",
+    keywords: "acceptance contingency removal survey passed sea trial approve accept the boat",
     body: `
 <p class="lead recital">Reference: Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d) for the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}.</p>
 
@@ -595,6 +624,8 @@ export const DOCUMENTS = [
     tab: "Renegotiation",
     eyebrow: "Post-Survey Adjustment",
     title: "Amendment & Renegotiation of Terms",
+    useWhen: "Use to change price or terms after the agreement is signed \u2014 usually after a survey.",
+    keywords: "amendment renegotiate change price adjust terms modify agreement after survey",
     body: `
 <p class="lead recital">This Amendment modifies the Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d) for the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}. All other terms of the Agreement remain in full force.</p>
 
@@ -624,6 +655,8 @@ export const DOCUMENTS = [
     tab: "Title Search Letter",
     eyebrow: "Recommended \u2014 Verify Clear Title",
     title: "Title & Lien Search Request Letter",
+    useWhen: "Use before closing to ask the state or Coast Guard whether any liens are recorded.",
+    keywords: "title search lien search check for liens encumbrance records request letter",
     body: `
 <p class="recital">Before closing, BoatClosers recommends confirming the vessel carries a clean, lien-free title. Send this letter to the titling authority where the vessel is registered (your state\u2019s DMV or DNR titling office) and, for a federally documented vessel, to the U.S. Coast Guard National Vessel Documentation Center. Fill the bracketed lines and address it to the correct agency.</p>
 
@@ -661,6 +694,8 @@ export const DOCUMENTS = [
     tab: "Termination",
     eyebrow: "Contingency Not Met",
     title: "Notice of Termination & Deposit Refund",
+    useWhen: "Use to end the deal and return the deposit when a contingency isn't met.",
+    keywords: "termination cancel walk away deposit refund back out end the deal",
     editRole: "buyer",
     checklist: [
       { label:"Marine survey disclosed material defects unacceptable to Buyer" },
@@ -695,6 +730,8 @@ export const DOCUMENTS = [
     tab: "Title Application",
     eyebrow: "New Owner Registration",
     title: "Application for Certificate of Title",
+    useWhen: "Use to title the boat in the buyer's name in states other than Florida.",
+    keywords: "title application register registration transfer title dmv out of state",
     body: `
 <p class="lead">Application is hereby made to the titling agency of the State of {{vesselState}} for a Certificate of Title to the vessel described below, recording {{buyerName}} as the new lawful owner following its purchase from {{sellerName}} on {{closingDate}}.</p>
 
@@ -728,6 +765,8 @@ export const DOCUMENTS = [
     tab: "Notice of Sale",
     eyebrow: "Seller Liability Release",
     title: "Notice of Sale & Transfer of Ownership",
+    useWhen: "Use to tell the state the seller no longer owns the boat, so liability ends at the sale.",
+    keywords: "notice of sale transfer of ownership release liability report the sale notify state",
     body: `
 <p class="lead">{{sellerName}}, of {{sellerAddress}} (the \u201cSeller\u201d), gives notice to the titling and registration agency of the State of {{vesselState}} that the vessel described below was sold and transferred to {{buyerName}}, of {{buyerAddress}} (the \u201cBuyer\u201d), on {{closingDate}}.</p>
 
@@ -754,6 +793,8 @@ export const DOCUMENTS = [
     tab: "Lien Release",
     eyebrow: "Conditional \u2014 If Financed",
     title: "Lien Release & Satisfaction",
+    useWhen: "Use when a loan has been paid off and you need written proof the lien is gone.",
+    keywords: "lien release satisfaction paid off loan cleared bank release encumbrance removed",
     showIf: (deal) => !!(deal && deal.hasLien),
     body: `
 <p class="lead recital">This Lien Release applies only where the vessel was subject to a recorded lien or loan. {{lienholderName}} (the \u201cLienholder\u201d) confirms the following regarding the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}.</p>
@@ -788,6 +829,8 @@ export const DOCUMENTS = [
     tab: "USCG Transfer",
     eyebrow: "Federal \u2014 Documented Vessels",
     title: "USCG Bill of Sale & Transfer / Deletion",
+    useWhen: "Use to transfer or delete Coast Guard documentation as part of the sale.",
+    keywords: "uscg transfer deletion coast guard documentation remove abstract federal",
     showIf: (deal) => !!(deal && deal.uscgOfficialNo && deal.uscgOfficialNo !== "N/A" && !String(deal.uscgOfficialNo).startsWith("[")),
     body: `
 <p class="lead">For United States Coast Guard documented vessels, this instrument transfers a documented vessel and supports the application to re-document it in the Buyer's name or to delete it from documentation. It concerns the vessel <b>{{vesselModel}}</b>, U.S. Coast Guard Official Number {{uscgOfficialNo}}.</p>
@@ -824,6 +867,8 @@ export const DOCUMENTS = [
     tab: "HIN Verification",
     eyebrow: "Hull Identity",
     title: "HIN Verification Affidavit",
+    useWhen: "Use when the hull number is worn, missing, or doesn't match the paperwork.",
+    keywords: "hin hull identification number worn missing mismatch doesnt match verification",
     body: `
 <p class="lead recital">This affidavit confirms the Hull Identification Number of the vessel being titled, as some titling agencies require verification before issuing a new Certificate of Title.</p>
 
@@ -860,6 +905,8 @@ export const DOCUMENTS = [
     tab: "Conditions Checklist",
     eyebrow: "Your Guide",
     title: "Financing & Insurance Conditions Checklist",
+    useWhen: "Use when the buyer is borrowing. Lists what the lender and insurer still need.",
+    keywords: "financing insurance conditions checklist lender requirements loan approval",
     checklist: [
       { section:"Insurance Conditions", label:"Proof of insurance / binder effective by closing", desc:"Coverage must be active on or before closing. Upload the binder to the slot in this pack." },
       { section:"Insurance Conditions", label:"Loss-payee endorsement (if financed)", desc:"If a lender is involved, the policy must name them as loss payee." },
@@ -888,6 +935,8 @@ export const DOCUMENTS = [
     kind: "upload",
     eyebrow: "Upload Slot",
     title: "Lender Commitment Letter",
+    useWhen: "Use as proof the buyer's lender has actually approved the loan.",
+    keywords: "lender commitment letter loan approved financing bank preapproval",
     issued: "Issued by the buyer's lender",
     icon: "\uD83C\uDFE6",
     accept: "PDF, JPG, PNG",
@@ -903,6 +952,8 @@ export const DOCUMENTS = [
     kind: "upload",
     eyebrow: "Upload Slot",
     title: "Insurance Binder / Proof of Coverage",
+    useWhen: "Use as proof the boat is insured from the day of closing.",
+    keywords: "insurance binder proof of coverage policy insured marine insurance",
     issued: "Issued by the buyer's insurer",
     icon: "\uD83D\uDEE1\uFE0F",
     accept: "PDF, JPG, PNG",
@@ -917,6 +968,8 @@ export const DOCUMENTS = [
     kind: "upload",
     eyebrow: "Upload Slot",
     title: "Marine Survey Report",
+    useWhen: "Use to attach the marine surveyor's report to the deal record.",
+    keywords: "marine survey report surveyor inspection condition valuation findings",
     issued: "Issued by the marine surveyor",
     icon: "\uD83D\uDD0D",
     accept: "PDF, JPG, PNG",
@@ -934,6 +987,8 @@ export const DOCUMENTS = [
     tab: "Power of Attorney",
     eyebrow: "Authority to Sign",
     title: "Limited Power of Attorney \u2014 Vessel Transfer",
+    useWhen: "Use when someone signs the transfer paperwork on another person's behalf.",
+    keywords: "power of attorney poa agent attorney in fact signing for someone else authorize",
     body: `
 <p class="lead">{{sellerName}}, of {{sellerAddress}} (the \u201cPrincipal\u201d), appoints the Agent named below (attorney-in-fact) to act on the Principal's behalf solely for the transfer of the vessel described below.</p>
 
@@ -972,6 +1027,8 @@ export const DOCUMENTS = [
     tab: "Entity Authorization",
     eyebrow: "Business / Trust Owner",
     title: "Authorization & Resolution to Sell Vessel",
+    useWhen: "Use when the seller is a company, LLC, or trust, to show the signer may sell it.",
+    keywords: "company llc corporation trust business authorization resolution officer authority",
     body: `
 <p class="lead">The undersigned certifies that the entity named below (the \u201cOwner\u201d) is the record owner of the vessel described and has authorized its sale and transfer to {{buyerName}}.</p>
 
@@ -1006,6 +1063,8 @@ export const DOCUMENTS = [
     tab: "Co-Owner Consent",
     eyebrow: "Joint Ownership",
     title: "Co-Owner Consent to Sale",
+    useWhen: "Use when more than one name is on the title and one owner isn't signing in person.",
+    keywords: "co-owner joint owner two names both owners spouse consent second signature",
     body: `
 <p class="lead">The vessel below is owned jointly. All co-owners listed consent to its sale and transfer to {{buyerName}} and authorize the signing co-owner to execute the transfer documents.</p>
 
@@ -1033,6 +1092,8 @@ export const DOCUMENTS = [
     tab: "Name Affidavit",
     eyebrow: "Name Discrepancy",
     title: "Affidavit of One and the Same Person",
+    useWhen: "Use when the name on the title doesn't match the seller's ID \u2014 marriage, nickname, typo.",
+    keywords: "name mismatch wrong name same person maiden name married divorced nickname misspelled spelled wrong doesnt match different name id drivers license",
     body: `
 <p class="lead recital">This affidavit resolves a difference in the name shown on the vessel's title and the name on the owner's identification, so the titling agency can process the transfer without a mismatch.</p>
 
@@ -1070,6 +1131,8 @@ export const DOCUMENTS = [
     tab: "Extension Addendum",
     eyebrow: "Deadline Change",
     title: "Deadline Extension Addendum",
+    useWhen: "Use to push back a survey, closing, or financing deadline both sides agree to move.",
+    keywords: "extension addendum extend deadline more time delay push back date change",
     body: `
 <p class="lead recital">This addendum to the Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d), concerning the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}, records the Parties\u2019 mutual agreement to extend a deadline under the Agreement. All other terms of the Agreement remain unchanged and in full force.</p>
 
@@ -1099,6 +1162,8 @@ export const DOCUMENTS = [
     tab: "Repair Agreement",
     eyebrow: "Seller Repairs",
     title: "Post-Survey Repair Agreement",
+    useWhen: "Use when the survey finds problems and the seller agrees to fix them or credit the buyer.",
+    keywords: "repair agreement survey issues fix credit allowance seller repairs after survey",
     body: `
 <p class="lead recital">This addendum to the Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d), concerning the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}, records repairs the Seller agrees to complete before Closing. All other terms of the Agreement remain unchanged.</p>
 
@@ -1132,6 +1197,8 @@ export const DOCUMENTS = [
     tab: "Contingency Waiver",
     eyebrow: "Waive a Condition",
     title: "Contingency Waiver",
+    useWhen: "Use when the buyer chooses to give up a contingency and proceed anyway.",
+    keywords: "waiver waive contingency skip survey proceed anyway give up condition",
     body: `
 <p class="lead recital">This addendum to the Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d), concerning the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}, records the Buyer\u2019s voluntary waiver of one or more contingencies. All other terms of the Agreement remain unchanged.</p>
 
@@ -1160,6 +1227,8 @@ export const DOCUMENTS = [
     tab: "Early Possession",
     eyebrow: "Use Before Closing",
     title: "Early Possession / Use Before Closing Agreement",
+    useWhen: "Use when the buyer takes the boat before closing. Sets who carries the risk meanwhile.",
+    keywords: "early possession use before closing take the boat early risk insurance interim",
     body: `
 <p class="lead recital">This addendum to the Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d), concerning the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}, governs possession or use of the Vessel before Closing. All other terms of the Agreement remain unchanged.</p>
 
@@ -1189,6 +1258,8 @@ export const DOCUMENTS = [
     tab: "Trade-In Addendum",
     eyebrow: "Partial Payment",
     title: "Trade-In Addendum",
+    useWhen: "Use when the buyer is trading another boat in as part of the price.",
+    keywords: "trade in trade-in swap another boat part exchange credit toward",
     editRole: "buyer",
     body: `
 <p class="lead">This addendum to the Purchase &amp; Sale Agreement records property the Buyer, {{buyerName}}, is trading to the Seller, {{sellerName}}, as partial payment toward the {{vesselYear}} {{vesselMake}} {{vesselModel}}.</p>
@@ -1220,6 +1291,8 @@ export const DOCUMENTS = [
     tab: "Trailer Bill of Sale",
     eyebrow: "Separate Title",
     title: "Trailer Bill of Sale",
+    useWhen: "Use when a trailer goes with the boat. It transfers separately, with its own title.",
+    keywords: "trailer bill of sale trailer title vin transfer trailer included",
     editRole: "seller",
     body: `
 <p class="lead">A boat trailer is titled and registered separately from the vessel. This bill of sale transfers the trailer below from {{sellerName}} to {{buyerName}}.</p>
@@ -1248,6 +1321,8 @@ export const DOCUMENTS = [
     tab: "Gift / Family",
     eyebrow: "No / Nominal Money",
     title: "Gift & Family Transfer Affidavit",
+    useWhen: "Use when the boat is a gift or family transfer rather than a sale for money.",
+    keywords: "gift family transfer no money father son daughter inherited while alive donate",
     body: `
 <p class="lead recital">This affidavit records that the vessel below is being transferred as a gift, or for nominal consideration, rather than an arm's-length sale \u2014 which affects how the transfer and any tax are treated.</p>
 
@@ -1284,6 +1359,8 @@ export const DOCUMENTS = [
     tab: "Promissory Note \u26A0",
     eyebrow: "Seller Financing",
     title: "Promissory Note",
+    useWhen: "Use when the seller is financing the buyer. The buyer's written promise to pay.",
+    keywords: "promissory note seller financing owner financing payments over time installment loan",
     body: `
 <div class="lawbanner"><b>\u26A0 Attorney review required.</b> This instrument creates a legally binding debt. Have it reviewed by a licensed attorney, and confirm interest limits (state usury caps) before use on a real deal.</div>
 <p class="lead">For value received, {{buyerName}} (the \u201cBorrower\u201d), of {{buyerAddress}}, promises to pay {{sellerName}} (the \u201cHolder\u201d), of {{sellerAddress}}, the principal sum below for the purchase of the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}.</p>
@@ -1320,6 +1397,8 @@ export const DOCUMENTS = [
     tab: "Security Agreement \u26A0",
     eyebrow: "Seller Financing",
     title: "Security Agreement",
+    useWhen: "Use alongside seller financing so the seller can reclaim the boat if payments stop.",
+    keywords: "security agreement collateral lien seller financing repossess secure the note",
     body: `
 <div class="lawbanner"><b>\u26A0 Attorney review required.</b> This instrument creates a lien on the vessel. Have it reviewed by a licensed attorney, and confirm the UCC-1 filing and title-lien steps for your state, before use on a real deal.</div>
 <p class="lead">{{buyerName}} (the \u201cDebtor\u201d) grants {{sellerName}} (the \u201cSecured Party\u201d) a security interest in the vessel below to secure payment of the Promissory Note of even date.</p>
@@ -1353,6 +1432,8 @@ export const DOCUMENTS = [
     tab: "Payoff Authorization \u26A0",
     eyebrow: "Existing Loan Payoff",
     title: "Payoff Demand & Authorization",
+    useWhen: "Use to get the exact payoff figure from the seller's lender, good through closing.",
+    keywords: "payoff demand authorization loan balance bank payoff quote still owe money",
     body: `
 <div class="lawbanner"><b>\u26A0 Attorney review recommended.</b> This authorizes release of loan and payoff information and directs payment from closing funds. Confirm the lien is released before final payment.</div>
 <p class="lead">The Seller, {{sellerName}}, authorizes the lienholder below to provide a payoff figure and to release its lien on the vessel upon receipt of payment at closing, so clear title can pass to {{buyerName}}.</p>
@@ -1384,6 +1465,8 @@ export const DOCUMENTS = [
     tab: "Start Here",
     eyebrow: "Inherited a Boat?",
     title: "Inherited a Boat? Start Here",
+    useWhen: "Read first if the owner has passed away. Tells you which affidavit below is yours.",
+    keywords: "inherited estate died passed away deceased dead owner death start here guide probate",
     body: `
 <div class="estbanner"><b>\u2696 This is a guide, not legal advice.</b> Estate and probate law varies significantly by state. Use this to understand your options \u2014 but for anything beyond a simple, uncontested transfer, talk to a probate attorney in your state.</div>
 <p class="lead">When a boat's owner has died, the vessel can still be sold or transferred \u2014 but who signs, and what paperwork the state needs, depends on the estate. Here is how to find your path.</p>
@@ -1411,6 +1494,8 @@ export const DOCUMENTS = [
     tab: "Affidavit of Heirship",
     eyebrow: "No Probate",
     title: "Affidavit of Heirship \u2014 Vessel",
+    useWhen: "Use when there was no will and no probate, and the boat passes to family directly.",
+    keywords: "heirship heir no will intestate family inherited died passed away next of kin",
     body: `
 <div class="estbanner"><b>\u2696 Estate law varies by state.</b> Probate, heirship, and small-estate rules differ significantly between states. Have this reviewed against your state's process by a licensed attorney before use.</div>
 <p class="lead recital">This affidavit is used where the owner of a vessel has died and no formal probate administration is being opened, to identify the lawful heir(s) entitled to transfer the vessel.</p>
@@ -1453,6 +1538,8 @@ export const DOCUMENTS = [
     tab: "Executor Authorization",
     eyebrow: "Probate Opened",
     title: "Executor / Administrator Authorization to Sell",
+    useWhen: "Use when a court appointed someone to handle the estate. Bring their letters too.",
+    keywords: "executor administrator personal representative probate court letters estate died will",
     body: `
 <div class="estbanner"><b>\u2696 Estate law varies by state.</b> Have this reviewed against your state's probate process by a licensed attorney before use, and attach the court's Letters.</div>
 <p class="lead">Where a probate estate has been opened, the court-appointed personal representative has authority to transfer estate property. This document records that authority for the sale of the vessel below.</p>
@@ -1489,6 +1576,8 @@ export const DOCUMENTS = [
     tab: "Small Estate Affidavit",
     eyebrow: "Simplified Transfer",
     title: "Small Estate Affidavit \u2014 Vessel",
+    useWhen: "Use for a small estate that qualifies to skip full probate under your state's limit.",
+    keywords: "small estate affidavit skip probate simplified summary administration died",
     body: `
 <div class="estbanner"><b>\u2696 Estate law varies by state.</b> The dollar threshold, waiting period, and exact form are set by each state. Confirm your state's small-estate rules with a licensed attorney before relying on this.</div>
 <p class="lead recital">Many states allow estates under a dollar threshold to transfer property by a small-estate affidavit, without full probate. This affidavit supports transfer of the vessel under that simplified process.</p>
@@ -1526,6 +1615,8 @@ export const DOCUMENTS = [
     kind: "upload",
     eyebrow: "Upload Slot",
     title: "Certified Death Certificate",
+    useWhen: "Use to attach the certified death certificate the state or Coast Guard will ask for.",
+    keywords: "death certificate certified copy proof of death died passed away vital records",
     issued: "Issued by the state vital-records office",
     icon: "\uD83D\uDCD1",
     accept: "PDF, JPG, PNG",
@@ -1542,6 +1633,8 @@ export const DOCUMENTS = [
     tab: "Lost Title",
     eyebrow: "State Title Missing",
     title: "Lost / Missing Title Affidavit",
+    useWhen: "Use when the title exists but has been lost or destroyed and you need a duplicate.",
+    keywords: "lost title missing title cant find title destroyed duplicate replacement",
     body: `
 <div class="sysbadge sys-state">State-Titled</div>
 <p class="lead recital">Used where a state-titled vessel's Certificate of Title has been lost, destroyed, or never received, to support a duplicate title or the bonded-title process so the vessel can transfer.</p>
@@ -1575,6 +1668,8 @@ export const DOCUMENTS = [
     tab: "Bill-of-Sale Only",
     eyebrow: "No Title Exists",
     title: "Bill-of-Sale-Only Transfer Affidavit",
+    useWhen: "Use when the seller never had a title \u2014 only a bill of sale \u2014 and you must build a record.",
+    keywords: "no title never had title bill of sale only untitled no paperwork",
     body: `
 <div class="sysbadge sys-state">State-Titled</div>
 <p class="lead recital">Used for vessels with no title on record \u2014 older boats, or boats from states that did not title at the time \u2014 where ownership transfers by bill of sale and registration history.</p>
@@ -1606,6 +1701,8 @@ export const DOCUMENTS = [
     tab: "Chain of Title",
     eyebrow: "Ownership Gap",
     title: "Chain-of-Title Affidavit",
+    useWhen: "Use when there's a gap in ownership history \u2014 bought from someone who never titled it.",
+    keywords: "chain of title gap in ownership history previous owner never titled missing link",
     body: `
 <div class="sysbadge sys-state">State-Titled</div>
 <p class="lead recital">Used where there is a gap in the ownership record \u2014 for example, the seller bought the vessel but never titled it in their name before reselling \u2014 to establish the chain so clean title can issue to the buyer.</p>
@@ -1641,6 +1738,8 @@ export const DOCUMENTS = [
     tab: "Lost COD",
     eyebrow: "Documentation Missing",
     title: "Lost Certificate of Documentation Affidavit",
+    useWhen: "Use when a Coast Guard Certificate of Documentation is lost or destroyed.",
+    keywords: "lost certificate of documentation cod coast guard missing uscg replace",
     body: `
 <div class="sysbadge sys-uscg">USCG Documented</div>
 <p class="lead recital">For U.S. Coast Guard documented vessels whose Certificate of Documentation (COD) has been lost or destroyed, to support reissue or transfer through the National Vessel Documentation Center (NVDC).</p>
@@ -1673,6 +1772,8 @@ export const DOCUMENTS = [
     tab: "Mortgage Release",
     eyebrow: "Clear the Abstract",
     title: "Satisfaction / Release of Preferred Ship's Mortgage",
+    useWhen: "Use to clear a preferred ship's mortgage recorded against a documented vessel.",
+    keywords: "preferred ship mortgage satisfaction release coast guard lien documented vessel",
     body: `
 <div class="sysbadge sys-uscg">USCG Documented</div>
 <p class="lead">For documented vessels, a preferred ship's mortgage recorded with the NVDC stays on the abstract of title until formally released. This satisfaction clears that recorded mortgage so clean documentation can pass.</p>
@@ -1705,6 +1806,8 @@ export const DOCUMENTS = [
     tab: "Lost Registration",
     eyebrow: "Registration Only",
     title: "Registration-Only / Lost Registration Affidavit",
+    useWhen: "Use when the boat is registered but not titled, and the registration is lost or lapsed.",
+    keywords: "registration only lost registration lapsed expired not titled decal numbers",
     body: `
 <div class="sysbadge sys-reg">State-Registered</div>
 <p class="lead recital">For vessels that were only registered (numbered) and never titled, where the registration is lost or expired and is blocking transfer to the buyer.</p>
@@ -1740,6 +1843,8 @@ export const DOCUMENTS = [
     tab: "Delivery Receipt",
     eyebrow: "Possession Handoff",
     title: "Delivery & Possession Receipt",
+    useWhen: "Use on handover day to record that the buyer took the boat, and in what condition.",
+    keywords: "delivery receipt possession handover keys handed over took the boat pickup day",
     checklist: [
       { label:"Keys & access", desc:"All keys, fobs, and security codes" },
       { label:"Documents", desc:"Title/registration, manuals, service records" },
@@ -1773,6 +1878,8 @@ export const DOCUMENTS = [
     tab: "Defect Disclosure",
     eyebrow: "Seller's Disclosure",
     title: "Seller's Disclosure of Known Defects",
+    useWhen: "Use when the seller wants known faults recorded separately and in writing.",
+    keywords: "sellers disclosure known defects problems faults issues condition report honest",
     editRole: "seller",
     checklist: [
       { label:"Hull damage, blistering, or prior structural repair" },
@@ -1810,6 +1917,8 @@ export const DOCUMENTS = [
     tab: "Engine Hours",
     eyebrow: "Hours / Condition",
     title: "Engine Hours & Operating Statement",
+    useWhen: "Use to record engine hours and running condition at the moment of sale.",
+    keywords: "engine hours operating statement meter reading running condition motor hours",
     body: `
 <p class="lead">{{sellerName}} states the engine hours and operating condition of the vessel below as of {{closingDate}}, for the Buyer's records and for insurance and resale purposes.</p>
 
