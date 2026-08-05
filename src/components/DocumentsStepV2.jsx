@@ -441,6 +441,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     setDocAction(d => ({ ...d, [docId]: "view" }));
     const grp = (DOC_SET.find(x => x.id === docId) || {}).group;
     if (grp) setOpenGroups(g => ({ ...g, [grp]: true }));
+    // In the guided layout the document list lives behind the drawer. Opening a
+    // document without opening the drawer put it somewhere nothing was rendered,
+    // so every click appeared to do nothing at all.
+    setDrawerOpen(true);
   };
 
   // Plain-language document search. A customer types what happened to them, not the
@@ -466,10 +470,14 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const jumpToDoc = (docId) => {
     openDoc(docId);
     if (typeof document !== "undefined") {
-      setTimeout(() => {
+      // The drawer and its group have to render before there is anything to
+      // scroll to, so give the page a beat. Try twice in case the first is early.
+      const scroll = () => {
         const el = document.getElementById("bcdoc-" + docId);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 60);
+        return !!el;
+      };
+      setTimeout(() => { if (!scroll()) setTimeout(scroll, 220); }, 90);
     }
   };
 
