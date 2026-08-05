@@ -15,13 +15,13 @@ import React from "react";
 // id, whether it is an official government form, and when it is the right choice.
 export const BOS_OPTIONS = [
   { id: "fl_82050",  official: true,  needs: "florida",
-    note: "Florida's own bill of sale, pre-filled from your deal. A tag office clerk knows this form on sight." },
+    note: "Florida's own bill of sale, pre-filled from your deal. On a Florida transfer this is enough on its own \u2014 the tag office needs nothing else in its place." },
   { id: "cg_1340",   official: true,  needs: "documented",
     note: "The federal bill of sale for a Coast Guard documented vessel." },
   { id: "uscg_transfer", official: true, needs: "documented",
     note: "Use when the boat is coming off Coast Guard documentation as part of the sale." },
   { id: "bos",       official: false, needs: null,
-    note: "Our full version with a notary block. Use where there is no official state form, or alongside one when the buyer wants the extra detail." },
+    note: "Our full version with a notary block. Where there is no official state form, this is the one to use." },
   { id: "bos_plain", official: false, needs: null,
     note: "Quick private sale with nothing to notarize. Check your state accepts an un-notarized bill of sale before relying on it." },
   { id: "trailer_bos", official: false, needs: "trailer",
@@ -45,6 +45,12 @@ export default function BosPicker({ DOCUMENTS = [], C, facts = {}, chosen, onCho
     : true;
 
   const why = (o) => {
+    // In Florida the 82050 is sufficient on its own, but a notarized bill of sale
+    // is equally accepted — so say so rather than making it look second best.
+    if (o.id === "bos" && facts.florida && !facts.documented)
+      return "Also accepted in Florida, if you'd rather use a notarized bill of sale than the state form. Either one works \u2014 you don't need both.";
+    if (o.id === "fl_82050" && facts.documented)
+      return "Florida's form covers the state side, but a documented vessel transfers federally \u2014 use the CG-1340 above for the sale itself.";
     if (o.needs === "documented" && !facts.documented) return "Only for federally documented vessels. Yours isn't documented, so you don't need this.";
     if (o.needs === "florida" && !facts.florida) return "Only for Florida transfers.";
     if (o.needs === "trailer" && !facts.trailer) return "Only if a trailer is part of the sale.";
@@ -66,6 +72,7 @@ export default function BosPicker({ DOCUMENTS = [], C, facts = {}, chosen, onCho
         <div style={{ display:"flex", justifyContent:"space-between", gap:10, alignItems:"baseline", flexWrap:"wrap" }}>
           <span style={{ fontSize:13.5, color:C.navy, fontWeight: isRec ? 700 : 400 }}>{d.title}</span>
           {isRec && <span style={{ fontSize:10, background:C.greenLight, color:C.green, padding:"3px 9px", borderRadius:10, whiteSpace:"nowrap" }}>Recommended for you</span>}
+          {!isRec && o.id === "bos" && facts.florida && !facts.documented && <span style={{ fontSize:10, background:C.tealLight, color:C.teal, padding:"3px 9px", borderRadius:10, whiteSpace:"nowrap" }}>Also works</span>}
           {isChosen && !isRec && <span style={{ fontSize:10, background:C.tealLight, color:C.teal, padding:"3px 9px", borderRadius:10, whiteSpace:"nowrap" }}>Your choice</span>}
         </div>
         <div style={{ fontSize:11.5, color:C.slate, marginTop:4, lineHeight:1.55 }}>{why(o)}</div>
