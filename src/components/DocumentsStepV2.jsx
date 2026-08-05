@@ -287,7 +287,13 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // "guided" is the new layout. "classic" renders the original page, unchanged, so
   // there is always a way back if the new one gets something wrong.
   const [layout, setLayout] = useState(data.docsLayout === "classic" ? "classic" : "guided");
+  const layoutRef = useRef(data.docsLayout === "classic" ? "classic" : "guided");
+  layoutRef.current = layout;
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Which documents the guided view renders in place, kept in a ref so openDoc can
+  // read it without depending on render order.
+  const guidedIdsRef = useRef(new Set());
+  const guidedIds = { has: (id) => layoutRef.current === "guided" && guidedIdsRef.current.has(id) };
   const switchLayout = (next) => { setLayout(next); setData(d => ({ ...d, docsLayout: next })); };
   // ── Florida detection ──────────────────────────────────────────────────────
   // Look for Florida in the buyer, seller, or vessel location. If found, the
@@ -441,10 +447,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     setDocAction(d => ({ ...d, [docId]: "view" }));
     const grp = (DOC_SET.find(x => x.id === docId) || {}).group;
     if (grp) setOpenGroups(g => ({ ...g, [grp]: true }));
-    // In the guided layout the document list lives behind the drawer. Opening a
-    // document without opening the drawer put it somewhere nothing was rendered,
-    // so every click appeared to do nothing at all.
-    setDrawerOpen(true);
+    // Guided view shows core and suggested documents in place. Anything else lives
+    // in the drawer, so open it only when that is where the document actually is.
+    if (!guidedIds.has(docId)) setDrawerOpen(true);
   };
 
   // Plain-language document search. A customer types what happened to them, not the
@@ -648,6 +653,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     (quiz.losttitle || quiz.lostreg) && "title or registration missing",
   ].filter(Boolean);
   const shownIds = new Set([...coreIds, ...condDocs.map(d => d.id)]);
+  guidedIdsRef.current = shownIds;
   const otherCount = DOC_SET.filter(d => !shownIds.has(d.id)).length;
 
   // ── PAYWALL ──
@@ -1025,6 +1031,303 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   .bc-docbtns button{flex:1 1 auto;justify-content:center;min-width:84px}
 }`;
 
+  // ── ONE DOCUMENT, RENDERED ANYWHERE ──────────────────────────────────────
+  // This is the whole document panel: the row, the paper, the action buttons,
+  // e-sign, fill-in, send, upload and print. It used to live inside the group
+  // loop, which is why the guided view could only link into that list instead
+  // of showing a document in place. Same code, just reachable from both views.
+  const renderDoc = (doc, i = 0, arr = [doc]) => {
+          const needsNotary = doc.kind !== "upload" && (doc.body||"").includes("Notary Acknowledgment");
+          return (
+          <div key={doc.id} id={"bcdoc-"+doc.id}>
+            {activeDoc!==doc.id ? (
+              <button onClick={()=>openDoc(doc.id)} className="bc-docrow" style={{ width:"100%", textAlign:"left", background:"transparent", border:"none", borderRadius:6, padding:"11px 4px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
+                  <div style={{ width:28, height:28, borderRadius:5, flexShrink:0, background: signed[doc.id] ? C.greenLight : C.sandDark, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13 }}>{signed[doc.id] ? (signed[doc.id].uploaded ? "📎" : signed[doc.id].manual ? "✍️" : "✅") : "📄"}</div>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontSize:12.5, fontWeight:600, color:C.navy }}>{doc.title}</div>
+                    <div style={{ display:"flex", gap:5, marginTop:2, flexWrap:"wrap" }}>
+                      {doc.required && <span style={{...S.tag, background:"#fff3cd", color:"#7a5500"}}>Required</span>}
+                      {needsNotary && <span style={{...S.tag, background:"#fbf4e3", color:"#8a6d1a"}}>Notary</span>}
+                      {signed[doc.id] && <span style={{...S.tag, background:C.greenLight, color:C.green}}>✓ Signed</span>}
+                      {sentLog[doc.id]?.length > 0 && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Sent</span>}
+                    </div>
+                  </div>
+                </div>
+                <span style={{ fontSize:11.5, color:C.brass, fontWeight:700, whiteSpace:"nowrap" }}>Open →</span>
+              </button>
+            ) : (
+            <div style={{ background:"#fcfaf4", borderRadius:8, border:`1px solid ${C.mist}`, padding:"12px 14px" }}>
+              <button onClick={()=>setActiveDoc(null)} style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, background:"none", border:"none", cursor:"pointer", padding:"0 0 10px", fontWeight:700 }}>← Back to documents</button>
+              <div className="bc-docrow">
+                <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
+                  <div style={{ width:30, height:30, borderRadius:5, flexShrink:0, background: signed[doc.id] ? C.greenLight : C.sandDark, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>
+                    {signed[doc.id] ? (signed[doc.id].uploaded ? "📎" : signed[doc.id].manual ? "✍️" : "✅") : "📄"}
+                  </div>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:600, color:C.navy }}>{doc.title}</div>
+                    {doc.desc && <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:1, lineHeight:1.4 }}>{doc.desc}</div>}
+                    <div style={{ display:"flex", gap:5, marginTop:2, flexWrap:"wrap" }}>
+                      {doc.required && <span style={{...S.tag, background:"#fff3cd", color:"#7a5500"}}>Required</span>}
+                      {!doc.required && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Optional</span>}
+                      {needsNotary && <span style={{...S.tag, background:"#fbf4e3", color:"#8a6d1a"}}>Notary required</span>}
+                      {(doc.checklist || getDocHtml(doc).includes("bc-fill-in")) && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>{doc.editRole ? `Fill in app · ${doc.editRole} only` : "Fill in app"}</span>}
+                      {signed[doc.id] && <span style={{...S.tag, background:C.greenLight, color:C.green}}>✓ {signed[doc.id].date} · {signed[doc.id].name}</span>}
+                      {sentLog[doc.id]?.length > 0 && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Sent ×{sentLog[doc.id].length}</span>}
+                      {uploadedFile[doc.id] && !signed[doc.id]?.uploaded && <span style={{...S.tag}}>📎 {uploadedFile[doc.id]}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="bc-docbtns">
+                  <ActionBtn docId={doc.id} action="view"   icon="👁" label="View"   />
+                  {canEditDoc(doc) && (getBlanks(doc).length > 0 || !!doc.checklist) && <ActionBtn docId={doc.id} action="fill" icon="✏️" label="Fill In" color={C.brass} />}
+                  {!frozen && doc.kind !== "upload" && !needsNotary && !doc.viewOnly && <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />}
+                  {!frozen && doc.kind !== "upload" && !doc.viewOnly && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
+                  <ActionBtn docId={doc.id} action="send"   icon="📤" label="Send"   color={C.brass} />
+                  {!frozen && !doc.viewOnly && <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />}
+                  <button onClick={()=>printDoc(doc.id, doc.title)} title="Print" style={{ fontSize:13, padding:"7px 11px", borderRadius:20, cursor:"pointer", border:`1.5px solid #e3ddd0`, background:C.white, color:C.slate }}>🖨️</button>
+                </div>
+              </div>
+
+              {/* VIEW — filled-in polished document, or upload-slot guide */}
+              {docAction[doc.id]==="view" && (
+                <div style={{ marginTop:12 }}>
+                  {doc.kind === "upload" ? (
+                    <div style={{ textAlign:"center", padding:"26px 22px", border:`2px dashed ${C.mist}`, borderRadius:8, background:"#fcfaf4" }}>
+                      <div style={{ fontSize:32 }}>{doc.icon}</div>
+                      <div style={{ fontFamily:"Georgia,serif", fontSize:17, fontWeight:700, color:C.navy, margin:"8px 0 4px" }}>{doc.title}</div>
+                      <div style={{ display:"inline-block", fontSize:10, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".08em", textTransform:"uppercase", color:C.teal, background:C.tealLight, padding:"3px 10px", borderRadius:20, marginBottom:12 }}>{doc.issued}</div>
+                      <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.text, lineHeight:1.7, maxWidth:460, margin:"0 auto 14px", textAlign:"left" }} dangerouslySetInnerHTML={{ __html: doc.guide }} />
+                      {(() => {
+                        const up = negotiate?.uploads?.[doc.id];
+                        const localUrl = uploadedData[doc.id]?.dataURL;
+                        const name = uploadedFile[doc.id] || up?.name;
+                        const viewUrl = localUrl || up?.url;
+                        const has = !!(uploadedFile[doc.id] || up);
+                        if (uploading[doc.id] && !up) return <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>Saving file…</div>;
+                        return has ? (
+                          <div>
+                            <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Uploaded: <strong>{name}</strong></div>
+                            {viewUrl && (
+                              <div style={{ marginTop:10, display:"flex", gap:12, alignItems:"center", justifyContent:"center", flexWrap:"wrap" }}>
+                                <a href={viewUrl} target="_blank" rel="noopener noreferrer" download={name} style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, textDecoration:"underline" }}>⬇ View / download</a>
+                                <label style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.slate, cursor:"pointer", textDecoration:"underline" }}>
+                                  ↻ Replace file
+                                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
+                                </label>
+                              </div>
+                            )}
+                            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:8 }}>{up ? "Stored on the deal — both parties can see it." : "Saved on your screen."} To email a copy, use the <strong>Send</strong> button.</div>
+                          </div>
+                        ) : (
+                          <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:6, padding:"10px 22px", fontSize:13, fontFamily:"sans-serif", fontWeight:700 }}>
+                            📎 Upload {doc.tab}
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
+                          </label>
+                        );
+                      })()}
+                      {uploadErr[doc.id] && <div style={{ color:C.red, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, marginTop:10 }}>⚠️ {uploadErr[doc.id]}</div>}
+                      <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:10 }}>Accepted: {doc.accept}</div>
+                    </div>
+                  ) : (
+                    <div className="bc-doc-paper" id={"bc-print-"+doc.id}>
+                      <div className="bc-doc-eyebrow">{doc.eyebrow}</div>
+                      <div className="bc-doc-title">{doc.title}</div>
+                      <div className="bc-doc-ref">Ref {deal.dealRef} · {deal.vesselYear} {deal.vesselMake} {deal.vesselModel}</div>
+                      {doc.externalUrl && (
+                        <div style={{ textAlign:"center", margin:"10px 0 4px" }}>
+                          <a href={doc.externalUrl} target="_blank" rel="noopener noreferrer" style={{ display:"inline-block", background:C.navy, color:"#fff", textDecoration:"none", borderRadius:7, padding:"10px 18px", fontSize:13, fontWeight:800, fontFamily:"sans-serif" }}>↗ Open the official Florida form (HSMV 82050)</a>
+                        </div>
+                      )}
+                      <div className="bc-doc-rule"></div>
+                      {needsNotary && (
+                        <div className="bc-notary-flag">
+                          ⚖ <strong>Must be notarized.</strong> A typed e-signature can't be notarized. Print this, sign it in front of a notary, then come back and mark it done below (optionally uploading the notarized copy as proof).
+                          {!signed[doc.id] ? (
+                            <div style={{ marginTop:12, display:"flex", gap:8, flexWrap:"wrap" }}>
+                              <button onClick={()=>setSigned(sg=>({ ...sg, [doc.id]: { name:"Completed offline (notarized)", date:today(), at:signedStamp().at, when:signedStamp().when, manual:true, notarizedOffline:true } }))} style={{ background:"#8a6d1a", color:"#fff", border:"none", borderRadius:6, padding:"9px 14px", fontSize:12, fontWeight:800, fontFamily:"sans-serif", cursor:"pointer" }}>✓ I've had this notarized — mark it done</button>
+                              <label style={{ background:"#fff", color:"#8a6d1a", border:"1px solid #8a6d1a", borderRadius:6, padding:"9px 14px", fontSize:12, fontWeight:800, fontFamily:"sans-serif", cursor:"pointer" }}>
+                                📎 Upload notarized copy (optional)
+                                <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
+                              </label>
+                            </div>
+                          ) : (
+                            <div style={{ marginTop:10, fontSize:12, fontWeight:800, color:"#0f6e56", fontFamily:"sans-serif" }}>✓ {signed[doc.id].uploaded ? "Notarized copy uploaded" : "Marked notarized (completed offline)"} — {signed[doc.id].when || signed[doc.id].date}
+                              <button onClick={()=>setSigned(sg=>{ const c={...sg}; delete c[doc.id]; return c; })} style={{ marginLeft:10, background:"none", border:"none", color:C.slate, fontSize:11, textDecoration:"underline", cursor:"pointer", fontWeight:400 }}>undo</button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {(() => {
+                        const filledHtml = stampSignatures(getDocHtml(doc), doc.id);
+                        const editable = canEditDoc(doc);
+                        const interactive = !!doc.checklist || filledHtml.includes("bc-fill-in");
+                        return (
+                          <>
+                            {interactive ? (editable ? (
+                              <div className="bc-fill-hint">✏️ <strong>This document has blanks to complete — tap “Fill In” above.</strong> Everything else comes straight from your <strong>Vessel</strong>, <strong>Parties</strong>, and agreed <strong>Terms</strong> and is locked, so it can never disagree with your deal. If any of that looks wrong, fix it at the source and every document updates.</div>
+                            ) : (
+                              <div className="bc-lock-note">🔒 Only the {doc.editRole} fills this one in here. You can still view it, print it, and upload a signed copy.</div>
+                            )) : (
+                              <div className="bc-lock-note">🔒 <strong>Nothing to fill in on this one.</strong> It builds itself from your deal, and the signature and notary lines are left blank on purpose — those get completed at signing.</div>
+                            )}
+                            <DocPaper
+                              doc={doc}
+                              html={filledHtml}
+                              editable={editable}
+                              checkState={checkState}
+                              toggleCheck={toggleCheck}
+                              savedFields={fieldState[doc.id]||{}}
+                              onField={(fk,val)=>setField(doc.id, fk, val)}
+                            />
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* FILL IN — plain form boxes, one per blank. Nothing from the
+                  deal itself appears here, so vessel & parties stay locked. */}
+              {docAction[doc.id]==="fill" && (
+                <FillInForm
+                  key={doc.id}
+                  doc={doc}
+                  blanks={getBlanks(doc)}
+                  initial={fieldState[doc.id] || {}}
+                  C={C}
+                  onKeep={(fk, v) => keepField(doc.id, fk, v)}
+                  onSave={(draft) => saveFields(doc.id, draft)}
+                  onCancel={() => setDocAction(d => ({ ...d, [doc.id]: "view" }))}
+                />
+              )}
+
+              {/* E-SIGN */}
+              {docAction[doc.id]==="esign" && (
+                <div style={{ marginTop:12, background:C.greenLight, border:`1px solid #a8d8b8`, borderRadius:6, padding:"14px" }}>
+                  <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.green, marginBottom:10 }}>✏️ Electronic Signature — {doc.title}</div>
+                  <div style={{ background:C.navy, borderRadius:4, padding:"9px 12px", fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.85)", marginBottom:12, lineHeight:1.6 }}>
+                    ⚠️ <strong style={{ color:C.brass }}>Preview only — not legally binding until BoatClosers receives payment.</strong> Upon payment confirmation, the executed package is released to both parties. BoatClosers provides document facilitation only — not legal advice or brokerage services.
+                  </div>
+                  {!signed[doc.id] || signed[doc.id].manual || signed[doc.id].uploaded ? (
+                    <>
+                      {/* E-Sign consent & disclosure */}
+                      <div style={{ background:"#fffdf8", border:`1px solid ${C.mist}`, borderRadius:5, padding:"11px 13px", marginBottom:12 }}>
+                        <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65 }}>
+                          <strong style={{ color:C.navy }}>Before you sign electronically, please understand:</strong>
+                          <ul style={{ margin:"6px 0 0", paddingLeft:18 }}>
+                            <li style={{ marginBottom:4 }}>By typing your name and signing, you agree to conduct this transaction electronically and that your electronic signature is intended to be your legal signature on this document.</li>
+                            <li style={{ marginBottom:4 }}>BoatClosers is a document-preparation tool only. It does <strong>not</strong> verify the identity of any signer, does not guarantee the legal validity or enforceability of any signature, and is not responsible for record-keeping, storage, or authentication of signed documents.</li>
+                            <li style={{ marginBottom:4 }}>You are responsible for keeping your own signed copies. If you need a verifiable, court-defensible signature, use a dedicated e-signature service or sign in ink before a notary.</li>
+                            <li style={{ marginBottom:0 }}><strong>Not comfortable signing electronically?</strong> Use the <strong>Manual</strong> option to record an in-person ink signature, or <strong>Print</strong> the document to sign by hand. Notarized documents must always be printed and signed in ink before a notary.</li>
+                          </ul>
+                        </div>
+                        <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", marginTop:10 }}>
+                          <input type="checkbox" checked={!!esignConsent[doc.id]} onChange={e=>setEsignConsent(c=>({...c,[doc.id]:e.target.checked}))} style={{ width:15, height:15, marginTop:1, accentColor:C.green, flexShrink:0 }} />
+                          <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600, lineHeight:1.5 }}>I have read the above, I consent to sign electronically, and I understand BoatClosers does not verify or store my signature.</span>
+                        </label>
+                      </div>
+                      {(() => {
+                        const myName = myRole === "seller" ? parties.seller?.name : parties.buyer?.name;
+                        const typed = (sigName[doc.id]||"").trim();
+                        const nameOk = sigMatchesName(typed, myName);
+                        const canSign = !!typed && !!esignConsent[doc.id] && nameOk;
+                        return (
+                          <>
+                            <div style={{ display:"flex", gap:10, alignItems:"flex-end" }}>
+                              <div style={{ flex:1 }}>
+                                <label style={S.label}>Type your full legal name to sign electronically</label>
+                                <input style={S.input} placeholder="Full legal name" value={sigName[doc.id]||""} onChange={e=>setSigName(s=>({...s,[doc.id]:e.target.value}))}/>
+                              </div>
+                              <button style={{...S.btnBrass, opacity:canSign?1:0.45, cursor:canSign?"pointer":"not-allowed"}} disabled={!canSign} onClick={()=>{ if(!sigMatchesName((sigName[doc.id]||"").trim(), myName)) return; const st=signedStamp(); setSigned(s=>({...s,[doc.id]:{name:sigName[doc.id],date:today(),at:st.at,when:st.when,consent:true,role:myRole}})); setAction(doc.id,"esign"); }}>Sign Document</button>
+                            </div>
+                            {myName && typed && !nameOk && (
+                              <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:6, lineHeight:1.5 }}>Your signature must match your name on this deal: <b>{myName}</b>. To change it, update your name in the Parties step.</div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Already signed by {signed[doc.id].name} on {signed[doc.id].when || signed[doc.id].date}</div>
+                  )}
+                </div>
+              )}
+
+              {/* MANUAL */}
+              {docAction[doc.id]==="manual" && (
+                <div style={{ marginTop:12, background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"14px" }}>
+                  <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.teal, marginBottom:8 }}>✍️ Record Manual / Wet Ink Signatures</div>
+                  <p style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12, lineHeight:1.6 }}>
+                    Print the document, have both parties sign by hand, then record the signed names here to mark it complete. Retain the original for your records.
+                  </p>
+                  {!manualSig[doc.id] ? (
+                    <>
+                      <Grid2>
+                        <Field label="Buyer signed name"><input style={S.input} placeholder="Buyer's name as signed" value={manualFields[doc.id]?.buyer||""} onChange={e=>setManualFields(f=>({...f,[doc.id]:{...f[doc.id],buyer:e.target.value}}))}/></Field>
+                        <Field label="Seller signed name"><input style={S.input} placeholder="Seller's name as signed" value={manualFields[doc.id]?.seller||""} onChange={e=>setManualFields(f=>({...f,[doc.id]:{...f[doc.id],seller:e.target.value}}))}/></Field>
+                      </Grid2>
+                      <button style={S.btnTeal} disabled={!manualFields[doc.id]?.buyer?.trim()||!manualFields[doc.id]?.seller?.trim()} onClick={()=>{ confirmManualSig(doc.id); setAction(doc.id,"manual"); }}>✓ Confirm Both Parties Signed</button>
+                    </>
+                  ) : (
+                    <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.teal }}>✓ Manual signatures recorded — Buyer: {manualSig[doc.id].buyer} · Seller: {manualSig[doc.id].seller} · {manualSig[doc.id].date}</div>
+                  )}
+                </div>
+              )}
+
+              {/* SEND */}
+              {docAction[doc.id]==="send" && (
+                <div style={{ marginTop:12, background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:6, padding:"14px" }}>
+                  <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.brass, marginBottom:8 }}>📤 Send Document by Email</div>
+                  <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+                    {[parties.buyer.email, parties.seller.email].filter(Boolean).map(e=>(
+                      <button key={e} onClick={()=>setSendEmail(s=>({...s,[doc.id]:e}))} style={{ fontSize:11, fontFamily:"sans-serif", padding:"4px 10px", borderRadius:16, border:`1px solid ${C.brass}`, background:"transparent", color:C.brass, cursor:"pointer" }}>{e}</button>
+                    ))}
+                    <span style={{ fontSize:10, fontFamily:"sans-serif", color:C.slate, alignSelf:"center" }}>or type below</span>
+                  </div>
+                  <Grid2>
+                    <Field label="Recipient email"><input style={S.input} type="email" placeholder="recipient@email.com" value={sendEmail[doc.id]||""} onChange={e=>setSendEmail(s=>({...s,[doc.id]:e.target.value}))}/></Field>
+                    <Field label="Optional note"><input style={S.input} placeholder="Please review and sign…" value={sendNote[doc.id]||""} onChange={e=>setSendNote(n=>({...n,[doc.id]:e.target.value}))}/></Field>
+                  </Grid2>
+                  <button style={S.btnBrass} disabled={!sendEmail[doc.id]?.trim() || sending[doc.id]} onClick={()=>{ sendDoc(doc.id, doc.title); }}>{sending[doc.id] ? "Sending…" : "Send Document →"}</button>
+                  {sendErr[doc.id] && <div style={{ color:C.red, fontSize:12, marginTop:8, fontFamily:"sans-serif", fontWeight:600 }}>⚠️ {sendErr[doc.id]}</div>}
+                  {sentLog[doc.id]?.length > 0 && (
+                    <div style={{ marginTop:10, fontSize:11, fontFamily:"sans-serif", color:C.slate }}>
+                      <strong>Sent log:</strong>
+                      {sentLog[doc.id].map((s,i)=>(<div key={i}>→ {s.to} at {s.time}{s.note ? ` — "${s.note}"` : ""}</div>))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* UPLOAD */}
+              {docAction[doc.id]==="upload" && (
+                <div style={{ marginTop:12, background:C.sandDark, border:`1px solid ${C.mist}`, borderRadius:6, padding:"14px" }}>
+                  <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.slate, marginBottom:8 }}>📎 Upload Signed Document</div>
+                  <p style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12, lineHeight:1.6 }}>
+                    If signed outside the platform (wet ink, notary, attorney, DocuSign), upload the signed PDF here to attach it to your deal file.
+                  </p>
+                  {!uploadedFile[doc.id] ? (
+                    <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"9px 18px", fontSize:12, fontFamily:"sans-serif", fontWeight:600 }}>
+                      <span>📎</span> Choose File to Upload
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); setAction(doc.id,"upload"); }}/>
+                    </label>
+                  ) : (
+                    <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>
+                      ✓ Uploaded: <strong>{uploadedFile[doc.id]}</strong> — attached on {today()}
+                      <button onClick={()=>{ setUploadedFile(u=>({...u,[doc.id]:null})); setSigned(s=>{const n={...s}; delete n[doc.id]; return n;}); }} style={{ marginLeft:12, fontSize:11, fontFamily:"sans-serif", background:"none", border:`1px solid ${C.mist}`, borderRadius:4, padding:"2px 8px", cursor:"pointer", color:C.slate }}>Replace</button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            )}
+            {i<arr.length-1 && <hr style={{...S.divider, margin:0}}/>}
+          </div>
+    );
+  };
+
   // ── DOCUMENTS VIEW ──
   return (
     <div style={S.page}>
@@ -1039,7 +1342,16 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       <div style={{ marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div>
           <h1 style={S.h1}>Documents</h1>
-          {!frozen && <button onClick={()=>setShowDocFinder(true)} style={{ marginTop:8, background:"transparent", color:C.navy, border:`1px solid ${C.brass}`, borderRadius:7, padding:"8px 14px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>🧭 Which document do I need?</button>}
+          {layout === "guided" && (
+            <div style={{ fontSize:12, color:C.slate, fontFamily:"sans-serif", marginTop:3 }}>
+              {[ [vessel.year, vessel.make, vessel.model].filter(Boolean).join(" "),
+                 floridaActive ? "Florida transfer" : null,
+                 documentedActive ? "Coast Guard documented" : null,
+                 quiz.pay === "finance" ? "buyer financing" : quiz.pay === "cash" ? "cash sale" : null,
+               ].filter(Boolean).join(" \u00b7 ")}
+            </div>
+          )}
+          {layout === "classic" && !frozen && <button onClick={()=>setShowDocFinder(true)} style={{ marginTop:8, background:"transparent", color:C.navy, border:`1px solid ${C.brass}`, borderRadius:7, padding:"8px 14px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>🧭 Which document do I need?</button>}
         </div>
         <span style={{...S.pill, background:C.greenLight, color:C.green}}>Paid ✓</span>
       </div>
@@ -1239,9 +1551,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                 {(nextDoc.useWhen || nextDoc.desc) && <div style={{ fontSize:12, color:C.slate, marginTop:5, lineHeight:1.6, fontFamily:"sans-serif" }}>{nextDoc.useWhen || nextDoc.desc}</div>}
               </div>
               <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-                <button onClick={()=>{ jumpToDoc(nextDoc.id); setDocAction(d=>({ ...d, [nextDoc.id]: canEditDoc(nextDoc) ? "esign" : "view" })); }}
+                <button onClick={()=>{ openDoc(nextDoc.id); setDocAction(d=>({ ...d, [nextDoc.id]: canEditDoc(nextDoc) ? "esign" : "view" })); }}
                   style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"9px 20px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", whiteSpace:"nowrap" }}>Sign this</button>
-                <button onClick={()=>jumpToDoc(nextDoc.id)}
+                <button onClick={()=>openDoc(nextDoc.id)}
                   style={{ background:C.white, color:C.slate, border:`1px solid ${C.mist}`, borderRadius:20, padding:"9px 16px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", whiteSpace:"nowrap" }}>Read it</button>
               </div>
             </div>
@@ -1262,8 +1574,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             const isSigned = !!signed[d.id];
             const atClosing = isClosingDoc(d) && !isSigned;
             const isNext = nextDoc && d.id === nextDoc.id;
+            if (activeDoc === d.id) return (
+              <div key={d.id} style={{ borderBottom: i < coreDocs.length-1 ? `1px solid ${C.sandDark}` : "none" }}>{renderDoc(d)}</div>
+            );
             return (
-              <button key={d.id} onClick={()=>jumpToDoc(d.id)}
+              <button key={d.id} onClick={()=>openDoc(d.id)}
                 style={{ display:"flex", alignItems:"center", gap:11, width:"100%", textAlign:"left", cursor:"pointer", fontFamily:"sans-serif",
                   background: isNext ? "#fdf8ef" : C.white, borderLeft: isNext ? `3px solid ${C.brass}` : "3px solid transparent",
                   border:"none", borderBottom: i < coreDocs.length-1 ? `1px solid ${C.sandDark}` : "none", padding:"13px 15px" }}>
@@ -1283,8 +1598,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             {reasons.length ? <>Your answers say {reasons.join(", ")}. If any of that is wrong, fix it in Vessel, Parties or Terms and this list updates.</> : <>Suggested for this deal. These are suggestions, not rules \u2014 open anything you need.</>}
           </div>
           <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderRadius:10, overflow:"hidden", marginBottom:24 }}>
-            {condDocs.map((d, i) => (
-              <button key={d.id} onClick={()=>jumpToDoc(d.id)}
+            {condDocs.map((d, i) => activeDoc === d.id ? (
+              <div key={d.id} style={{ borderBottom: i < condDocs.length-1 ? `1px solid ${C.sandDark}` : "none" }}>{renderDoc(d)}</div>
+            ) : (
+              <button key={d.id} onClick={()=>openDoc(d.id)}
                 style={{ display:"flex", alignItems:"flex-start", gap:11, width:"100%", textAlign:"left", background:C.white, border:"none",
                   borderBottom: i < condDocs.length-1 ? `1px solid ${C.sandDark}` : "none", padding:"13px 15px", cursor:"pointer", fontFamily:"sans-serif" }}>
                 <span style={{ fontSize:13, color: signed[d.id] ? C.green : C.brass, flexShrink:0, marginTop:2 }}>{signed[d.id] ? "\u2713" : "\u25cb"}</span>
@@ -1356,6 +1673,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         )}
       </div>
 
+      {layout === "guided" && !frozen && (
+        <div style={{ textAlign:"center", marginBottom:14 }}>
+          <button onClick={()=>setShowDocFinder(true)} style={{ background:"transparent", color:C.teal, border:`1px solid ${C.teal}`, borderRadius:18, padding:"7px 16px", fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>🧭 Not sure what you need? Answer a few questions</button>
+        </div>
+      )}
+
       {layout === "guided" && (
         <button onClick={()=>setDrawerOpen(o=>!o)}
           style={{ display:"flex", alignItems:"center", gap:12, width:"100%", textAlign:"left", background:C.white, border:`1px solid ${C.mist}`, borderRadius:10, padding:"13px 15px", marginBottom:16, cursor:"pointer", fontFamily:"sans-serif" }}>
@@ -1390,296 +1713,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
           </button>
           {open && (
           <div style={{ ...S.card, borderRadius:"0 0 8px 8px", borderTop:"none", marginBottom:0 }}>
-            {DOC_SET.filter(d=>d.group===g).map((doc,i,arr)=>{
-              const needsNotary = doc.kind !== "upload" && (doc.body||"").includes("Notary Acknowledgment");
-              return (
-              <div key={doc.id} id={"bcdoc-"+doc.id}>
-                {activeDoc!==doc.id ? (
-                  <button onClick={()=>openDoc(doc.id)} className="bc-docrow" style={{ width:"100%", textAlign:"left", background:"transparent", border:"none", borderRadius:6, padding:"11px 4px", cursor:"pointer", fontFamily:"sans-serif" }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
-                      <div style={{ width:28, height:28, borderRadius:5, flexShrink:0, background: signed[doc.id] ? C.greenLight : C.sandDark, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13 }}>{signed[doc.id] ? (signed[doc.id].uploaded ? "📎" : signed[doc.id].manual ? "✍️" : "✅") : "📄"}</div>
-                      <div style={{ minWidth:0 }}>
-                        <div style={{ fontSize:12.5, fontWeight:600, color:C.navy }}>{doc.title}</div>
-                        <div style={{ display:"flex", gap:5, marginTop:2, flexWrap:"wrap" }}>
-                          {doc.required && <span style={{...S.tag, background:"#fff3cd", color:"#7a5500"}}>Required</span>}
-                          {needsNotary && <span style={{...S.tag, background:"#fbf4e3", color:"#8a6d1a"}}>Notary</span>}
-                          {signed[doc.id] && <span style={{...S.tag, background:C.greenLight, color:C.green}}>✓ Signed</span>}
-                          {sentLog[doc.id]?.length > 0 && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Sent</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <span style={{ fontSize:11.5, color:C.brass, fontWeight:700, whiteSpace:"nowrap" }}>Open →</span>
-                  </button>
-                ) : (
-                <div style={{ background:"#fcfaf4", borderRadius:8, border:`1px solid ${C.mist}`, padding:"12px 14px" }}>
-                  <button onClick={()=>setActiveDoc(null)} style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, background:"none", border:"none", cursor:"pointer", padding:"0 0 10px", fontWeight:700 }}>← Back to documents</button>
-                  <div className="bc-docrow">
-                    <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
-                      <div style={{ width:30, height:30, borderRadius:5, flexShrink:0, background: signed[doc.id] ? C.greenLight : C.sandDark, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>
-                        {signed[doc.id] ? (signed[doc.id].uploaded ? "📎" : signed[doc.id].manual ? "✍️" : "✅") : "📄"}
-                      </div>
-                      <div style={{ minWidth:0 }}>
-                        <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:600, color:C.navy }}>{doc.title}</div>
-                        {doc.desc && <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:1, lineHeight:1.4 }}>{doc.desc}</div>}
-                        <div style={{ display:"flex", gap:5, marginTop:2, flexWrap:"wrap" }}>
-                          {doc.required && <span style={{...S.tag, background:"#fff3cd", color:"#7a5500"}}>Required</span>}
-                          {!doc.required && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Optional</span>}
-                          {needsNotary && <span style={{...S.tag, background:"#fbf4e3", color:"#8a6d1a"}}>Notary required</span>}
-                          {(doc.checklist || getDocHtml(doc).includes("bc-fill-in")) && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>{doc.editRole ? `Fill in app · ${doc.editRole} only` : "Fill in app"}</span>}
-                          {signed[doc.id] && <span style={{...S.tag, background:C.greenLight, color:C.green}}>✓ {signed[doc.id].date} · {signed[doc.id].name}</span>}
-                          {sentLog[doc.id]?.length > 0 && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Sent ×{sentLog[doc.id].length}</span>}
-                          {uploadedFile[doc.id] && !signed[doc.id]?.uploaded && <span style={{...S.tag}}>📎 {uploadedFile[doc.id]}</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bc-docbtns">
-                      <ActionBtn docId={doc.id} action="view"   icon="👁" label="View"   />
-                      {canEditDoc(doc) && (getBlanks(doc).length > 0 || !!doc.checklist) && <ActionBtn docId={doc.id} action="fill" icon="✏️" label="Fill In" color={C.brass} />}
-                      {!frozen && doc.kind !== "upload" && !needsNotary && !doc.viewOnly && <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />}
-                      {!frozen && doc.kind !== "upload" && !doc.viewOnly && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
-                      <ActionBtn docId={doc.id} action="send"   icon="📤" label="Send"   color={C.brass} />
-                      {!frozen && !doc.viewOnly && <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />}
-                      <button onClick={()=>printDoc(doc.id, doc.title)} title="Print" style={{ fontSize:13, padding:"7px 11px", borderRadius:20, cursor:"pointer", border:`1.5px solid #e3ddd0`, background:C.white, color:C.slate }}>🖨️</button>
-                    </div>
-                  </div>
-
-                  {/* VIEW — filled-in polished document, or upload-slot guide */}
-                  {docAction[doc.id]==="view" && (
-                    <div style={{ marginTop:12 }}>
-                      {doc.kind === "upload" ? (
-                        <div style={{ textAlign:"center", padding:"26px 22px", border:`2px dashed ${C.mist}`, borderRadius:8, background:"#fcfaf4" }}>
-                          <div style={{ fontSize:32 }}>{doc.icon}</div>
-                          <div style={{ fontFamily:"Georgia,serif", fontSize:17, fontWeight:700, color:C.navy, margin:"8px 0 4px" }}>{doc.title}</div>
-                          <div style={{ display:"inline-block", fontSize:10, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".08em", textTransform:"uppercase", color:C.teal, background:C.tealLight, padding:"3px 10px", borderRadius:20, marginBottom:12 }}>{doc.issued}</div>
-                          <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.text, lineHeight:1.7, maxWidth:460, margin:"0 auto 14px", textAlign:"left" }} dangerouslySetInnerHTML={{ __html: doc.guide }} />
-                          {(() => {
-                            const up = negotiate?.uploads?.[doc.id];
-                            const localUrl = uploadedData[doc.id]?.dataURL;
-                            const name = uploadedFile[doc.id] || up?.name;
-                            const viewUrl = localUrl || up?.url;
-                            const has = !!(uploadedFile[doc.id] || up);
-                            if (uploading[doc.id] && !up) return <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>Saving file…</div>;
-                            return has ? (
-                              <div>
-                                <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Uploaded: <strong>{name}</strong></div>
-                                {viewUrl && (
-                                  <div style={{ marginTop:10, display:"flex", gap:12, alignItems:"center", justifyContent:"center", flexWrap:"wrap" }}>
-                                    <a href={viewUrl} target="_blank" rel="noopener noreferrer" download={name} style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, textDecoration:"underline" }}>⬇ View / download</a>
-                                    <label style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.slate, cursor:"pointer", textDecoration:"underline" }}>
-                                      ↻ Replace file
-                                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
-                                    </label>
-                                  </div>
-                                )}
-                                <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:8 }}>{up ? "Stored on the deal — both parties can see it." : "Saved on your screen."} To email a copy, use the <strong>Send</strong> button.</div>
-                              </div>
-                            ) : (
-                              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:6, padding:"10px 22px", fontSize:13, fontFamily:"sans-serif", fontWeight:700 }}>
-                                📎 Upload {doc.tab}
-                                <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
-                              </label>
-                            );
-                          })()}
-                          {uploadErr[doc.id] && <div style={{ color:C.red, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, marginTop:10 }}>⚠️ {uploadErr[doc.id]}</div>}
-                          <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:10 }}>Accepted: {doc.accept}</div>
-                        </div>
-                      ) : (
-                        <div className="bc-doc-paper" id={"bc-print-"+doc.id}>
-                          <div className="bc-doc-eyebrow">{doc.eyebrow}</div>
-                          <div className="bc-doc-title">{doc.title}</div>
-                          <div className="bc-doc-ref">Ref {deal.dealRef} · {deal.vesselYear} {deal.vesselMake} {deal.vesselModel}</div>
-                          {doc.externalUrl && (
-                            <div style={{ textAlign:"center", margin:"10px 0 4px" }}>
-                              <a href={doc.externalUrl} target="_blank" rel="noopener noreferrer" style={{ display:"inline-block", background:C.navy, color:"#fff", textDecoration:"none", borderRadius:7, padding:"10px 18px", fontSize:13, fontWeight:800, fontFamily:"sans-serif" }}>↗ Open the official Florida form (HSMV 82050)</a>
-                            </div>
-                          )}
-                          <div className="bc-doc-rule"></div>
-                          {needsNotary && (
-                            <div className="bc-notary-flag">
-                              ⚖ <strong>Must be notarized.</strong> A typed e-signature can't be notarized. Print this, sign it in front of a notary, then come back and mark it done below (optionally uploading the notarized copy as proof).
-                              {!signed[doc.id] ? (
-                                <div style={{ marginTop:12, display:"flex", gap:8, flexWrap:"wrap" }}>
-                                  <button onClick={()=>setSigned(sg=>({ ...sg, [doc.id]: { name:"Completed offline (notarized)", date:today(), at:signedStamp().at, when:signedStamp().when, manual:true, notarizedOffline:true } }))} style={{ background:"#8a6d1a", color:"#fff", border:"none", borderRadius:6, padding:"9px 14px", fontSize:12, fontWeight:800, fontFamily:"sans-serif", cursor:"pointer" }}>✓ I've had this notarized — mark it done</button>
-                                  <label style={{ background:"#fff", color:"#8a6d1a", border:"1px solid #8a6d1a", borderRadius:6, padding:"9px 14px", fontSize:12, fontWeight:800, fontFamily:"sans-serif", cursor:"pointer" }}>
-                                    📎 Upload notarized copy (optional)
-                                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
-                                  </label>
-                                </div>
-                              ) : (
-                                <div style={{ marginTop:10, fontSize:12, fontWeight:800, color:"#0f6e56", fontFamily:"sans-serif" }}>✓ {signed[doc.id].uploaded ? "Notarized copy uploaded" : "Marked notarized (completed offline)"} — {signed[doc.id].when || signed[doc.id].date}
-                                  <button onClick={()=>setSigned(sg=>{ const c={...sg}; delete c[doc.id]; return c; })} style={{ marginLeft:10, background:"none", border:"none", color:C.slate, fontSize:11, textDecoration:"underline", cursor:"pointer", fontWeight:400 }}>undo</button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {(() => {
-                            const filledHtml = stampSignatures(getDocHtml(doc), doc.id);
-                            const editable = canEditDoc(doc);
-                            const interactive = !!doc.checklist || filledHtml.includes("bc-fill-in");
-                            return (
-                              <>
-                                {interactive ? (editable ? (
-                                  <div className="bc-fill-hint">✏️ <strong>This document has blanks to complete — tap “Fill In” above.</strong> Everything else comes straight from your <strong>Vessel</strong>, <strong>Parties</strong>, and agreed <strong>Terms</strong> and is locked, so it can never disagree with your deal. If any of that looks wrong, fix it at the source and every document updates.</div>
-                                ) : (
-                                  <div className="bc-lock-note">🔒 Only the {doc.editRole} fills this one in here. You can still view it, print it, and upload a signed copy.</div>
-                                )) : (
-                                  <div className="bc-lock-note">🔒 <strong>Nothing to fill in on this one.</strong> It builds itself from your deal, and the signature and notary lines are left blank on purpose — those get completed at signing.</div>
-                                )}
-                                <DocPaper
-                                  doc={doc}
-                                  html={filledHtml}
-                                  editable={editable}
-                                  checkState={checkState}
-                                  toggleCheck={toggleCheck}
-                                  savedFields={fieldState[doc.id]||{}}
-                                  onField={(fk,val)=>setField(doc.id, fk, val)}
-                                />
-                              </>
-                            );
-                          })()}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* FILL IN — plain form boxes, one per blank. Nothing from the
-                      deal itself appears here, so vessel & parties stay locked. */}
-                  {docAction[doc.id]==="fill" && (
-                    <FillInForm
-                      key={doc.id}
-                      doc={doc}
-                      blanks={getBlanks(doc)}
-                      initial={fieldState[doc.id] || {}}
-                      C={C}
-                      onKeep={(fk, v) => keepField(doc.id, fk, v)}
-                      onSave={(draft) => saveFields(doc.id, draft)}
-                      onCancel={() => setDocAction(d => ({ ...d, [doc.id]: "view" }))}
-                    />
-                  )}
-
-                  {/* E-SIGN */}
-                  {docAction[doc.id]==="esign" && (
-                    <div style={{ marginTop:12, background:C.greenLight, border:`1px solid #a8d8b8`, borderRadius:6, padding:"14px" }}>
-                      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.green, marginBottom:10 }}>✏️ Electronic Signature — {doc.title}</div>
-                      <div style={{ background:C.navy, borderRadius:4, padding:"9px 12px", fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.85)", marginBottom:12, lineHeight:1.6 }}>
-                        ⚠️ <strong style={{ color:C.brass }}>Preview only — not legally binding until BoatClosers receives payment.</strong> Upon payment confirmation, the executed package is released to both parties. BoatClosers provides document facilitation only — not legal advice or brokerage services.
-                      </div>
-                      {!signed[doc.id] || signed[doc.id].manual || signed[doc.id].uploaded ? (
-                        <>
-                          {/* E-Sign consent & disclosure */}
-                          <div style={{ background:"#fffdf8", border:`1px solid ${C.mist}`, borderRadius:5, padding:"11px 13px", marginBottom:12 }}>
-                            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65 }}>
-                              <strong style={{ color:C.navy }}>Before you sign electronically, please understand:</strong>
-                              <ul style={{ margin:"6px 0 0", paddingLeft:18 }}>
-                                <li style={{ marginBottom:4 }}>By typing your name and signing, you agree to conduct this transaction electronically and that your electronic signature is intended to be your legal signature on this document.</li>
-                                <li style={{ marginBottom:4 }}>BoatClosers is a document-preparation tool only. It does <strong>not</strong> verify the identity of any signer, does not guarantee the legal validity or enforceability of any signature, and is not responsible for record-keeping, storage, or authentication of signed documents.</li>
-                                <li style={{ marginBottom:4 }}>You are responsible for keeping your own signed copies. If you need a verifiable, court-defensible signature, use a dedicated e-signature service or sign in ink before a notary.</li>
-                                <li style={{ marginBottom:0 }}><strong>Not comfortable signing electronically?</strong> Use the <strong>Manual</strong> option to record an in-person ink signature, or <strong>Print</strong> the document to sign by hand. Notarized documents must always be printed and signed in ink before a notary.</li>
-                              </ul>
-                            </div>
-                            <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", marginTop:10 }}>
-                              <input type="checkbox" checked={!!esignConsent[doc.id]} onChange={e=>setEsignConsent(c=>({...c,[doc.id]:e.target.checked}))} style={{ width:15, height:15, marginTop:1, accentColor:C.green, flexShrink:0 }} />
-                              <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600, lineHeight:1.5 }}>I have read the above, I consent to sign electronically, and I understand BoatClosers does not verify or store my signature.</span>
-                            </label>
-                          </div>
-                          {(() => {
-                            const myName = myRole === "seller" ? parties.seller?.name : parties.buyer?.name;
-                            const typed = (sigName[doc.id]||"").trim();
-                            const nameOk = sigMatchesName(typed, myName);
-                            const canSign = !!typed && !!esignConsent[doc.id] && nameOk;
-                            return (
-                              <>
-                                <div style={{ display:"flex", gap:10, alignItems:"flex-end" }}>
-                                  <div style={{ flex:1 }}>
-                                    <label style={S.label}>Type your full legal name to sign electronically</label>
-                                    <input style={S.input} placeholder="Full legal name" value={sigName[doc.id]||""} onChange={e=>setSigName(s=>({...s,[doc.id]:e.target.value}))}/>
-                                  </div>
-                                  <button style={{...S.btnBrass, opacity:canSign?1:0.45, cursor:canSign?"pointer":"not-allowed"}} disabled={!canSign} onClick={()=>{ if(!sigMatchesName((sigName[doc.id]||"").trim(), myName)) return; const st=signedStamp(); setSigned(s=>({...s,[doc.id]:{name:sigName[doc.id],date:today(),at:st.at,when:st.when,consent:true,role:myRole}})); setAction(doc.id,"esign"); }}>Sign Document</button>
-                                </div>
-                                {myName && typed && !nameOk && (
-                                  <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:6, lineHeight:1.5 }}>Your signature must match your name on this deal: <b>{myName}</b>. To change it, update your name in the Parties step.</div>
-                                )}
-                              </>
-                            );
-                          })()}
-                        </>
-                      ) : (
-                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Already signed by {signed[doc.id].name} on {signed[doc.id].when || signed[doc.id].date}</div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* MANUAL */}
-                  {docAction[doc.id]==="manual" && (
-                    <div style={{ marginTop:12, background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"14px" }}>
-                      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.teal, marginBottom:8 }}>✍️ Record Manual / Wet Ink Signatures</div>
-                      <p style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12, lineHeight:1.6 }}>
-                        Print the document, have both parties sign by hand, then record the signed names here to mark it complete. Retain the original for your records.
-                      </p>
-                      {!manualSig[doc.id] ? (
-                        <>
-                          <Grid2>
-                            <Field label="Buyer signed name"><input style={S.input} placeholder="Buyer's name as signed" value={manualFields[doc.id]?.buyer||""} onChange={e=>setManualFields(f=>({...f,[doc.id]:{...f[doc.id],buyer:e.target.value}}))}/></Field>
-                            <Field label="Seller signed name"><input style={S.input} placeholder="Seller's name as signed" value={manualFields[doc.id]?.seller||""} onChange={e=>setManualFields(f=>({...f,[doc.id]:{...f[doc.id],seller:e.target.value}}))}/></Field>
-                          </Grid2>
-                          <button style={S.btnTeal} disabled={!manualFields[doc.id]?.buyer?.trim()||!manualFields[doc.id]?.seller?.trim()} onClick={()=>{ confirmManualSig(doc.id); setAction(doc.id,"manual"); }}>✓ Confirm Both Parties Signed</button>
-                        </>
-                      ) : (
-                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.teal }}>✓ Manual signatures recorded — Buyer: {manualSig[doc.id].buyer} · Seller: {manualSig[doc.id].seller} · {manualSig[doc.id].date}</div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* SEND */}
-                  {docAction[doc.id]==="send" && (
-                    <div style={{ marginTop:12, background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:6, padding:"14px" }}>
-                      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.brass, marginBottom:8 }}>📤 Send Document by Email</div>
-                      <div style={{ display:"flex", gap:8, marginBottom:8 }}>
-                        {[parties.buyer.email, parties.seller.email].filter(Boolean).map(e=>(
-                          <button key={e} onClick={()=>setSendEmail(s=>({...s,[doc.id]:e}))} style={{ fontSize:11, fontFamily:"sans-serif", padding:"4px 10px", borderRadius:16, border:`1px solid ${C.brass}`, background:"transparent", color:C.brass, cursor:"pointer" }}>{e}</button>
-                        ))}
-                        <span style={{ fontSize:10, fontFamily:"sans-serif", color:C.slate, alignSelf:"center" }}>or type below</span>
-                      </div>
-                      <Grid2>
-                        <Field label="Recipient email"><input style={S.input} type="email" placeholder="recipient@email.com" value={sendEmail[doc.id]||""} onChange={e=>setSendEmail(s=>({...s,[doc.id]:e.target.value}))}/></Field>
-                        <Field label="Optional note"><input style={S.input} placeholder="Please review and sign…" value={sendNote[doc.id]||""} onChange={e=>setSendNote(n=>({...n,[doc.id]:e.target.value}))}/></Field>
-                      </Grid2>
-                      <button style={S.btnBrass} disabled={!sendEmail[doc.id]?.trim() || sending[doc.id]} onClick={()=>{ sendDoc(doc.id, doc.title); }}>{sending[doc.id] ? "Sending…" : "Send Document →"}</button>
-                      {sendErr[doc.id] && <div style={{ color:C.red, fontSize:12, marginTop:8, fontFamily:"sans-serif", fontWeight:600 }}>⚠️ {sendErr[doc.id]}</div>}
-                      {sentLog[doc.id]?.length > 0 && (
-                        <div style={{ marginTop:10, fontSize:11, fontFamily:"sans-serif", color:C.slate }}>
-                          <strong>Sent log:</strong>
-                          {sentLog[doc.id].map((s,i)=>(<div key={i}>→ {s.to} at {s.time}{s.note ? ` — "${s.note}"` : ""}</div>))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* UPLOAD */}
-                  {docAction[doc.id]==="upload" && (
-                    <div style={{ marginTop:12, background:C.sandDark, border:`1px solid ${C.mist}`, borderRadius:6, padding:"14px" }}>
-                      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.slate, marginBottom:8 }}>📎 Upload Signed Document</div>
-                      <p style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12, lineHeight:1.6 }}>
-                        If signed outside the platform (wet ink, notary, attorney, DocuSign), upload the signed PDF here to attach it to your deal file.
-                      </p>
-                      {!uploadedFile[doc.id] ? (
-                        <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"9px 18px", fontSize:12, fontFamily:"sans-serif", fontWeight:600 }}>
-                          <span>📎</span> Choose File to Upload
-                          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); setAction(doc.id,"upload"); }}/>
-                        </label>
-                      ) : (
-                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>
-                          ✓ Uploaded: <strong>{uploadedFile[doc.id]}</strong> — attached on {today()}
-                          <button onClick={()=>{ setUploadedFile(u=>({...u,[doc.id]:null})); setSigned(s=>{const n={...s}; delete n[doc.id]; return n;}); }} style={{ marginLeft:12, fontSize:11, fontFamily:"sans-serif", background:"none", border:`1px solid ${C.mist}`, borderRadius:4, padding:"2px 8px", cursor:"pointer", color:C.slate }}>Replace</button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                )}
-                {i<arr.length-1 && <hr style={{...S.divider, margin:0}}/>}
-              </div>
-            );})}
+            {DOC_SET.filter(d=>d.group===g).map((doc,i,arr)=>renderDoc(doc,i,arr))}
           </div>
           )}
         </div>
