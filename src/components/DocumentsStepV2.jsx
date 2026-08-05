@@ -284,6 +284,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // Collapsible groups — required group open by default, the rest collapsed.
   const [openGroups, setOpenGroups] = useState({ "Closing Instruments": true });
   const [showDocFinder, setShowDocFinder] = useState(false);
+  // "guided" is the new layout. "classic" renders the original page, unchanged, so
+  // there is always a way back if the new one gets something wrong.
+  const [layout, setLayout] = useState(data.docsLayout === "classic" ? "classic" : "guided");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const switchLayout = (next) => { setLayout(next); setData(d => ({ ...d, docsLayout: next })); };
   // ── Florida detection ──────────────────────────────────────────────────────
   // Look for Florida in the buyer, seller, or vessel location. If found, the
   // official FL state forms are surfaced automatically. If not found, the user can
@@ -301,6 +306,21 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [quizMore, setQuizMore] = useState(false);
   const [quiz, setQuiz] = useState({ pay:"", trailer:false, documented:false, florida:false, lien:false, estate:false, coowner:false, entity:false, poa:false, tradein:false, gift:false, sellerfin:false, losttitle:false, lostreg:false, survey:false, defects:false });
   // documentedActive / floridaActive computed after quiz so the quiz answers count.
+  // The deal already answers most of the questionnaire. Seed it once from Vessel,
+  // Parties and Terms so the customer is only ever asked what cannot be worked out.
+  const seededRef = useRef(false);
+  useEffect(() => {
+    if (seededRef.current) return;
+    seededRef.current = true;
+    const seed = {};
+    if (String(vessel?.trailerIncluded || "").toLowerCase() === "yes") seed.trailer = true;
+    if (String(vessel?.uscgNumber || vessel?.uscgOfficialNo || vessel?.officialNo || "").trim()) seed.documented = true;
+    if (_isFL(vessel?.regState) || _isFL(vessel?.location) || _isFL(parties?.buyer?.stateZip) || _isFL(parties?.seller?.stateZip)) seed.florida = true;
+    if (negotiate?.sellerHasLien || data?.hasLien) seed.lien = true;
+    if (negotiate?.financeContingency || String(negotiate?.paymentType || "").toLowerCase().includes("financ")) seed.pay = "finance";
+    if (Object.keys(seed).length) setQuiz(q => ({ ...q, ...seed }));
+  }, []); // eslint-disable-line
+
   const documentedActive = docDetected || docOptIn || !!quiz.documented;
   const floridaActive = flDetected || flOptIn || !!quiz.florida;
   const [esignConsent, setEsignConsent] = useState({}); // per-doc consent before e-signing
@@ -575,6 +595,52 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const reqMissing = requiredDocs.filter(d => !signed[d.id]);
   const reqNotaryMissing = reqMissing.filter(d => (d.body||"").includes("Notary Acknowledgment"));
   const signedCount = Object.keys(signed).length;
+
+  // ── GUIDED LAYOUT DATA ──
+  // The core set, in the order a real deal actually unfolds.
+  const CORE_ORDER = ["purchase_agreement","deposit_receipt","as_is_acknowledgment","acceptance","bill_of_sale","closing_statement"];
+  const coreDocs = CORE_ORDER.map(id => DOC_SET.find(d => d.id === id)).filter(Boolean);
+  // The Closing Statement belongs to the Closing step — shown here, signed there.
+  const isClosingDoc = (d) => d.id === "closing_statement";
+  const coreSigned = coreDocs.filter(d => signed[d.id]).length;
+  const nextDoc = coreDocs.find(d => !signed[d.id] && !isClosingDoc(d));
+  // Everything this particular deal needs on top of the core set, and why.
+  const coreIds = new Set(CORE_ORDER);
+  // The state and federal forms are the whole reason we ask where the transfer is
+  // happening. Surface them here rather than leaving them buried in the drawer.
+  const govIds = [
+    ...(floridaActive ? ["fl_82050","fl_82040vs"] : []),
+    ...(documentedActive ? ["cg_1340","cg_1258"] : []),
+  ];
+  const condDocs = (() => {
+    const seen = new Set(coreIds);
+    const out = [];
+    [...govIds, ...recDocs.map(d => d.id)].forEach(id => {
+      if (seen.has(id)) return;
+      // A Florida title application supersedes the generic one.
+      if (id === "title_app" && floridaActive) return;
+      const d = DOC_SET.find(x => x.id === id);
+      if (!d) return;
+      seen.add(id); out.push(d);
+    });
+    return out;
+  })();
+  const reasons = [
+    floridaActive && "Florida transfer",
+    documentedActive && "Coast Guard documented",
+    quiz.pay === "finance" ? "buyer is financing" : quiz.pay === "cash" ? "cash sale" : null,
+    quiz.trailer && "trailer included",
+    quiz.lien && "money still owed on the boat",
+    quiz.estate && "estate or inherited sale",
+    quiz.entity && "seller is a business or trust",
+    quiz.coowner && "more than one owner on the title",
+    quiz.sellerfin && "seller is carrying the paper",
+    quiz.tradein && "a trade-in is involved",
+    quiz.gift && "gift or family transfer",
+    (quiz.losttitle || quiz.lostreg) && "title or registration missing",
+  ].filter(Boolean);
+  const shownIds = new Set([...coreIds, ...condDocs.map(d => d.id)]);
+  const otherCount = DOC_SET.filter(d => !shownIds.has(d.id)).length;
 
   // ── PAYWALL ──
   if (!paid) {
@@ -975,6 +1041,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         </div>
       )}
 
+      {layout === "classic" && (<>
       {/* ── OFFICIAL GOVERNMENT FORMS — a proper section, not a stray link ── */}
       <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px 16px", marginBottom:16, background:C.white }}>
         <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:800, color:C.navy, marginBottom:3 }}>🏛️ Official government forms</div>
@@ -1151,6 +1218,82 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
           })}
         </div>
       </div>
+      </>)}
+
+      {layout === "guided" && (<>
+
+        {nextDoc && !frozen && (
+          <div style={{ background:C.white, border:`2px solid ${C.brass}`, borderRadius:10, padding:"16px 18px", marginBottom:16 }}>
+            <div style={{ fontSize:10, color:C.brass, letterSpacing:1.5, textTransform:"uppercase", marginBottom:7, fontFamily:"sans-serif" }}>Your next step</div>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:16, flexWrap:"wrap" }}>
+              <div style={{ flex:1, minWidth:220 }}>
+                <div style={{ fontFamily:"'Georgia',serif", fontSize:17.5, color:C.navy }}>{nextDoc.title}</div>
+                {(nextDoc.useWhen || nextDoc.desc) && <div style={{ fontSize:12, color:C.slate, marginTop:5, lineHeight:1.6, fontFamily:"sans-serif" }}>{nextDoc.useWhen || nextDoc.desc}</div>}
+              </div>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                <button onClick={()=>{ jumpToDoc(nextDoc.id); setDocAction(d=>({ ...d, [nextDoc.id]: canEditDoc(nextDoc) ? "esign" : "view" })); }}
+                  style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"9px 20px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", whiteSpace:"nowrap" }}>Sign this</button>
+                <button onClick={()=>jumpToDoc(nextDoc.id)}
+                  style={{ background:C.white, color:C.slate, border:`1px solid ${C.mist}`, borderRadius:20, padding:"9px 16px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", whiteSpace:"nowrap" }}>Read it</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ display:"flex", alignItems:"center", gap:11, marginBottom:22 }}>
+          <div style={{ flex:1, height:5, background:C.sandDark, borderRadius:3, overflow:"hidden" }}>
+            <div style={{ width:`${coreDocs.length ? Math.round((coreSigned/coreDocs.length)*100) : 0}%`, height:"100%", background:C.green }} />
+          </div>
+          <span style={{ fontSize:11, color:C.slate, whiteSpace:"nowrap", fontFamily:"sans-serif" }}>{coreSigned} of {coreDocs.length} signed</span>
+        </div>
+
+        <div style={{ fontFamily:"'Georgia',serif", fontSize:16, color:C.navy, marginBottom:2 }}>Every sale needs these</div>
+        <div style={{ fontSize:12, color:C.slate, marginBottom:11, fontFamily:"sans-serif" }}>Sign these and your deal is properly papered.</div>
+        <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderRadius:10, overflow:"hidden", marginBottom:24 }}>
+          {coreDocs.map((d, i) => {
+            const isSigned = !!signed[d.id];
+            const atClosing = isClosingDoc(d) && !isSigned;
+            const isNext = nextDoc && d.id === nextDoc.id;
+            return (
+              <button key={d.id} onClick={()=>jumpToDoc(d.id)}
+                style={{ display:"flex", alignItems:"center", gap:11, width:"100%", textAlign:"left", cursor:"pointer", fontFamily:"sans-serif",
+                  background: isNext ? "#fdf8ef" : C.white, borderLeft: isNext ? `3px solid ${C.brass}` : "3px solid transparent",
+                  border:"none", borderBottom: i < coreDocs.length-1 ? `1px solid ${C.sandDark}` : "none", padding:"13px 15px" }}>
+                <span style={{ fontSize:13, color: isSigned ? C.green : atClosing ? C.slate : C.brass, flexShrink:0 }}>{isSigned ? "\u2713" : atClosing ? "\u25cb" : "\u25cb"}</span>
+                <span style={{ flex:1, fontSize:13.5, color: atClosing ? C.slate : C.navy, fontWeight: isNext ? 700 : 400, textDecoration: isSigned ? "line-through" : "none", opacity: atClosing ? 0.7 : 1 }}>{d.title}</span>
+                <span style={{ fontSize:11, whiteSpace:"nowrap", color: isSigned ? C.green : atClosing ? C.slate : C.brass, fontWeight:600 }}>
+                  {isSigned ? "Signed" : atClosing ? "Opens at closing" : "Sign \u2192"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {condDocs.length > 0 && (<>
+          <div style={{ fontFamily:"'Georgia',serif", fontSize:16, color:C.navy, marginBottom:2 }}>Because of how your deal is set up</div>
+          <div style={{ fontSize:12, color:C.slate, marginBottom:11, fontFamily:"sans-serif", lineHeight:1.55 }}>
+            {reasons.length ? <>Your answers say {reasons.join(", ")}. If any of that is wrong, fix it in Vessel, Parties or Terms and this list updates.</> : <>Suggested for this deal. These are suggestions, not rules \u2014 open anything you need.</>}
+          </div>
+          <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderRadius:10, overflow:"hidden", marginBottom:24 }}>
+            {condDocs.map((d, i) => (
+              <button key={d.id} onClick={()=>jumpToDoc(d.id)}
+                style={{ display:"flex", alignItems:"flex-start", gap:11, width:"100%", textAlign:"left", background:C.white, border:"none",
+                  borderBottom: i < condDocs.length-1 ? `1px solid ${C.sandDark}` : "none", padding:"13px 15px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                <span style={{ fontSize:13, color: signed[d.id] ? C.green : C.brass, flexShrink:0, marginTop:2 }}>{signed[d.id] ? "\u2713" : "\u25cb"}</span>
+                <span style={{ flex:1 }}>
+                  <span style={{ fontSize:13.5, color:C.navy, display:"block" }}>
+                    {d.title}
+                    {(d.florida || d.documented) && <span style={{ fontSize:10, background:C.tealLight, color:C.teal, padding:"2px 7px", borderRadius:9, marginLeft:6 }}>Official form</span>}
+                  </span>
+                  {(d.useWhen || d.desc) && <span style={{ fontSize:11.5, color:C.slate, marginTop:2, lineHeight:1.5, display:"block" }}>{d.useWhen || d.desc}</span>}
+                </span>
+                <span style={{ fontSize:11, color: signed[d.id] ? C.green : C.brass, whiteSpace:"nowrap", fontWeight:600, marginTop:2 }}>{signed[d.id] ? "Signed" : "Open \u2192"}</span>
+              </button>
+            ))}
+          </div>
+        </>)}
+
+      </>)}
 
       {/* ── FIND A DOCUMENT ─────────────────────────────────────────────────── */}
       <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderRadius:10, padding:"15px 17px", marginBottom:16 }}>
@@ -1205,7 +1348,19 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         )}
       </div>
 
-      {GROUPS.map(g=>{
+      {layout === "guided" && (
+        <button onClick={()=>setDrawerOpen(o=>!o)}
+          style={{ display:"flex", alignItems:"center", gap:12, width:"100%", textAlign:"left", background:C.white, border:`1px solid ${C.mist}`, borderRadius:10, padding:"13px 15px", marginBottom:16, cursor:"pointer", fontFamily:"sans-serif" }}>
+          <span style={{ fontSize:15 }}>📁</span>
+          <span style={{ flex:1 }}>
+            <span style={{ fontSize:13.5, color:C.navy, display:"block" }}>Other documents · {otherCount}</span>
+            <span style={{ fontSize:11.5, color:C.slate, marginTop:2, display:"block", lineHeight:1.5 }}>Lost title, estate sale, co-owners, trade-in, seller financing. Here if you need them.</span>
+          </span>
+          <span style={{ fontSize:13, color:C.slate }}>{drawerOpen ? "▲" : "▼"}</span>
+        </button>
+      )}
+
+      {(layout === "classic" || drawerOpen) && GROUPS.map(g=>{
         const groupDocs = DOC_SET.filter(d=>d.group===g);
         const groupSigned = groupDocs.filter(d=>signed[d.id]).length;
         const hasRequired = groupDocs.some(d=>d.required);
@@ -1522,6 +1677,13 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         </div>
         );
       })}
+
+      <div style={{ textAlign:"center", marginTop:18 }}>
+        <button onClick={()=>switchLayout(layout === "guided" ? "classic" : "guided")}
+          style={{ background:"transparent", border:"none", color:C.slate, fontSize:11.5, textDecoration:"underline", cursor:"pointer", fontFamily:"sans-serif" }}>
+          {layout === "guided" ? "Switch to the classic document list" : "Back to the guided view"}
+        </button>
+      </div>
 
       <div style={{ marginTop:"1.5rem" }}>
         {!allRequiredSigned && (
