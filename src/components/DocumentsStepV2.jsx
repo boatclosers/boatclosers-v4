@@ -12,7 +12,6 @@
 import { useState, useRef, useEffect } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
 import DocFinder from "./DocFinder";
-import DocNeeds, { readKnownFacts } from "./DocNeeds";
 import BosPicker, { recommendBos } from "./BosPicker";
 
 // ── palette (matches the main app) ──
@@ -291,23 +290,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [showDocFinder, setShowDocFinder] = useState(false);
   // "Which documents do I need?" — a full-screen flow that reads what the deal
   // already knows, asks only what it cannot, and builds a suggested set.
-  const [showNeeds, setShowNeeds] = useState(false);
-  const QUIZ_COUNT = 4;
   const [showBos, setShowBos] = useState(false);
-  const dealFacts = readKnownFacts({ vessel, parties, negotiate, terms });
   // Which bill of sale they settled on. Until they choose, we put forward the one
   // their state or the Coast Guard publishes, because that is what a clerk expects.
   const bosChoice = data.bosChoice || "";
-  // Translate the flow's answers into the flags this page already understands.
-  const applyNeeds = (a) => setQuiz(q => ({
-    ...q,
-    lien:      a.lien === "yes" || a.lien === "unsure",
-    losttitle: a.title === "lost" || a.title === "never" || a.title === "unsure",
-    estate:    a.owner === "estate",
-    poa:       a.owner === "agent",
-    coowner:   a.names === "two",
-    entity:    a.names === "entity",
-  }));
   // ── Florida detection ──────────────────────────────────────────────────────
   // Look for Florida in the buyer, seller, or vessel location. If found, the
   // official FL state forms are surfaced automatically. If not found, the user can
@@ -327,6 +313,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // vessel gets the Coast Guard ones, and they sit in the list like anything else.
   const documentedActive = docDetected || docOptIn || !!quiz.documented;
   const floridaActive = flDetected || flOptIn || !!quiz.florida;
+  // What the deal itself tells us, used to put forward the right bill of sale.
+  const dealFacts = {
+    florida: flDetected || _isFL(vessel?.regState) || _isFL(vessel?.location),
+    documented: docDetected,
+    trailer: String(vessel?.trailerIncluded || "").toLowerCase() === "yes",
+  };
   const [esignConsent, setEsignConsent] = useState({}); // per-doc consent before e-signing
   const toggleGroup = (g) => setOpenGroups(o => ({ ...o, [g]: !o[g] }));
   const [sendEmail, setSendEmail] = useState({});
@@ -580,15 +572,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   })();
   const recDocs = recIds.map(id => DOC_SET.find(d => d.id === id)).filter(Boolean);
   const quizStarted = !!quiz.pay || Object.keys(quiz).some(k => k !== "pay" && quiz[k]);
-  // What the flow was told, shown back so the customer can see what it assumed.
-  const _needs = data.docNeeds || {};
-  const quizAnswered = Object.keys(_needs).length > 0;
-  const needsSummary = [
-    _needs.lien === "yes" ? "money owed" : _needs.lien === "no" ? "no lien" : _needs.lien === "unsure" ? "lien unknown" : null,
-    _needs.title === "lost" ? "title lost" : _needs.title === "never" ? "never titled" : _needs.title === "yes" ? "title in hand" : null,
-    _needs.owner === "estate" ? "owner has passed away" : _needs.owner === "agent" ? "signing on their behalf" : null,
-    _needs.names === "two" ? "two or more owners" : _needs.names === "entity" ? "business or trust" : null,
-  ].filter(Boolean);
   const allRequiredSigned = requiredDocs.every(d => signed[d.id]) && bosSigned;
   const reqMissing = requiredDocs.filter(d => !signed[d.id]);
   const reqNotaryMissing = reqMissing.filter(d => (d.body||"").includes("Notary Acknowledgment"));
@@ -1289,17 +1272,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
           </div>
         </div>
       )}
-      {showNeeds && (
-        <DocNeeds
-          DOCUMENTS={DOC_SET}
-          C={C} S={S}
-          facts={readKnownFacts({ vessel, parties, negotiate, terms })}
-          initial={data.docNeeds || {}}
-          onClose={()=>setShowNeeds(false)}
-          onUse={(groups, answers)=>{ applyNeeds(answers); setData(d => ({ ...d, docNeeds: answers, docNeedsList: groups.flatMap(g=>g.ids) })); }}
-          onOpenDoc={(id)=>{ setShowNeeds(false); jumpToDoc(id); }}
-        />
-      )}
       {showBos && (
         <BosPicker
           DOCUMENTS={DOC_SET} C={C} facts={dealFacts} chosen={bosChoice}
@@ -1312,7 +1284,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       <div style={{ marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div>
           <h1 style={S.h1}>Documents</h1>
-          {!frozen && <button onClick={()=>setShowNeeds(true)} style={{ marginTop:8, background:"transparent", color:C.navy, border:`1px solid ${C.brass}`, borderRadius:7, padding:"8px 14px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>🧭 Which document do I need?</button>}
         </div>
         <span style={{...S.pill, background:C.greenLight, color:C.green}}>Paid ✓</span>
       </div>
@@ -1330,33 +1301,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         📎 <strong>Upload</strong> — attach a signed PDF &nbsp;·&nbsp;
         🖨️ <strong>Print</strong> — open print dialog
       </div>
-
-      {/* ── WHICH DOCUMENTS DO I NEED? ──────────────────────────────────────────
-          One way in, not two. The old inline yes/no grid asked the same things as
-          the full-screen flow and re-asked what the deal already knew. ────────── */}
-      {!frozen && (
-        <div style={{ border:`2px solid ${C.brass}`, borderRadius:9, padding:"15px 17px", marginBottom:22, background:"#fffdf8" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:14, flexWrap:"wrap" }}>
-            <div style={{ flex:1, minWidth:230 }}>
-              <div style={{ fontFamily:"'Georgia',serif", fontSize:16.5, color:C.navy }}>Not sure which documents you need?</div>
-              <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65, marginTop:5 }}>
-                {quizAnswered
-                  ? <>We built your list from your deal and your answers. Reopen it any time to change something.</>
-                  : <>Every sale needs a different set, and getting it wrong means a wasted trip to the tag office. We already know most of it from your deal &mdash; we&rsquo;ll ask {QUIZ_COUNT} things we can&rsquo;t know, then build your list.</>}
-              </div>
-              {quizAnswered && needsSummary.length > 0 && (
-                <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:9 }}>
-                  {needsSummary.map(t => <span key={t} style={{ fontSize:11, background:C.white, border:`1px solid ${C.mist}`, color:C.slate, padding:"3px 10px", borderRadius:12, fontFamily:"sans-serif" }}>{t}</span>)}
-                </div>
-              )}
-            </div>
-            <button onClick={()=>setShowNeeds(true)}
-              style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"10px 20px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", whiteSpace:"nowrap" }}>
-              {quizAnswered ? "Review my list" : `Start \u2014 ${QUIZ_COUNT} questions`}
-            </button>
-          </div>
-        </div>
-      )}
 
 
       {/* ── REQUIRED DOCUMENTS TRACKER ── */}
