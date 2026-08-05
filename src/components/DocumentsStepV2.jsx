@@ -423,6 +423,25 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     if (grp) setOpenGroups(g => ({ ...g, [grp]: true }));
   };
 
+  // Plain-language document search. A customer types what happened to them, not the
+  // name of a form \u2014 "owner died", not "Affidavit of Heirship". Matching runs over the
+  // hidden keywords first, then the title, plain-English useWhen line and group.
+  const [docQuery, setDocQuery] = useState("");
+  const SITUATIONS = ["Lost the title", "Still owe money on it", "Owner passed away", "Taking a trade-in", "Seller is a company", "Buyer paying me over time"];
+  const normQ = (x) => String(x || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  const searchDocs = (q) => {
+    const words = normQ(q).split(" ").filter(w => w.length > 2);
+    if (!words.length) return [];
+    return DOC_SET.map(d => {
+      const keys = normQ(d.keywords);
+      const rest = normQ(`${d.title} ${d.useWhen || ""} ${d.desc || ""} ${d.group}`);
+      let score = 0;
+      words.forEach(w => { if (keys.includes(w)) score += 2; else if (rest.includes(w)) score += 1; });
+      return { doc: d, score };
+    }).filter(x => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 8);
+  };
+  const docResults = searchDocs(docQuery);
+
   // Jump to a document from the required-docs tracker: open it and scroll to it.
   const jumpToDoc = (docId) => {
     openDoc(docId);
@@ -1131,6 +1150,59 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             );
           })}
         </div>
+      </div>
+
+      {/* ── FIND A DOCUMENT ─────────────────────────────────────────────────── */}
+      <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderRadius:10, padding:"15px 17px", marginBottom:16 }}>
+        <div style={{ fontFamily:"'Georgia',serif", fontSize:15.5, color:C.navy, marginBottom:2 }}>Find a document</div>
+        <div style={{ fontSize:11.5, color:C.slate, marginBottom:11, lineHeight:1.55 }}>Describe your situation in your own words &mdash; you don&rsquo;t need to know what it&rsquo;s called.</div>
+        <div style={{ display:"flex", alignItems:"center", gap:9, border:`1.5px solid ${docQuery ? C.brass : C.mist}`, borderRadius:22, padding:"9px 15px", background:C.white }}>
+          <span style={{ color:C.brass, fontSize:13 }}>&#9906;</span>
+          <input
+            type="text" value={docQuery} onChange={e=>setDocQuery(e.target.value)}
+            placeholder="owner died &middot; lost the title &middot; still owe money"
+            style={{ flex:1, border:"none", outline:"none", fontSize:14, fontFamily:"sans-serif", color:C.navy, background:"transparent", minWidth:0 }}
+          />
+          {docQuery ? (
+            <button onClick={()=>setDocQuery("")} title="Clear" style={{ border:"none", background:"transparent", color:C.slate, fontSize:15, cursor:"pointer", lineHeight:1 }}>&times;</button>
+          ) : null}
+        </div>
+        {!docQuery && (
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:11 }}>
+            {SITUATIONS.map(sq => (
+              <button key={sq} onClick={()=>setDocQuery(sq)} style={{ fontSize:11, background:C.white, border:`1px solid ${C.mist}`, color:C.slate, padding:"5px 12px", borderRadius:14, cursor:"pointer", fontFamily:"sans-serif" }}>{sq}</button>
+            ))}
+          </div>
+        )}
+        {docQuery && (
+          <div style={{ marginTop:12 }}>
+            {docResults.length === 0 ? (
+              <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.6, padding:"6px 2px" }}>
+                Nothing matched that. Try fewer words, or browse the groups below &mdash; every document is there.
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize:11, color:C.slate, marginBottom:8 }}>{docResults.length} {docResults.length===1?"match":"matches"}</div>
+                <div style={{ border:`1px solid ${C.mist}`, borderRadius:9, overflow:"hidden" }}>
+                  {docResults.map(({doc:d}, i) => (
+                    <button key={d.id} onClick={()=>{ setDocQuery(""); jumpToDoc(d.id); }}
+                      style={{ display:"block", width:"100%", textAlign:"left", background: i%2 ? C.sand : C.white, border:"none", borderBottom: i<docResults.length-1 ? `1px solid ${C.sandDark}` : "none", padding:"11px 14px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                      <div style={{ display:"flex", alignItems:"baseline", justifyContent:"space-between", gap:10 }}>
+                        <span style={{ fontSize:13.5, color:C.navy, fontWeight:600 }}>{d.title}</span>
+                        <span style={{ fontSize:11, color:C.brass, whiteSpace:"nowrap" }}>Open &rarr;</span>
+                      </div>
+                      {d.useWhen && <div style={{ fontSize:11.5, color:C.slate, marginTop:3, lineHeight:1.5 }}>{d.useWhen}</div>}
+                      <div style={{ fontSize:10, color:C.slate, marginTop:5, opacity:0.75 }}>{d.group}{signed[d.id] ? " \u00b7 signed \u2713" : ""}</div>
+                    </button>
+                  ))}
+                </div>
+                {!frozen && <div style={{ marginTop:10, background:C.tealLight, borderRadius:8, padding:"10px 13px", fontSize:11.5, color:C.teal, lineHeight:1.55 }}>
+                  Not sure which of these is yours? <button onClick={()=>{ setDocQuery(""); setShowDocFinder(true); }} style={{ background:"transparent", border:"none", color:C.teal, textDecoration:"underline", cursor:"pointer", fontSize:11.5, padding:0, fontFamily:"sans-serif" }}>Answer a few questions</button> and we&rsquo;ll point you to the right one.
+                </div>}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {GROUPS.map(g=>{
