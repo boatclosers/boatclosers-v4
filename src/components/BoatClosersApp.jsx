@@ -503,7 +503,7 @@ function DataWarning({ vessel, parties }) {
 const STEPS = ["Vessel","Parties","Price & Terms","Due Diligence","Documents","Closing"];
 function ProgressBar({ step, setStep, maxStep, dealPaid }) {
   return (
-    <div style={{ background:C.white, borderBottom:`1px solid ${C.mist}`, padding:"0.85rem 2rem" }}>
+    <div className="bc-progress" style={{ background:C.white, borderBottom:`1px solid ${C.mist}`, padding:"0.85rem 2rem" }}>
       <div style={{ maxWidth:820, margin:"0 auto", display:"flex", alignItems:"center" }}>
         {STEPS.map((s,i) => {
           const done    = i < step;
@@ -531,6 +531,7 @@ function ProgressBar({ step, setStep, maxStep, dealPaid }) {
                   {locked ? "🔒" : done ? "✓" : i+1}
                 </div>
                 <div
+                  className="bc-steplabel"
                   onClick={() => { if (!locked) setStep(i); }}
                   style={{
                     fontSize:9, fontFamily:"sans-serif",
@@ -6315,14 +6316,27 @@ export default function BoatClosers() {
         @media(max-width:640px){
           .bc-grid2,.bc-grid3{grid-template-columns:1fr}
           .bc-aiwidget{width:auto !important;left:12px !important;right:12px !important;height:70vh !important;bottom:12px !important}
+          /* The header is a fixed 60px row that never wraps, carrying eight items.
+             On a phone it ran straight off the edge. Let it become two rows. */
+          .bc-nav{height:auto !important;padding:9px 12px 10px !important;flex-wrap:wrap;row-gap:8px}
+          .bc-brand{flex:1 1 100%}
+          .bc-brandsub{display:none}
+          .bc-navactions{width:100%;flex-wrap:wrap;justify-content:flex-start;gap:6px !important}
+          /* Direct children only — the session-timeout dialog also lives in here. */
+          .bc-navactions > button{font-size:11px !important;padding:6px 11px !important}
+          /* The vessel name is long and already shown on every step below. */
+          .bc-navvessel{display:none}
+          /* Six step labels set to never wrap forced the bar wider than the screen. */
+          .bc-progress{padding:0.7rem 0.6rem !important}
+          .bc-steplabel{font-size:8.5px !important;white-space:normal !important;line-height:1.2;text-align:center;max-width:52px}
         }
       `}</style>
-      <nav style={S.nav}>
-        <div style={{ cursor:"pointer" }} onClick={()=>setScreen("landing")}>
+      <nav className="bc-nav" style={S.nav}>
+        <div className="bc-brand" style={{ cursor:"pointer" }} onClick={()=>setScreen("landing")}>
           <div style={S.logo}>BOATCLOSERS</div>
-          <div style={S.logoSub}>Private Vessel Transactions</div>
+          <div className="bc-brandsub" style={S.logoSub}>Private Vessel Transactions</div>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+        <div className="bc-navactions" style={{ display:"flex", alignItems:"center", gap:12 }}>
           {sessionExpired && (
             <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:4000, padding:"1rem", fontFamily:"sans-serif" }}>
               <div style={{ background:"#fff", borderRadius:12, maxWidth:380, padding:"1.75rem", textAlign:"center", border:`2px solid ${C.brass}` }}>
@@ -6343,7 +6357,7 @@ export default function BoatClosers() {
             <span style={{ fontSize:10, color:"#8fd6a6", fontFamily:"sans-serif" }}>✓ Saved</span>
           ) : null}
           {user && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1 }}>{myDealRole || user.role}</span>}
-          {vessel.year && <span style={{ fontSize:11, color:C.brass, fontFamily:"sans-serif" }}>{vessel.year} {vessel.make} {vessel.model}</span>}
+          {vessel.year && <span className="bc-navvessel" style={{ fontSize:11, color:C.brass, fontFamily:"sans-serif" }}>{vessel.year} {vessel.make} {vessel.model}</span>}
           <button title="Messages with the other party" onClick={openMsgPanel} style={{ position:"relative", fontSize:11, color:"#fff", background: msgUnread>0 ? C.red : "rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }}>💬 Messages{msgUnread>0 && <span style={{ marginLeft:5, background:"#fff", color:C.red, borderRadius:10, padding:"0 6px", fontSize:10, fontWeight:800 }}>{msgUnread}</span>}</button>
           {(dealId || step>0) && !negotiate.canceled && (
             <button title="End this deal and free yourself to start another" onClick={()=>setCancelModal(true)} style={{ fontSize:11, color:"rgba(255,255,255,0.85)", background:"rgba(255,255,255,0.07)", border:`1px solid rgba(214,110,110,0.5)`, borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }}>End deal</button>
