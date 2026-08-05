@@ -176,6 +176,194 @@ function FillInForm({ doc, blanks, initial, C, onKeep, onSave, onCancel }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DEAL ASSISTANT — Documents
+//
+// Every other step has one; this page didn't. Written the way a broker actually
+// talks on the phone: what this step is, what to do, then the handful of
+// questions that decide which paperwork the sale really needs. Short questions,
+// and each answer says what it means straight away.
+// ─────────────────────────────────────────────────────────────────────────────
+const ASK = [
+  { k:"lien", q:"Is there money still owed on the boat?",
+    opts:[["yes","Yes"],["no","No"],["unsure","Not sure"]],
+    on:["yes","unsure"],
+    then:"Then the loan has to be paid off before the title is clean. Add the payoff request and the lien release.",
+    docs:["payoff","lien_release"] },
+  { k:"losttitle", q:"Does the seller have the title in hand?",
+    opts:[["no","No \u2014 lost or never had one"],["yes","Yes"],["unsure","Not sure"]],
+    on:["no","unsure"],
+    then:"Ownership can still transfer, but it needs an affidavit to stand in for the title.",
+    docs:["lost_title","bos_only"] },
+  { k:"estate", q:"Is the registered owner alive and signing?",
+    opts:[["no","No \u2014 they've passed away"],["yes","Yes"],["poa","Someone's signing for them"]],
+    on:["no"],
+    then:"The buyer needs proof the signer can legally sell it. Start with the estate guide.",
+    docs:["estate_guide","heirship","executor_auth"] },
+  { k:"names", q:"Whose name is on the title?",
+    opts:[["one","One person"],["two","Two or more"],["entity","A business or trust"]],
+    on:["two","entity"],
+    then:"Everyone on the title has to agree, and a company has to show who may sign.",
+    docs:["coowner","entity_auth"] },
+];
+
+// The deeper set. Some are follow-ups that only make sense given an earlier
+// answer; the rest are the things a broker asks once the basics are covered.
+const ASK_MORE = [
+  { k:"lienwho", when:a=>["yes","unsure"].includes(a.lien), q:"Who holds the loan?",
+    opts:[["bank","A bank or credit union"],["private","A private party"],["unsure","Not sure"]],
+    on:["bank","private","unsure"],
+    then:"Get the payoff figure in writing, good through your closing date \u2014 verbal numbers change.",
+    docs:["payoff","title_search_letter"] },
+  { k:"otherliens", q:"Does the marina, yard, or mechanic have an unpaid bill?",
+    opts:[["yes","Yes"],["no","No"],["unsure","Not sure"]], on:["yes","unsure"],
+    then:"Yards and marinas can hold a lien on the boat itself. Run a lien search before you close.",
+    docs:["title_search_letter","lien_release"] },
+  { k:"probate", when:a=>a.estate==="no", q:"Has a court appointed an executor?",
+    opts:[["yes","Yes"],["no","No probate"],["unsure","Not sure"]], on:["yes","no","unsure"],
+    then:"That decides which affidavit your state will accept.",
+    docs:["executor_auth","heirship","small_estate","death_cert"] },
+  { k:"idmatch", q:"Does the seller's ID match the name on the title exactly?",
+    opts:[["no","No \u2014 marriage, nickname, or a typo"],["yes","Yes"],["unsure","Not sure"]], on:["no","unsure"],
+    then:"A mismatch stops a transfer at the counter. One affidavit fixes it.",
+    docs:["same_person"] },
+  { k:"hin", q:"Does the hull number match the paperwork?",
+    opts:[["no","No, or it's unreadable"],["yes","Yes"],["unsure","Haven't checked"]], on:["no","unsure"],
+    then:"Check it before closing \u2014 the state will. If it's worn or wrong, an affidavit records what's actually there.",
+    docs:["hin_affidavit","chain_title"] },
+  { k:"survey", q:"Is a survey or sea trial happening?",
+    opts:[["yes","Yes"],["no","No"]], on:["yes"],
+    then:"Once it's done the buyer accepts, renegotiates, or walks. All three are covered.",
+    docs:["survey_report","repair_agreement","accept"] },
+  { k:"sellerfin", q:"Is the buyer paying the seller over time?",
+    opts:[["yes","Yes"],["no","No \u2014 paid in full"]], on:["yes"],
+    then:"Seller financing needs a note and security, or there's nothing to reclaim if payments stop.",
+    docs:["promissory_note","security_agreement"] },
+  { k:"tradein", q:"Is any of the price a trade-in?",
+    opts:[["yes","Yes"],["no","No"]], on:["yes"],
+    then:"The trade needs its own paperwork and a value on the record.",
+    docs:["trade_in"] },
+  { k:"gift", q:"Is this a gift or family transfer rather than a sale?",
+    opts:[["yes","Yes"],["no","No"]], on:["yes"],
+    then:"Say so on the record \u2014 it changes what the state expects to see for tax.",
+    docs:["gift_transfer"] },
+  { k:"early", q:"Is the buyer taking the boat before closing?",
+    opts:[["yes","Yes"],["no","No"]], on:["yes"],
+    then:"Put it in writing: who insures it, who carries the risk, what happens if the deal dies.",
+    docs:["early_possession"] },
+  { k:"outstate", q:"Is the boat leaving the state after the sale?",
+    opts:[["yes","Yes"],["no","No"]], on:["yes"],
+    then:"Notify the current state so the seller's liability ends, then title in the new one.",
+    docs:["notice_sale","title_app"] },
+];
+
+function DocsAssistant({ C, S, myRole, quiz, setQuiz, answers, setAnswers, DOC_SET, onOpenDoc }) {
+  const [open, setOpen] = useState(false);
+  const isBuyer = myRole !== "seller";
+  const pick = (k, v) => {
+    setAnswers(a => ({ ...a, [k]: v }));
+    const spec = ASK.find(x => x.k === k);
+    const on = spec.on.includes(v);
+    setQuiz(q => {
+      const n = { ...q };
+      if (k === "names") { n.coowner = v === "two"; n.entity = v === "entity"; }
+      else if (k === "estate") { n.estate = v === "no"; n.poa = v === "poa"; }
+      else n[k] = on;
+      return n;
+    });
+  };
+  const [deep, setDeep] = useState(false);
+  const more = ASK_MORE.filter(x => !x.when || x.when(answers));
+  const answered = ASK.filter(x => answers[x.k]).length;
+  const moreAnswered = more.filter(x => answers[x.k]).length;
+
+  const row = (a) => {
+    const v = answers[a.k];
+    const show = v && a.on.includes(v);
+    return (
+      <div key={a.k} style={{ marginBottom:13 }}>
+        <div style={{ fontSize:12.5, color:C.navy, fontWeight:600, marginBottom:6 }}>{a.q}</div>
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+          {a.opts.map(([val, label]) => (
+            <button key={val} onClick={()=>pick(a.k, val)}
+              style={{ fontSize:11.5, padding:"6px 13px", borderRadius:15, cursor:"pointer", fontFamily:"sans-serif", fontWeight:600,
+                border:`1.5px solid ${v===val ? C.brass : C.mist}`, background: v===val ? "#fdf8ef" : C.white, color:C.navy }}>{label}</button>
+          ))}
+        </div>
+        {show && (
+          <div style={{ marginTop:8, background:"#fdf8ef", borderLeft:`3px solid ${C.brass}`, padding:"9px 12px", borderRadius:4 }}>
+            <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55 }}>{a.then}</div>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:7 }}>
+              {a.docs.map(id => {
+                const d = DOC_SET.find(x => x.id === id);
+                if (!d) return null;
+                return <button key={id} onClick={()=>onOpenDoc(id)} style={{ fontSize:11, padding:"5px 11px", borderRadius:13, border:`1px solid ${C.brass}`, background:C.white, color:C.navy, cursor:"pointer", fontFamily:"sans-serif" }}>{d.title} &rarr;</button>;
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ border:`1px solid ${C.navy}`, borderRadius:8, marginBottom:20, overflow:"hidden", background:C.white }}>
+      <div onClick={()=>setOpen(o=>!o)} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"11px 14px", background:C.navy }}>
+        <span style={{ fontSize:18 }}>🧭</span>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:"#fff" }}>Deal Assistant</div>
+          <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.6)" }}>Documents &mdash; what to do and why</div>
+        </div>
+        <span style={{ color:C.brass, fontSize:12, fontFamily:"sans-serif", fontWeight:700, whiteSpace:"nowrap" }}>{open ? "\u25b2 Hide" : answered ? `\u25bc ${answered} of ${ASK.length} answered` : "\u25bc Guide me"}</span>
+      </div>
+
+      {open && (
+        <div style={{ padding:"14px 16px", fontFamily:"sans-serif" }}>
+          <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7 }}>
+            This is where the sale gets papered. {isBuyer
+              ? "Open each document, fill in your blanks, and sign. Anything needing a notary you print, sign in front of one, and upload."
+              : "Open each document, fill in your blanks, and sign. The bill of sale usually needs a notary \u2014 print it, sign before a notary, upload the copy."}
+            {" "}Nothing here is guesswork: the vessel and party details come straight from your deal and can&rsquo;t be typed over.
+          </div>
+
+          <div style={{ borderTop:`1px solid ${C.mist}`, marginTop:14, paddingTop:13 }}>
+            <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:3 }}>A few things I can&rsquo;t work out from your deal</div>
+            <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginBottom:12 }}>
+              These decide what else your sale needs. Answer what you know &mdash; you can change them later.
+            </div>
+
+            {ASK.map(row)}
+
+            {!deep && (
+              <button onClick={()=>setDeep(true)}
+                style={{ width:"100%", marginTop:4, background:"transparent", border:`1px dashed ${C.brass}`, color:C.navy, borderRadius:8, padding:"11px 14px", fontSize:12.5, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>
+                Go deeper &mdash; {more.length} more questions &rarr;
+                <div style={{ fontSize:11, fontWeight:400, color:C.slate, marginTop:3, lineHeight:1.5 }}>
+                  The ones that catch people out: yard bills, name mismatches, hull numbers, who&rsquo;s carrying the paper.
+                </div>
+              </button>
+            )}
+
+            {deep && (
+              <div style={{ borderTop:`1px solid ${C.mist}`, marginTop:6, paddingTop:13 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:10, marginBottom:3 }}>
+                  <div style={{ fontSize:12.5, fontWeight:800, color:C.navy }}>Going deeper</div>
+                  <span style={{ fontSize:11, color:C.slate }}>{moreAnswered} of {more.length}</span>
+                </div>
+                <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginBottom:12 }}>
+                  None of these are common, and most sales answer no to all of them. But any one caught late costs a closing date.
+                </div>
+                {more.map(row)}
+                <button onClick={()=>setDeep(false)} style={{ background:"transparent", border:"none", color:C.slate, fontSize:11.5, textDecoration:"underline", cursor:"pointer", fontFamily:"sans-serif", padding:0 }}>Hide these</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Renders a filled document. Checkbox lists (doc.checklist) and "____" blanks
 // become interactive in-app when `editable` is true; otherwise read-only.
 function DocPaper({ doc, html, editable, checkState, toggleCheck, savedFields, onField }) {
@@ -291,6 +479,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // "Which documents do I need?" — a full-screen flow that reads what the deal
   // already knows, asks only what it cannot, and builds a suggested set.
   const [showBos, setShowBos] = useState(false);
+  // Keep the assistant's answers on the deal so they survive a reload.
+  const saveAsk = (updater) => setAskAnswers(prev => {
+    const next = typeof updater === "function" ? updater(prev) : updater;
+    setData(d => ({ ...d, docAsk: next }));
+    return next;
+  });
   // Which bill of sale they settled on. Until they choose, we put forward the one
   // their state or the Coast Guard publishes, because that is what a clerk expects.
   const bosChoice = data.bosChoice || "";
@@ -307,6 +501,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // CG-1340 / CG-1258 forms apply. Detect from the official number; allow opt-in.
   const docDetected = !!String(vessel?.uscgNumber || vessel?.uscgOfficialNo || vessel?.officialNo || "").trim();
   const [docOptIn, setDocOptIn] = useState(false);
+  const [askAnswers, setAskAnswers] = useState(data.docAsk || {});
   const [quiz, setQuiz] = useState({ pay:"", trailer:false, documented:false, florida:false, lien:false, estate:false, coowner:false, entity:false, poa:false, tradein:false, gift:false, sellerfin:false, losttitle:false, lostreg:false, survey:false, defects:false });
   // documentedActive / floridaActive computed after quiz so the quiz answers count.
   // No opt-in box any more: a Florida boat gets the Florida forms, a documented
@@ -1287,6 +1482,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         </div>
         <span style={{...S.pill, background:C.greenLight, color:C.green}}>Paid ✓</span>
       </div>
+
+      {!frozen && (
+        <DocsAssistant
+          C={C} S={S} myRole={myRole}
+          quiz={quiz} setQuiz={setQuiz}
+          answers={askAnswers} setAnswers={saveAsk}
+          DOC_SET={DOC_SET} onOpenDoc={jumpToDoc}
+        />
+      )}
       {frozen && (
         <div style={{ background:"#f4f7f5", border:`1px solid ${C.green}`, borderRadius:8, padding:"12px 14px", marginBottom:18, fontFamily:"sans-serif", fontSize:12.5, color:C.slate, lineHeight:1.6 }}>
           🔒 <b>This deal is finalized.</b> Your documents are a closed record and can no longer be signed, filled in, replaced or added to. You can still open, print, download and email any of them, for as long as you need them.
