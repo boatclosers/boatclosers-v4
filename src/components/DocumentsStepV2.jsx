@@ -474,7 +474,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     .replace(/(href|src)\s*=\s*(["']?)\s*javascript:[^"'>]*\2/gi, '$1="#"');
   const [activeDoc, setActiveDoc] = useState(null); // the one document currently opened for work
   // Collapsible groups — required group open by default, the rest collapsed.
-  const [openGroups, setOpenGroups] = useState({ "Closing Instruments": true });
+  const [openGroups, setOpenGroups] = useState({});
   const [showDocFinder, setShowDocFinder] = useState(false);
   // "Which documents do I need?" — a full-screen flow that reads what the deal
   // already knows, asks only what it cannot, and builds a suggested set.
@@ -554,11 +554,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // typed on this device laid on top. There is no copy left to reset.
   const checkState = mergeLocal(data.docChecks, LOCAL_FILLS.checks);
   const fieldState = mergeLocal(data.docFields, LOCAL_FILLS.fields);
-  const [closeAck, setCloseAck] = useState(false); // acknowledge offline/notary docs before closing
 
   // One-line "is this section for me?" descriptions under each group header.
   const GROUP_DESC = {
-    "Closing Instruments": "The core paperwork every sale needs — purchase agreement, bill of sale, deposit receipt, as-is acknowledgment, and closing statement. Everyone signs these.",
     "Due-Diligence Outcomes": "Use after the survey and sea trial — formally accept the boat, renegotiate the price, or walk away and reclaim your deposit.",
     "Title & Government": "The documents that transfer ownership and registration to the buyer with your state or the Coast Guard. Add these once you're ready to file.",
     "Financing & Insurance": "Only if the buyer is getting a loan or the lender/insurer needs proof of coverage — commitment letter, binder, and a conditions checklist.",
@@ -720,7 +718,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     .filter(d => !d.florida || floridaActive)   // FL state forms only on Florida deals
     .filter(d => !d.documented || documentedActive)   // USCG forms only on documented vessels
     .map(d => { const mid = ID_MAP[d.id]||d.id; return { ...d, id: mid, required: REQUIRED.has(mid) || (mid==="renegotiation" && hasAddendum) }; });
-  const GROUPS = [...new Set(DOC_SET.map(d=>d.group))];
+  // "Closing Instruments" is gone: five of its ten documents were already listed in
+  // the tracker directly above it, and three more were bill-of-sale alternates the
+  // picker now handles. Everything in it is still reachable — tracker, picker, search.
+  const GROUPS = [...new Set(DOC_SET.map(d=>d.group))].filter(g => g !== "Closing Instruments");
 
   // Bill of Sale gets its own dedicated box — it's the document that actually
   // transfers ownership, second only to the title. Collect every BoS variant.
@@ -737,7 +738,35 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // The main required list EXCLUDES the bill of sale (it has its own box).
   // The bill of sale used to sit in its own box, which made seven alternatives all
   // look mandatory. It now belongs in the required list as a single "choose one" row.
-  const requiredDocs = DOC_SET.filter(d => d.required && d.id !== "bill_of_sale");
+  // What THIS deal needs: the core set every sale needs, plus whatever the
+  // assistant's answers added — each carrying the reason it appeared.
+  const ADDED = [
+    { ids:["payoff","lien_release"],            when: quiz.lien,       why:"money owed" },
+    { ids:["lost_title"],                       when: quiz.losttitle,  why:"title missing" },
+    { ids:["estate_guide","executor_auth"],     when: quiz.estate,     why:"owner passed away" },
+    { ids:["poa"],                              when: quiz.poa,        why:"signing for the owner" },
+    { ids:["coowner"],                          when: quiz.coowner,    why:"more than one owner" },
+    { ids:["entity_auth"],                      when: quiz.entity,     why:"business or trust" },
+    { ids:["promissory_note","security_agreement"], when: quiz.sellerfin, why:"seller financing" },
+    { ids:["trade_in"],                         when: quiz.tradein,    why:"trade-in" },
+    { ids:["gift_transfer"],                    when: quiz.gift,       why:"gift transfer" },
+    { ids:["same_person"],                      when: quiz.idmatch,    why:"name mismatch" },
+    { ids:["hin_affidavit"],                    when: quiz.hin,        why:"hull number" },
+    { ids:["early_possession"],                 when: quiz.early,      why:"early possession" },
+    { ids:["trailer_bos"],                      when: floridaActive === null ? false : (String(vessel?.trailerIncluded||"").toLowerCase()==="yes"), why:"trailer included" },
+    { ids:[floridaActive ? "fl_82040vs" : "title_app"], when: true,    why:"to title the boat" },
+    { ids:["commitment","binder"],              when: quiz.pay === "finance", why:"buyer financing" },
+  ];
+  const _core = DOC_SET.filter(d => d.required && d.id !== "bill_of_sale");
+  const _seen = new Set(_core.map(d => d.id));
+  const _extra = [];
+  ADDED.forEach(a => { if (!a.when) return; a.ids.forEach(id => {
+    if (_seen.has(id)) return;
+    const d = DOC_SET.find(x => x.id === id);
+    if (!d) return;
+    _seen.add(id); _extra.push({ ...d, addedWhy: a.why });
+  }); });
+  const requiredDocs = [..._core, ..._extra];
   const bosPick = bosChoice || recommendBos(dealFacts);
   const bosPickDoc = DOC_SET.find(d => d.id === bosPick) || DOC_SET.find(d => d.id === "bill_of_sale");
   // Questionnaire → suggested documents (additive; the full list stays browsable).
@@ -771,6 +800,18 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const reqMissing = requiredDocs.filter(d => !signed[d.id]);
   const reqNotaryMissing = reqMissing.filter(d => (d.body||"").includes("Notary Acknowledgment"));
   const signedCount = Object.keys(signed).length;
+
+  // The Closing step asks people to acknowledge anything unfinished, so it needs to
+  // know what is outstanding. Work it out here, where the list is built, and hand
+  // it over rather than duplicating the logic on two screens.
+  const _outstanding = [
+    ...(bosSigned ? [] : ["a Bill of Sale (choose one on the Documents step)"]),
+    ...reqMissing.map(d => d.title),
+  ];
+  const _outKey = _outstanding.join("|");
+  useEffect(() => {
+    setData(d => (String((d.outstandingDocs || []).join("|")) === _outKey ? d : { ...d, outstandingDocs: _outstanding }));
+  }, [_outKey]); // eslint-disable-line
 
   // ── PAYWALL ──
   if (!paid) {
@@ -1511,14 +1552,14 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       <div style={{ border:`2px solid ${allRequiredSigned ? C.green : C.brass}`, borderRadius:8, padding:"13px 16px", marginBottom:22, background: allRequiredSigned ? C.greenLight : "#fff9ee" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
           <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, color:C.navy }}>
-            {allRequiredSigned ? "✓ All required documents signed" : "Required documents to sign"}
+            {allRequiredSigned ? "✓ Everything your deal needs is signed" : "What your deal needs"}
           </div>
           <span style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color: allRequiredSigned ? C.green : C.brass }}>
             {requiredDocs.filter(d=>signed[d.id]).length + (bosSigned?1:0)} of {requiredDocs.length + 1} signed
           </span>
         </div>
         <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, lineHeight:1.5 }}>
-          The core documents a sale needs. Tap any one to open it. Documents that require a notary must be printed, notarized, and uploaded — the app can't verify notarization, so those are completed offline.
+          The core set every sale needs, plus what your answers in the Deal Assistant added. Tap any one to open it. Documents that require a notary must be printed, notarized, and uploaded — the app can't verify notarization, so those are completed offline.
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
           {/* The bill of sale, as one row rather than seven competing documents. */}
@@ -1584,22 +1625,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       })}
 
       <div style={{ marginTop:"1.5rem" }}>
-        {!allRequiredSigned && (
-          <div style={{ border:`1.5px solid ${C.brass}`, background:"#fff9ee", borderRadius:8, padding:"14px 16px", marginBottom:14 }}>
-            <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, color:"#7a5500", marginBottom:6 }}>⚠️ A few documents still need finishing before this sale is truly closed</div>
-            <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:10 }}>
-              Still outstanding: {[...(!bosSigned ? ["a Bill of Sale (choose one in the Bill of Sale box above)"] : []), ...reqMissing.map(d=>d.title)].join(", ")}.
-              {reqNotaryMissing.length > 0 && <> Note that <b>{reqNotaryMissing.map(d=>d.title).join(", ")}</b> must be printed, signed in front of a notary, and uploaded. <b>BoatClosers can't verify notarization</b> — completing that correctly is your responsibility.</>}
-            </div>
-            <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", fontSize:12, fontFamily:"sans-serif", color:C.navy, lineHeight:1.5 }}>
-              <input type="checkbox" checked={closeAck} onChange={e=>setCloseAck(e.target.checked)} style={{ marginTop:1, accentColor:C.brass, flexShrink:0 }} />
-              I understand these documents still need to be completed{reqNotaryMissing.length>0?" and notarized":""} outside the app, that BoatClosers does not verify or notarize them, and I'm choosing to proceed.
-            </label>
-          </div>
-        )}
         <div style={{ display:"flex", justifyContent:"space-between" }}>
           <button style={S.btnOutline} onClick={onBack}>← Back</button>
-          <button style={{...S.btnBrass, opacity:(allRequiredSigned||closeAck)?1:0.45, cursor:(allRequiredSigned||closeAck)?"pointer":"not-allowed"}} disabled={!allRequiredSigned && !closeAck} onClick={()=>{setData(d=>({...d,signedDocs:signed}));onNext();}}>
+          <button style={{...S.btnBrass, opacity:1, cursor:"pointer"}} onClick={()=>{setData(d=>({...d,signedDocs:signed}));onNext();}}>
             {allRequiredSigned ? "Proceed to Closing →" : "Proceed to Closing anyway →"}
           </button>
         </div>
