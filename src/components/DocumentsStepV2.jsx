@@ -13,6 +13,7 @@ import { useState, useRef, useEffect } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
 import DocFinder from "./DocFinder";
 import DocNeeds, { readKnownFacts } from "./DocNeeds";
+import BosPicker, { recommendBos } from "./BosPicker";
 
 // ── palette (matches the main app) ──
 const C = {
@@ -289,6 +290,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // already knows, asks only what it cannot, and builds a suggested set.
   const [showNeeds, setShowNeeds] = useState(false);
   const QUIZ_COUNT = 4;
+  const [showBos, setShowBos] = useState(false);
+  const dealFacts = readKnownFacts({ vessel, parties, negotiate, terms });
+  // Which bill of sale they settled on. Until they choose, we put forward the one
+  // their state or the Coast Guard publishes, because that is what a clerk expects.
+  const bosChoice = data.bosChoice || "";
   // Translate the flow's answers into the flags this page already understands.
   const applyNeeds = (a) => setQuiz(q => ({
     ...q,
@@ -314,6 +320,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const [docOptIn, setDocOptIn] = useState(false);
   const [quiz, setQuiz] = useState({ pay:"", trailer:false, documented:false, florida:false, lien:false, estate:false, coowner:false, entity:false, poa:false, tradein:false, gift:false, sellerfin:false, losttitle:false, lostreg:false, survey:false, defects:false });
   // documentedActive / floridaActive computed after quiz so the quiz answers count.
+  // No opt-in box any more: a Florida boat gets the Florida forms, a documented
+  // vessel gets the Coast Guard ones, and they sit in the list like anything else.
   const documentedActive = docDetected || docOptIn || !!quiz.documented;
   const floridaActive = flDetected || flOptIn || !!quiz.florida;
   const [esignConsent, setEsignConsent] = useState({}); // per-doc consent before e-signing
@@ -537,7 +545,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const bosPrimary = bosDocs.find(d => d.id === "bill_of_sale");
   const bosSigned = bosDocs.some(d => signed[d.id]); // any BoS variant signed = satisfied
   // The main required list EXCLUDES the bill of sale (it has its own box).
+  // The bill of sale used to sit in its own box, which made seven alternatives all
+  // look mandatory. It now belongs in the required list as a single "choose one" row.
   const requiredDocs = DOC_SET.filter(d => d.required && d.id !== "bill_of_sale");
+  const bosPick = bosChoice || recommendBos(dealFacts);
+  const bosPickDoc = DOC_SET.find(d => d.id === bosPick) || DOC_SET.find(d => d.id === "bill_of_sale");
   // Questionnaire → suggested documents (additive; the full list stays browsable).
   const REC_MAP = {
     core: ["psa","bos","dep","asis","stmt","title_app","delivery_receipt"],
@@ -975,6 +987,14 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
           onOpenDoc={(id)=>{ setShowNeeds(false); jumpToDoc(id); }}
         />
       )}
+      {showBos && (
+        <BosPicker
+          DOCUMENTS={DOC_SET} C={C} facts={dealFacts} chosen={bosChoice}
+          onChoose={(id)=>setData(d => ({ ...d, bosChoice: id }))}
+          onOpenDoc={(id)=>{ setShowBos(false); jumpToDoc(id); }}
+          onClose={()=>setShowBos(false)}
+        />
+      )}
       <style>{docCSS}</style>
       <div style={{ marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div>
@@ -988,44 +1008,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
           🔒 <b>This deal is finalized.</b> Your documents are a closed record and can no longer be signed, filled in, replaced or added to. You can still open, print, download and email any of them, for as long as you need them.
         </div>
       )}
-
-      {/* ── OFFICIAL GOVERNMENT FORMS — a proper section, not a stray link ── */}
-      <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px 16px", marginBottom:16, background:C.white }}>
-        <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:800, color:C.navy, marginBottom:3 }}>🏛️ Official government forms</div>
-        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.55, marginBottom:11 }}>
-          Some transfers need official state or federal forms in addition to the documents below. Turn on the ones that apply — they'll appear in your document list, pre-filled with your deal data.
-        </div>
-        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-          {/* Florida */}
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap", padding:"9px 12px", borderRadius:7, background: floridaActive ? "#eaf4ff" : "#faf7f0", border:`1px solid ${floridaActive ? "#4a90d9" : C.mist}` }}>
-            <div style={{ minWidth:0 }}>
-              <div style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy }}>🌴 Florida state forms</div>
-              <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:1 }}>{floridaActive ? (flDetected ? "On — this looks like a Florida transfer." : "On — you turned these on.") : "Bill of Sale 82050, Vessel Title 82040-VS, and more."}</div>
-            </div>
-            {floridaActive ? (
-              flDetected
-                ? <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:800, color:"#2b6cb0" }}>Included ✓</span>
-                : <button onClick={()=>setFlOptIn(false)} style={{ background:"none", border:`1px solid ${C.mist}`, borderRadius:6, color:C.slate, fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", padding:"6px 12px", cursor:"pointer" }}>Remove</button>
-            ) : (
-              frozen ? null : (<button onClick={()=>setFlOptIn(true)} style={{ background:"#2b6cb0", border:"none", borderRadius:6, color:"#fff", fontSize:11.5, fontWeight:800, fontFamily:"sans-serif", padding:"6px 14px", cursor:"pointer" }}>Add →</button>)
-            )}
-          </div>
-          {/* Coast Guard */}
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap", padding:"9px 12px", borderRadius:7, background: documentedActive ? "#eef7f0" : "#faf7f0", border:`1px solid ${documentedActive ? "#4a9d6e" : C.mist}` }}>
-            <div style={{ minWidth:0 }}>
-              <div style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy }}>⚓ Coast Guard federal forms</div>
-              <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:1 }}>{documentedActive ? (docDetected ? "On — vessel has a USCG Official Number." : "On — you turned these on.") : "CG-1340 Bill of Sale, CG-1258 documentation app."}</div>
-            </div>
-            {documentedActive ? (
-              docDetected
-                ? <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:800, color:"#2f7d55" }}>Included ✓</span>
-                : <button onClick={()=>setDocOptIn(false)} style={{ background:"none", border:`1px solid ${C.mist}`, borderRadius:6, color:C.slate, fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", padding:"6px 12px", cursor:"pointer" }}>Remove</button>
-            ) : (
-              frozen ? null : (<button onClick={()=>setDocOptIn(true)} style={{ background:"#2f7d55", border:"none", borderRadius:6, color:"#fff", fontSize:11.5, fontWeight:800, fontFamily:"sans-serif", padding:"6px 14px", cursor:"pointer" }}>Add →</button>)
-            )}
-          </div>
-        </div>
-      </div>
 
       <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"10px 14px", marginBottom:16, fontSize:11, fontFamily:"sans-serif", color:C.teal, lineHeight:1.8 }}>
         <strong>Each document has five options:</strong> &nbsp;
@@ -1064,38 +1046,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       )}
 
 
-      {/* ── BILL OF SALE — its own box (the ownership-transfer document) ── */}
-      <div style={{ border:`2px solid ${bosSigned ? C.green : "#4a90d9"}`, borderRadius:8, padding:"13px 16px", marginBottom:16, background: bosSigned ? C.greenLight : "#eaf4ff" }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-          <div style={{ fontSize:13.5, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}>
-            {bosSigned ? "✓ Bill of Sale complete" : "📜 Bill of Sale — required"}
-          </div>
-          <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color: bosSigned ? C.green : "#2b6cb0" }}>transfers ownership</span>
-        </div>
-        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginBottom:11, lineHeight:1.55 }}>
-          This is the document that legally transfers the boat. Choose the version that fits your sale — you only need <b>one</b>. {documentedActive ? "Your vessel is Coast Guard documented, so the CG-1340 applies." : floridaActive ? "Florida\u2019s official 82050 is included." : ""}
-        </div>
-        <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
-          {bosDocs.map(doc => {
-            const done = !!signed[doc.id];
-            const rowNotary = (doc.body||"").includes("Notary Acknowledgment") || (doc.body||"").includes("bc-notary-flag") || doc.id==="cg_1340";
-            const isPrimary = doc.id === "bill_of_sale";
-            return (
-              <button key={doc.id} onClick={()=>jumpToDoc(doc.id)}
-                style={{ display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left", background:"transparent", border:"none", borderBottom:`1px solid ${bosSigned ? "#cfe6d8" : "#cfe0f5"}`, padding:"9px 2px", cursor:"pointer", fontFamily:"sans-serif" }}>
-                <span style={{ width:18, height:18, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, background: done ? C.green : "transparent", color: done ? "#fff" : C.slate, border: done ? "none" : `1.5px solid ${C.mist}` }}>{done ? "✓" : ""}</span>
-                <span style={{ flex:1, fontSize:12.5, color:C.navy, fontWeight: done ? 400 : (isPrimary?700:600), textDecoration: done ? "line-through" : "none", opacity: done ? 0.7 : 1 }}>
-                  {doc.title}
-                  {isPrimary && <span style={{ fontSize:10, color:"#2b6cb0", fontWeight:700, marginLeft:6 }}>· standard</span>}
-                  {rowNotary && !done ? <span style={{ fontSize:10.5, color:"#8a6d1a", fontWeight:600 }}> · needs notary</span> : null}
-                </span>
-                <span style={{ fontSize:11, color: done ? C.green : "#2b6cb0", fontWeight:600, whiteSpace:"nowrap" }}>{done ? "Done" : "Open →"}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* ── REQUIRED DOCUMENTS TRACKER ── */}
       <div style={{ border:`2px solid ${allRequiredSigned ? C.green : C.brass}`, borderRadius:8, padding:"13px 16px", marginBottom:22, background: allRequiredSigned ? C.greenLight : "#fff9ee" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
@@ -1103,13 +1053,31 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             {allRequiredSigned ? "✓ All required documents signed" : "Required documents to sign"}
           </div>
           <span style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color: allRequiredSigned ? C.green : C.brass }}>
-            {requiredDocs.filter(d=>signed[d.id]).length} of {requiredDocs.length} signed
+            {requiredDocs.filter(d=>signed[d.id]).length + (bosSigned?1:0)} of {requiredDocs.length + 1} signed
           </span>
         </div>
         <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, lineHeight:1.5 }}>
           The core documents a sale needs. Tap any one to open it. Documents that require a notary must be printed, notarized, and uploaded — the app can't verify notarization, so those are completed offline.
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
+          {/* The bill of sale, as one row rather than seven competing documents. */}
+          <button onClick={()=>bosSigned ? jumpToDoc(bosPickDoc?.id) : setShowBos(true)}
+            style={{ display:"flex", alignItems:"flex-start", gap:9, width:"100%", textAlign:"left", background: bosSigned ? "transparent" : "#fdf8ef", border:"none", borderLeft: bosSigned ? "3px solid transparent" : `3px solid ${C.brass}`, padding:"8px 9px", cursor:"pointer", fontFamily:"sans-serif", borderRadius:4 }}>
+            <span style={{ width:18, height:18, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, marginTop:1,
+              background: bosSigned ? C.green : "transparent", color: bosSigned ? "#fff" : C.brass, border: bosSigned ? "none" : `1.5px solid ${C.brass}` }}>{bosSigned ? "\u2713" : ""}</span>
+            <span style={{ flex:1, minWidth:0 }}>
+              <span style={{ fontSize:12.5, color:C.navy, fontWeight: bosSigned ? 400 : 600, textDecoration: bosSigned ? "line-through" : "none", display:"block" }}>
+                {bosSigned ? (bosPickDoc?.title || "Bill of Sale") : "Bill of Sale"}
+              </span>
+              {!bosSigned && (
+                <span style={{ fontSize:11, color:C.slate, marginTop:2, lineHeight:1.5, display:"block" }}>
+                  Several versions exist &mdash; you need one. {bosChoice ? <>You picked the {bosPickDoc?.title}.</> : <>We suggest the {bosPickDoc?.title}.</>}
+                </span>
+              )}
+            </span>
+            <span style={{ fontSize:11, color: bosSigned ? C.green : C.brass, fontWeight:600, whiteSpace:"nowrap", marginTop:1 }}>{bosSigned ? "Done" : "Choose \u2192"}</span>
+          </button>
+
           {requiredDocs.map(doc => {
             const done = !!signed[doc.id];
             const rowNotary = (doc.body||"").includes("Notary Acknowledgment");
