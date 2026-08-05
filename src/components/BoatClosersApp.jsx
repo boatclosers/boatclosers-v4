@@ -4585,6 +4585,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
   const isBuyer = myRole !== "seller";
   const [cleared, setCleared] = useState(false);
   const [dealFinalized, setDealFinalized] = useState(!!negotiate.dealFinalized);
+  const [closeAck, setCloseAck] = useState(false); // acknowledge unfinished paperwork before finalizing
   const [confirmFinalize, setConfirmFinalize] = useState(false);
   const [manualChecks, setManualChecks] = useState({});
   const [payMethod, setPayMethod] = useState(negotiate.paymentType || "wire");
@@ -4732,7 +4733,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
     }
   ] : [
     {
-      heading:"Core Closing Documents",
+      heading:"__DROP__Core Closing Documents",
       desc:"The required documents — signed in the Documents step.",
       docs:[
         { id:"purchase_agreement",  label:"Purchase & Sale Agreement",   desc:"The main binding contract between buyer and seller.", signed:!!docsData.signedDocs?.purchase_agreement },
@@ -4759,7 +4760,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
         { id:"reg_transfer", label:"Registration / Title Filed with State",                    desc:"New owner has submitted title transfer and registration application.", signed:false, manual:true, manualKey:"reg_filed" },
       ]
     }
-  ];
+  ].filter(sec => !String(sec.heading).startsWith("__DROP__"));
 
   const selectedMethod = PAYMENT_METHODS.find(m=>m.id===payMethod)||PAYMENT_METHODS[0];
 
@@ -4965,17 +4966,23 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
             // document left unsigned here can never be signed. Say so plainly before
             // they commit — but don't block them: a seller may knowingly close with
             // the notarised Bill of Sale handled on paper.
-            const unsigned = closingDocSections.flatMap(sec => (sec.docs||[]).filter(d => d && d.signed === false));
+            // Handed over by the Documents step, which is where the list is built.
+            const outstanding = docsData.outstandingDocs || [];
+            const unsigned = outstanding.map(t => ({ id:t, label:t }));
             if (!unsigned.length) return null;
             return (
               <div style={{ background:"#fff4e5", border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", marginBottom:14, fontFamily:"sans-serif" }}>
                 <div style={{ fontSize:13, fontWeight:800, color:"#8a5a12", marginBottom:6 }}>
-                  ⚠️ {unsigned.length} document{unsigned.length===1?" is":"s are"} still unsigned
+                  ⚠️ A few documents still need finishing before this sale is truly closed
                 </div>
                 <ul style={{ margin:"0 0 8px", paddingLeft:18, fontSize:12.5, color:C.slate, lineHeight:1.7 }}>
                   {unsigned.map(d => <li key={d.id}>{d.label}</li>)}
                 </ul>
-                <div style={{ fontSize:12, color:C.slate, lineHeight:1.65 }}>
+                <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", fontSize:12, color:C.slate, lineHeight:1.6, marginTop:4 }}>
+                  <input type="checkbox" checked={closeAck} onChange={e=>setCloseAck(e.target.checked)} style={{ marginTop:2, accentColor:C.brass, width:15, height:15, flexShrink:0 }} />
+                  <span>I understand these documents still need to be completed outside the app, that BoatClosers does not verify or notarize them, and I&rsquo;m choosing to proceed.</span>
+                </label>
+                <div style={{ fontSize:12, color:C.slate, lineHeight:1.65, marginTop:9 }}>
                   Once you finalize, <b>these can never be signed in the app</b> — the deal becomes a permanent record. If you mean to sign {unsigned.length===1?"it":"them"} here, go back to Documents first. If {unsigned.length===1?"it is":"they are"} being handled on paper or at the notary, carry on.
                 </div>
               </div>
@@ -4984,7 +4991,10 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
           {!confirmFinalize ? (
             <div style={{ display:"flex", justifyContent:"space-between", gap:10, flexWrap:"wrap" }}>
               <button style={S.btnOutline} onClick={onBack}>&larr; Back to Documents</button>
-              <button style={{ ...S.btnBrass, fontSize:14, fontWeight:800, padding:"12px 22px" }} onClick={()=>setConfirmFinalize(true)}>✓ Finalize &mdash; Deal Closed</button>
+              <button disabled={(docsData.outstandingDocs||[]).length > 0 && !closeAck}
+                style={{ ...S.btnBrass, fontSize:14, fontWeight:800, padding:"12px 22px",
+                  opacity:((docsData.outstandingDocs||[]).length > 0 && !closeAck) ? 0.45 : 1,
+                  cursor:((docsData.outstandingDocs||[]).length > 0 && !closeAck) ? "not-allowed" : "pointer" }} onClick={()=>setConfirmFinalize(true)}>✓ Finalize &mdash; Deal Closed</button>
             </div>
           ) : (
             <div style={{ background:"#fff", border:`2px solid ${C.green}`, borderRadius:8, padding:"15px 17px", fontFamily:"sans-serif" }}>
