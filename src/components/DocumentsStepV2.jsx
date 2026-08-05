@@ -257,54 +257,10 @@ const ASK_MORE = [
     docs:["notice_sale","title_app"] },
 ];
 
-function DocsAssistant({ C, S, myRole, quiz, setQuiz, answers, setAnswers, DOC_SET, onOpenDoc }) {
-  const [open, setOpen] = useState(false);
+function DocsAssistant({ C, S, myRole, answers, onStart }) {
   const isBuyer = myRole !== "seller";
-  const pick = (k, v) => {
-    setAnswers(a => ({ ...a, [k]: v }));
-    const spec = ASK.find(x => x.k === k);
-    const on = spec.on.includes(v);
-    setQuiz(q => {
-      const n = { ...q };
-      if (k === "names") { n.coowner = v === "two"; n.entity = v === "entity"; }
-      else if (k === "estate") { n.estate = v === "no"; n.poa = v === "poa"; }
-      else n[k] = on;
-      return n;
-    });
-  };
-  const [deep, setDeep] = useState(false);
-  const more = ASK_MORE.filter(x => !x.when || x.when(answers));
-  const answered = ASK.filter(x => answers[x.k]).length;
-  const moreAnswered = more.filter(x => answers[x.k]).length;
-
-  const row = (a) => {
-    const v = answers[a.k];
-    const show = v && a.on.includes(v);
-    return (
-      <div key={a.k} style={{ marginBottom:13 }}>
-        <div style={{ fontSize:12.5, color:C.navy, fontWeight:600, marginBottom:6 }}>{a.q}</div>
-        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-          {a.opts.map(([val, label]) => (
-            <button key={val} onClick={()=>pick(a.k, val)}
-              style={{ fontSize:11.5, padding:"6px 13px", borderRadius:15, cursor:"pointer", fontFamily:"sans-serif", fontWeight:600,
-                border:`1.5px solid ${v===val ? C.brass : C.mist}`, background: v===val ? "#fdf8ef" : C.white, color:C.navy }}>{label}</button>
-          ))}
-        </div>
-        {show && (
-          <div style={{ marginTop:8, background:"#fdf8ef", borderLeft:`3px solid ${C.brass}`, padding:"9px 12px", borderRadius:4 }}>
-            <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55 }}>{a.then}</div>
-            <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:7 }}>
-              {a.docs.map(id => {
-                const d = DOC_SET.find(x => x.id === id);
-                if (!d) return null;
-                return <button key={id} onClick={()=>onOpenDoc(id)} style={{ fontSize:11, padding:"5px 11px", borderRadius:13, border:`1px solid ${C.brass}`, background:C.white, color:C.navy, cursor:"pointer", fontFamily:"sans-serif" }}>{d.title} &rarr;</button>;
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
+  const [open, setOpen] = useState(true);
+  const answeredCount = [...ASK, ...ASK_MORE].filter(x => answers[x.k]).length;
 
   return (
     <div style={{ border:`1px solid ${C.navy}`, borderRadius:8, marginBottom:20, overflow:"hidden", background:C.white }}>
@@ -314,52 +270,172 @@ function DocsAssistant({ C, S, myRole, quiz, setQuiz, answers, setAnswers, DOC_S
           <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:"#fff" }}>Deal Assistant</div>
           <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.6)" }}>Documents &mdash; what to do and why</div>
         </div>
-        <span style={{ color:C.brass, fontSize:12, fontFamily:"sans-serif", fontWeight:700, whiteSpace:"nowrap" }}>{open ? "\u25b2 Hide" : answered ? `\u25bc ${answered} of ${ASK.length} answered` : "\u25bc Guide me"}</span>
+        <span style={{ color:C.brass, fontSize:12, fontFamily:"sans-serif", fontWeight:700, whiteSpace:"nowrap" }}>{open ? "\u25b2 Hide" : "\u25bc Guide me"}</span>
       </div>
 
       {open && (
         <div style={{ padding:"14px 16px", fontFamily:"sans-serif" }}>
           <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7 }}>
-            This is where the sale gets papered. {isBuyer
-              ? "Open each document, fill in your blanks, and sign. Anything needing a notary you print, sign in front of one, and upload."
-              : "Open each document, fill in your blanks, and sign. The bill of sale usually needs a notary \u2014 print it, sign before a notary, upload the copy."}
-            {" "}Nothing here is guesswork: the vessel and party details come straight from your deal and can&rsquo;t be typed over.
+            Your price is agreed and the deal is paid. This step turns it into paperwork that holds up.
           </div>
 
+          <ol style={{ margin:"11px 0 0", paddingLeft:19, fontSize:12.5, color:C.slate, lineHeight:1.7 }}>
+            <li style={{ marginBottom:7 }}>
+              Work from <b>What your deal needs</b> below. It is built from your deal and your answers &mdash; not all 54 documents. You do not need the rest.
+            </li>
+            <li style={{ marginBottom:7 }}>
+              Open one, fill in any gold blanks, then <b>E-Sign</b>. {isBuyer ? "The seller signs their own side separately." : "The buyer signs their own side separately."} Both signatures show on the document.
+            </li>
+            <li style={{ marginBottom:7 }}>
+              <b>Pick one Bill of Sale.</b> There are several versions and you only need one. The picker puts forward the one your state or the Coast Guard expects, and says why.
+            </li>
+            <li style={{ marginBottom:7 }}>
+              Some documents cannot be signed here &mdash; official state and federal forms, and anything that needs a notary. <b>Print those, complete them, and upload the signed copy.</b> Each document tells you which it is when you open it.
+            </li>
+            <li>
+              Vessel and party details fill in from your deal and are locked. If something reads wrong, fix it in <b>Vessel</b> or <b>Parties</b> and every document updates.
+            </li>
+          </ol>
+
           <div style={{ borderTop:`1px solid ${C.mist}`, marginTop:14, paddingTop:13 }}>
-            <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:3 }}>A few things I can&rsquo;t work out from your deal</div>
-            <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginBottom:12 }}>
-              These decide what else your sale needs. Answer what you know &mdash; you can change them later.
+            <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:3 }}>Not sure what your deal needs?</div>
+            <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginBottom:11 }}>
+              A few questions I can&rsquo;t answer from your deal &mdash; money owed, the title, who&rsquo;s signing. Answer them and I&rsquo;ll give you the full list at the end, in one go.
             </div>
-
-            {ASK.map(row)}
-
-            {!deep && (
-              <button onClick={()=>setDeep(true)}
-                style={{ width:"100%", marginTop:4, background:"transparent", border:`1px dashed ${C.brass}`, color:C.navy, borderRadius:8, padding:"11px 14px", fontSize:12.5, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>
-                Go deeper &mdash; {more.length} more questions &rarr;
-                <div style={{ fontSize:11, fontWeight:400, color:C.slate, marginTop:3, lineHeight:1.5 }}>
-                  The ones that catch people out: yard bills, name mismatches, hull numbers, who&rsquo;s carrying the paper.
-                </div>
-              </button>
-            )}
-
-            {deep && (
-              <div style={{ borderTop:`1px solid ${C.mist}`, marginTop:6, paddingTop:13 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:10, marginBottom:3 }}>
-                  <div style={{ fontSize:12.5, fontWeight:800, color:C.navy }}>Going deeper</div>
-                  <span style={{ fontSize:11, color:C.slate }}>{moreAnswered} of {more.length}</span>
-                </div>
-                <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginBottom:12 }}>
-                  None of these are common, and most sales answer no to all of them. But any one caught late costs a closing date.
-                </div>
-                {more.map(row)}
-                <button onClick={()=>setDeep(false)} style={{ background:"transparent", border:"none", color:C.slate, fontSize:11.5, textDecoration:"underline", cursor:"pointer", fontFamily:"sans-serif", padding:0 }}>Hide these</button>
-              </div>
-            )}
+            <button onClick={onStart}
+              style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"10px 20px", fontSize:12.5, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>
+              {answeredCount ? `Review my answers \u00b7 ${answeredCount} given` : "Build my document list \u2192"}
+            </button>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BUILD MY DOCUMENT LIST — the full-screen flow
+//
+// Answer everything first, get the list at the end. The earlier version handed
+// out documents one question at a time, which meant leaving the page mid-way and
+// losing your place. Nobody does that.
+// ─────────────────────────────────────────────────────────────────────────────
+function NeedsFlow({ C, DOC_SET, coreDocs, answers, onAnswer, onDone, onClose, facts }) {
+  const [stage, setStage] = useState("intro");
+  const [idx, setIdx] = useState(0);
+
+  const more = ASK_MORE.filter(x => !x.when || x.when(answers));
+  const queue = stage === "more" ? more : ASK;
+  const q = queue[idx];
+
+  const answer = (v) => {
+    onAnswer(q.k, v);
+    if (idx + 1 < queue.length) setIdx(idx + 1);
+    else if (stage === "q") setStage("offer");
+    else setStage("result");
+  };
+
+  // Everything the answers turned on, grouped by the reason it turned on.
+  const triggered = [...ASK, ...ASK_MORE].filter(x => answers[x.k] && x.on.includes(answers[x.k]));
+  const seen = new Set(coreDocs.map(d => d.id));
+  const groups = [];
+  triggered.forEach(t => {
+    const ids = t.docs.filter(id => !seen.has(id) && DOC_SET.some(d => d.id === id));
+    ids.forEach(id => seen.add(id));
+    if (ids.length) groups.push({ why: t.then, ids });
+  });
+  const total = coreDocs.length + groups.reduce((n, g) => n + g.ids.length, 0);
+
+  const sheet = { maxWidth:620, margin:"0 auto", background:C.sand, borderRadius:12, overflow:"hidden", border:`2px solid ${C.brass}` };
+  const pad = { padding:"20px 22px" };
+  const title = (t) => (DOC_SET.find(d => d.id === t) || {}).title || t;
+
+  return (
+    <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.55)", zIndex:3000, overflowY:"auto", padding:"18px 12px", fontFamily:"sans-serif" }}>
+      <div onClick={e=>e.stopPropagation()} style={sheet}>
+        <div style={{ background:C.navy, color:"#fff", padding:"13px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <span style={{ fontSize:12.5, letterSpacing:1, color:C.brass }}>WHAT YOUR DEAL NEEDS</span>
+          <button onClick={onClose} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.7)", fontSize:19, cursor:"pointer", lineHeight:1 }}>&times;</button>
+        </div>
+
+        {stage === "intro" && (
+          <div style={pad}>
+            <div style={{ fontFamily:"'Georgia',serif", fontSize:19, color:C.navy, marginBottom:8 }}>Four questions, then your list</div>
+            <div style={{ fontSize:13, color:C.slate, lineHeight:1.7 }}>
+              Most of what your sale needs I can work out from your deal already. These are the four I can&rsquo;t &mdash; and each one changes the paperwork. Answer them and you&rsquo;ll get the complete list at the end, with the reason for every document on it.
+            </div>
+            <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderRadius:8, padding:"12px 14px", marginTop:14 }}>
+              <div style={{ fontSize:10.5, color:C.slate, letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>Already known from your deal</div>
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                {facts.map(t => <span key={t} style={{ fontSize:11.5, background:C.sand, border:`1px solid ${C.mist}`, color:C.slate, padding:"4px 11px", borderRadius:13 }}>{t}</span>)}
+              </div>
+            </div>
+            <button onClick={()=>{ setIdx(0); setStage("q"); }} style={{ marginTop:16, background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"11px 24px", fontSize:13.5, fontWeight:700, cursor:"pointer" }}>Start</button>
+          </div>
+        )}
+
+        {(stage === "q" || stage === "more") && q && (
+          <div style={pad}>
+            <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:15 }}>
+              {queue.map((_, i) => <span key={i} style={{ height:4, flex:1, borderRadius:2, background: i < idx ? C.green : i === idx ? C.brass : C.sandDark }} />)}
+              <span style={{ fontSize:10.5, color:C.slate, marginLeft:5, whiteSpace:"nowrap" }}>{idx+1} of {queue.length}</span>
+            </div>
+            <div style={{ fontFamily:"'Georgia',serif", fontSize:18, color:C.navy, marginBottom:14 }}>{q.q}</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {q.opts.map(([v, label]) => (
+                <button key={v} onClick={()=>answer(v)}
+                  style={{ textAlign:"left", border:`1.5px solid ${answers[q.k]===v ? C.brass : C.mist}`, background: answers[q.k]===v ? "#fdf8ef" : C.white, borderRadius:8, padding:"13px 15px", fontSize:13.5, color:C.navy, cursor:"pointer", fontFamily:"sans-serif" }}>{label}</button>
+              ))}
+            </div>
+            <button onClick={()=> idx === 0 ? setStage(stage === "more" ? "offer" : "intro") : setIdx(idx-1)}
+              style={{ marginTop:14, background:"transparent", border:"none", color:C.slate, fontSize:12, cursor:"pointer" }}>&larr; Back</button>
+          </div>
+        )}
+
+        {stage === "offer" && (
+          <div style={pad}>
+            <div style={{ fontFamily:"'Georgia',serif", fontSize:18, color:C.navy, marginBottom:7 }}>Want me to dig a little deeper?</div>
+            <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:15 }}>
+              {more.length} more questions &mdash; unpaid yard bills, a name that doesn&rsquo;t match the title, a worn hull number, who&rsquo;s carrying the paper. Most sales answer no to all of them, but any one caught late costs a closing date.
+            </div>
+            <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+              <button onClick={()=>{ setIdx(0); setStage("more"); }} style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"11px 22px", fontSize:13, fontWeight:700, cursor:"pointer" }}>Yes, keep going</button>
+              <button onClick={()=>setStage("result")} style={{ background:C.white, border:`1px solid ${C.mist}`, color:C.slate, borderRadius:20, padding:"11px 20px", fontSize:12.5, fontWeight:700, cursor:"pointer" }}>No, show my list</button>
+            </div>
+          </div>
+        )}
+
+        {stage === "result" && (
+          <div>
+            <div style={{ ...pad, paddingBottom:14, background:C.white, borderBottom:`1px solid ${C.mist}` }}>
+              <div style={{ fontFamily:"'Georgia',serif", fontSize:19, color:C.navy }}>Your sale needs {total} document{total===1?"":"s"}</div>
+              <div style={{ fontSize:12, color:C.slate, marginTop:5, lineHeight:1.6 }}>
+                Suggestions from your deal and your answers &mdash; not rules. Everything else is still there if you need it.
+                {" "}<button onClick={()=>{ setIdx(0); setStage("q"); }} style={{ background:"transparent", border:"none", color:C.brass, textDecoration:"underline", cursor:"pointer", fontSize:12, padding:0 }}>Change an answer</button>
+              </div>
+            </div>
+
+            <div style={{ padding:"11px 22px", background:C.sandDark, fontSize:11, color:C.navy, letterSpacing:0.5, textTransform:"uppercase", fontWeight:700 }}>Every sale needs these &mdash; {coreDocs.length}</div>
+            {coreDocs.map(d => (
+              <div key={d.id} style={{ padding:"11px 22px", background:C.white, borderBottom:`1px solid ${C.sand}`, fontSize:13, color:C.navy }}>{d.title}</div>
+            ))}
+
+            {groups.map((g, i) => (
+              <div key={i}>
+                <div style={{ padding:"11px 22px", background:"#fdf8ef", fontSize:11.5, color:"#8a5a12", lineHeight:1.5 }}>{g.why}</div>
+                {g.ids.map(id => (
+                  <div key={id} style={{ padding:"11px 22px", background:C.white, borderBottom:`1px solid ${C.sand}`, fontSize:13, color:C.navy }}>{title(id)}</div>
+                ))}
+              </div>
+            ))}
+
+            <div style={{ ...pad, display:"flex", gap:10, flexWrap:"wrap" }}>
+              <button onClick={onDone} style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"11px 24px", fontSize:13.5, fontWeight:700, cursor:"pointer" }}>Add these to my list</button>
+              <button onClick={onClose} style={{ background:C.white, border:`1px solid ${C.mist}`, color:C.slate, borderRadius:20, padding:"11px 18px", fontSize:12.5, fontWeight:700, cursor:"pointer" }}>Close</button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -479,12 +555,24 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // "Which documents do I need?" — a full-screen flow that reads what the deal
   // already knows, asks only what it cannot, and builds a suggested set.
   const [showBos, setShowBos] = useState(false);
-  // Keep the assistant's answers on the deal so they survive a reload.
-  const saveAsk = (updater) => setAskAnswers(prev => {
-    const next = typeof updater === "function" ? updater(prev) : updater;
-    setData(d => ({ ...d, docAsk: next }));
-    return next;
-  });
+  const [showFlow, setShowFlow] = useState(false);
+  // One answer at a time: save it, and turn on the flag the tracker reads.
+  const answerAsk = (k, v) => {
+    const spec = [...ASK, ...ASK_MORE].find(x => x.k === k);
+    const on = spec ? spec.on.includes(v) : false;
+    setAskAnswers(prev => {
+      const next = { ...prev, [k]: v };
+      setData(d => ({ ...d, docAsk: next }));
+      return next;
+    });
+    setQuiz(qz => {
+      const n = { ...qz };
+      if (k === "names") { n.coowner = v === "two"; n.entity = v === "entity"; }
+      else if (k === "estate") { n.estate = v === "no"; n.poa = v === "poa"; }
+      else n[k] = on;
+      return n;
+    });
+  };
   // Which bill of sale they settled on. Until they choose, we put forward the one
   // their state or the Coast Guard publishes, because that is what a clerk expects.
   const bosChoice = data.bosChoice || "";
@@ -1508,6 +1596,20 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
           </div>
         </div>
       )}
+      {showFlow && (
+        <NeedsFlow
+          C={C} DOC_SET={DOC_SET} coreDocs={_core}
+          answers={askAnswers} onAnswer={answerAsk}
+          facts={[
+            [vessel.year, vessel.make, vessel.model].filter(Boolean).join(" "),
+            floridaActive ? "Florida transfer" : (vessel.regState ? `Registered in ${vessel.regState}` : null),
+            documentedActive ? "Coast Guard documented" : "Not Coast Guard documented",
+            String(vessel.trailerIncluded||"").toLowerCase()==="yes" ? "Trailer included" : "No trailer",
+          ].filter(Boolean)}
+          onDone={()=>setShowFlow(false)}
+          onClose={()=>setShowFlow(false)}
+        />
+      )}
       {showBos && (
         <BosPicker
           DOCUMENTS={DOC_SET} C={C} facts={dealFacts} chosen={bosChoice}
@@ -1525,12 +1627,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       </div>
 
       {!frozen && (
-        <DocsAssistant
-          C={C} S={S} myRole={myRole}
-          quiz={quiz} setQuiz={setQuiz}
-          answers={askAnswers} setAnswers={saveAsk}
-          DOC_SET={DOC_SET} onOpenDoc={jumpToDoc}
-        />
+        <DocsAssistant C={C} S={S} myRole={myRole} answers={askAnswers} onStart={()=>setShowFlow(true)} />
       )}
       {frozen && (
         <div style={{ background:"#f4f7f5", border:`1px solid ${C.green}`, borderRadius:8, padding:"12px 14px", marginBottom:18, fontFamily:"sans-serif", fontSize:12.5, color:C.slate, lineHeight:1.6 }}>
