@@ -4581,7 +4581,7 @@ function DocPreview({ doc, D, negotiate }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 5 — CLOSING
 // ─────────────────────────────────────────────────────────────────────────────
-function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, docsData, myRole, amInitiator, onBack, onFinalize }) {
+function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, setDocsData, docsData, dealId, myRole, amInitiator, onBack, onFinalize }) {
   const isBuyer = myRole !== "seller";
   const [cleared, setCleared] = useState(false);
   const [dealFinalized, setDealFinalized] = useState(!!negotiate.dealFinalized);
@@ -4759,7 +4759,22 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
         { id:"reg_transfer", label:"Registration / Title Filed with State",                    desc:"New owner has submitted title transfer and registration application.", signed:false, manual:true, manualKey:"reg_filed" },
       ]
     }
-  ];
+  ].map(sec => ({ ...sec, docs: (sec.docs || []).filter(d => !String(d.id).startsWith("__moved_")) }))
+   .filter(sec => (sec.docs || []).length);
+
+  // Two different moments, and people conflate them: signing the final paperwork,
+  // and actually handing the boat over. Sometimes the same afternoon, often not.
+  const _fl = /\b(fl|fla|florida)\b/i.test(String(vessel?.regState || vessel?.location || ""));
+  const _doc = !!String(vessel?.uscgNumber || vessel?.uscgOfficialNo || vessel?.officialNo || "").trim();
+  const tablePacket = [
+    "closing_statement",
+    docsData.bosChoice || (_doc ? "cg_1340" : _fl ? "fl_82050" : "bill_of_sale"),
+    "inventory",
+    _fl ? "fl_82040vs" : "title_app",
+    _doc ? "cg_1258" : null,
+    "notice_sale",
+  ].filter(Boolean);
+  const handoverPacket = ["delivery_receipt", "defect_disclosure", "engine_hours"];
 
   const selectedMethod = PAYMENT_METHODS.find(m=>m.id===payMethod)||PAYMENT_METHODS[0];
 
@@ -4902,6 +4917,39 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
         </div>
       )}
 
+      {/* ── THE CLOSING PACKET ─────────────────────────────────────────────────
+          These used to live on the Documents page and sent people back and forth.
+          They belong to this moment, so they live here now. ─────────────────── */}
+      {!isRejected && (
+        <div style={{ marginBottom:22 }}>
+          <div style={{ fontFamily:"'Georgia',serif", fontSize:17, color:C.navy }}>At the closing table</div>
+          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginTop:3, marginBottom:10, lineHeight:1.6 }}>
+            Money changes hands and ownership transfers on paper. Sign these together &mdash; then the buyer takes the title paperwork off to file.
+          </div>
+          <DocumentsStepV2
+            data={docsData} setData={setDocsData}
+            vessel={vessel} parties={parties} terms={terms} negotiate={negotiate}
+            myRole={myRole} amInitiator={amInitiator} dealId={dealId}
+            only={tablePacket}
+          />
+        </div>
+      )}
+
+      {!isRejected && (
+        <div style={{ marginBottom:22 }}>
+          <div style={{ fontFamily:"'Georgia',serif", fontSize:17, color:C.navy }}>At the handover</div>
+          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginTop:3, marginBottom:10, lineHeight:1.6 }}>
+            When the keys actually change hands &mdash; often the same day, sometimes later. These record what was handed over, and the condition it was in.
+          </div>
+          <DocumentsStepV2
+            data={docsData} setData={setDocsData}
+            vessel={vessel} parties={parties} terms={terms} negotiate={negotiate}
+            myRole={myRole} amInitiator={amInitiator} dealId={dealId}
+            only={handoverPacket}
+          />
+        </div>
+      )}
+
       {/* Document sections */}
       {closingDocSections.map((section, si) => (
         <div key={si} style={{ marginBottom:16 }}>
@@ -4965,7 +5013,25 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
             // document left unsigned here can never be signed. Say so plainly before
             // they commit — but don't block them: a seller may knowingly close with
             // the notarised Bill of Sale handled on paper.
-            const unsigned = closingDocSections.flatMap(sec => (sec.docs||[]).filter(d => d && d.signed === false));
+            // The closing and handover packets moved out of these sections, so check
+            // them directly — otherwise the warning would miss the very documents
+            // this page is now responsible for.
+            const LABELS = {
+              closing_statement:"Closing Statement", bill_of_sale:"Bill of Sale", inventory:"Inventory Schedule",
+              fl_82050:"Florida Bill of Sale (82050)", cg_1340:"Coast Guard Bill of Sale (CG-1340)",
+              fl_82040vs:"Florida Title Application (82040-VS)", title_app:"Certificate of Title Application",
+              cg_1258:"USCG Documentation Application (CG-1258)", notice_sale:"Notice of Sale & Transfer",
+              delivery_receipt:"Delivery & Possession Receipt", defect_disclosure:"Seller's Disclosure of Known Defects",
+              engine_hours:"Engine Hours & Operating Statement",
+            };
+            const sig = docsData.signedDocs || {};
+            const packetUnsigned = [...tablePacket, ...handoverPacket]
+              .filter(id => !sig[id])
+              .map(id => ({ id, label: LABELS[id] || id }));
+            const unsigned = [
+              ...closingDocSections.flatMap(sec => (sec.docs||[]).filter(d => d && d.signed === false)),
+              ...packetUnsigned,
+            ];
             if (!unsigned.length) return null;
             return (
               <div style={{ background:"#fff4e5", border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", marginBottom:14, fontFamily:"sans-serif" }}>
@@ -6571,7 +6637,7 @@ export default function BoatClosers() {
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} authToken={tokenRef.current?.token} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
       </div>
-      {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} setNegotiate={setNegotiateAndSave} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onBack={()=>setStep(4)} onFinalize={()=>{ setTimeout(()=>{ finalizedRef.current = true; }, 2500); }}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
+      {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} setNegotiate={setNegotiateAndSave} ddData={ddData} docsData={docsData} setDocsData={setDocsDataAndSave} dealId={dealId} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onBack={()=>setStep(4)} onFinalize={()=>{ setTimeout(()=>{ finalizedRef.current = true; }, 2500); }}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
 
       {cancelModal && (
         <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.85)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem" }}>
