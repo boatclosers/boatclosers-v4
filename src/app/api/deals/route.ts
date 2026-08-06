@@ -924,6 +924,12 @@ export async function POST(req: Request) {
           // the other party must never knock an offer back from accepted to agreed.
           const rank: any = { pending: 1, rejected: 1, agreed: 2, accepted: 3 }
           if ((rank[ex.status] || 0) > (rank[merged.status] || 0)) merged.status = ex.status
+          // SECURITY: "accepted" is what unlocks the paid half of the app. Only a
+          // deal the server knows is paid may hold an accepted offer.
+          const dealIsPaid = !!(existingRow.paid || existingNeg.paid || existingNeg.dealLocked)
+          if (merged.status === 'accepted' && ex.status !== 'accepted' && !dealIsPaid) {
+            merged.status = ex.status || 'agreed'
+          }
           offerById[o.id] = merged
         }
       }
@@ -971,6 +977,27 @@ export async function POST(req: Request) {
       // Update by id ALONE — authorization already checked. The old .or() filter
       // on the update was failing to match for the joined party, so their saves
       // silently wrote nothing. This is the fix for "joiner's data doesn't save."
+      const wasFinal = !!existingNegForLock.dealFinalized
+      const nowFinal = !!mergedPayload.negotiate?.dealFinalized
+      const wasCanceled = !!existingNeg.canceled
+      const nowCanceled = !!mergedPayload.negotiate?.canceled
+      if (nowFinal && !wasFinal) {
+        mergedPayload.status = 'finalized'
+        mergedPayload.finalized_at = new Date().toISOString()
+      } else if (nowCanceled && !wasCanceled) {
+        // A cancelled deal that was paid for earns a 60-day credit toward the next
+        // one. Recorded here so the credit is the server's fact, not the client's.
+        mergedPayload.status = 'canceled'
+        if (existingRow.paid || existingNeg.paid) {
+          mergedPayload.negotiate = {
+            ...mergedPayload.negotiate,
+            creditFrom: existingRow.id,
+            creditUntil: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+            creditUsed: false,
+          }
+        }
+      }
+
       const { data, error } = await admin()
         .from('deals').update(mergedPayload).eq('id', dealId)
         .select().single()
@@ -998,6 +1025,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ deal: data })
     }
 
+    // ── 60-DAY CREDIT ────────────────────────────────────────────────────────
+    // A paid deal that was cancelled entitles this user to ONE replacement within
+    // 60 days without paying again. Everything else starts unpaid.
+    let bornPaid = false
+    let creditRowId: string | null = null
+    try {
+      const { data: cancelled } = await admin()
+        .from('deals').select('*')
+        .or(`initiator_id.eq.${userId},other_party_id.eq.${userId}`)
+        .eq('status', 'canceled')
+        .order('created_at', { ascending: false }).limit(10)
+      for (const row of (cancelled || [])) {
+        const n = row.negotiate || {}
+        const wasPaid = !!(row.paid || n.paid)
+        const until = n.creditUntil ? Date.parse(n.creditUntil) : 0
+        if (wasPaid && !n.creditUsed && until && Date.now() < until) {
+          bornPaid = true
+          creditRowId = row.id
+          break
+        }
+      }
+    } catch { /* no credit found — the new deal simply starts unpaid */ }
+
     // Use the initiator's OWN chosen role (from signup), not a guess based on
     // which name field happens to be filled. Guessing produced inverted roles.
     const role = (body.role === 'seller' || body.role === 'buyer')
@@ -1005,9 +1055,29 @@ export async function POST(req: Request) {
       : ((parties && parties.seller && parties.seller.name && !(parties.buyer && parties.buyer.name)) ? 'seller' : 'buyer')
     const { data, error } = await admin()
       .from('deals')
-      .insert({ initiator_id: userId, initiator_role: role, status: 'active', paid: false, ...payload })
+      .insert({
+        ...payload,
+        initiator_id: userId,
+        initiator_role: role,
+        status: 'active',
+        // paid comes last so a forged payload can never set it.
+        paid: bornPaid,
+        negotiate: bornPaid
+          ? { ...(payload.negotiate || {}), paid: true, creditRedeemedFrom: creditRowId }
+          : (payload.negotiate || {}),
+      })
       .select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+    // Burn the credit so it can only ever be used once.
+    if (bornPaid && creditRowId) {
+      try {
+        const { data: src } = await admin().from('deals').select('negotiate').eq('id', creditRowId).single()
+        await admin().from('deals')
+          .update({ negotiate: { ...((src && src.negotiate) || {}), creditUsed: true, creditUsedAt: new Date().toISOString() } })
+          .eq('id', creditRowId)
+      } catch { /* the new deal is already created; a failure here is not fatal */ }
+    }
     return NextResponse.json({ deal: data })
   } catch (e: any) {
     return NextResponse.json({ error: 'SERVER ERROR: ' + (e?.message || 'unknown') }, { status: 500 })
