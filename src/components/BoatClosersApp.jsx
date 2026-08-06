@@ -355,6 +355,45 @@ function LegalFooter({ C }) {
 }
 
 const ASSISTANT = {
+  closing: {
+    title: "Closing",
+    buyer: {
+      summary: "The last step. Confirm the money has moved, take possession of the boat, file the title paperwork with your state, then finalize. Finalizing is permanent \u2014 it seals the deal into a record neither side can change.",
+      todo: [
+        "Work through Before you finalize at the top \u2014 sign what is left and tick off each step as it happens",
+        "Send the balance the way you agreed, and confirm it here once it has gone",
+        "Take possession of the vessel, keys, and everything on the inventory",
+        "File the title and registration with your state or the Coast Guard",
+        "Finalize only once the money, the boat, and the paperwork have all changed hands",
+      ],
+      next: "Once finalized, the deal becomes a permanent record you can view, print, download or email at any time.",
+      faqs: [
+        { q:"What does finalizing actually do?", a:"It seals the deal. Terms, documents, and signatures become a permanent record \u2014 nothing can be changed, added or deleted afterwards, by either party or by us. You keep full access to all of it." },
+        { q:"When should I press it?", a:"After the money has moved and you have the boat. There is no deadline and nothing expires if you wait a week." },
+        { q:"What if a document is still unsigned?", a:"You can still finalize, but you will be asked to confirm you understand it can never be signed in the app afterwards. If it matters, sign it first." },
+        { q:"Can finalizing be undone?", a:"No. Not by you, not by the seller, not by support. That permanence is what makes the record worth having." },
+        { q:"What if the deal fell apart instead?", a:"Do not finalize \u2014 use End deal in the header. The party who paid keeps their fee as a 60-day credit toward another deal." },
+      ],
+    },
+    seller: {
+      summary: "The last step. Confirm the money has arrived and cleared, hand over the boat and everything on the inventory, then finalize. Finalizing is permanent \u2014 it seals the deal into a record neither side can change.",
+      todo: [
+        "Work through Before you finalize at the top \u2014 sign what is left and tick off each step as it happens",
+        "Confirm the balance has arrived and cleared, not just that it was sent",
+        "Hand over the vessel, keys, manuals, and everything on the inventory",
+        "Report the sale to your state so your liability for the boat ends",
+        "Finalize only once the funds have cleared and the boat has changed hands",
+      ],
+      next: "Once finalized, the deal becomes a permanent record you can view, print, download or email at any time.",
+      faqs: [
+        { q:"What does finalizing actually do?", a:"It seals the deal. Terms, documents, and signatures become a permanent record \u2014 nothing can be changed, added or deleted afterwards, by either party or by us. You keep full access to all of it." },
+        { q:"Should I finalize before the money clears?", a:"No. A wire that has been sent is not a wire that has arrived, and a cheque can be reversed. Wait for cleared funds \u2014 there is no deadline." },
+        { q:"Do I still owe anything afterwards?", a:"Report the sale to your state if you have not. That is what ends your liability for the boat, and the Notice of Sale is in your documents." },
+        { q:"Can finalizing be undone?", a:"No. Not by you, not by the buyer, not by support." },
+        { q:"What if the buyer disappears?", a:"Do not finalize \u2014 use End deal in the header. Your fee becomes a 60-day credit toward another deal." },
+      ],
+    },
+  },
   vessel: {
     title: "Step 1 \u00b7 The Vessel",
     seller: {
@@ -490,11 +529,15 @@ const ASSISTANT = {
   },
 };
 
-function DealAssistant({ step, role, vessel }) {
+function DealAssistant({ step, role, vessel, seen, onSeen }) {
   // Open by default on the early steps where guidance is most needed; collapsed
   // by default on the later steps (due diligence, documents) where the panel is
   // mostly noise — the user can still expand it anytime.
-  const [open, setOpen] = useState(() => !["diligence", "documents"].includes(step));
+  // Where `seen` is supplied, the panel opens the first time only and stays
+  // collapsed afterwards, so the explanation is read once and then gets out of
+  // the way rather than sitting between the heading and the work.
+  const [open, setOpen] = useState(() => seen !== undefined ? !seen : !["diligence", "documents"].includes(step));
+  useEffect(() => { if (seen === false && onSeen) onSeen(); }, []); // eslint-disable-line
   const [faqOpen, setFaqOpen] = useState(null);
   const c = ASSISTANT[step];
   if (!c) return null;
@@ -4859,6 +4902,12 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
           </p>
         </div>
       </div>
+
+      {!isRejected && (
+        <DealAssistant step="closing" role={myRole} vessel={vessel}
+          seen={!!negotiate.closingGuideSeen}
+          onSeen={()=>setNegotiate(n => ({ ...n, closingGuideSeen: true }))} />
+      )}
 
       {/* ── WHAT IS LEFT ─────────────────────────────────────────────────────────
           Near the top, because it is the thing that decides whether you should be
