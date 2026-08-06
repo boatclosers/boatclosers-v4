@@ -534,7 +534,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   });
   const bosSigned = bosDocs.some(d => signed[d.id]); // any BoS variant signed = satisfied
   // The main required list EXCLUDES the bill of sale (it has its own box).
-  const requiredDocs = DOC_SET.filter(d => d.required && d.id !== "bill_of_sale");
+  let requiredDocs = DOC_SET.filter(d => d.required && d.id !== "bill_of_sale");
   // Questionnaire → suggested documents (additive; the full list stays browsable).
   const REC_MAP = {
     core: ["psa","bos","dep","asis","stmt","title_app","delivery_receipt"],
@@ -561,7 +561,26 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     return [...s];
   })();
   const recDocs = recIds.map(id => DOC_SET.find(d => d.id === id)).filter(Boolean);
+  // Anything the questions turned up goes straight into the required list, with the
+  // reason attached. Suggesting them in a side box meant they were easy to miss.
+  const REASON = {
+    payoff:"money still owed", lien_release:"money still owed", title_search_letter:"money still owed",
+    lost_title:"title missing", bos_only:"title missing", lost_reg:"registration missing",
+    estate_guide:"owner has passed away", heirship:"owner has passed away",
+    executor_auth:"owner has passed away", small_estate:"owner has passed away", death_cert:"owner has passed away",
+    poa:"someone signing for the owner", coowner:"more than one owner", entity_auth:"business or trust",
+    promissory_note:"seller financing", security_agreement:"seller financing",
+    trade_in:"trade-in", gift_transfer:"gift transfer", trailer_bos:"trailer included",
+    uscg_transfer:"Coast Guard documented", commitment:"buyer financing",
+    fin_conditions:"buyer financing", binder:"buyer financing",
+    survey_report:"survey", defect_disclosure:"disclosed defects", engine_hours:"disclosed defects",
+  };
   const quizStarted = !!quiz.pay || Object.keys(quiz).some(k => k !== "pay" && quiz[k]);
+  // The core set, plus whatever the questions added.
+  const _coreReq = requiredDocs;
+  const _coreIds = new Set(_coreReq.map(d => d.id).concat(["bill_of_sale"]));
+  const _added = recDocs.filter(d => !_coreIds.has(d.id) && REASON[d.id]).map(d => ({ ...d, addedWhy: REASON[d.id] }));
+  requiredDocs = [..._coreReq, ..._added];
   const allRequiredSigned = requiredDocs.every(d => signed[d.id]) && bosSigned;
   const reqMissing = requiredDocs.filter(d => !signed[d.id]);
   const reqNotaryMissing = reqMissing.filter(d => (d.body||"").includes("Notary Acknowledgment"));
@@ -1017,19 +1036,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             </button>
           </div>
 
-          {quizStarted && (
-            <div style={{ marginTop:14, borderTop:`1px solid ${C.mist}`, paddingTop:12 }}>
-              <div style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:800, color:C.navy, marginBottom:8 }}>📋 Your deal likely needs these {recDocs.length} documents:</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                {recDocs.map(doc=>(
-                  <button key={doc.id} onClick={()=>jumpToDoc(doc.id)} style={{ background:signed[doc.id]?C.greenLight:"#fff", border:`1px solid ${signed[doc.id]?C.green:C.brass}`, color:signed[doc.id]?C.green:C.navy, borderRadius:20, padding:"6px 12px", fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>
-                    {signed[doc.id]?"✓ ":""}{doc.title} →
-                  </button>
-                ))}
-              </div>
-              <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:10, lineHeight:1.5 }}>These are suggestions to guide you — every document is still available in the full list below. Tap any one to open it.</div>
-            </div>
-          )}
         </div>
       )}
       {!quizOpen && (
@@ -1090,7 +1096,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
               <button key={doc.id} onClick={()=>jumpToDoc(doc.id)}
                 style={{ display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left", background:"transparent", border:"none", borderBottom:`1px solid ${allRequiredSigned ? "#cfe6d8" : "#f0e2c4"}`, padding:"8px 2px", cursor:"pointer", fontFamily:"sans-serif" }}>
                 <span style={{ width:18, height:18, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, background: done ? C.green : "transparent", color: done ? "#fff" : C.slate, border: done ? "none" : `1.5px solid ${C.mist}` }}>{done ? "✓" : ""}</span>
-                <span style={{ flex:1, fontSize:12.5, color:C.navy, fontWeight: done ? 400 : 600, textDecoration: done ? "line-through" : "none", opacity: done ? 0.7 : 1 }}>{doc.title}{rowNotary && !done ? <span style={{ fontSize:10.5, color:"#8a6d1a", fontWeight:600 }}> · needs notary</span> : null}</span>
+                <span style={{ flex:1, minWidth:0 }}>
+                  <span style={{ fontSize:12.5, color:C.navy, fontWeight: done ? 400 : 600, textDecoration: done ? "line-through" : "none", opacity: done ? 0.7 : 1 }}>{doc.title}{rowNotary && !done ? <span style={{ fontSize:10.5, color:"#8a6d1a", fontWeight:600 }}> · needs notary</span> : null}</span>
+                  {doc.addedWhy && <span style={{ fontSize:10.5, color:C.slate, display:"block", marginTop:1, fontFamily:"sans-serif" }}>added because of: {doc.addedWhy}</span>}
+                </span>
                 <span style={{ fontSize:11, color: done ? C.green : C.brass, fontWeight:600, whiteSpace:"nowrap" }}>{done ? "Done" : rowNotary ? "Notarize offline" : "Sign →"}</span>
               </button>
             );
