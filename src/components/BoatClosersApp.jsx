@@ -276,6 +276,43 @@ function TipBox({ tips }) {
 // and explains, in plain language, what this step is, what THIS party should do,
 // what happens next, and the common questions. (Free-form AI answers come later.)
 const ASSISTANT = {
+  closing: {
+    title: "Closing",
+    buyer: {
+      summary: "This is the last step. Confirm the money has moved, take possession of the boat, file the title paperwork with your state, and then finalize. Finalizing is permanent \u2014 it locks the deal into a record neither side can change.",
+      todo: [
+        "Send the balance using the method you agreed, and confirm it here",
+        "Take possession of the vessel, keys, and everything on the inventory",
+        "File the title and registration paperwork with your state or the Coast Guard",
+        "Finalize only when the money, the boat, and the paperwork have all changed hands",
+      ],
+      next: "Once finalized, the deal becomes a permanent record you can print or download at any time.",
+      faqs: [
+        { q:"What does finalizing actually do?", a:"It seals the deal. Terms, documents, and signatures become a permanent record \u2014 nothing can be changed, added, or deleted afterwards by either party. You can still view, print, download, and email everything." },
+        { q:"Should I finalize before I have the boat?", a:"No. Finalize after the money has moved and you have possession. There is no deadline, and nothing expires if you wait." },
+        { q:"What if a document still isn't signed?", a:"You can still finalize, but you'll be asked to confirm you understand it can never be signed in the app afterwards. If it matters, go back and sign it first." },
+        { q:"Can I undo finalizing?", a:"No. Not by you, not by the seller, not by support. That permanence is what makes the record worth something." },
+        { q:"What if something goes wrong after?", a:"Your record stays available and is exactly what you'd hand to a lawyer, an insurer, or the tag office. Ending the deal instead of finalizing is a different button, and it stays available until you finalize." },
+      ],
+    },
+    seller: {
+      summary: "This is the last step. Confirm you've received the money, hand over the boat and everything on the inventory, then finalize. Finalizing is permanent \u2014 it locks the deal into a record neither side can change.",
+      todo: [
+        "Confirm the balance has arrived and cleared \u2014 not just that it was sent",
+        "Hand over the vessel, keys, manuals, and everything on the inventory",
+        "Report the sale to your state so your liability ends",
+        "Finalize only when the money has cleared and the boat has changed hands",
+      ],
+      next: "Once finalized, the deal becomes a permanent record you can print or download at any time.",
+      faqs: [
+        { q:"What does finalizing actually do?", a:"It seals the deal. Terms, documents, and signatures become a permanent record \u2014 nothing can be changed, added, or deleted afterwards by either party. You can still view, print, download, and email everything." },
+        { q:"Should I finalize before the money clears?", a:"No. A wire that's been sent isn't a wire that's arrived, and a cheque can be reversed. Wait for cleared funds. There's no deadline." },
+        { q:"Do I still owe anything after finalizing?", a:"Report the sale to your state if you haven't \u2014 that's what ends your liability for the boat. The Notice of Sale is in your documents." },
+        { q:"Can I undo finalizing?", a:"No. Not by you, not by the buyer, not by support. That permanence is what makes the record worth something." },
+        { q:"What if the buyer disappears before closing?", a:"Use End deal in the header instead of finalizing. Your fee becomes a 60-day credit toward another deal." },
+      ],
+    },
+  },
   vessel: {
     title: "Step 1 \u00b7 The Vessel",
     seller: {
@@ -4586,6 +4623,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
   const [cleared, setCleared] = useState(false);
   const [dealFinalized, setDealFinalized] = useState(!!negotiate.dealFinalized);
   const [closeAck, setCloseAck] = useState(false); // acknowledge unfinished paperwork before finalizing
+  const [finalQ, setFinalQ] = useState(null); // which "before you finalize" question is open
   const [confirmFinalize, setConfirmFinalize] = useState(false);
   const [manualChecks, setManualChecks] = useState({});
   const [payMethod, setPayMethod] = useState(negotiate.paymentType || "wire");
@@ -4777,6 +4815,51 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
         </div>
       </div>
 
+      {!isRejected && <DealAssistant step="closing" role={myRole} vessel={vessel} />}
+
+      {!isRejected && (() => {
+        // The paperwork this moment calls for. Suggestions, not a gate — everything
+        // stays openable on the Documents step.
+        const sig = docsData.signedDocs || {};
+        const _fl = /\b(fl|fla|florida)\b/i.test(String(vessel?.regState || vessel?.location || ""));
+        const _doc = !!String(vessel?.uscgNumber || vessel?.uscgOfficialNo || vessel?.officialNo || "").trim();
+        const rows = [
+          { id:"closing_statement", label:"Closing & Settlement Statement", why:"The final figures both sides sign off on." },
+          { id: docsData.bosChoice || (_doc ? "cg_1340" : _fl ? "fl_82050" : "bill_of_sale"),
+            label: _doc ? "U.S. Coast Guard Bill of Sale — CG-1340" : _fl ? "Florida Bill of Sale — HSMV 82050" : "Bill of Sale",
+            why:"Transfers ownership. Signed at the table, not before." },
+          { id: _fl ? "fl_82040vs" : "title_app", label: _fl ? "Florida Title Application — HSMV 82040-VS" : "Application for Certificate of Title",
+            why:"The buyer files this to put the boat in their name." },
+          { id:"notice_sale", label:"Notice of Sale & Transfer of Ownership", why:"Ends the seller's liability from the day of sale." },
+          { id:"delivery_receipt", label:"Delivery & Possession Receipt", why:"Records that the boat and keys actually changed hands." },
+        ];
+        const left = rows.filter(r => !sig[r.id]).length;
+        return (
+          <div style={{ border:`1px solid ${C.mist}`, borderRadius:10, marginBottom:20, overflow:"hidden", background:C.white }}>
+            <div style={{ padding:"14px 16px", borderBottom:`1px solid ${C.sand}` }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:10, flexWrap:"wrap" }}>
+                <span style={{ fontFamily:"'Georgia',serif", fontSize:16.5, color:C.navy }}>Paperwork for closing day</span>
+                <span style={{ fontSize:11.5, color: left ? C.brass : C.green, fontWeight:700 }}>{left ? `${left} still to sign` : "All signed ✓"}</span>
+              </div>
+              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:4 }}>
+                What this moment calls for, based on your deal. Open any of them from the Documents step.
+              </div>
+            </div>
+            {rows.map(r => (
+              <div key={r.id} style={{ display:"flex", gap:10, alignItems:"flex-start", padding:"11px 16px", borderBottom:`1px solid ${C.sand}`, fontFamily:"sans-serif" }}>
+                <span style={{ width:17, height:17, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9.5, marginTop:2,
+                  background: sig[r.id] ? C.green : "transparent", color: sig[r.id] ? "#fff" : "transparent", border: sig[r.id] ? "none" : `1.5px solid ${C.mist}` }}>✓</span>
+                <span style={{ flex:1 }}>
+                  <span style={{ fontSize:12.5, color:C.navy, display:"block", textDecoration: sig[r.id] ? "line-through" : "none", opacity: sig[r.id] ? 0.65 : 1 }}>{r.label}</span>
+                  <span style={{ fontSize:11.5, color:C.slate, display:"block", marginTop:2, lineHeight:1.5 }}>{r.why}</span>
+                </span>
+                {!sig[r.id] && <button onClick={onBack} style={{ fontSize:11, background:"transparent", border:`1px solid ${C.mist}`, color:C.slate, borderRadius:13, padding:"4px 11px", cursor:"pointer", whiteSpace:"nowrap", fontFamily:"sans-serif" }}>Open →</button>}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {!isRejected && (
         <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap" }}>
           <div style={{ flex:1, minWidth:240, border:`2px solid ${isBuyer?C.brass:C.mist}`, borderRadius:8, padding:"12px 14px", background: isBuyer?"#fff9ee":"#fff" }}>
@@ -4815,6 +4898,34 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
           />
         </div>
       )}
+
+      {(() => {
+      // Finalizing is permanent and the server refuses every later write, so a
+      // document left unsigned here can never be signed. Say so plainly before
+      // they commit — but don't block them: a seller may knowingly close with
+      // the notarised Bill of Sale handled on paper.
+      // Handed over by the Documents step, which is where the list is built.
+      const outstanding = docsData.outstandingDocs || [];
+      const unsigned = outstanding.map(t => ({ id:t, label:t }));
+      if (!unsigned.length) return null;
+      return (
+      <div style={{ background:"#fff4e5", border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", marginBottom:14, fontFamily:"sans-serif" }}>
+      <div style={{ fontSize:13, fontWeight:800, color:"#8a5a12", marginBottom:6 }}>
+      ⚠️ A few documents still need finishing before this sale is truly closed
+      </div>
+      <ul style={{ margin:"0 0 8px", paddingLeft:18, fontSize:12.5, color:C.slate, lineHeight:1.7 }}>
+      {unsigned.map(d => <li key={d.id}>{d.label}</li>)}
+      </ul>
+      <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", fontSize:12, color:C.slate, lineHeight:1.6, marginTop:4 }}>
+      <input type="checkbox" checked={closeAck} onChange={e=>setCloseAck(e.target.checked)} style={{ marginTop:2, accentColor:C.brass, width:15, height:15, flexShrink:0 }} />
+      <span>I understand these documents still need to be completed outside the app, that BoatClosers does not verify or notarize them, and I&rsquo;m choosing to proceed.</span>
+      </label>
+      <div style={{ fontSize:12, color:C.slate, lineHeight:1.65, marginTop:9 }}>
+      Once you finalize, <b>these can never be signed in the app</b> — the deal becomes a permanent record. If you mean to sign {unsigned.length===1?"it":"them"} here, go back to Documents first. If {unsigned.length===1?"it is":"they are"} being handled on paper or at the notary, carry on.
+      </div>
+      </div>
+      );
+      })()}
 
       {/* ── FINAL PAYMENT SECTION ── */}
       {!isRejected && (
@@ -4961,33 +5072,33 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
             <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:4 }}>Ready to close this deal?</div>
             <div style={{ fontSize:12, color:C.slate, lineHeight:1.7 }}>Finalizing locks the entire deal &mdash; terms, documents, and signatures become permanent and can&rsquo;t be changed. Do this once the sale is fully complete and both sides have their copies.</div>
           </div>
-          {(() => {
-            // Finalizing is permanent and the server refuses every later write, so a
-            // document left unsigned here can never be signed. Say so plainly before
-            // they commit — but don't block them: a seller may knowingly close with
-            // the notarised Bill of Sale handled on paper.
-            // Handed over by the Documents step, which is where the list is built.
-            const outstanding = docsData.outstandingDocs || [];
-            const unsigned = outstanding.map(t => ({ id:t, label:t }));
-            if (!unsigned.length) return null;
-            return (
-              <div style={{ background:"#fff4e5", border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", marginBottom:14, fontFamily:"sans-serif" }}>
-                <div style={{ fontSize:13, fontWeight:800, color:"#8a5a12", marginBottom:6 }}>
-                  ⚠️ A few documents still need finishing before this sale is truly closed
-                </div>
-                <ul style={{ margin:"0 0 8px", paddingLeft:18, fontSize:12.5, color:C.slate, lineHeight:1.7 }}>
-                  {unsigned.map(d => <li key={d.id}>{d.label}</li>)}
-                </ul>
-                <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", fontSize:12, color:C.slate, lineHeight:1.6, marginTop:4 }}>
-                  <input type="checkbox" checked={closeAck} onChange={e=>setCloseAck(e.target.checked)} style={{ marginTop:2, accentColor:C.brass, width:15, height:15, flexShrink:0 }} />
-                  <span>I understand these documents still need to be completed outside the app, that BoatClosers does not verify or notarize them, and I&rsquo;m choosing to proceed.</span>
-                </label>
-                <div style={{ fontSize:12, color:C.slate, lineHeight:1.65, marginTop:9 }}>
-                  Once you finalize, <b>these can never be signed in the app</b> — the deal becomes a permanent record. If you mean to sign {unsigned.length===1?"it":"them"} here, go back to Documents first. If {unsigned.length===1?"it is":"they are"} being handled on paper or at the notary, carry on.
-                </div>
+          {!confirmFinalize && (
+            <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, marginBottom:14, overflow:"hidden", background:C.white }}>
+              <div style={{ padding:"11px 14px", background:C.sand, fontSize:12.5, fontWeight:800, color:C.navy, fontFamily:"sans-serif" }}>
+                Before you finalize
               </div>
-            );
-          })()}
+              {[
+                ["What does finalizing actually do?", "It seals the deal. Terms, documents, and signatures become a permanent record. Neither you nor the other party can change, add, or delete anything afterwards. You keep full access to view, print, download, and email all of it."],
+                ["When should I press it?", "After the money has moved and the boat has changed hands \u2014 not before. There is no deadline and nothing expires if you wait a week."],
+                ["Can it be undone?", "No. Not by you, not by the other party, not by support. That permanence is what makes the record worth having."],
+                ["What if a document still isn't signed?", "You can still finalize, but you'll be asked to confirm you understand it can never be signed in the app afterwards. If it matters, go back to Documents and sign it first."],
+                ["What if the deal fell apart instead?", "Don't finalize \u2014 use End deal in the header. The paid party keeps their fee as a 60-day credit toward another deal."],
+                ["Do I still owe anything after?", isBuyer
+                  ? "File your title and registration paperwork with your state or the Coast Guard. Everything you need is in your documents."
+                  : "Report the sale to your state if you haven't. That's what ends your liability for the boat \u2014 the Notice of Sale is in your documents."],
+              ].map(([q, a], i) => (
+                <div key={i} style={{ borderTop:`1px solid ${C.sand}` }}>
+                  <button onClick={()=>setFinalQ(finalQ===i?null:i)}
+                    style={{ display:"flex", width:"100%", textAlign:"left", gap:10, alignItems:"center", background:"transparent", border:"none", padding:"11px 14px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                    <span style={{ flex:1, fontSize:12.5, color:C.navy, fontWeight:600 }}>{q}</span>
+                    <span style={{ color:C.brass, fontSize:12, flexShrink:0 }}>{finalQ===i ? "\u25b2" : "\u25bc"}</span>
+                  </button>
+                  {finalQ===i && <div style={{ padding:"0 14px 12px 14px", fontSize:12, color:C.slate, lineHeight:1.7, fontFamily:"sans-serif" }}>{a}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+
           {!confirmFinalize ? (
             <div style={{ display:"flex", justifyContent:"space-between", gap:10, flexWrap:"wrap" }}>
               <button style={S.btnOutline} onClick={onBack}>&larr; Back to Documents</button>
