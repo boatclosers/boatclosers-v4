@@ -1059,28 +1059,36 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginBottom:11, lineHeight:1.55 }}>
           This is the document that legally transfers the boat. Choose the version that fits your sale — you only need <b>one</b>. {documentedActive ? "Your vessel is Coast Guard documented, so the CG-1340 applies." : floridaActive ? "Florida\u2019s official 82050 is included." : ""}
         </div>
-        {/* Optional: three questions that pick the right version. */}
+        {/* Optional: a few questions that produce a ranked set — the form the state
+            wants first, then anything that sensibly goes alongside it. */}
         {!bosSigned && (bosQOpen ? (() => {
           const documented = bosQ.doc === undefined ? (documentedActive ? "yes" : undefined) : bosQ.doc;
-          const answered = documented === "yes" || (documented === "no" && bosQ.state && (bosQ.state === "other" || bosQ.power));
-          let pick = null, why = "";
+          const st = bosQ.state, pw = bosQ.power, split = bosQ.split;
+          // A ranked set, not a single answer. Where a state publishes its own form
+          // the state's form is what the office wants — ours sits alongside it, not
+          // instead of it.
+          const picks = [];
+          const add = (id, role, note) => { const d = bosDocs.find(x => x.id === id); if (d) picks.push({ d, role, note }); };
           if (documented === "yes") {
-            pick = "cg_1340";
-            why = "A federally documented vessel transfers on the Coast Guard\u2019s own form.";
-          } else if (bosQ.state === "fl" && bosQ.power === "outboard") {
-            pick = "fl_bos_itemized";
-            why = "Florida titles outboard motors separately from the hull, so hull and motors may be priced apart \u2014 this version does that properly. The state\u2019s 82050 is also accepted if you would rather not itemise.";
-          } else if (bosQ.state === "fl") {
-            pick = "fl_82050";
-            why = "Inboard and sterndrive engines are part of the vessel, so there is nothing to itemise. Florida\u2019s own form is what the tag office expects.";
-          } else if (bosQ.state === "other") {
-            pick = "bill_of_sale";
-            why = "Outside Florida we cannot know your state\u2019s form, so use our notarised version \u2014 accepted in most states. Check with your titling agency first.";
+            add("cg_1340", "use", "A federally documented vessel transfers on the Coast Guard's own form. This is the one the NVDC expects.");
+            add("bill_of_sale", "also", "Optional alongside it. Our version carries fuller warranty and as-is language than the one-page federal form, which some buyers want on record.");
+            add("uscg_transfer", "also-need", "Only if the boat is coming off documentation as part of this sale.");
+            if (st === "fl") add("fl_82050", "also-need", "If the buyer will also register it in Florida, the state will want its own form on file.");
+          } else if (st === "fl") {
+            add("fl_82050", "use", "Florida wants its own form. The tag office knows it on sight and will generally expect it regardless of what else you sign, so start here.");
+            if (pw === "outboard" && split !== "no")
+              add("fl_bos_itemized", "also", "Sign this as well if you are pricing the hull and motors separately. Florida titles outboards apart from the hull, so the allocation belongs on a document \u2014 not just in conversation.");
+            add("bill_of_sale", "also", "Optional. The state form is brief; ours adds warranty of title, as-is language, and lien disclosure. Use both, not one instead of the other.");
+          } else if (st === "other") {
+            add("bill_of_sale", "use", "Our notarised version, accepted in most states. Check first whether your state publishes its own form \u2014 if it does, that one takes priority and ours goes alongside it.");
+            add("bos_plain", "also", "A shorter version with no notary block. Only if your state does not require notarisation \u2014 confirm before relying on it.");
           }
-          const picked = pick ? bosDocs.find(d => d.id === pick) : null;
+          if (documented !== "yes" && String(vessel?.trailerIncluded||"").toLowerCase() === "yes")
+            add("trailer_bos", "also-need", "A trailer has its own title and transfers separately. Sign this as well as, not instead of, the above.");
+          const answered = documented === "yes" || (documented === "no" && st && (st === "other" || (pw && (pw !== "outboard" || split))));
           const ask = (k, q, opts, cur) => (
-            <div style={{ marginBottom:9 }}>
-              <div style={{ fontSize:12, color:C.navy, fontWeight:600, marginBottom:5 }}>{q}</div>
+            <div style={{ marginBottom:11 }}>
+              <div style={{ fontSize:12.5, color:C.navy, fontWeight:700, marginBottom:6 }}>{q}</div>
               <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                 {opts.map(([v, label]) => (
                   <button key={v} onClick={()=>setBosQ(b => ({ ...b, [k]: v }))}
@@ -1094,34 +1102,52 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
               </div>
             </div>
           );
+          const ROLE = {
+            use:      { label:"Sign this one",  bg:"#2b6cb0", tint:"#fff",     border:"2px solid #2b6cb0" },
+            also:     { label:"Also works",     bg:"#0e6b7c", tint:"#f4fbfc",  border:"1px solid #bcdfe5" },
+            "also-need": { label:"Also needed", bg:"#8a5a12", tint:"#fffaf0",  border:"1px solid #e3c98f" },
+          };
+          const steps = (documented ? 1 : 0) + (st ? 1 : 0) + (pw ? 1 : 0) + (split ? 1 : 0);
+          const total = documented === "yes" ? 1 : st === "other" ? 2 : (pw === "outboard" ? 4 : 3);
           return (
             <div style={{ background:"linear-gradient(180deg,#f4f9ff 0%,#ffffff 100%)", border:"1.5px solid #4a90d9", borderRadius:9, padding:"14px 16px 13px" }}>
               <div style={{ display:"flex", alignItems:"center", gap:9, marginBottom:12 }}>
                 <span style={{ fontSize:17, lineHeight:1 }}>\ud83e\udded</span>
                 <span style={{ flex:1, fontSize:13.5, fontWeight:800, color:C.navy }}>Which one do I need?</span>
-                <span style={{ display:"flex", gap:4 }}>
-                  {[0,1,2].map(n => {
-                    const doneN = (documented ? 1 : 0) + (bosQ.state ? 1 : 0) + (bosQ.power ? 1 : 0);
-                    return <span key={n} style={{ width:18, height:4, borderRadius:2, background: n < doneN ? "#2b6cb0" : "#cfe0f2" }} />;
-                  })}
-                </span>
+                <span style={{ fontSize:10.5, color:C.slate, whiteSpace:"nowrap" }}>{Math.min(steps,total)} of {total}</span>
               </div>
-              {ask("doc", "Is the vessel U.S. Coast Guard documented?", [["yes","Yes"],["no","No"]], documented)}
-              {documented === "no" && ask("state", "Which state will the buyer title it in?", [["fl","Florida"],["other","Another state"]], bosQ.state)}
-              {documented === "no" && bosQ.state === "fl" && ask("power", "How is it powered?", [["outboard","Outboard motor(s)"],["inboard","Inboard or sterndrive"]], bosQ.power)}
-              {answered && picked && (
-                <div style={{ background:"#fff", border:"2px solid #2b6cb0", borderRadius:9, padding:"13px 15px", marginTop:8 }}>
-                  <div style={{ fontSize:10, color:"#2b6cb0", letterSpacing:1.2, textTransform:"uppercase", fontWeight:800, marginBottom:4 }}>Your bill of sale</div>
-                  <div style={{ fontFamily:"'Georgia',serif", fontSize:16, color:C.navy, lineHeight:1.3 }}>{picked.title}</div>
-                  <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginTop:4 }}>{why}</div>
-                  {documented === "yes" && (
-                    <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginTop:5 }}>If you are also removing the boat from documentation, add the <b>USCG Bill of Sale &amp; Transfer / Deletion</b>.</div>
-                  )}
-                  {String(vessel?.trailerIncluded||"").toLowerCase() === "yes" && (
-                    <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginTop:5 }}>Your deal includes a trailer. A trailer transfers separately — add the <b>Trailer Bill of Sale</b> as well as, not instead of, the above.</div>
-                  )}
-                  <button onClick={()=>jumpToDoc(picked.id)}
-                    style={{ marginTop:11, background:"#2b6cb0", color:"#fff", border:"none", borderRadius:18, padding:"9px 20px", fontSize:12.5, fontWeight:800, cursor:"pointer", fontFamily:"sans-serif" }}>Open it &rarr;</button>
+
+              {ask("doc", "Is the vessel U.S. Coast Guard documented?", [["yes","Yes"],["no","No"],["unsure","Not sure"]], documented)}
+              {documented !== "yes" && ask("state", "Which state will the buyer title it in?", [["fl","Florida"],["other","Another state"]], st)}
+              {documented !== "yes" && st === "fl" && ask("power", "How is it powered?", [["outboard","Outboard motor(s)"],["inboard","Inboard or sterndrive"]], pw)}
+              {documented !== "yes" && st === "fl" && pw === "outboard" && ask("split", "Price the hull and motors separately?", [["yes","Yes"],["no","No, one price"],["unsure","Not sure"]], split)}
+
+              {answered && picks.length > 0 && (
+                <div style={{ marginTop:6 }}>
+                  <div style={{ fontSize:10, color:"#2b6cb0", letterSpacing:1.2, textTransform:"uppercase", fontWeight:800, marginBottom:7 }}>
+                    For your sale &mdash; {picks.length} document{picks.length===1?"":"s"}
+                  </div>
+                  {picks.map(({ d, role, note }) => {
+                    const r = ROLE[role];
+                    return (
+                      <div key={d.id} style={{ background:r.tint, border:r.border, borderRadius:8, padding:"11px 13px", marginBottom:8 }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:4 }}>
+                          <span style={{ fontSize:9.5, letterSpacing:0.8, textTransform:"uppercase", fontWeight:800, color:"#fff", background:r.bg, borderRadius:9, padding:"2px 8px" }}>{r.label}</span>
+                          {signed[d.id] && <span style={{ fontSize:10.5, color:C.green, fontWeight:700 }}>\u2713 signed</span>}
+                        </div>
+                        <div style={{ fontFamily:"'Georgia',serif", fontSize:14.5, color:C.navy, lineHeight:1.3 }}>{d.title}</div>
+                        <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginTop:4 }}>{note}</div>
+                        <button onClick={()=>jumpToDoc(d.id)}
+                          style={{ marginTop:9, background: role==="use" ? "#2b6cb0" : "transparent", color: role==="use" ? "#fff" : C.navy,
+                            border: role==="use" ? "none" : `1px solid ${C.mist}`, borderRadius:16, padding:"7px 16px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>
+                          Open it &rarr;
+                        </button>
+                      </div>
+                    );
+                  })}
+                  <div style={{ fontSize:11, color:C.slate, lineHeight:1.55, marginTop:2 }}>
+                    These are suggestions, not rules. Every version stays available below, and your county or state office has the final say.
+                  </div>
                 </div>
               )}
               <button onClick={()=>{ setBosQOpen(false); setBosQ({}); }}
