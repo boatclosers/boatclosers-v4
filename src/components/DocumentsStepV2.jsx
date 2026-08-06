@@ -762,6 +762,16 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // Open one document into focused view: mark it active, show its filled body,
   // and make sure its group is expanded.
   const openDoc = (docId) => {
+    // Florida and Coast Guard documents are hidden unless the deal looks like it
+    // needs them. If something explicitly asks for one — the bill of sale picker,
+    // the walkthrough, a search result — switch that family on, or the request
+    // silently does nothing and the button looks broken.
+    const raw = DOCUMENTS.find(d => (ID_MAP[d.id] || d.id) === docId || d.id === docId);
+    if (raw && raw.florida && !floridaActive) setFlOptIn(true);
+    if (raw && raw.documented && !documentedActive) setDocOptIn(true);
+    // The picker and the walkthrough hand back the catalogue's own id; this page
+    // works in mapped ids. Translate, or the document never matches anything.
+    docId = raw ? (ID_MAP[raw.id] || raw.id) : docId;
     setActiveDoc(docId);
     setDocAction(d => ({ ...d, [docId]: "view" }));
     const grp = (DOC_SET.find(x => x.id === docId) || {}).group;
@@ -913,8 +923,13 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     _seen.add(id); _extra.push({ ...d, addedWhy: a.why });
   }); });
   const requiredDocs = [..._core, ..._extra];
-  const bosPick = bosChoice || recommendBos(dealFacts);
-  const bosPickDoc = DOC_SET.find(d => d.id === bosPick) || DOC_SET.find(d => d.id === "bill_of_sale");
+  // The picker stores the catalogue's own id ("bos", "fl_82050"); this page works
+  // in mapped ids. Translate before looking it up, or the tracker row shows the
+  // wrong document — or none at all.
+  const bosPick = ID_MAP[bosChoice] || bosChoice || recommendBos(dealFacts);
+  const bosPickDoc = DOC_SET.find(d => d.id === bosPick)
+    || DOCUMENTS.find(d => d.id === (bosChoice || "")) 
+    || DOC_SET.find(d => d.id === "bill_of_sale");
   // Questionnaire → suggested documents (additive; the full list stays browsable).
   const REC_MAP = {
     core: ["psa","bos","dep","asis","stmt","title_app","delivery_receipt"],
@@ -1656,7 +1671,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       )}
       {showBos && (
         <BosPicker
-          DOCUMENTS={DOC_SET} C={C} facts={dealFacts} chosen={bosChoice}
+          DOCUMENTS={DOCUMENTS} C={C} facts={dealFacts} chosen={bosChoice}
           onChoose={(id)=>setData(d => ({ ...d, bosChoice: id }))}
           onOpenDoc={(id)=>{ setShowBos(false); jumpToDoc(id); }}
           onClose={()=>setShowBos(false)}
