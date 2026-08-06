@@ -1215,6 +1215,71 @@ export const DOCUMENTS = [
   },
 
   {
+    id: "fl_bos_itemized",
+    group: "Closing Instruments",
+    tab: "Itemized Bill of Sale (FL)",
+    florida: true,
+    eyebrow: "Florida \u00b7 Hull and Motors Priced Separately",
+    title: "Itemized Bill of Sale \u2014 Hull & Outboard Motors (Florida)",
+    desc: "For an outboard-powered boat in Florida. Prices the hull, each outboard, and any trailer separately, because Florida titles outboard motors apart from the vessel.",
+    body: `
+<p class="lead recital">{{sellerName}}, of {{sellerAddress}} (the \u201cSeller\u201d), sells and transfers to {{buyerName}}, of {{buyerAddress}} (the \u201cBuyer\u201d), the vessel, outboard motor(s), and trailer described below, each priced separately as set out in Section 2.</p>
+
+<div class="note"><b>Use this version only if the boat is outboard-powered.</b> Florida titles an outboard motor separately from the hull, so hull and motors may be priced separately on the bill of sale. Inboard and sterndrive engines are part of the vessel itself and <b>cannot</b> be separated this way \u2014 for those boats use the standard Bill of Sale. Prices below must reflect genuine value. Confirm the treatment with your county tax collector; BoatClosers does not give tax advice.</div>
+
+<h3>1. Property Being Sold</h3>
+<p><b>Hull / Vessel</b></p>
+<div class="field"><span class="k">Year / Make / Model</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">Hull Identification Number (HIN)</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">Length</span><span class="v">{{vesselLength}}</span></div>
+<div class="field"><span class="k">FL Registration / Title No.</span><span class="v">{{regNo}} / {{titleNo}}</span></div>
+
+<p><b>Outboard Motor #1</b></p>
+<div class="field"><span class="k">Make / Model</span><span class="v">{{engineDesc}}</span></div>
+<div class="field"><span class="k">Horsepower</span><span class="v">____________</span></div>
+<div class="field"><span class="k">Serial number</span><span class="v">{{engineSerial}}</span></div>
+<div class="field"><span class="k">Year</span><span class="v">____________</span></div>
+
+<p><b>Outboard Motor #2</b> <span style="font-weight:400">(leave blank if single engine)</span></p>
+<div class="field"><span class="k">Make / Model</span><span class="v">________________________________</span></div>
+<div class="field"><span class="k">Horsepower</span><span class="v">____________</span></div>
+<div class="field"><span class="k">Serial number</span><span class="v">________________________________</span></div>
+<div class="field"><span class="k">Year</span><span class="v">____________</span></div>
+
+<p><b>Trailer</b> <span style="font-weight:400">(leave blank if not included)</span></p>
+<div class="field"><span class="k">Year / Make</span><span class="v">________________________________</span></div>
+<div class="field"><span class="k">VIN</span><span class="v">{{trailerVin}}</span></div>
+
+<h3>2. Allocation of Purchase Price</h3>
+<p>The total purchase price of {{salePrice}} is allocated by the Parties as follows. Each figure represents the Parties\u2019 good-faith view of the fair value of that item.</p>
+<div class="field"><span class="k">Hull / vessel</span><span class="v">$ ____________________</span></div>
+<div class="field"><span class="k">Outboard motor #1</span><span class="v">$ ____________________</span></div>
+<div class="field"><span class="k">Outboard motor #2</span><span class="v">$ ____________________</span></div>
+<div class="field"><span class="k">Trailer</span><span class="v">$ ____________________</span></div>
+<div class="field"><span class="k"><b>Total \u2014 must equal the purchase price</b></span><span class="v"><b>$ ____________________</b></span></div>
+
+<h3>3. Title and Warranties</h3>
+<p>Seller warrants lawful ownership of the vessel, motor(s), and trailer described above; that each is sold free of all liens except as disclosed in writing; and that Seller will defend the title against the lawful claims of all persons. Each item is otherwise sold \u201cAS-IS, WHERE-IS\u201d with no warranty of condition, express or implied.</p>
+
+<h3>4. Acknowledgment</h3>
+<p>The Parties acknowledge that the allocation in Section 2 reflects their genuine agreement as to value, that it was not made for the purpose of misstating tax due, and that each Party is responsible for their own tax reporting and any tax, title, and registration fees arising from this sale.</p>
+
+<p class="recital">Executed this {{effectiveDate}}.</p>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer<br>Date: ____________</small></div>
+</div>
+
+<div class="notary">
+  <h3>Notary Acknowledgment</h3>
+  <p>State of __________________ \u00b7 County of __________________</p>
+  <p>Sworn to and subscribed before me this ______ day of __________, 20____, by the persons named above, who produced __________________ as identification.</p>
+  <p>Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
+</div>`
+  },
+
+  {
     id: "trailer_bos",
     group: "Deal Structures",
     tab: "Trailer Bill of Sale",
