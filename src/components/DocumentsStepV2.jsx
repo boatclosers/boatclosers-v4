@@ -9,7 +9,7 @@
 // in place of <StepDocuments ...> on the step===4 line. Nothing else changes.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
 
 // ── palette (matches the main app) ──
@@ -170,6 +170,128 @@ function FillInForm({ doc, blanks, initial, C, onKeep, onSave, onCancel }) {
         </button>
         {savedAt > 0 && <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.green, fontWeight:800 }}>✓ Saved</span>}
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEAL ASSISTANT — Documents
+//
+// Every other step has one; this page did not. It explains what this step is for
+// and the order to work in, so nobody has to infer it from the boxes below.
+// ─────────────────────────────────────────────────────────────────────────────
+function DocsAssistant({ C, myRole, seen, onSeen }) {
+  // Open on the first visit so the reasoning is read once, collapsed after so it
+  // stops being a wall of text between the heading and the work.
+  const [open, setOpen] = useState(!seen);
+  useEffect(() => { if (!seen) onSeen(); }, []); // eslint-disable-line
+  const isBuyer = myRole !== "seller";
+  return (
+    <div style={{ border:`1px solid ${C.navy}`, borderRadius:8, marginBottom:20, overflow:"hidden", background:C.white }}>
+      <div onClick={()=>setOpen(o=>!o)} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"11px 14px", background:C.navy }}>
+        <span style={{ fontSize:18 }}>\ud83e\udded</span>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:"#fff" }}>Deal Assistant</div>
+          <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.6)" }}>Documents &mdash; what to do, and in what order</div>
+        </div>
+        <span style={{ color:C.brass, fontSize:12, fontFamily:"sans-serif", fontWeight:700, whiteSpace:"nowrap" }}>{open ? "\u25b2 Hide" : "\u25bc Show"}</span>
+      </div>
+
+      {open && (
+        <div style={{ padding:"14px 16px", fontFamily:"sans-serif" }}>
+          <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.75 }}>
+            Your price has been agreed on and payment has been made. Now it&rsquo;s time to turn your deal into legally binding paperwork.
+          </div>
+          <ol style={{ margin:"11px 0 0", paddingLeft:19, fontSize:12.5, color:C.slate, lineHeight:1.75 }}>
+            <li style={{ marginBottom:8 }}>
+              Start with <b>Required documents to sign</b>. That list is built for your transaction from your deal details and your answers. You are not expected to complete all 55 available documents &mdash; only the ones listed for your deal.
+            </li>
+            <li style={{ marginBottom:8 }}>
+              Open each document, complete any gold-highlighted fields, and <b>E-Sign</b> it. The {isBuyer ? "seller" : "buyer"} signs their required documents separately. Once both parties have signed, both signatures appear on the completed document.
+            </li>
+            <li style={{ marginBottom:8 }}>
+              <b>Choose only one Bill of Sale.</b> Several versions exist because states and the U.S. Coast Guard have different requirements. Use <b>Which one do I need?</b> in the Bill of Sale box &mdash; it recommends the right version for your sale, explains why, and tells you if anything needs signing alongside it.
+            </li>
+            <li style={{ marginBottom:8 }}>
+              Some documents cannot be signed electronically, including official state and federal forms and anything requiring notarization. Print those, complete them as instructed, then upload the signed copy. Each document tells you when this applies as soon as you open it.
+            </li>
+            <li>
+              Your vessel information and party details fill in automatically from your deal and are locked to protect accuracy. If you spot an error, correct it in <b>Vessel</b> or <b>Parties</b> and every document updates with it.
+            </li>
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIND A DOCUMENT — plain-language search
+//
+// People describe what happened to them, not the name of a form. "Owner died",
+// not "Affidavit of Heirship". Matching runs over hidden keywords first, then the
+// title and the plain-English "use this when" line.
+// ─────────────────────────────────────────────────────────────────────────────
+const SITUATIONS = ["Owner passed away", "Lost the title", "Still owe money on it", "Seller is a company", "Taking a trade-in", "Buyer paying me over time"];
+const _nrm = (x) => String(x || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+
+function FindDocument({ C, DOC_SET, onOpenDoc, signed }) {
+  const [q, setQ] = useState("");
+  const words = _nrm(q).split(" ").filter(w => w.length > 2);
+  const results = !words.length ? [] : DOC_SET.map(d => {
+    const keys = _nrm(d.keywords);
+    const rest = _nrm(`${d.title} ${d.useWhen || ""} ${d.desc || ""} ${d.group}`);
+    let score = 0;
+    words.forEach(w => { if (keys.includes(w)) score += 2; else if (rest.includes(w)) score += 1; });
+    return { d, score };
+  }).filter(x => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 6);
+
+  return (
+    <div style={{ border:`1px solid ${C.mist}`, borderRadius:9, marginBottom:16, overflow:"hidden", background:C.white }}>
+      <div style={{ padding:"14px 16px 12px" }}>
+        <div style={{ fontSize:13.5, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}>Looking for something else?</div>
+        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.55, marginTop:3, marginBottom:10 }}>
+          Describe your situation in your own words &mdash; you don&rsquo;t need to know what the document is called.
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:9, border:`1.5px solid ${q ? C.brass : C.mist}`, borderRadius:20, padding:"8px 14px", background: q ? "#fffaf0" : C.white }}>
+          <span style={{ color:C.brass, fontSize:13 }}>&#9906;</span>
+          <input type="text" value={q} onChange={e=>setQ(e.target.value)}
+            placeholder="owner died &middot; lost the title &middot; still owe money"
+            style={{ flex:1, border:"none", outline:"none", fontSize:13.5, fontFamily:"sans-serif", color:C.navy, background:"transparent", minWidth:0 }} />
+          {q && <button onClick={()=>setQ("")} title="Clear" style={{ border:"none", background:"transparent", color:C.slate, fontSize:16, cursor:"pointer", lineHeight:1 }}>&times;</button>}
+        </div>
+        {!q && (
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:10 }}>
+            {SITUATIONS.map(sq => (
+              <button key={sq} onClick={()=>setQ(sq)}
+                style={{ fontSize:11.5, background:C.sand, border:`1px solid ${C.mist}`, color:C.slate, padding:"5px 12px", borderRadius:14, cursor:"pointer", fontFamily:"sans-serif" }}>{sq}</button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {q && (results.length === 0 ? (
+        <div style={{ padding:"12px 16px", background:C.sand, fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+          Nothing matched that. Try fewer words, or open the groups below &mdash; every document is in one of them.
+        </div>
+      ) : (
+        <div>
+          <div style={{ padding:"8px 16px", background:C.sand, fontSize:10.5, fontFamily:"sans-serif", color:C.slate, letterSpacing:0.5, textTransform:"uppercase" }}>
+            {results.length} suggestion{results.length===1?"":"s"}
+          </div>
+          {results.map(({ d }) => (
+            <button key={d.id} onClick={()=>{ setQ(""); onOpenDoc(d.id); }}
+              style={{ display:"block", width:"100%", textAlign:"left", background:C.white, border:"none", borderTop:`1px solid ${C.sand}`, padding:"11px 16px", cursor:"pointer", fontFamily:"sans-serif" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", gap:10, alignItems:"baseline" }}>
+                <span style={{ fontSize:13, color:C.navy, fontWeight:600 }}>{d.title}</span>
+                <span style={{ fontSize:11, color: signed[d.id] ? C.green : C.brass, whiteSpace:"nowrap" }}>{signed[d.id] ? "Signed \u2713" : "Open \u2192"}</span>
+              </div>
+              {(d.useWhen || d.desc) && <div style={{ fontSize:11.5, color:C.slate, marginTop:3, lineHeight:1.5 }}>{d.useWhen || d.desc}</div>}
+              <div style={{ fontSize:10, color:C.slate, marginTop:4, opacity:0.7 }}>{d.group}</div>
+            </button>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
@@ -977,6 +1099,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         </div>
         <span style={{...S.pill, background:C.greenLight, color:C.green}}>Paid ✓</span>
       </div>
+
+      {!frozen && <DocsAssistant C={C} myRole={myRole} seen={!!data.docsGuideSeen} onSeen={()=>setData(d => ({ ...d, docsGuideSeen: true }))} />}
       {frozen && (
         <div style={{ background:"#f4f7f5", border:`1px solid ${C.green}`, borderRadius:8, padding:"12px 14px", marginBottom:18, fontFamily:"sans-serif", fontSize:12.5, color:C.slate, lineHeight:1.6 }}>
           🔒 <b>This deal is finalized.</b> Your documents are a closed record and can no longer be signed, filled in, replaced or added to. You can still open, print, download and email any of them, for as long as you need them.
@@ -1227,8 +1351,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         const groupSigned = groupDocs.filter(d=>signed[d.id]).length;
         const hasRequired = groupDocs.some(d=>d.required);
         const open = openGroups[g];
-        return (
-        <div key={g} style={{ marginBottom:10 }}>
+        return (<React.Fragment key={g}>
+        <div style={{ marginBottom:10 }}>
           <button onClick={()=>toggleGroup(g)} style={{ display:"flex", width:"100%", alignItems:"flex-start", gap:12, textAlign:"left", cursor:"pointer", background: open ? C.white : "#faf7f0", border:`1px solid ${hasRequired ? C.brass : C.mist}`, borderRadius: open ? "8px 8px 0 0" : 8, padding:"13px 16px" }}>
             <span style={{ fontSize:14, color:C.slate, marginTop:1, flexShrink:0, transform: open?"rotate(90deg)":"none", transition:"transform .15s" }}>▶</span>
             <div style={{ flex:1, minWidth:0 }}>
@@ -1538,6 +1662,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
           </div>
           )}
         </div>
+        {g === "Closing Instruments" && <FindDocument C={C} DOC_SET={DOC_SET} onOpenDoc={jumpToDoc} signed={signed} />}
+        </React.Fragment>
         );
       })}
 
