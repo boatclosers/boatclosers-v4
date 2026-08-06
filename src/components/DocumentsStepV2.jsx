@@ -516,6 +516,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
   // Bill of Sale gets its own dedicated box — it's the document that actually
   // transfers ownership, second only to the title. Collect every BoS variant.
+  const [bosQ, setBosQ] = useState({});
+  const [bosQOpen, setBosQOpen] = useState(false);
   const BOS_IDS = new Set(["bill_of_sale","bos_plain","fl_82050","fl_bos_itemized","cg_1340","trailer_bos","uscg_transfer"]);
   // The Bill of Sale box always shows EVERY bill-of-sale option (standard, simple,
   // Florida, Coast Guard) so a seller can always pick the right one — even if the
@@ -1077,6 +1079,69 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             );
           })}
         </div>
+
+        {/* Optional: three questions that pick the right version. */}
+        {!bosSigned && (bosQOpen ? (() => {
+          const documented = bosQ.doc === undefined ? (documentedActive ? "yes" : undefined) : bosQ.doc;
+          const answered = documented === "yes" || (documented === "no" && bosQ.state && (bosQ.state === "other" || bosQ.power));
+          let pick = null, why = "";
+          if (documented === "yes") {
+            pick = "cg_1340";
+            why = "A federally documented vessel transfers on the Coast Guard\u2019s own form.";
+          } else if (bosQ.state === "fl" && bosQ.power === "outboard") {
+            pick = "fl_bos_itemized";
+            why = "Florida titles outboard motors separately from the hull, so hull and motors may be priced apart \u2014 this version does that properly. The state\u2019s 82050 is also accepted if you would rather not itemise.";
+          } else if (bosQ.state === "fl") {
+            pick = "fl_82050";
+            why = "Inboard and sterndrive engines are part of the vessel, so there is nothing to itemise. Florida\u2019s own form is what the tag office expects.";
+          } else if (bosQ.state === "other") {
+            pick = "bill_of_sale";
+            why = "Outside Florida we cannot know your state\u2019s form, so use our notarised version \u2014 accepted in most states. Check with your titling agency first.";
+          }
+          const picked = pick ? bosDocs.find(d => d.id === pick) : null;
+          const ask = (k, q, opts, cur) => (
+            <div style={{ marginBottom:9 }}>
+              <div style={{ fontSize:12, color:C.navy, fontWeight:600, marginBottom:5 }}>{q}</div>
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                {opts.map(([v, label]) => (
+                  <button key={v} onClick={()=>setBosQ(b => ({ ...b, [k]: v }))}
+                    style={{ fontSize:11.5, padding:"5px 12px", borderRadius:14, cursor:"pointer", fontFamily:"sans-serif", fontWeight:600,
+                      border:`1.5px solid ${cur===v ? "#2b6cb0" : C.mist}`,
+                      background: cur===v ? "#2b6cb0" : "#fff",
+                      color: cur===v ? "#fff" : C.slate }}>{label}</button>
+                ))}
+              </div>
+            </div>
+          );
+          return (
+            <div style={{ marginTop:11, borderTop:`1px solid ${C.mist}`, paddingTop:11 }}>
+              {ask("doc", "Is the vessel U.S. Coast Guard documented?", [["yes","Yes"],["no","No"]], documented)}
+              {documented === "no" && ask("state", "Which state will the buyer title it in?", [["fl","Florida"],["other","Another state"]], bosQ.state)}
+              {documented === "no" && bosQ.state === "fl" && ask("power", "How is it powered?", [["outboard","Outboard motor(s)"],["inboard","Inboard or sterndrive"]], bosQ.power)}
+              {answered && picked && (
+                <div style={{ background:"#eef5fc", border:"1px solid #4a90d9", borderRadius:7, padding:"11px 13px", marginTop:4 }}>
+                  <div style={{ fontSize:12.5, color:C.navy, fontWeight:800 }}>Use: {picked.title}</div>
+                  <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginTop:4 }}>{why}</div>
+                  {documented === "yes" && (
+                    <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginTop:5 }}>If you are also removing the boat from documentation, add the <b>USCG Bill of Sale &amp; Transfer / Deletion</b>.</div>
+                  )}
+                  {String(vessel?.trailerIncluded||"").toLowerCase() === "yes" && (
+                    <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginTop:5 }}>Your deal includes a trailer. A trailer transfers separately — add the <b>Trailer Bill of Sale</b> as well as, not instead of, the above.</div>
+                  )}
+                  <button onClick={()=>jumpToDoc(picked.id)}
+                    style={{ marginTop:9, background:"#2b6cb0", color:"#fff", border:"none", borderRadius:16, padding:"7px 16px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>Open it &rarr;</button>
+                </div>
+              )}
+              <button onClick={()=>{ setBosQOpen(false); setBosQ({}); }}
+                style={{ marginTop:10, background:"transparent", border:"none", color:C.slate, fontSize:11.5, textDecoration:"underline", cursor:"pointer", fontFamily:"sans-serif", padding:0 }}>Close</button>
+            </div>
+          );
+        })() : (
+          <button onClick={()=>setBosQOpen(true)}
+            style={{ marginTop:10, background:"transparent", border:"1px dashed #4a90d9", color:"#2b6cb0", borderRadius:7, padding:"8px 13px", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif", width:"100%" }}>
+            Not sure which one? Answer 3 questions &rarr;
+          </button>
+        ))}
       </div>
 
       {/* ── REQUIRED DOCUMENTS TRACKER ── */}
