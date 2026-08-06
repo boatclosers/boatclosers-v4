@@ -577,6 +577,13 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       : {}),
   };
   const [signed, setSigned] = useState({ ..._paPrefill, ...(data.signedDocs||{}) });
+  // Signatures used to reach the deal only when "Continue to Closing" was pressed,
+  // so anyone who signed and then jumped straight to Closing found nothing ticked.
+  // Save them as they happen.
+  const _sigKey = JSON.stringify(Object.keys(signed).sort());
+  useEffect(() => {
+    setData(d => (JSON.stringify(Object.keys(d.signedDocs || {}).sort()) === _sigKey ? d : { ...d, signedDocs: signed }));
+  }, [_sigKey]); // eslint-disable-line
   const [sigName, setSigName] = useState({});
 
   const [docAction, setDocAction] = useState({});
@@ -760,6 +767,16 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     const grp = (DOC_SET.find(x => x.id === docId) || {}).group;
     if (grp) setOpenGroups(g => ({ ...g, [grp]: true }));
   };
+
+  // The Closing step can ask for a specific document by name. It sets openDocId on
+  // the deal and sends you here; we open that one, scroll to it, and clear the flag
+  // so a later visit doesn't reopen it.
+  useEffect(() => {
+    const want = data.openDocId;
+    if (!want) return;
+    setData(d => { const n = { ...d }; delete n.openDocId; return n; });
+    setTimeout(() => jumpToDoc(want), 120);
+  }, [data.openDocId]); // eslint-disable-line
 
   // Jump to a document from the required-docs tracker: open it and scroll to it.
   const jumpToDoc = (docId) => {
