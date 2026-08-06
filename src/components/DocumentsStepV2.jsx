@@ -472,6 +472,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     vesselYear: vessel.year||"[Year]", vesselMake: vessel.make||"[Make]", vesselModel: vessel.model||"[Model]",
     vesselLength: vessel.loa ? vessel.loa+" ft" : BLANK,
     hullMaterial: vessel.hullType || BLANK,
+    engineSerial: vessel.engineSerial || BLANK,
+    engineCount: vessel.engineCount || BLANK,
+    trailerVin: vessel.trailerVin || BLANK,
+    trailerState: vessel.trailerState || BLANK,
     hin: vessel.hin || BLANK,
     uscgOfficialNo: vessel.uscgNumber || "N/A",
     titleNo: vessel.regNumber || BLANK,
@@ -512,7 +516,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
   // Bill of Sale gets its own dedicated box — it's the document that actually
   // transfers ownership, second only to the title. Collect every BoS variant.
-  const BOS_IDS = new Set(["bill_of_sale","bos_plain","fl_82050","cg_1340","trailer_bos","uscg_transfer"]);
+  const BOS_IDS = new Set(["bill_of_sale","bos_plain","fl_82050","fl_bos_itemized","cg_1340","trailer_bos","uscg_transfer"]);
   // The Bill of Sale box always shows EVERY bill-of-sale option (standard, simple,
   // Florida, Coast Guard) so a seller can always pick the right one — even if the
   // deal wasn't auto-detected as FL/documented. Built from the full doc list, then
