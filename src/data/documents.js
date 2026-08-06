@@ -206,13 +206,13 @@ export const DOCUMENTS = [
     florida: true,
     eyebrow: "Florida Official Form",
     title: "Florida Bill of Sale — HSMV 82050",
-    desc: "The state of Florida\u2019s official Bill of Sale. Use this when the county tax collector or FLHSMV requires the state form. Your deal data is summarized below to copy onto the official PDF.",
+    desc: "Florida\u2019s own Bill of Sale. Open the state\u2019s fillable form and complete it directly \u2014 your deal details are listed underneath so you have everything to hand.",
     viewOnly: true,
     externalUrl: "https://www.flhsmv.gov/pdf/forms/82050.pdf",
     body: `
-<p class="lead recital">This is Florida\u2019s official <b>Bill of Sale (Form HSMV 82050)</b>. Some Florida county tax collectors require the state form to transfer a vessel. Open the official form using the button above, then copy the details below onto it. Sign per the form\u2019s instructions (a notary is <b>not</b> required on the 82050 itself, but confirm your county\u2019s requirements).</p>
+<p class="lead recital"><b>Start with the button above.</b> It opens Florida\u2019s own fillable form (HSMV 82050) \u2014 type straight into it, print, and sign. A notary is <b>not</b> required on the 82050 itself, though a few counties ask for one, so check with yours.</p>
 
-<div class="note">BoatClosers can\u2019t type directly onto the state\u2019s PDF, but here is all of your deal data in one place so filling out the official form takes a minute. Everything below is pulled from this deal.</div>
+<div class="note">Your deal details are listed below purely so you have them in one place while you fill the state\u2019s form in. Nothing here needs signing.</div>
 
 <h3>Vessel / Motor Information</h3>
 <div class="field"><span class="k">Year</span><span class="v">{{vesselYear}}</span></div>
