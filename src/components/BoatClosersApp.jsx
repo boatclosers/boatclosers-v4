@@ -4697,7 +4697,7 @@ function DocPreview({ doc, D, negotiate }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 5 — CLOSING
 // ─────────────────────────────────────────────────────────────────────────────
-function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, docsData, myRole, amInitiator, onBack, onFinalize }) {
+function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, docsData, myRole, amInitiator, onBack, onOpenDoc, onFinalize }) {
   const isBuyer = myRole !== "seller";
   const [cleared, setCleared] = useState(false);
   const [dealFinalized, setDealFinalized] = useState(!!negotiate.dealFinalized);
@@ -4932,7 +4932,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
                   <span style={{ fontSize:12.5, color:C.navy, display:"block", textDecoration: sig[r.id] ? "line-through" : "none", opacity: sig[r.id] ? 0.65 : 1 }}>{r.label}</span>
                   <span style={{ fontSize:11.5, color:C.slate, display:"block", marginTop:2, lineHeight:1.5 }}>{r.why}</span>
                 </span>
-                {!sig[r.id] && <button onClick={onBack} style={{ fontSize:11, background:"transparent", border:`1px solid ${C.mist}`, color:C.slate, borderRadius:13, padding:"4px 11px", cursor:"pointer", whiteSpace:"nowrap", fontFamily:"sans-serif" }}>Open →</button>}
+                {!sig[r.id] && <button onClick={()=>onOpenDoc && onOpenDoc(r.id)} style={{ fontSize:11, background:C.brass, border:"none", color:"#fff", borderRadius:13, padding:"5px 13px", cursor:"pointer", whiteSpace:"nowrap", fontFamily:"sans-serif", fontWeight:700 }}>Sign →</button>}
               </div>
             ))}
           </div>
@@ -6773,7 +6773,9 @@ export default function BoatClosers() {
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} authToken={tokenRef.current?.token} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
       </div>
-      {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} setNegotiate={setNegotiateAndSave} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onBack={()=>setStep(4)} onFinalize={()=>{ setTimeout(()=>{ finalizedRef.current = true; }, 2500); }}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
+      {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} setNegotiate={setNegotiateAndSave} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator}  onBack={()=>setStep(4)}
+                    onOpenDoc={(id)=>{ setDocsDataAndSave(d => ({ ...d, openDocId: id })); setStep(4); }}
+                    onFinalize={()=>{ setTimeout(()=>{ finalizedRef.current = true; }, 2500); }}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
 
       {cancelModal && (
         <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.85)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem" }}>
