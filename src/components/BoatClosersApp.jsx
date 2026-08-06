@@ -275,6 +275,85 @@ function TipBox({ tips }) {
 // A guided, role- and step-aware walkthrough. Sits alongside the rotating TipBox
 // and explains, in plain language, what this step is, what THIS party should do,
 // what happens next, and the common questions. (Free-form AI answers come later.)
+// ─────────────────────────────────────────────────────────────────────────────
+// LEGAL FOOTER — on every screen
+//
+// Three things a transaction platform has to say plainly and keep saying: what it
+// is, what it is not, and where the full terms live. The disclaimer describes what
+// this app actually does. Terms and Privacy are drafts and need a lawyer's review
+// before launch — they are marked as such rather than pretending otherwise.
+// ─────────────────────────────────────────────────────────────────────────────
+// The disclaimer describes what this app actually does, so it lives here. Terms
+// and Privacy already exist further down the file as LEGAL — they were just never
+// linked to from anywhere. The footer opens all three without leaving the deal.
+const DISCLAIMER = {
+  title: "Disclaimer",
+  sections: [
+    ["What BoatClosers is", ["A guided transaction platform. It organizes a private boat sale, generates documents from the information you enter, and records what each party agreed and signed. It is software, not a person acting on your behalf."]],
+    ["What BoatClosers is not", ["Not your attorney, accountant, surveyor, or escrow agent. It does not give legal or tax advice, does not hold or transfer your money, and does not represent either party in the transaction."]],
+    ["What we do not verify", ["We do not verify identity, ownership, the accuracy of anything you type, the condition of the vessel, whether a lien exists, or whether a document was properly notarized.", "Documents are generated from your entries. If an entry is wrong, the document will be wrong."]],
+    ["Documents and state law", ["Our documents are templates drawn on common practice. Requirements differ by state, by county, and for federally documented vessels, and they change.", "Confirm with your state titling agency, the U.S. Coast Guard, or an attorney that a document meets your requirements before relying on it."]],
+    ["Notarization and offline steps", ["Some documents must be printed, signed in person, or notarized. Those steps happen outside this app and we cannot verify they were done correctly."]],
+    ["Money", ["Funds move directly between you, the other party, and any escrow provider you choose. BoatClosers never holds them.", "The $249 fee is for use of the platform and is separate from the sale."]],
+    ["Finality", ["Finalizing a deal is permanent by design. Once finalized, terms, documents, and signatures cannot be changed by either party or by us."]],
+  ],
+};
+
+function LegalFooter({ C }) {
+  const [openKey, setOpenKey] = useState(null);
+  const doc = openKey === "disclaimer" ? DISCLAIMER : openKey ? LEGAL[openKey] : null;
+  const link = { background:"transparent", border:"none", color:"rgba(255,255,255,0.75)", fontSize:11.5, textDecoration:"underline", cursor:"pointer", fontFamily:"sans-serif", padding:0 };
+  return (
+    <>
+      <footer style={{ background:C.navy, color:"rgba(255,255,255,0.6)", padding:"20px 22px 24px", marginTop:40, fontFamily:"sans-serif" }}>
+        <div style={{ maxWidth:880, margin:"0 auto" }}>
+          <div style={{ fontSize:11.5, lineHeight:1.7, marginBottom:11 }}>
+            BoatClosers organizes private boat sales and generates documents from what you enter. It is <b style={{ color:"rgba(255,255,255,0.85)" }}>not a law firm, escrow agent, or surveyor</b>, does not hold your funds, and does not verify ownership, condition, liens, or notarization. Document requirements vary by state &mdash; confirm with your titling agency or an attorney before relying on one.
+          </div>
+          <div style={{ display:"flex", gap:16, flexWrap:"wrap", alignItems:"center" }}>
+            <button style={link} onClick={()=>setOpenKey("disclaimer")}>Disclaimer</button>
+            <button style={link} onClick={()=>setOpenKey("terms")}>Terms of Service</button>
+            <button style={link} onClick={()=>setOpenKey("privacy")}>Privacy Policy</button>
+            <a href="mailto:support@boatclosers.com" style={link}>support@boatclosers.com</a>
+          </div>
+          <div style={{ fontSize:10.5, marginTop:12, color:"rgba(255,255,255,0.4)", lineHeight:1.6 }}>
+            &copy; {new Date().getFullYear()} Sea Yachts LLC &middot; Licensed Florida Yacht Broker &middot; BoatClosers.com
+          </div>
+        </div>
+      </footer>
+
+      {doc && (
+        <div onClick={()=>setOpenKey(null)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", zIndex:5000, overflowY:"auto", padding:"20px 12px", fontFamily:"sans-serif" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ maxWidth:660, margin:"0 auto", background:"#fff", borderRadius:12, overflow:"hidden", border:`2px solid ${C.brass}` }}>
+            <div style={{ background:C.navy, color:"#fff", padding:"14px 20px", display:"flex", justifyContent:"space-between", alignItems:"center", position:"sticky", top:0 }}>
+              <span style={{ fontFamily:"'Georgia',serif", fontSize:16, color:C.brass }}>{doc.title}</span>
+              <button onClick={()=>setOpenKey(null)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.7)", fontSize:20, cursor:"pointer", lineHeight:1 }}>&times;</button>
+            </div>
+            {openKey !== "disclaimer" && (
+              <div style={{ background:"#fff4e5", borderBottom:`1px solid ${C.brass}`, padding:"11px 20px", fontSize:11.5, color:"#8a5a12", lineHeight:1.6 }}>
+                Draft &mdash; under review by counsel. Binding terms will be published before launch.
+              </div>
+            )}
+            <div style={{ padding:"18px 20px 22px" }}>
+              {(doc.sections || []).map(([h, paras]) => (
+                <div key={h} style={{ marginBottom:15 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:4 }}>{h}</div>
+                  {(Array.isArray(paras) ? paras : [paras]).map((t, i) => (
+                    <div key={i} style={{ fontSize:12.5, color:C.slate, lineHeight:1.75, marginBottom:6 }}>{t}</div>
+                  ))}
+                </div>
+              ))}
+              <div style={{ fontSize:11, color:C.slate, borderTop:`1px solid ${C.mist}`, paddingTop:12, lineHeight:1.6 }}>
+                Sea Yachts LLC &middot; Licensed Florida Yacht Broker &middot; questions to support@boatclosers.com
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 const ASSISTANT = {
   closing: {
     title: "Closing",
@@ -6418,11 +6497,13 @@ export default function BoatClosers() {
     );
   }
 
-  if (screen==="landing") return <Landing onStart={(r)=>{ if(r==="buyer"||r==="seller") setAuthRole(r); setScreen("auth"); }} onLegal={(p)=>setScreen(p)}/>;
-  if (screen==="terms") return <LegalScreen page="terms" onBack={()=>setScreen("landing")} />;
-  if (screen==="privacy") return <LegalScreen page="privacy" onBack={()=>setScreen("landing")} />;
-  if (screen==="auth") return <AuthScreen onAuth={handleAuth} prefillEmail={deepLink?.email} notice={deepLink ? `Sign in as ${deepLink.email} to review this deal.` : null} defaultMode={deepLink ? "login" : "signup"} defaultRole={authRole} />;
-  if (screen==="deal" && showWelcome) return <Welcome name={user?.name} onStart={()=>setShowWelcome(false)} onSignOut={handleSignOut} />;
+  // Every screen gets the legal footer — landing, sign-in, and the deal itself.
+  const withFooter = (node) => (<>{node}<LegalFooter C={C} /></>);
+  if (screen==="landing") return withFooter(<Landing onStart={(r)=>{ if(r==="buyer"||r==="seller") setAuthRole(r); setScreen("auth"); }} onLegal={(p)=>setScreen(p)}/>);
+  if (screen==="terms") return withFooter(<LegalScreen page="terms" onBack={()=>setScreen("landing")} />);
+  if (screen==="privacy") return withFooter(<LegalScreen page="privacy" onBack={()=>setScreen("landing")} />);
+  if (screen==="auth") return withFooter(<AuthScreen onAuth={handleAuth} prefillEmail={deepLink?.email} notice={deepLink ? `Sign in as ${deepLink.email} to review this deal.` : null} defaultMode={deepLink ? "login" : "signup"} defaultRole={authRole} />);
+  if (screen==="deal" && showWelcome) return withFooter(<Welcome name={user?.name} onStart={()=>setShowWelcome(false)} onSignOut={handleSignOut} />);
 
   return (
     <div style={S.app}>
@@ -6755,6 +6836,7 @@ export default function BoatClosers() {
           </div>
         </div>
       )}
+      <LegalFooter C={C} />
     </div>
   );
 }
