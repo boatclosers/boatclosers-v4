@@ -4660,11 +4660,16 @@ function DocPreview({ doc, D, negotiate }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 5 — CLOSING
 // ─────────────────────────────────────────────────────────────────────────────
-function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, docsData, myRole, amInitiator, onBack, onFinalize }) {
+function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, docsData, setDocsData, myRole, amInitiator, onBack, onOpenDoc, onFinalize }) {
   const isBuyer = myRole !== "seller";
   const [cleared, setCleared] = useState(false);
   const [dealFinalized, setDealFinalized] = useState(!!negotiate.dealFinalized);
   const [confirmFinalize, setConfirmFinalize] = useState(false);
+  // The four "Final Actions" were hardcoded as never done, so the pre-finalize
+  // warning listed steps nobody could ever tick off. They are now real and saved
+  // to the deal, so both parties see the same state.
+  const steps = negotiate.closingSteps || {};
+  const toggleStep = (id) => setNegotiate(n => ({ ...n, closingSteps: { ...(n.closingSteps || {}), [id]: !(n.closingSteps || {})[id] } }));
   const [manualChecks, setManualChecks] = useState({});
   const [payMethod, setPayMethod] = useState(negotiate.paymentType || "wire");
   const [payMethodOpen, setPayMethodOpen] = useState(true);
@@ -4832,10 +4837,10 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
       heading:"Final Actions",
       desc:"Non-document steps required to complete the transaction.",
       docs:[
-        { id:"payment",      label:`Full Payment of ${fmt(negotiate.agreedPrice||0)} Received`, desc:"Buyer has sent and seller has confirmed receipt of the full closing balance.", signed:false, manual:true, manualKey:"payment_received" },
-        { id:"keys",         label:"Keys, Manuals & Equipment Delivered",                       desc:"All physical items included in the sale handed over to buyer.", signed:false, manual:true, manualKey:"keys_delivered" },
-        { id:"escrow_rel",   label:"Escrow / Deposit Funds Released",                          desc:"Escrow agent or seller has confirmed deposit applied to purchase price.", signed:false, manual:true, manualKey:"escrow_released" },
-        { id:"reg_transfer", label:"Registration / Title Filed with State",                    desc:"New owner has submitted title transfer and registration application.", signed:false, manual:true, manualKey:"reg_filed" },
+        { id:"payment",      label:`Full Payment of ${fmt(negotiate.agreedPrice||0)} Received`, desc:"Buyer has sent and seller has confirmed receipt of the full closing balance.", signed:!!steps["payment"], manual:true, manualKey:"payment_received" },
+        { id:"keys",         label:"Keys, Manuals & Equipment Delivered",                       desc:"All physical items included in the sale handed over to buyer.", signed:!!steps["keys"], manual:true, manualKey:"keys_delivered" },
+        { id:"escrow_rel",   label:"Escrow / Deposit Funds Released",                          desc:"Escrow agent or seller has confirmed deposit applied to purchase price.", signed:!!steps["escrow_rel"], manual:true, manualKey:"escrow_released" },
+        { id:"reg_transfer", label:"Registration / Title Filed with State",                    desc:"New owner has submitted title transfer and registration application.", signed:!!steps["reg_transfer"], manual:true, manualKey:"reg_filed" },
       ]
     }
   ];
@@ -4854,6 +4859,71 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
           </p>
         </div>
       </div>
+
+      {/* ── WHAT IS LEFT ─────────────────────────────────────────────────────────
+          Near the top, because it is the thing that decides whether you should be
+          finalizing at all. Documents open where they are signed; the practical
+          steps tick off here. ─────────────────────────────────────────────────── */}
+      {!isRejected && (() => {
+        const all = closingDocSections.flatMap(sec => (sec.docs || []));
+        const docsLeft  = all.filter(d => d && d.signed === false && !d.manual);
+        const stepsLeft = all.filter(d => d && d.signed === false && d.manual);
+        const stepsDone = all.filter(d => d && d.manual && d.signed);
+        const nothingLeft = !docsLeft.length && !stepsLeft.length;
+        return (
+          <div style={{ background: nothingLeft ? "#f4f7f5" : "#fffaf0", border:`1.5px solid ${nothingLeft ? C.green : C.brass}`, borderRadius:9, marginBottom:20, overflow:"hidden" }}>
+            <div style={{ padding:"13px 16px", borderBottom:`1px solid ${nothingLeft ? "#d7e5dc" : "#f0e2c8"}` }}>
+              <div style={{ fontSize:13.5, fontFamily:"sans-serif", fontWeight:800, color: nothingLeft ? C.green : "#8a5a12" }}>
+                {nothingLeft ? "✓ Everything is done — you're ready to finalize" : `Before you finalize — ${docsLeft.length + stepsLeft.length} outstanding`}
+              </div>
+              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:3 }}>
+                {nothingLeft
+                  ? "Every document is signed and every step is confirmed. Finalizing will seal the record."
+                  : "You can still finalize without these — but once you do, nothing here can be signed or changed again."}
+              </div>
+            </div>
+
+            {docsLeft.length > 0 && (
+              <div>
+                <div style={{ padding:"9px 16px", background:"#fdf3e3", fontSize:10.5, fontFamily:"sans-serif", color:"#8a5a12", letterSpacing:0.5, textTransform:"uppercase", fontWeight:700 }}>
+                  Documents to sign &mdash; {docsLeft.length}
+                </div>
+                {docsLeft.map(d => (
+                  <div key={d.id} style={{ display:"flex", alignItems:"flex-start", gap:10, padding:"11px 16px", borderTop:`1px solid #f4e8d4`, fontFamily:"sans-serif", background:"#fff" }}>
+                    <span style={{ width:17, height:17, borderRadius:"50%", border:`1.5px solid ${C.brass}`, flexShrink:0, marginTop:2 }} />
+                    <span style={{ flex:1 }}>
+                      <span style={{ fontSize:12.5, color:C.navy, display:"block", fontWeight:600 }}>{d.label}</span>
+                      {d.desc && <span style={{ fontSize:11, color:C.slate, display:"block", marginTop:2, lineHeight:1.5 }}>{d.desc}</span>}
+                    </span>
+                    <button onClick={()=>onOpenDoc ? onOpenDoc(d.id) : onBack()}
+                      style={{ fontSize:11.5, background:C.brass, border:"none", color:"#fff", borderRadius:14, padding:"6px 14px", cursor:"pointer", whiteSpace:"nowrap", fontFamily:"sans-serif", fontWeight:700 }}>Sign &rarr;</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {(stepsLeft.length > 0 || stepsDone.length > 0) && (
+              <div>
+                <div style={{ padding:"9px 16px", background:"#f5f0e8", fontSize:10.5, fontFamily:"sans-serif", color:C.slate, letterSpacing:0.5, textTransform:"uppercase", fontWeight:700 }}>
+                  Steps to confirm &mdash; {stepsDone.length} of {stepsDone.length + stepsLeft.length} done
+                </div>
+                {[...stepsLeft, ...stepsDone].map(d => (
+                  <button key={d.id} onClick={()=>toggleStep(d.id)}
+                    style={{ display:"flex", alignItems:"flex-start", gap:10, width:"100%", textAlign:"left", padding:"11px 16px", borderTop:`1px solid ${C.sand}`, border:"none", borderTopWidth:1, borderTopStyle:"solid", background:"#fff", cursor:"pointer", fontFamily:"sans-serif" }}>
+                    <span style={{ width:17, height:17, borderRadius:4, flexShrink:0, marginTop:2, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:800,
+                      background: d.signed ? C.green : "transparent", color:"#fff", border: d.signed ? "none" : `1.5px solid ${C.mist}` }}>{d.signed ? "✓" : ""}</span>
+                    <span style={{ flex:1 }}>
+                      <span style={{ fontSize:12.5, color: d.signed ? C.slate : C.navy, display:"block", fontWeight: d.signed ? 400 : 600, textDecoration: d.signed ? "line-through" : "none" }}>{d.label}</span>
+                      {d.desc && !d.signed && <span style={{ fontSize:11, color:C.slate, display:"block", marginTop:2, lineHeight:1.5 }}>{d.desc}</span>}
+                    </span>
+                    <span style={{ fontSize:11, color: d.signed ? C.green : C.slate, whiteSpace:"nowrap", marginTop:2, fontWeight:600 }}>{d.signed ? "Confirmed" : "Tap to confirm"}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {!isRejected && (
         <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap" }}>
@@ -5039,27 +5109,6 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
             <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:4 }}>Ready to close this deal?</div>
             <div style={{ fontSize:12, color:C.slate, lineHeight:1.7 }}>Finalizing locks the entire deal &mdash; terms, documents, and signatures become permanent and can&rsquo;t be changed. Do this once the sale is fully complete and both sides have their copies.</div>
           </div>
-          {(() => {
-            // Finalizing is permanent and the server refuses every later write, so a
-            // document left unsigned here can never be signed. Say so plainly before
-            // they commit — but don't block them: a seller may knowingly close with
-            // the notarised Bill of Sale handled on paper.
-            const unsigned = closingDocSections.flatMap(sec => (sec.docs||[]).filter(d => d && d.signed === false));
-            if (!unsigned.length) return null;
-            return (
-              <div style={{ background:"#fff4e5", border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", marginBottom:14, fontFamily:"sans-serif" }}>
-                <div style={{ fontSize:13, fontWeight:800, color:"#8a5a12", marginBottom:6 }}>
-                  ⚠️ {unsigned.length} document{unsigned.length===1?" is":"s are"} still unsigned
-                </div>
-                <ul style={{ margin:"0 0 8px", paddingLeft:18, fontSize:12.5, color:C.slate, lineHeight:1.7 }}>
-                  {unsigned.map(d => <li key={d.id}>{d.label}</li>)}
-                </ul>
-                <div style={{ fontSize:12, color:C.slate, lineHeight:1.65 }}>
-                  Once you finalize, <b>these can never be signed in the app</b> — the deal becomes a permanent record. If you mean to sign {unsigned.length===1?"it":"them"} here, go back to Documents first. If {unsigned.length===1?"it is":"they are"} being handled on paper or at the notary, carry on.
-                </div>
-              </div>
-            );
-          })()}
           {!confirmFinalize ? (
             <div style={{ display:"flex", justifyContent:"space-between", gap:10, flexWrap:"wrap" }}>
               <button style={S.btnOutline} onClick={onBack}>&larr; Back to Documents</button>
@@ -6652,7 +6701,9 @@ export default function BoatClosers() {
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} authToken={tokenRef.current?.token} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
       </div>
-      {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} setNegotiate={setNegotiateAndSave} ddData={ddData} docsData={docsData} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} onBack={()=>setStep(4)} onFinalize={()=>{ setTimeout(()=>{ finalizedRef.current = true; }, 2500); }}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
+      {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} setNegotiate={setNegotiateAndSave} ddData={ddData} docsData={docsData} setDocsData={setDocsDataAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator}  onBack={()=>setStep(4)}
+                    onOpenDoc={(id)=>{ setDocsDataAndSave(d => ({ ...d, openDocId: id })); setStep(4); }}
+                    onFinalize={()=>{ setTimeout(()=>{ finalizedRef.current = true; }, 2500); }}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
 
       {cancelModal && (
         <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.85)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem" }}>
