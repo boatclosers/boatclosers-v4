@@ -1059,27 +1059,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginBottom:11, lineHeight:1.55 }}>
           This is the document that legally transfers the boat. Choose the version that fits your sale — you only need <b>one</b>. {documentedActive ? "Your vessel is Coast Guard documented, so the CG-1340 applies." : floridaActive ? "Florida\u2019s official 82050 is included." : ""}
         </div>
-        <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
-          {bosDocs.map(doc => {
-            const done = !!signed[doc.id];
-            const rowNotary = (doc.body||"").includes("Notary Acknowledgment") || (doc.body||"").includes("bc-notary-flag") || doc.id==="cg_1340";
-            const isPrimary = doc.id === bosLeadId;
-            return (
-              <button key={doc.id} onClick={()=>jumpToDoc(doc.id)}
-                style={{ display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left", background:"transparent", border:"none", borderBottom:`1px solid ${bosSigned ? "#cfe6d8" : "#cfe0f5"}`, padding:"9px 2px", cursor:"pointer", fontFamily:"sans-serif" }}>
-                <span style={{ width:18, height:18, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, background: done ? C.green : "transparent", color: done ? "#fff" : C.slate, border: done ? "none" : `1.5px solid ${C.mist}` }}>{done ? "✓" : ""}</span>
-                <span style={{ flex:1, fontSize:12.5, color:C.navy, fontWeight: done ? 400 : (isPrimary?700:600), textDecoration: done ? "line-through" : "none", opacity: done ? 0.7 : 1 }}>
-                  {doc.title}
-                  {isPrimary && <span style={{ fontSize:10, color:"#2b6cb0", fontWeight:700, marginLeft:6 }}>{OFFICIAL.has(doc.id) ? "· recommended — your state's own form" : "· standard"}</span>}
-                  {!isPrimary && OFFICIAL.has(doc.id) && <span style={{ fontSize:10, color:C.teal, fontWeight:700, marginLeft:6 }}>· official form</span>}
-                  {rowNotary && !done ? <span style={{ fontSize:10.5, color:"#8a6d1a", fontWeight:600 }}> · needs notary</span> : null}
-                </span>
-                <span style={{ fontSize:11, color: done ? C.green : "#2b6cb0", fontWeight:600, whiteSpace:"nowrap" }}>{done ? "Done" : "Open →"}</span>
-              </button>
-            );
-          })}
-        </div>
-
         {/* Optional: three questions that pick the right version. */}
         {!bosSigned && (bosQOpen ? (() => {
           const documented = bosQ.doc === undefined ? (documentedActive ? "yes" : undefined) : bosQ.doc;
@@ -1105,22 +1084,35 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
               <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                 {opts.map(([v, label]) => (
                   <button key={v} onClick={()=>setBosQ(b => ({ ...b, [k]: v }))}
-                    style={{ fontSize:11.5, padding:"5px 12px", borderRadius:14, cursor:"pointer", fontFamily:"sans-serif", fontWeight:600,
+                    style={{ fontSize:12.5, padding:"9px 15px", borderRadius:18, cursor:"pointer", fontFamily:"sans-serif", fontWeight:700,
                       border:`1.5px solid ${cur===v ? "#2b6cb0" : C.mist}`,
                       background: cur===v ? "#2b6cb0" : "#fff",
-                      color: cur===v ? "#fff" : C.slate }}>{label}</button>
+                      color: cur===v ? "#fff" : C.slate, boxShadow: cur===v ? "0 1px 3px rgba(43,108,176,0.3)" : "none" }}>
+                    {cur===v ? "\u2713 " : ""}{label}
+                  </button>
                 ))}
               </div>
             </div>
           );
           return (
-            <div style={{ marginTop:11, borderTop:`1px solid ${C.mist}`, paddingTop:11 }}>
+            <div style={{ background:"linear-gradient(180deg,#f4f9ff 0%,#ffffff 100%)", border:"1.5px solid #4a90d9", borderRadius:9, padding:"14px 16px 13px" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:9, marginBottom:12 }}>
+                <span style={{ fontSize:17, lineHeight:1 }}>\ud83e\udded</span>
+                <span style={{ flex:1, fontSize:13.5, fontWeight:800, color:C.navy }}>Which one do I need?</span>
+                <span style={{ display:"flex", gap:4 }}>
+                  {[0,1,2].map(n => {
+                    const doneN = (documented ? 1 : 0) + (bosQ.state ? 1 : 0) + (bosQ.power ? 1 : 0);
+                    return <span key={n} style={{ width:18, height:4, borderRadius:2, background: n < doneN ? "#2b6cb0" : "#cfe0f2" }} />;
+                  })}
+                </span>
+              </div>
               {ask("doc", "Is the vessel U.S. Coast Guard documented?", [["yes","Yes"],["no","No"]], documented)}
               {documented === "no" && ask("state", "Which state will the buyer title it in?", [["fl","Florida"],["other","Another state"]], bosQ.state)}
               {documented === "no" && bosQ.state === "fl" && ask("power", "How is it powered?", [["outboard","Outboard motor(s)"],["inboard","Inboard or sterndrive"]], bosQ.power)}
               {answered && picked && (
-                <div style={{ background:"#eef5fc", border:"1px solid #4a90d9", borderRadius:7, padding:"11px 13px", marginTop:4 }}>
-                  <div style={{ fontSize:12.5, color:C.navy, fontWeight:800 }}>Use: {picked.title}</div>
+                <div style={{ background:"#fff", border:"2px solid #2b6cb0", borderRadius:9, padding:"13px 15px", marginTop:8 }}>
+                  <div style={{ fontSize:10, color:"#2b6cb0", letterSpacing:1.2, textTransform:"uppercase", fontWeight:800, marginBottom:4 }}>Your bill of sale</div>
+                  <div style={{ fontFamily:"'Georgia',serif", fontSize:16, color:C.navy, lineHeight:1.3 }}>{picked.title}</div>
                   <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginTop:4 }}>{why}</div>
                   {documented === "yes" && (
                     <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginTop:5 }}>If you are also removing the boat from documentation, add the <b>USCG Bill of Sale &amp; Transfer / Deletion</b>.</div>
@@ -1129,19 +1121,47 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                     <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginTop:5 }}>Your deal includes a trailer. A trailer transfers separately — add the <b>Trailer Bill of Sale</b> as well as, not instead of, the above.</div>
                   )}
                   <button onClick={()=>jumpToDoc(picked.id)}
-                    style={{ marginTop:9, background:"#2b6cb0", color:"#fff", border:"none", borderRadius:16, padding:"7px 16px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>Open it &rarr;</button>
+                    style={{ marginTop:11, background:"#2b6cb0", color:"#fff", border:"none", borderRadius:18, padding:"9px 20px", fontSize:12.5, fontWeight:800, cursor:"pointer", fontFamily:"sans-serif" }}>Open it &rarr;</button>
                 </div>
               )}
               <button onClick={()=>{ setBosQOpen(false); setBosQ({}); }}
-                style={{ marginTop:10, background:"transparent", border:"none", color:C.slate, fontSize:11.5, textDecoration:"underline", cursor:"pointer", fontFamily:"sans-serif", padding:0 }}>Close</button>
+                style={{ marginTop:12, background:"transparent", border:"none", color:C.slate, fontSize:11.5, textDecoration:"underline", cursor:"pointer", fontFamily:"sans-serif", padding:0 }}>Start over / close</button>
             </div>
           );
         })() : (
           <button onClick={()=>setBosQOpen(true)}
-            style={{ marginTop:10, background:"transparent", border:"1px dashed #4a90d9", color:"#2b6cb0", borderRadius:7, padding:"8px 13px", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif", width:"100%" }}>
-            Not sure which one? Answer 3 questions &rarr;
+            style={{ display:"flex", alignItems:"center", gap:12, width:"100%", textAlign:"left", background:"linear-gradient(180deg,#f4f9ff 0%,#eaf3fc 100%)", border:"1.5px solid #4a90d9", borderRadius:9, padding:"13px 15px", cursor:"pointer", fontFamily:"sans-serif" }}>
+            <span style={{ fontSize:20, lineHeight:1 }}>\ud83e\udded</span>
+            <span style={{ flex:1 }}>
+              <span style={{ display:"block", fontSize:13.5, fontWeight:800, color:C.navy }}>Which one do I need?</span>
+              <span style={{ display:"block", fontSize:11.5, color:C.slate, marginTop:2, lineHeight:1.5 }}>Three quick questions and we&rsquo;ll pick the right version for your sale &mdash; and tell you why.</span>
+            </span>
+            <span style={{ fontSize:12, fontWeight:800, color:"#2b6cb0", whiteSpace:"nowrap" }}>Start &rarr;</span>
           </button>
         ))}
+
+        <div style={{ fontSize:10.5, fontFamily:"sans-serif", color:C.slate, letterSpacing:0.5, textTransform:"uppercase", margin:"18px 0 7px" }}>All versions</div>
+        <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
+          {bosDocs.map(doc => {
+            const done = !!signed[doc.id];
+            const rowNotary = (doc.body||"").includes("Notary Acknowledgment") || (doc.body||"").includes("bc-notary-flag") || doc.id==="cg_1340";
+            const isPrimary = doc.id === bosLeadId;
+            return (
+              <button key={doc.id} onClick={()=>jumpToDoc(doc.id)}
+                style={{ display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left", background:"transparent", border:"none", borderBottom:`1px solid ${bosSigned ? "#cfe6d8" : "#cfe0f5"}`, padding:"9px 2px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                <span style={{ width:18, height:18, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, background: done ? C.green : "transparent", color: done ? "#fff" : C.slate, border: done ? "none" : `1.5px solid ${C.mist}` }}>{done ? "✓" : ""}</span>
+                <span style={{ flex:1, fontSize:12.5, color:C.navy, fontWeight: done ? 400 : (isPrimary?700:600), textDecoration: done ? "line-through" : "none", opacity: done ? 0.7 : 1 }}>
+                  {doc.title}
+                  {isPrimary && <span style={{ fontSize:10, color:"#2b6cb0", fontWeight:700, marginLeft:6 }}>{OFFICIAL.has(doc.id) ? "· recommended — your state's own form" : "· standard"}</span>}
+                  {!isPrimary && OFFICIAL.has(doc.id) && <span style={{ fontSize:10, color:C.teal, fontWeight:700, marginLeft:6 }}>· official form</span>}
+                  {rowNotary && !done ? <span style={{ fontSize:10.5, color:"#8a6d1a", fontWeight:600 }}> · needs notary</span> : null}
+                </span>
+                <span style={{ fontSize:11, color: done ? C.green : "#2b6cb0", fontWeight:600, whiteSpace:"nowrap" }}>{done ? "Done" : "Open →"}</span>
+              </button>
+            );
+          })}
+        </div>
+
       </div>
 
       {/* ── REQUIRED DOCUMENTS TRACKER ── */}
