@@ -543,6 +543,16 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     if (grp) setOpenGroups(g => ({ ...g, [grp]: true }));
   };
 
+  // The Closing step can ask for one document by name: it writes openDocId onto the
+  // deal and sends you here. Open that one, scroll to it, then clear the flag so a
+  // later visit does not reopen it.
+  useEffect(() => {
+    const want = data.openDocId;
+    if (!want) return;
+    setData(d => { const n = { ...d }; delete n.openDocId; return n; });
+    setTimeout(() => jumpToDoc(want), 130);
+  }, [data.openDocId]); // eslint-disable-line
+
   // Jump to a document from the required-docs tracker: open it and scroll to it.
   const jumpToDoc = (docId) => {
     openDoc(docId);
