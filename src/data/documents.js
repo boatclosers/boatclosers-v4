@@ -905,6 +905,9 @@ export const DOCUMENTS = [
     tab: "Conditions Checklist",
     eyebrow: "Your Guide",
     title: "Financing & Insurance Conditions Checklist",
+    // An information sheet, not an agreement — there is nothing on it to sign, so
+    // offering E-Sign produced a signature with no signature line to land on.
+    viewOnly: true,
     useWhen: "Use when the buyer is borrowing. Lists what the lender and insurer still need.",
     keywords: "financing insurance conditions checklist lender requirements loan approval",
     checklist: [
@@ -1137,12 +1140,12 @@ export const DOCUMENTS = [
 <p class="lead recital">This addendum to the Purchase &amp; Sale Agreement dated {{effectiveDate}} between {{sellerName}} (\u201cSeller\u201d) and {{buyerName}} (\u201cBuyer\u201d), concerning the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}, records the Parties\u2019 mutual agreement to extend a deadline under the Agreement. All other terms of the Agreement remain unchanged and in full force.</p>
 
 <h3>1. Deadline Being Extended</h3>
-<div class="field"><span class="k">Deadline extended</span><span class="v">{{extensionType}}</span></div>
-<div class="field"><span class="k">Original date</span><span class="v">{{originalDeadline}}</span></div>
-<div class="field"><span class="k">New agreed date</span><span class="v">{{newDeadline}}</span></div>
+<div class="field"><span class="k">Deadline extended</span><span class="v">____________________________</span></div>
+<div class="field"><span class="k">Original date</span><span class="v">____________________</span></div>
+<div class="field"><span class="k">New agreed date</span><span class="v">____________________</span></div>
 
 <h3>2. Reason for Extension</h3>
-<p>{{extensionReason}}</p>
+<p>Reason for the extension: ______________________________________________________________</p>
 
 <h3>3. Effect on the Agreement</h3>
 <p>The Parties agree the deadline identified above is extended to the new agreed date. This is the only change; the price, contingencies, deposit terms, and all other provisions of the Purchase &amp; Sale Agreement remain exactly as executed. Time remains of the essence as to the extended deadline.</p>
@@ -1991,8 +1994,25 @@ export function assembleContingencyClauses(deal) {
 }
 
 // MAIN: fill one document from a deal. Returns ready-to-render HTML.
+// The deposit paragraph of the Purchase Agreement: where the money sits, who
+// holds it, and what happens to it. This was referenced as {{DEPOSIT_TERMS}} but
+// never built, so every agreement was generated without it.
+export function assembleDepositTerms(deal) {
+  const d = deal || {};
+  const amt = d.depositAmount || "the earnest money deposit";
+  const where = d.escrowPath === "escrow" || d.escrowAgent
+    ? `held by ${d.escrowAgent || "the escrow agent named in this Agreement"}`
+    : "held by the Seller";
+  const due = d.depositDueBy ? ` The deposit is due by ${d.depositDueBy}.` : "";
+  return `<p>The earnest money deposit of ${amt} shall be ${where} and applied to the purchase price at Closing.${due} ` +
+    `If Buyer terminates this Agreement in accordance with a contingency in Section 3 within the time allowed, the deposit shall be returned to Buyer in full. ` +
+    `If Buyer fails to close for any other reason, the deposit shall be released to Seller as agreed damages. ` +
+    `If Seller fails to close, the deposit shall be returned to Buyer in full.</p>`;
+}
+
 export function fillDocument(doc, deal) {
   let body = doc.body || "";
+  body = body.replace("{{DEPOSIT_TERMS}}", assembleDepositTerms(deal));
   body = body.replace("{{CONTINGENCY_CLAUSES}}", assembleContingencyClauses(deal));
   body = body.replace("{{DOC_REQUEST_STATUS}}", buildDocRequestStatus(deal));
   body = body.replace(/\{\{contList\}\}/g, contingencyList(deal));
