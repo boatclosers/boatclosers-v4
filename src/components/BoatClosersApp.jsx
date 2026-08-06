@@ -4849,6 +4849,17 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
     </div>
   );
 
+  // Seven documents can serve as the bill of sale. Whichever one they signed is
+  // the bill of sale for this deal — checking a single id reported "unsigned" to
+  // anyone who used the state form or the itemised version.
+  const BOS_VARIANTS = ["bill_of_sale","bos_plain","fl_82050","fl_bos_itemized","cg_1340","uscg_transfer"];
+  const BOS_LABELS = {
+    bill_of_sale:"Vessel Bill of Sale (Notarized)", bos_plain:"Vessel Bill of Sale (Simple)",
+    fl_82050:"Florida Bill of Sale — HSMV 82050", fl_bos_itemized:"Itemized Bill of Sale — Hull & Motors",
+    cg_1340:"U.S. Coast Guard Bill of Sale — CG-1340", uscg_transfer:"USCG Bill of Sale & Transfer",
+  };
+  const bosSignedId = BOS_VARIANTS.find(id => docsData.signedDocs?.[id]);
+
   const closingDocSections = isRejected ? [
     {
       heading:"Rejection Documents",
@@ -4863,7 +4874,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
       desc:"The required documents — signed in the Documents step.",
       docs:[
         { id:"purchase_agreement",  label:"Purchase & Sale Agreement",   desc:"The main binding contract between buyer and seller.", signed:!!docsData.signedDocs?.purchase_agreement },
-        { id:"bill_of_sale",        label:"Bill of Sale",                desc:"Transfers legal ownership from seller to buyer.", signed:!!docsData.signedDocs?.bill_of_sale },
+        { id: bosSignedId || "bill_of_sale", label: bosSignedId ? BOS_LABELS[bosSignedId] : "Bill of Sale", desc: bosSignedId ? "Transfers legal ownership from seller to buyer." : "Transfers legal ownership. Pick the version that fits your sale on the Documents step.", signed: !!bosSignedId },
         { id:"deposit_receipt",     label:"Earnest Money Deposit Receipt",desc:"Confirms earnest money received and how it applies to the price.", signed:!!docsData.signedDocs?.deposit_receipt },
         { id:"as_is_acknowledgment",label:"As-Is Acknowledgment",        desc:"Buyer accepts the vessel in its present condition per the agreement.", signed:!!docsData.signedDocs?.as_is_acknowledgment },
         { id:"closing_statement",   label:"Closing Statement",           desc:"Final figures: price, deposit credit, and balance due at closing.", signed:!!docsData.signedDocs?.closing_statement },
