@@ -4924,7 +4924,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
           Near the top, because it is the thing that decides whether you should be
           finalizing at all. Documents open where they are signed; the practical
           steps tick off here. ─────────────────────────────────────────────────── */}
-      {!isRejected && (() => {
+      {!isRejected && !dealFinalized && (() => {
         const all = closingDocSections.flatMap(sec => (sec.docs || []));
         const docsLeft  = all.filter(d => d && d.signed === false && !d.manual);
         const stepsLeft = all.filter(d => d && d.signed === false && d.manual);
@@ -6042,6 +6042,16 @@ export default function BoatClosers() {
             dd_data: s.ddData, docs_data: s.docsData, step: s.step, max_step: s.maxStep
           })
         });
+        // The server can now refuse: a finalized deal cannot spawn another, a
+        // lapsed credit cannot, and an offer cannot be accepted before the fee is
+        // paid. Say what happened instead of retrying into a silent failure.
+        if (res.status === 403 || res.status === 402) {
+          let msg = "";
+          try { msg = (await res.json())?.error || ""; } catch (e) { msg = ""; }
+          setToast({ k: Date.now(), text: msg || "That isn't allowed on this deal. Email support@boatclosers.com." });
+          setSaveError(false);
+          return;
+        }
         if (!res.ok) throw new Error("save failed (" + res.status + ")");
         const data = await res.json();
         if (data?.deal?.id && !dealId) setDealId(data.deal.id);
@@ -6151,6 +6161,10 @@ export default function BoatClosers() {
   // changed — making someone re-type the year, make, model, HIN and specs is the
   // friction that turns "let's find another buyer" into "I want my money back".
   const relistBoat = () => {
+    if (!amInitiator) {
+      setToast({ k: Date.now(), text: "Only the person who started this deal can relist it." });
+      return;
+    }
     setDealId(null);
     setParties(emptyParties); setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
     setStep(0); setMaxStep(0); setShowWelcome(false);
@@ -6611,14 +6625,14 @@ export default function BoatClosers() {
         </div>
       )}
 
-      {negotiate.canceled && (
+      {negotiate.canceled && !negotiate.dealFinalized && (
         <div style={{ background:"#fdecec", borderBottom:`2px solid ${C.red}`, padding:"14px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
           <div style={{ fontSize:14, fontWeight:800, color:C.red, marginBottom:4 }}>This deal was canceled</div>
           <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.6, maxWidth:600, margin:"0 auto 10px" }}>
             {negotiate.canceled.byName} canceled this deal on {negotiate.canceled.date}{negotiate.canceled.reason?` — “${negotiate.canceled.reason}”`:""}. It's now closed for both parties.
           </div>
           <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
-            <button onClick={()=>relistBoat()} style={{ ...S.btnBrass, fontSize:13, padding:"9px 20px" }}>Same boat, new buyer →</button>
+            {amInitiator && <button onClick={()=>relistBoat()} style={{ ...S.btnBrass, fontSize:13, padding:"9px 20px" }}>Same boat, new buyer →</button>}
             <button onClick={()=>startNewDeal()} style={{ ...S.btnOutline, fontSize:13, padding:"9px 20px" }}>Start a fresh deal (different boat)</button>
           </div>
         </div>
@@ -6639,7 +6653,7 @@ export default function BoatClosers() {
             </div>
             {iPaid && (
               <>
-                <button onClick={()=>relistBoat()} style={{ ...S.btnBrass, fontSize:13.5, padding:"11px 24px" }}>Find another buyer — start a new deal with this boat →</button>
+                {amInitiator && <button onClick={()=>relistBoat()} style={{ ...S.btnBrass, fontSize:13.5, padding:"11px 24px" }}>Find another buyer — start a new deal with this boat →</button>}
                 <div style={{ marginTop:11 }}>
                   <button
                     onClick={()=>{ setSupportType("Request a refund of my $249 fee"); setSupportMsg(`The earnest-money deposit was never funded on this deal, so it ended before closing.\n\nDeal ID: ${dealId || "—"}\n\nWhat happened: `); setSupportSent(false); setSupportErr(""); setSupportModal(true); }}
@@ -6676,7 +6690,7 @@ export default function BoatClosers() {
             </div>
             <div style={{ display:"flex", gap:9, justifyContent:"center", flexWrap:"wrap" }}>
               <button onClick={()=>setStep(2)} style={{ ...S.btnBrass, fontSize:13, padding:"10px 20px" }}>Back to the Deal Room →</button>
-              {!isBuyer && <button onClick={()=>relistBoat()} style={{ ...S.btnOutline, fontSize:13, padding:"10px 20px" }}>Start over with a different buyer</button>}
+              {!isBuyer && amInitiator && <button onClick={()=>relistBoat()} style={{ ...S.btnOutline, fontSize:13, padding:"10px 20px" }}>Start over with a different buyer</button>}
             </div>
           </div>
         );
