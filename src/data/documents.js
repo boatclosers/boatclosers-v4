@@ -802,9 +802,9 @@ export const DOCUMENTS = [
 <p class="lead recital">This Lien Release applies only where the vessel was subject to a recorded lien or loan. ________________________________ (the \u201cLienholder\u201d) confirms the following regarding the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}.</p>
 
 <h3>Lien Details</h3>
-<div class="field"><span class="k">Lienholder</span><span class="v">________________________________</span></div>
-<div class="field"><span class="k">Loan / Account No.</span><span class="v">____________________</span></div>
-<div class="field"><span class="k">Payoff Amount</span><span class="v">$ ______________</span></div>
+<div class="field"><span class="k">Lienholder</span><span class="v">{{lienholderName}}</span></div>
+<div class="field"><span class="k">Loan / Account No.</span><span class="v">{{lienAcctNo}}</span></div>
+<div class="field"><span class="k">Payoff Amount</span><span class="v">{{lienAmount}}</span></div>
 <div class="field"><span class="k">Vessel Owner of Record</span><span class="v">{{sellerName}}</span></div>
 
 <h3>Release</h3>
@@ -1508,9 +1508,9 @@ export const DOCUMENTS = [
 <p class="lead">The Seller, {{sellerName}}, authorizes the lienholder below to provide a payoff figure and to release its lien on the vessel upon receipt of payment at closing, so clear title can pass to {{buyerName}}.</p>
 
 <h3>Existing Loan</h3>
-<div class="field"><span class="k">Lienholder</span><span class="v">________________________________</span></div>
-<div class="field"><span class="k">Loan / Account No.</span><span class="v">____________________</span></div>
-<div class="field"><span class="k">Estimated payoff</span><span class="v">$ ______________</span></div>
+<div class="field"><span class="k">Lienholder</span><span class="v">{{lienholderName}}</span></div>
+<div class="field"><span class="k">Loan / Account No.</span><span class="v">{{lienAcctNo}}</span></div>
+<div class="field"><span class="k">Estimated payoff</span><span class="v">{{lienAmount}}</span></div>
 <div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}</span></div>
 
 <h3>Authorization</h3>
