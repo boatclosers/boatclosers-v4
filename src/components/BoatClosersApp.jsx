@@ -280,12 +280,18 @@ function TipBox({ tips }) {
 //
 // Three things a transaction platform has to say plainly and keep saying: what it
 // is, what it is not, and where the full terms live. The disclaimer describes what
-// this app actually does. Terms and Privacy are drafts and need a lawyer's review
-// before launch — they are marked as such rather than pretending otherwise.
+// this app actually does. Terms and Privacy have been reviewed by counsel and are
+// the binding versions — the "draft" banner that used to sit above them has gone.
 // ─────────────────────────────────────────────────────────────────────────────
 // The disclaimer describes what this app actually does, so it lives here. Terms
 // and Privacy already exist further down the file as LEGAL — they were just never
 // linked to from anywhere. The footer opens all three without leaving the deal.
+// A FIXED date, deliberately. This was new Date(), so the Terms and Privacy pages
+// claimed to have been updated today, every day — which tells a customer nothing
+// and makes it impossible to know which version they agreed to. Change this by
+// hand when the wording actually changes, and only after counsel has seen it.
+const LEGAL_UPDATED = "August 10, 2026";
+
 const DISCLAIMER = {
   title: "Disclaimer",
   sections: [
@@ -404,11 +410,6 @@ function LegalFooter({ C }) {
               <span style={{ fontFamily:"'Georgia',serif", fontSize:16, color:C.brass }}>{doc.title}</span>
               <button onClick={()=>setOpenKey(null)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.7)", fontSize:20, cursor:"pointer", lineHeight:1 }}>&times;</button>
             </div>
-            {openKey !== "disclaimer" && (
-              <div style={{ background:"#fff4e5", borderBottom:`1px solid ${C.brass}`, padding:"11px 20px", fontSize:11.5, color:"#8a5a12", lineHeight:1.6 }}>
-                Draft &mdash; under review by counsel. Binding terms will be published before launch.
-              </div>
-            )}
             <div style={{ padding:"18px 20px 22px" }}>
               {(doc.sections || []).map(([h, paras]) => (
                 <div key={h} style={{ marginBottom:15 }}>
@@ -419,6 +420,7 @@ function LegalFooter({ C }) {
                 </div>
               ))}
               <div style={{ fontSize:11, color:C.slate, borderTop:`1px solid ${C.mist}`, paddingTop:12, lineHeight:1.6 }}>
+                {openKey !== "disclaimer" && <>Last updated {LEGAL_UPDATED}.<br/></>}
                 Sea Yachts LLC &middot; Licensed Florida Yacht Broker &middot; questions to support@boatclosers.com
               </div>
             </div>
@@ -5954,9 +5956,9 @@ function Landing({ onStart, onLegal }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LEGAL PAGES (Terms + Privacy) — plain-language starting drafts; attorney review needed
+// LEGAL PAGES (Terms + Privacy) — reviewed by counsel and in force. Any change to
+// the wording below should go back to them before it ships.
 // ─────────────────────────────────────────────────────────────────────────────
-const LEGAL_UPDATED = new Date().toLocaleDateString("en-US", { year:"numeric", month:"long", day:"numeric" });
 const LEGAL = {
   terms: {
     title: "Terms of Service",
