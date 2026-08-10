@@ -419,7 +419,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // CG-1340 / CG-1258 forms apply. Detect from the official number; allow opt-in.
   const docDetected = !!String(vessel?.uscgNumber || vessel?.uscgOfficialNo || vessel?.officialNo || "").trim();
   const [docOptIn, setDocOptIn] = useState(false);
-  const [quizOpen, setQuizOpen] = useState(true);
+  const [quizOpen, setQuizOpen] = useState(false);
   const [quizMore, setQuizMore] = useState(false);
   const [quiz, setQuiz] = useState({ pay:"", trailer:false, documented:false, florida:false, lien:false, estate:false, coowner:false, entity:false, poa:false, tradein:false, gift:false, sellerfin:false, losttitle:false, lostreg:false, survey:false, defects:false });
   // documentedActive / floridaActive computed after quiz so the quiz answers count.
@@ -638,9 +638,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     docStatus: signed,
     // Title & Government pack signals + fillable fields
     hasLien: !!(negotiate.sellerHasLien || data.hasLien),
-    lienholderName: negotiate.lienholderName || BLANK,
-    lienAcctNo: negotiate.lienAcctNo || BLANK,
-    lienAmount: negotiate.lienAmount ? fmt(Number(negotiate.lienAmount)) : BLANK,
   };
 
   // ── Map curated docs onto app IDs so the Closing step stays in sync ──
@@ -1147,59 +1144,80 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       </div>
 
       {/* ── OPTIONAL: which documents does your deal need? (skippable) ── */}
-      {quizOpen && (
-        <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px 16px", marginBottom:22, background:"#f7fbfd" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:10 }}>
-            <div>
-              <div style={{ fontSize:14, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}>🧭 Not sure which documents you need?</div>
-              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:2, lineHeight:1.5 }}>Answer a few quick questions and we'll point you to the right ones — or skip and browse all documents below.</div>
-            </div>
-            <button onClick={()=>setQuizOpen(false)} style={{ background:"transparent", border:`1px solid ${C.mist}`, color:C.slate, borderRadius:5, padding:"5px 10px", fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", whiteSpace:"nowrap" }}>Skip — browse all ↓</button>
-          </div>
 
-          <div style={{ marginTop:12, display:"flex", flexDirection:"column", gap:10 }}>
-            {/* Payment */}
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
-              <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>How is the buyer paying?</span>
-              <div style={{ display:"flex", gap:6 }}>
-                {[["cash","Cash"],["finance","Financing"]].map(([v,l])=>(
-                  <button key={v} onClick={()=>setQuiz(q=>({...q,pay:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", border:`2px solid ${quiz.pay===v?C.brass:C.mist}`, background:quiz.pay===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
-                ))}
-              </div>
-            </div>
-            {/* Yes/No toggles — most pertinent up front */}
-            {[["trailer","Is a trailer included in the sale?"],["documented","Is the vessel U.S. Coast Guard documented?"],["florida","Is this transfer happening in Florida?"],["lien","Does the seller still owe money on the boat (a lien to pay off)?"],["estate","Is this an estate or inherited sale?"]].map(([k,label])=>(
-              <div key={k} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
-                <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>{label}</span>
-                <div style={{ display:"flex", gap:6 }}>
-                  {[[true,"Yes"],[false,"No"]].map(([v,l])=>(
-                    <button key={String(v)} onClick={()=>setQuiz(q=>({...q,[k]:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", border:`2px solid ${quiz[k]===v?C.brass:C.mist}`, background:quiz[k]===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            {/* Expandable — less common situations */}
-            {quizMore && [["coowner","Are there co-owners on the current title?"],["entity","Is the buyer or seller a business or LLC?"],["poa","Is anyone signing with power of attorney?"],["tradein","Is a trade-in part of the deal?"],["gift","Is this a gift or family transfer?"],["sellerfin","Is the seller financing it (buyer pays over time)?"],["losttitle","Is the title lost or missing?"],["lostreg","Is the registration lost?"],["survey","Do you want a marine survey on record?"],["defects","Record engine hours / disclose known defects?"]].map(([k,label])=>(
-              <div key={k} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
-                <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>{label}</span>
-                <div style={{ display:"flex", gap:6 }}>
-                  {[[true,"Yes"],[false,"No"]].map(([v,l])=>(
-                    <button key={String(v)} onClick={()=>setQuiz(q=>({...q,[k]:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", border:`2px solid ${quiz[k]===v?C.brass:C.mist}`, background:quiz[k]===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            <button onClick={()=>setQuizMore(m=>!m)} style={{ alignSelf:"flex-start", background:"transparent", border:"none", color:C.teal, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", padding:"2px 0", marginTop:2 }}>
-              {quizMore ? "▴ Fewer questions" : "▾ More questions (for less common situations)"}
-            </button>
-          </div>
-
-        </div>
+      {/* The questionnaire opens over the page. Fifty lines of it sat open by
+          default before, pushing the documents themselves below the fold. */}
+      {!frozen && (
+        <button onClick={()=>setQuizOpen(true)}
+          style={{ display:"flex", alignItems:"center", gap:12, width:"100%", textAlign:"left", background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:8, padding:"13px 15px", marginBottom:20, cursor:"pointer", fontFamily:"sans-serif" }}>
+          <span style={{ fontSize:19, lineHeight:1 }}>\ud83e\udded</span>
+          <span style={{ flex:1 }}>
+            <span style={{ display:"block", fontSize:13.5, fontWeight:800, color:C.navy }}>Not sure which documents you need?</span>
+            <span style={{ display:"block", fontSize:11.5, color:C.slate, marginTop:2, lineHeight:1.5 }}>Answer a few quick questions and we&rsquo;ll point you to the right ones for your sale.</span>
+          </span>
+          <span style={{ fontSize:12, fontWeight:800, color:C.teal, whiteSpace:"nowrap" }}>Start &rarr;</span>
+        </button>
       )}
-      {!quizOpen && (
-        <button onClick={()=>setQuizOpen(true)} style={{ background:"transparent", border:`1px dashed ${C.mist}`, color:C.slate, borderRadius:6, padding:"8px 14px", fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", marginBottom:16 }}>🧭 Help me pick the right documents</button>
+
+      {quizOpen && (
+        <div onClick={()=>setQuizOpen(false)}
+          style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.7)", zIndex:3200, overflowY:"auto", padding:"20px 12px", fontFamily:"sans-serif" }}>
+          <div onClick={e=>e.stopPropagation()}
+            style={{ maxWidth:560, margin:"4vh auto 0", background:"#fff", borderRadius:12, overflow:"hidden", border:`2px solid ${C.teal}` }}>
+            <div style={{ background:C.navy, color:"#fff", padding:"13px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ fontSize:12.5, letterSpacing:1, color:C.brass }}>WHICH DOCUMENTS DO YOU NEED?</span>
+              <button onClick={()=>setQuizOpen(false)}
+                style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.7)", fontSize:20, cursor:"pointer", lineHeight:1 }}>&times;</button>
+            </div>
+            <div style={{ padding:"16px 20px 20px" }}>
+              <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.65, marginBottom:14 }}>
+                Answer what you know. Each one only adds documents &mdash; nothing is removed, and you can change an answer at any time.
+              </div>
+
+    <div style={{ marginTop:12, display:"flex", flexDirection:"column", gap:10 }}>
+    {/* Payment */}
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
+    <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>How is the buyer paying?</span>
+    <div style={{ display:"flex", gap:6 }}>
+    {[["cash","Cash"],["finance","Financing"]].map(([v,l])=>(
+    <button key={v} onClick={()=>setQuiz(q=>({...q,pay:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", border:`2px solid ${quiz.pay===v?C.brass:C.mist}`, background:quiz.pay===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
+    ))}
+    </div>
+    </div>
+    {/* Yes/No toggles — most pertinent up front */}
+    {[["trailer","Is a trailer included in the sale?"],["documented","Is the vessel U.S. Coast Guard documented?"],["florida","Is this transfer happening in Florida?"],["lien","Does the seller still owe money on the boat (a lien to pay off)?"],["estate","Is this an estate or inherited sale?"]].map(([k,label])=>(
+    <div key={k} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
+    <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>{label}</span>
+    <div style={{ display:"flex", gap:6 }}>
+    {[[true,"Yes"],[false,"No"]].map(([v,l])=>(
+    <button key={String(v)} onClick={()=>setQuiz(q=>({...q,[k]:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", border:`2px solid ${quiz[k]===v?C.brass:C.mist}`, background:quiz[k]===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
+    ))}
+    </div>
+    </div>
+    ))}
+
+    {/* Expandable — less common situations */}
+    {quizMore && [["coowner","Are there co-owners on the current title?"],["entity","Is the buyer or seller a business or LLC?"],["poa","Is anyone signing with power of attorney?"],["tradein","Is a trade-in part of the deal?"],["gift","Is this a gift or family transfer?"],["sellerfin","Is the seller financing it (buyer pays over time)?"],["losttitle","Is the title lost or missing?"],["lostreg","Is the registration lost?"],["survey","Do you want a marine survey on record?"],["defects","Record engine hours / disclose known defects?"]].map(([k,label])=>(
+    <div key={k} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
+    <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>{label}</span>
+    <div style={{ display:"flex", gap:6 }}>
+    {[[true,"Yes"],[false,"No"]].map(([v,l])=>(
+    <button key={String(v)} onClick={()=>setQuiz(q=>({...q,[k]:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", border:`2px solid ${quiz[k]===v?C.brass:C.mist}`, background:quiz[k]===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
+    ))}
+    </div>
+    </div>
+    ))}
+
+    <button onClick={()=>setQuizMore(m=>!m)} style={{ alignSelf:"flex-start", background:"transparent", border:"none", color:C.teal, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", padding:"2px 0", marginTop:2 }}>
+    {quizMore ? "▴ Fewer questions" : "▾ More questions (for less common situations)"}
+    </button>
+    </div>
+
+              <button onClick={()=>setQuizOpen(false)}
+                style={{ width:"100%", marginTop:14, background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"11px 0", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"sans-serif" }}>Done &mdash; show my documents</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── BILL OF SALE — its own box (the ownership-transfer document) ── */}
