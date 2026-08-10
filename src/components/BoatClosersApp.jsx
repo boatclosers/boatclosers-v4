@@ -1202,7 +1202,34 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
         </div>
       </div>
       ) : (
-        <div style={{ background:"#eef7f0", border:"1px solid #22a06b", borderRadius:8, padding:"12px 16px", marginTop:16, fontSize:12.5, fontFamily:"sans-serif", color:"#176844", fontWeight:600 }}>✓ Both parties have joined this deal — you're all set. Confirm your details below are correct, then continue.</div>
+        <div style={{ background:"#eef7f0", border:"1px solid #22a06b", borderRadius:8, padding:"13px 16px", marginTop:16, fontFamily:"sans-serif" }}>
+          <div style={{ fontSize:12.5, color:"#176844", fontWeight:700 }}>✓ Both parties have joined this deal</div>
+          <div style={{ fontSize:12, color:"#176844", marginTop:4, lineHeight:1.6 }}>
+            Before you go on, check two things: <b>your own details below</b>, and <b>the boat</b>. Both are copied straight onto the Purchase Agreement, the bill of sale and the title paperwork &mdash; a wrong hull number or year is a wasted trip to the tag office.
+          </div>
+          {(vessel?.year || vessel?.make || vessel?.model) && (
+            <div style={{ background:"#fff", border:"1px solid #cfe6d8", borderRadius:6, padding:"10px 12px", marginTop:10 }}>
+              <div style={{ fontSize:13.5, color:C.navy, fontFamily:"'Georgia',serif" }}>
+                {[vessel.year, vessel.make, vessel.model].filter(Boolean).join(" ")}
+                {vessel.name ? <span style={{ fontSize:11.5, color:C.slate, fontStyle:"italic", fontFamily:"sans-serif" }}> &ldquo;{vessel.name}&rdquo;</span> : null}
+              </div>
+              <div style={{ fontSize:11.5, color:C.slate, marginTop:4, lineHeight:1.7 }}>
+                {[
+                  vessel.hin ? `HIN ${vessel.hin}` : "HIN not entered",
+                  vessel.loa ? `${vessel.loa} ft` : null,
+                  vessel.regNo ? `Reg ${vessel.regNo}` : null,
+                  vessel.regState || vessel.location || null,
+                  vessel.uscgNumber ? `USCG ${vessel.uscgNumber}` : null,
+                  String(vessel.trailerIncluded||"").toLowerCase()==="yes" ? "Trailer included" : null,
+                ].filter(Boolean).join(" · ")}
+              </div>
+              <button onClick={()=>onBack && onBack()}
+                style={{ marginTop:9, background:"transparent", border:`1px solid ${C.mist}`, color:C.navy, borderRadius:14, padding:"5px 13px", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>
+                Something wrong? Edit the boat &rarr;
+              </button>
+            </div>
+          )}
+        </div>
       )}
       <WhatsNext>Next you'll build the offer &mdash; price, deposit, contingencies and dates. When you send it, the other party gets an email and can accept, counter, or flag a conflict.</WhatsNext>
 
@@ -1248,6 +1275,14 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
               </Field>
               <Field label="State / Zip">
                 <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].stateZip} readOnly={locked} onChange={e=>!locked&&set(side,"stateZip",e.target.value)} />
+              </Field>
+              {/* The Purchase Agreement states each party's citizenship, and only a
+                  US citizen may own a Coast Guard documented vessel. It used to be
+                  asserted as "United States" without anyone being asked. */}
+              <Field label="Citizenship">
+                <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input}
+                  value={data[side].citizen || ""} readOnly={locked} placeholder="e.g. United States"
+                  onChange={e=>!locked&&set(side,"citizen",e.target.value)} />
               </Field>
             </Grid2>
             )}
