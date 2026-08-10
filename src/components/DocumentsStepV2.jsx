@@ -409,8 +409,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // official FL state forms are surfaced automatically. If not found, the user can
   // still opt in ("this transfer is happening in Florida").
   const _isFL = (s) => /\b(fl|fla|florida)\b/i.test(String(s || ""));
-  const flDetected = _isFL(parties.buyer?.stateZip) || _isFL(parties.seller?.stateZip)
-    || _isFL(vessel?.location) || _isFL(vessel?.regState);
+  // Where the BOAT is titled decides which state's forms apply — not where either
+  // person happens to live. A Florida buyer purchasing a Georgia-registered boat
+  // was being handed Florida forms, which is the wrong paperwork for that sale.
+  const flDetected = _isFL(vessel?.regState) || _isFL(vessel?.location);
   const [flOptIn, setFlOptIn] = useState(false);
   // ── USCG-documented detection ──────────────────────────────────────────────
   // A vessel with a Coast Guard Official Number is federally documented, so the
