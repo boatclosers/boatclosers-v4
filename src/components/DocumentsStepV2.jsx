@@ -607,6 +607,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     vesselLength: vessel.loa ? vessel.loa+" ft" : BLANK,
     hullMaterial: vessel.hullType || BLANK,
     engineSerial: vessel.engineSerial || BLANK,
+    lienholderName: negotiate?.lienholderName || "________________________________",
+    lienAcctNo:     negotiate?.lienAcctNo     || "____________________",
+    lienAmount:     negotiate?.lienAmount ? fmt(Number(negotiate.lienAmount)) : "$ ______________",
     engineCount: vessel.engineCount || BLANK,
     trailerVin: vessel.trailerVin || BLANK,
     trailerState: vessel.trailerState || BLANK,
@@ -734,6 +737,16 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const htmlCache = useRef({ key: "", map: {} });
 
   const signedCount = Object.keys(signed).length;
+
+  // What this deal actually requires, published for the Closing step. Built here
+  // because this is where the deal facts and the questionnaire answers live.
+  const _reqForClosing = requiredDocs.map(d => ({ id: d.id, label: d.title, why: d.addedWhy || "" }));
+  const _reqKey = _reqForClosing.map(d => d.id).join("|");
+  useEffect(() => {
+    setData(d => (
+      (d.requiredList || []).map(x => x.id).join("|") === _reqKey ? d : { ...d, requiredList: _reqForClosing }
+    ));
+  }, [_reqKey]); // eslint-disable-line
 
   // ── PAYWALL ──
   if (!paid) {
