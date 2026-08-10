@@ -419,7 +419,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // ── USCG-documented detection ──────────────────────────────────────────────
   // A vessel with a Coast Guard Official Number is federally documented, so the
   // CG-1340 / CG-1258 forms apply. Detect from the official number; allow opt-in.
-  const docDetected = !!String(vessel?.uscgNumber || vessel?.uscgOfficialNo || vessel?.officialNo || "").trim();
+  // Same rule as the Vessel step and the citizenship gate: the explicit answer
+  // wins, a typed number still counts, so nothing disagrees between screens.
+  const docDetected = vessel?.isDocumented === "yes"
+    || (vessel?.isDocumented !== "no"
+        && !!String(vessel?.uscgNumber || vessel?.uscgOfficialNo || vessel?.officialNo || "").trim());
   const [docOptIn, setDocOptIn] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const [quizMore, setQuizMore] = useState(false);
@@ -944,7 +948,13 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       "\n.bc-fill-in{border-bottom:1px solid " + C.brass + ";padding:0 4px;min-width:80px;display:inline-block}" +
       "\n.bc-stamp{font-weight:700;padding:0 6px;border-bottom:1px solid " + C.brass + "}" +
       "\n.bc-missing{border-bottom:1px solid #bbb;padding:0 4px;min-width:80px;display:inline-block;color:transparent}" +
-      "\n@page{margin:0.6in}";
+      // The emailed copy gets printed by whoever receives it, so it needs the same
+      // pagination rules — a notary block split across pages is refused either way.
+      "\n@page{margin:0.75in 0.7in}" +
+      "\n.sig,.sigbox,.notary,.bc-notary-flag{break-inside:avoid;page-break-inside:avoid}" +
+      "\n.field,tr,li{break-inside:avoid;page-break-inside:avoid}" +
+      "\nh2,h3{break-after:avoid;page-break-after:avoid;break-inside:avoid}" +
+      "\nh3+p,h3+div,h3+ol,h3+table{break-before:avoid;page-break-before:avoid}";
     return '<!doctype html><html><head><meta charset="utf-8"><title>' + (docObj.title || "Document") + '</title><style>' + css + '</style></head><body>' +
       '<div class="bc-doc-paper">' +
       (docObj.eyebrow ? '<div class="bc-doc-eyebrow">' + docObj.eyebrow + '</div>' : '') +
@@ -1034,7 +1044,16 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       '\n.bc-doc-paper{max-height:none;overflow:visible;border:none;border-top:none;padding:0}' +
       '\nbody{margin:0;padding:28px;background:#fff}' +
       '\n.bc-fill-hint,.bc-lock-note{display:none}' +
-      '\n@page{margin:0.6in}' +
+      '\n@page{margin:0.75in 0.7in}' +
+      // A notary refuses a document where the jurat is orphaned from the signature
+      // it certifies, so these never break across a page.
+      '\n.sig,.sigbox,.notary,.bc-notary-flag{break-inside:avoid;page-break-inside:avoid}' +
+      '\n.field,tr,li{break-inside:avoid;page-break-inside:avoid}' +
+      // A heading stranded at the foot of a page reads as a missing section.
+      '\nh2,h3{break-after:avoid;page-break-after:avoid;break-inside:avoid}' +
+      '\nh3+p,h3+div,h3+ol,h3+table{break-before:avoid;page-break-before:avoid}' +
+      '\n.bc-print-foot{position:fixed;bottom:0;left:0;right:0;text-align:center;font:10px sans-serif;color:#8a8578}' +
+      '\n.bc-blank,.bc-missing{border-bottom:1px solid #555;min-width:120px;display:inline-block}' +
       '</style></head><body>' + node.innerHTML +
       // Browsers ignore CSS @page footers, so the reference is carried in the
       // document itself — a loose page two is otherwise unattributable.
@@ -1105,6 +1124,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 .bc-checklist{margin:6px 0 14px}
 .bc-fill-in{display:inline-block;min-width:90px;border-bottom:1px solid ${C.mist};padding:0 5px;line-height:1.7}
 .bc-stamp{font-weight:700;color:${C.navy};border-bottom:1px solid ${C.brass};padding:0 6px}
+.bc-val{font-weight:700;color:${C.navy}}
 .bc-missing{display:inline-block;min-width:90px;border-bottom:1px solid ${C.mist};padding:0 5px;line-height:1.7;color:transparent;user-select:none}
 .bc-fill-in.filled{border-bottom:1.5px solid ${C.brass};color:${C.navy};font-weight:600}
 .bc-check{font-size:16px;color:${C.slate};user-select:none;padding:0 2px}
