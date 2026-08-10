@@ -2027,9 +2027,26 @@ export const DOCUMENTS = [
 // ───────────────────────────────────────────────────────────────────────────
 
 // Replace every {{field}} in a string with deal[field] (blank if missing).
+// SECURITY: every {{field}} here carries something a person typed — names,
+// addresses, the boat's model, an engine serial. The result is rendered into the
+// page as HTML, so an unescaped value is a script running in the OTHER party's
+// browser, in their session, the moment they open the document. Escape it.
+//
+// The four app-built HTML blocks (deposit terms, contingency clauses, the document
+// request status and the contingency list) are substituted in fillDocument BEFORE
+// this runs, so their markup is untouched by this.
+function escapeHtml(v) {
+  return String(v)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function mergeFields(text, deal) {
   return text.replace(/\{\{(\w+)\}\}/g, (_, key) =>
-    deal && deal[key] != null ? deal[key] : ""
+    deal && deal[key] != null ? escapeHtml(deal[key]) : ""
   );
 }
 
