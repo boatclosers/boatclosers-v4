@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { sendEmail, emailLayout } from '@/lib/sendEmail'
+import { createClient } from '@supabase/supabase-js'
 
 // Receives a help / conflict / refund request from a user and emails it straight
 // to the BoatClosers owner's inbox — with reply_to set to the customer, so you
@@ -46,11 +47,40 @@ function prune() {
   })
 }
 
-export async function POST(req: Request) {
+// AUTH: the form only ever appears to a signed-in user, so require it. Without a
+// check anyone could post here, and since the confirmation goes to whatever
+// address was submitted, that is a way to bounce mail off this domain at a
+// stranger. Taking the address from the verified session rather than the request
+// body closes that off entirely — rate limiting alone only slowed it down.
+async function getSessionUser(req: Request) {
+  const header = req.headers.get('authorization') || ''
+  const token = header.startsWith('Bearer ') ? header.slice(7) : ''
+  if (!token) return null
   try {
-    const { name, email, dealId, role, issueType, message } = await req.json()
+    const sb = createClient(
+      'https://xoihnmkgncuocxiknvgs.supabase.co',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+    const { data, error } = await sb.auth.getUser(token)
+    if (error || !data?.user) return null
+    return data.user
+  } catch { return null }
+}
+
+export async function POST(req: Request) {
+  const sessionUser = await getSessionUser(req)
+  if (!sessionUser) {
+    return NextResponse.json({ error: 'Please sign in, then send your message again.' }, { status: 401 })
+  }
+  try {
+    const body = await req.json()
+    const { dealId, role, issueType, message } = body
+    // Identity comes from the verified session, never from the request body.
+    const email = sessionUser.email
+    const name = (sessionUser.user_metadata as any)?.name || body?.name || ''
     if (!email || !message) {
-      return NextResponse.json({ error: 'Please include your email and a description of the problem.' }, { status: 400 })
+      return NextResponse.json({ error: 'Please include a description of the problem.' }, { status: 400 })
     }
 
     prune()
