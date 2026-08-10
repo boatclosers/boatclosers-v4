@@ -1308,6 +1308,14 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // Where the deposit is held is the buyer's call and the seller's to accept —
   // not something to pre-pick. Blank until chosen; the offer won't send without it.
   const [escrowPath, setEscrowPath] = useState(data.escrowPath || "");
+  // A loan on the boat has to be cleared before title can transfer. These details
+  // went onto three separate documents, typed three times, with three chances to
+  // disagree — on paperwork that goes to a bank. Asked once, here.
+  const [hasLien, setHasLien] = useState(data.sellerHasLien || "");
+  const [lienholderName, setLienholderName] = useState(data.lienholderName || "");
+  const [lienAcctNo, setLienAcctNo] = useState(data.lienAcctNo || "");
+  const [lienAmount, setLienAmount] = useState(data.lienAmount || "");
+  const saveLien = (patch) => setData(d => ({ ...d, ...patch }));
   const [ddDays, setDdDays] = useState(data.dueDiligenceDays || "10");
   const [ddStart, setDdStart] = useState(data.ddStartDate || today());
   const [offerExpiry, setOfferExpiry] = useState("48"); // hours the offer stays valid; "0" = no expiry
@@ -2374,6 +2382,51 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         <OfferSection icon="🛡️" title="Contingencies" desc="Conditions that must be met or you can walk away with your deposit back — like a passing survey or sea trial. Most serious offers include at least a survey contingency." checked={inclContingencies} onToggle={()=>setInclContingencies(v=>!v)}>
           <ContingencyPicker value={localContingencies} onChange={setLocalContingencies} paymentType={paymentType} ddEnd={ddStart && ddDays ? addDays(ddStart, Number(ddDays)) : ""} cashWaived={cashWaived} onCashWaived={setCashWaived} />
         </OfferSection>
+
+        {/* 🏦 Money owed on the boat — the most common reason a closing slips */}
+        <div style={{ border:`1px solid ${hasLien==="yes" ? C.brass : C.mist}`, borderRadius:8, marginBottom:10, background: hasLien==="yes" ? "#fffdf8" : "#fff", padding:"13px 14px" }}>
+          <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>🏦 Money Owed on the Boat</div>
+          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:3, marginBottom:11, lineHeight:1.55 }}>
+            If the seller still owes on a loan, it has to be paid off before the title can transfer. Worth settling early &mdash; it is the most common reason a boat deal stalls at the end.
+          </div>
+          <label style={S.label}>Is there a loan or lien on the vessel?</label>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:10 }}>
+            {[["no","No — owned free and clear"],["yes","Yes — there is a payoff"],["unsure","Not sure yet"]].map(([v,lbl]) => (
+              <button key={v} type="button" onClick={()=>{ setHasLien(v); saveLien({ sellerHasLien: v }); }}
+                style={{ fontSize:12.5, padding:"8px 14px", borderRadius:18, cursor:"pointer", fontFamily:"sans-serif", fontWeight:700,
+                  border:`1.5px solid ${hasLien===v ? C.brass : C.mist}`, background: hasLien===v ? C.brass : C.white, color: hasLien===v ? "#fff" : C.slate }}>{lbl}</button>
+            ))}
+          </div>
+
+          {hasLien === "unsure" && (
+            <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, background:C.sand, borderRadius:6, padding:"10px 12px" }}>
+              Worth settling before closing. A lien search and a written payoff request are both in your documents, and the seller&rsquo;s lender can confirm in a phone call.
+            </div>
+          )}
+
+          {hasLien === "yes" && (
+            <>
+              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:10 }}>
+                These fill in the Payoff Demand, the Lien Release and the Closing Statement, so they only need typing once. Leave blank for now if you don&rsquo;t have them yet.
+              </div>
+              <Field label="Lender / lienholder name">
+                <input style={S.input} value={lienholderName} placeholder="e.g. Bank of the Islands, N.A."
+                  onChange={e=>{ setLienholderName(e.target.value); saveLien({ lienholderName: e.target.value }); }} />
+              </Field>
+              <Field label="Loan or account number">
+                <input style={S.input} value={lienAcctNo} placeholder="as it appears on the statement"
+                  onChange={e=>{ setLienAcctNo(e.target.value); saveLien({ lienAcctNo: e.target.value }); }} />
+              </Field>
+              <Field label="Approximate payoff amount">
+                <input style={S.input} value={lienAmount} placeholder="$" inputMode="decimal"
+                  onChange={e=>{ setLienAmount(e.target.value); saveLien({ lienAmount: e.target.value }); }} />
+              </Field>
+              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+                Get the exact figure from the lender in writing, good through your closing date. Verbal payoff numbers change with interest.
+              </div>
+            </>
+          )}
+        </div>
 
         {/* 🔒 Escrow Terms — opt-in (deposit amount, terms, and where it's held all together) */}
         <OfferSection icon="🔒" title="Escrow Terms" desc="Money the buyer puts down to take the boat off the market while they inspect it. It isn't an extra cost — it comes off the purchase price at closing. Set the amount, what happens to it if the deal falls apart, and who holds it in the meantime. BoatClosers never touches the money; a neutral third party you both agree on holds it." checked={inclDepositTerms} onToggle={()=>setInclDepositTerms(v=>!v)}>
@@ -4943,8 +4996,18 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
   ] : [
     {
       heading:"Core Closing Documents",
-      desc:"The required documents — signed in the Documents step.",
-      docs:[
+      desc:"Everything your deal needs — signed in the Documents step.",
+      docs: (docsData.requiredList && docsData.requiredList.length)
+        ? [
+            { id: bosSignedId || "bill_of_sale", label: bosSignedId ? BOS_LABELS[bosSignedId] : "Bill of Sale", desc: bosSignedId ? "Transfers legal ownership from seller to buyer." : "Transfers legal ownership. Pick the version that fits your sale on the Documents step.", signed: !!bosSignedId },
+            ...docsData.requiredList.map(r => ({
+              id: r.id,
+              label: r.label,
+              desc: r.why ? `Added because of: ${r.why}.` : "",
+              signed: !!docsData.signedDocs?.[r.id],
+            })),
+          ]
+        : [
         { id:"purchase_agreement",  label:"Purchase & Sale Agreement",   desc:"The main binding contract between buyer and seller.", signed:!!docsData.signedDocs?.purchase_agreement },
         { id: bosSignedId || "bill_of_sale", label: bosSignedId ? BOS_LABELS[bosSignedId] : "Bill of Sale", desc: bosSignedId ? "Transfers legal ownership from seller to buyer." : "Transfers legal ownership. Pick the version that fits your sale on the Documents step.", signed: !!bosSignedId },
         { id:"deposit_receipt",     label:"Earnest Money Deposit Receipt",desc:"Confirms earnest money received and how it applies to the price.", signed:!!docsData.signedDocs?.deposit_receipt },
@@ -5961,7 +6024,10 @@ export default function BoatClosers() {
     if (supportSending) return;
     setSupportSending(true); setSupportErr("");
     try {
-      const res = await fetch("/api/support", {
+      // Signed-in call: the route takes the sender's identity from the session
+      // rather than from this payload, so it cannot be used to send mail as
+      // someone else.
+      const res = await authedFetch("/api/support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: user?.name, email: user?.email, dealId, role: myDealRole || user?.role, issueType: supportType, message: supportMsg })
