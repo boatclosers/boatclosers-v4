@@ -761,6 +761,36 @@ export async function GET(req: Request) {
     // If a specific dealId is requested (invited guest arriving from the join
     // flow), load THAT deal directly and make sure this user is attached to it.
     const url = new URL(req.url)
+
+    if (url.searchParams.get('list')) {
+      const { data: rows } = await admin()
+        .from('deals')
+        .select('id,status,paid,created_at,updated_at,finalized_at,vessel,negotiate,initiator_id,other_party_id,party_a_user_id,party_b_user_id')
+        .or(`initiator_id.eq.${userId},other_party_id.eq.${userId},party_a_user_id.eq.${userId},party_b_user_id.eq.${userId}`)
+        .order('updated_at', { ascending: false })
+        .limit(50)
+      const deals = (rows || []).map((r: any) => {
+        const v = r.vessel || {}
+        const n = r.negotiate || {}
+        const offers: any[] = Array.isArray(n.offers) ? n.offers : []
+        const settled = offers.find((o: any) => o && (o.status === 'accepted' || o.status === 'agreed'))
+        return {
+          id: r.id,
+          status: n.dealFinalized ? 'finalized' : (n.canceled ? 'canceled' : (r.status || 'active')),
+          boat: [v.year, v.make, v.model].filter(Boolean).join(' '),
+          vesselName: v.name || '',
+          price: settled?.amount ?? v.askingPrice ?? null,
+          agreed: !!settled,
+          paid: !!(r.paid || n.paid),
+          role: (r.initiator_id === userId || r.party_a_user_id === userId) ? 'initiator' : 'other',
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+          finalizedAt: r.finalized_at || null,
+        }
+      })
+      return NextResponse.json({ deals })
+    }
+
     const dealId = url.searchParams.get('dealId')
     if (dealId) {
       const { data: row } = await admin()
