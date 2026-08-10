@@ -100,6 +100,7 @@ const priceToWords = (n) => {
   return out.trim();
 };
 const PA_DOC_CSS = `
+.bc-pa .bc-blank{display:inline-block;min-width:110px;border-bottom:1px solid #b9b2a4;vertical-align:baseline}
 .bc-pa{font-family:Georgia,'Times New Roman',serif;color:#1c1c1a;font-size:13px;line-height:1.7}
 .bc-pa h3{font-family:Georgia,serif;color:#08152e;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;margin:18px 0 6px}
 .bc-pa p{margin:0 0 10px}
@@ -235,6 +236,14 @@ function Grid2({ children, gap }) {
 // NOTE: this falls through to "Direct to Seller" for anything unrecognised, and it
 // feeds the Purchase Agreement — so every escrow id must be listed here explicitly.
 // A missing entry silently mislabels who is holding the money on a signed contract.
+// Documents rendered outside the Documents step don't pass through its blank-line
+// conversion, so the marker for "not filled in" leaked through as the word
+// MISSING in the middle of a binding agreement.
+function showBlanks(html) {
+  return String(html || "").replace(/\u2591MISSING\u2591/g,
+    '<span class="bc-blank" title="Not filled in yet \u2014 add it in Vessel or Parties">&nbsp;</span>');
+}
+
 function escLabel(p){ return p==="escrow_com"?"Escrow.com":p==="attorney"?"Third-Party Attorney":p==="brokerage"?"Licensed Broker":p==="custom"?"Custom / Other":"Direct to Seller"; }
 
 function OfferSection({ icon, title, desc, checked, onToggle, children }) {
@@ -1827,9 +1836,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     : "buyer";
   const myTurn = whoseTurn === myRole;
 
-  // Price-Agreed / celebration box. Rendered in TWO spots in the Deal Room (top,
-  // and again down in the negotiation area) so a user who lands lower on the page
-  // after signing in can't miss the sign / pay action.
+  // Price-Agreed / celebration box. Shown once, at the top of the Deal Room. It
+  // used to be mirrored at the bottom so nobody scrolled past it, but two identical
+  // boxes with the same buttons on one screen read as a bug.
   const agreedBanner = (!(agreedOffer && !acceptedOffer)) ? null : (() => {
     const buyerSigned = !!(agreedOffer.paBuyerSig && agreedOffer.paBuyerDisc);
     const sellerSigned = !!(agreedOffer.paSellerSig && agreedOffer.paSellerDisc);
@@ -2033,7 +2042,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       paymentType: paModal.paymentType || "",
     };
     const paDoc = DOCUMENTS.find(d => d.id === "psa");
-    const paHtml = paDoc ? fillDocument(paDoc, paFill) : "";
+    // The sentinel is a marker, not text — the Documents page turns it into a
+    // blank line. Rendered raw here, the agreement literally read "MISSING".
+    const paHtml = paDoc ? showBlanks(fillDocument(paDoc, paFill)) : "";
 
     return (
       <div style={{ minHeight:"100vh", background:"rgba(8,21,46,0.85)", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"2rem 1rem" }}>
@@ -2945,9 +2956,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         </div>
       )}
 
-      {/* Mirrored Price-Agreed box at the BOTTOM, so a user who reads down the
-          page lands on the sign / pay action without scrolling back up. */}
-      {agreedBanner}
 
       <WhatsNext>Once the price is agreed and the deal is locked, you move to due diligence &mdash; survey, sea trial, and the earnest-money deposit that holds the boat off the market.</WhatsNext>
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
@@ -4447,7 +4455,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             </div>
             <div style={{ background:"#fff", padding:"16px 18px" }}>
               <style>{PA_DOC_CSS}</style>
-              <div className="bc-pa" style={{ background:"#fffdf8", border:`1px solid ${C.mist}`, borderTop:`4px solid ${C.brass}`, borderRadius:4, padding:"18px 20px", marginBottom:14 }} dangerouslySetInnerHTML={{ __html: fillDocument(DOCUMENTS.find(d=>d.id==="accept"), {
+              <div className="bc-pa" style={{ background:"#fffdf8", border:`1px solid ${C.mist}`, borderTop:`4px solid ${C.brass}`, borderRadius:4, padding:"18px 20px", marginBottom:14 }} dangerouslySetInnerHTML={{ __html: showBlanks(fillDocument(DOCUMENTS.find(d=>d.id==="accept"), {
                 effectiveDate: today(),
                 sellerName: parties.seller?.name || "Seller",
                 buyerName: parties.buyer?.name || vaSigName || "Buyer",
@@ -4456,7 +4464,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 contList: (negotiate.selectedContingencies || (negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.contingencies || []).map(c=>CONTINGENCY_LABELS[c]||c).join(", ") || "the selected contingencies",
                 closingDate: negotiate.closingDate || (negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.closingDate || "____________",
                 depositAmount: fmt((negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.deposit || 0),
-              }) }} />
+              }) ) }} />
               <hr style={S.divider}/>
               <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:4, padding:"9px 12px", fontSize:10, color:"#7a5500", marginBottom:12 }}>
                 By signing, Buyer acknowledges BoatClosers provides document facilitation only — not legal advice or brokerage services — and accepts full responsibility for this transaction.
