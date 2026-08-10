@@ -280,18 +280,12 @@ function TipBox({ tips }) {
 //
 // Three things a transaction platform has to say plainly and keep saying: what it
 // is, what it is not, and where the full terms live. The disclaimer describes what
-// this app actually does. Terms and Privacy have been reviewed by counsel and are
-// the binding versions — the "draft" banner that used to sit above them has gone.
+// this app actually does. Terms and Privacy are drafts and need a lawyer's review
+// before launch — they are marked as such rather than pretending otherwise.
 // ─────────────────────────────────────────────────────────────────────────────
 // The disclaimer describes what this app actually does, so it lives here. Terms
 // and Privacy already exist further down the file as LEGAL — they were just never
 // linked to from anywhere. The footer opens all three without leaving the deal.
-// A FIXED date, deliberately. This was new Date(), so the Terms and Privacy pages
-// claimed to have been updated today, every day — which tells a customer nothing
-// and makes it impossible to know which version they agreed to. Change this by
-// hand when the wording actually changes, and only after counsel has seen it.
-const LEGAL_UPDATED = "August 10, 2026";
-
 const DISCLAIMER = {
   title: "Disclaimer",
   sections: [
@@ -410,6 +404,11 @@ function LegalFooter({ C }) {
               <span style={{ fontFamily:"'Georgia',serif", fontSize:16, color:C.brass }}>{doc.title}</span>
               <button onClick={()=>setOpenKey(null)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.7)", fontSize:20, cursor:"pointer", lineHeight:1 }}>&times;</button>
             </div>
+            {openKey !== "disclaimer" && (
+              <div style={{ background:"#fff4e5", borderBottom:`1px solid ${C.brass}`, padding:"11px 20px", fontSize:11.5, color:"#8a5a12", lineHeight:1.6 }}>
+                Draft &mdash; under review by counsel. Binding terms will be published before launch.
+              </div>
+            )}
             <div style={{ padding:"18px 20px 22px" }}>
               {(doc.sections || []).map(([h, paras]) => (
                 <div key={h} style={{ marginBottom:15 }}>
@@ -420,7 +419,6 @@ function LegalFooter({ C }) {
                 </div>
               ))}
               <div style={{ fontSize:11, color:C.slate, borderTop:`1px solid ${C.mist}`, paddingTop:12, lineHeight:1.6 }}>
-                {openKey !== "disclaimer" && <>Last updated {LEGAL_UPDATED}.<br/></>}
                 Sea Yachts LLC &middot; Licensed Florida Yacht Broker &middot; questions to support@boatclosers.com
               </div>
             </div>
@@ -1441,7 +1439,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const [conflictOpen, setConflictOpen] = useState(false);
   // The same overlay serves two jobs: a seller flagging a conflict mid-negotiation,
   // and either party asking for a change before they sign.
-  const [preSignAsk, setPreSignAsk] = useState(false);
+  const [askMode, setAskMode] = useState("conflict");   // conflict | presign | revise
+  const preSignAsk = askMode === "presign";
+  const reviseAsk = askMode === "revise";
+  const setPreSignAsk = (v) => setAskMode(v ? "presign" : "conflict");
   const [conflictTopic, setConflictTopic] = useState("dates");
   const [conflictMsg, setConflictMsg] = useState("");
   const [conflictSending, setConflictSending] = useState(false);
@@ -1460,12 +1461,18 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           topic: conflictTopic,
           message: conflictMsg,
           toRole: myRole === "seller" ? "buyer" : "seller",
-          preSign: preSignAsk,
+          preSign: preSignAsk || reviseAsk,
+          kind: reviseAsk ? "revise" : undefined,
           fromName: (myRole === "seller" ? parties?.seller?.name : parties?.buyer?.name) || ""
         })
       });
       const r = await res.json();
       if (!res.ok) { setConflictErr(r?.error || "Could not send."); setConflictSending(false); return; }
+      if (reviseAsk) {
+        // Reopening here rather than on click, so a failed email doesn't leave the
+        // deal unpicked apart with nobody told.
+        reviseOffer({ note: "↩️ Asked the buyer to revise the terms. The offer is open for editing again." });
+      }
       setConflictSent(true);
     } catch (e) { setConflictErr("Network error, try again."); }
     setConflictSending(false);
@@ -1609,12 +1616,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     setData(d => ({ ...d, offers: cleared, messages: msgs }));
   };
 
-  const reviseOffer = () => {
+  const reviseOffer = (opts = {}) => {
     const ag = offers.find(o => o.status==="agreed");
     if (!ag) return;
     counterOffer(ag.id);
     const reverted = offers.map(of => of.id===ag.id ? {...of, status:"countered", paBuyerSig:null, paSellerSig:null} : of);
-    const note = { from: myRole, text:"↩️ Reopened the offer to revise the terms before signing.", time:new Date().toLocaleTimeString() };
+    const note = { from: myRole, text: opts.note || "↩️ Reopened the offer to revise the terms before signing.", time:new Date().toLocaleTimeString() };
     const msgs = [...messages, note];
     setOffers(reverted);
     setMessages(msgs);
@@ -1861,8 +1868,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                     ✋ I need a change before I sign
                   </button>
                 )}
-                {!buyerSigned && !sellerSigned && (
-                  <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={reviseOffer} title="Reopen the offer to fix a term before signing">↩️ Revise offer</button>
+                {!buyerSigned && !sellerSigned && myRole === "seller" && (
+                  <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }}
+                    onClick={()=>{ setConflictTopic("dates"); setAskMode("revise"); setConflictOpen(true); }}
+                    title="Reopen the offer and tell the buyer what needs changing">
+                    ↩️ Ask the buyer to revise
+                  </button>
+                )}
+                {!buyerSigned && !sellerSigned && myRole !== "seller" && (
+                  <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={()=>reviseOffer()} title="Reopen the offer to fix a term before signing">↩️ Revise offer</button>
                 )}
               </div>
             </>
@@ -1982,22 +1996,26 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     const paFill = {
       dealRef: data.dealRef || ("BC-" + String(Date.now()).slice(-5)),
       effectiveDate: today(),
-      sellerName: parties.seller.name || paModal.paSellerSig || "[Seller Name]",
-      sellerAddress: `${parties.seller.address||""} ${parties.seller.city||""} ${parties.seller.stateZip||""}`.trim() || "[Seller Address]",
-      sellerCitizen: "United States",
-      buyerName: parties.buyer.name || paModal.paBuyerSig || "[Buyer Name]",
-      buyerAddress: `${parties.buyer.address||""} ${parties.buyer.city||""} ${parties.buyer.stateZip||""}`.trim() || "[Buyer Address]",
-      buyerCitizen: "United States",
-      vesselYear: vessel.year||"[Year]", vesselMake: vessel.make||"[Make]", vesselModel: vessel.model||"[Model]",
-      vesselLength: vessel.loa ? vessel.loa+" ft" : "[Length]",
-      hullMaterial: vessel.hullType || "[Hull]",
-      hin: vessel.hin || "[HIN]",
+      sellerName: parties.seller.name || paModal.paSellerSig || "\u2591MISSING\u2591",
+      sellerAddress: `${parties.seller.address||""} ${parties.seller.city||""} ${parties.seller.stateZip||""}`.trim() || "\u2591MISSING\u2591ss]",
+      sellerCitizen: parties.seller.citizen || "\u2591MISSING\u2591",
+      buyerName: parties.buyer.name || paModal.paBuyerSig || "\u2591MISSING\u2591",
+      buyerAddress: `${parties.buyer.address||""} ${parties.buyer.city||""} ${parties.buyer.stateZip||""}`.trim() || "\u2591MISSING\u2591",
+      buyerCitizen: parties.buyer.citizen || "\u2591MISSING\u2591",
+      vesselYear: vessel.year||"\u2591MISSING\u2591", vesselMake: vessel.make||"\u2591MISSING\u2591", vesselModel: vessel.model||"\u2591MISSING\u2591",
+      vesselLength: vessel.loa ? vessel.loa+" ft" : "\u2591MISSING\u2591",
+      hullMaterial: vessel.hullType || "\u2591MISSING\u2591",
+      hin: vessel.hin || "\u2591MISSING\u2591",
       uscgOfficialNo: vessel.uscgNumber || "N/A",
-      titleNo: vessel.regNumber || "[Title No.]",
-      regNo: vessel.regNumber || "[Reg]",
-      vesselState: vessel.regState || vessel.location || "[State]",
-      engineDesc: `${vessel.engineCount||"1"} × ${vessel.engineMake||""} ${vessel.engineModel||""}`.trim() || "[Engine]",
+      titleNo: vessel.regNumber || "\u2591MISSING\u2591",
+      regNo: vessel.regNumber || "\u2591MISSING\u2591",
+      vesselState: vessel.regState || vessel.location || "\u2591MISSING\u2591",
+      engineDesc: (`${vessel.engineMake||""} ${vessel.engineModel||""}`.trim()
+        ? `${vessel.engineCount||"1"} \u00d7 ${vessel.engineMake||""} ${vessel.engineModel||""}`.trim()
+        : "\u2591MISSING\u2591"),
       salePrice: fmt(paAgreed), salePriceWords: priceToWords(paAgreed),
+      // The deposit clause reads this to name the right holder.
+      escrowPath: paModal.escrowPath || negotiate.escrowPath || "",
       depositAmount: fmt(paDep), depositPct: pctLabel(paModal.escrowPct||0)+"%",
       // The contract used to say the deposit was due "upon execution" while the app
       // enforced an agreed 12/24/36-hour window, and it named no consequence at all
@@ -2007,7 +2025,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         ? `<p>Buyer shall deliver the earnest money deposit to the escrow holder identified in this Agreement within <strong>${Number(paModal.depositHours) || 24} hours</strong> of this Agreement being executed by both parties. Time is of the essence as to this obligation. If Buyer fails to deliver the deposit within that period, Seller may, at Seller&rsquo;s sole option and upon written notice to Buyer, either extend the time for delivery or terminate this Agreement, whereupon neither party shall have further obligation to the other and Seller shall be free to offer the Vessel to other buyers. Return or forfeiture of a deposit once delivered is governed by the contingencies and remedies stated elsewhere in this Agreement.</p>`
         : `<p>No earnest money deposit is required under this Agreement. The Vessel is not held off the market, and Seller may continue to show and offer the Vessel to other buyers until Closing.</p>`,
       balanceDue: fmt(Math.max(0, paAgreed - paDep)),
-      closingDate: paModal.closingDate || "[Closing Date]",
+      closingDate: paModal.closingDate || "\u2591MISSING\u2591",
       closingLocation: vessel.location || "the location where the Vessel is moored",
       surveyDeadline: paDDEnd || "____________", inspectionDeadline: paDDEnd || "____________", seaTrialDeadline: paDDEnd || "____________", financingDeadline: paDDEnd || "____________",
       brokerFee: "$249.00",
@@ -2725,19 +2743,21 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       ) : null}
 
       {conflictOpen && !conflictSent && (
-        <div onClick={()=>{ setConflictOpen(false); setConflictErr(""); setPreSignAsk(false); setPreSignAsk(false); }}
+        <div onClick={()=>{ setConflictOpen(false); setConflictErr(""); setAskMode("conflict"); setPreSignAsk(false); }}
           style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.7)", zIndex:4000, overflowY:"auto", padding:"20px 12px", fontFamily:"sans-serif" }}>
           <div onClick={e=>e.stopPropagation()}
             style={{ maxWidth:520, margin:"4vh auto 0", background:"#fff", borderRadius:12, overflow:"hidden", border:`2px solid ${C.brass}` }}>
             <div style={{ background:C.navy, color:"#fff", padding:"13px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <span style={{ fontSize:12.5, letterSpacing:1, color:C.brass }}>{preSignAsk ? "ASK FOR A CHANGE BEFORE SIGNING" : "FLAG A CONFLICT"}</span>
-              <button onClick={()=>{ setConflictOpen(false); setConflictErr(""); setPreSignAsk(false); setPreSignAsk(false); }}
+              <span style={{ fontSize:12.5, letterSpacing:1, color:C.brass }}>{reviseAsk ? "ASK THE BUYER TO REVISE" : preSignAsk ? "ASK FOR A CHANGE BEFORE SIGNING" : "FLAG A CONFLICT"}</span>
+              <button onClick={()=>{ setConflictOpen(false); setConflictErr(""); setAskMode("conflict"); setPreSignAsk(false); }}
                 style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.7)", fontSize:20, cursor:"pointer", lineHeight:1 }}>&times;</button>
             </div>
             <div style={{ padding:"18px 20px 20px" }}>
-              <div style={{ fontFamily:"'Georgia',serif", fontSize:18, color:C.navy, marginBottom:6 }}>{preSignAsk ? "Ask for a change before you sign" : "Ask the buyer to adjust their terms"}</div>
+              <div style={{ fontFamily:"'Georgia',serif", fontSize:18, color:C.navy, marginBottom:6 }}>{reviseAsk ? "Ask the buyer to revise the terms" : preSignAsk ? "Ask for a change before you sign" : "Ask the buyer to adjust their terms"}</div>
               <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:14 }}>
-                {preSignAsk
+                {reviseAsk
+                  ? <>The buyer writes the terms, so only they can change them. Tell them what needs revising and the offer reopens for editing &mdash; they will get an email and the agreed price is set aside until you both agree again. <b>This does not end the deal.</b></>
+                  : preSignAsk
                   ? <>The other party has already signed, so nothing can be edited while their signature stands. Tell them what needs to change &mdash; they can withdraw their signature to reopen the terms, and you both sign the revised agreement. <b>Sending this does not sign anything or end the deal.</b></>
                   : <>You can&rsquo;t edit the buyer&rsquo;s offer &mdash; they author the terms. What you can do is tell them exactly what doesn&rsquo;t work, so they can change it and send the offer again.</>}
               </div>
@@ -2751,15 +2771,17 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               <textarea style={{ ...S.textarea, minHeight:96 }} value={conflictMsg} onChange={e=>setConflictMsg(e.target.value)}
                 placeholder="e.g. The 10-day closing date won't work — I need until the 30th to clear the lien." />
               <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:8 }}>
-                {preSignAsk
+                {reviseAsk
+                  ? "The buyer gets an email and the offer reopens for them to edit. Nothing is signed or cancelled."
+                  : preSignAsk
                   ? "This emails the other party. Their signature stays in place until they choose to withdraw it."
                   : "This goes to the buyer by email with your deal attached. It does not change or reject their offer \u2014 they still hold the terms."}
               </div>
               {conflictErr && <div style={{ fontSize:12, color:"#dc2626", marginTop:8 }}>{conflictErr}</div>}
               <div style={{ display:"flex", gap:10, marginTop:16 }}>
-                <button onClick={()=>{ setConflictOpen(false); setConflictErr(""); setPreSignAsk(false); setPreSignAsk(false); }} style={{ ...S.btnOutline, flex:1, fontSize:13 }}>Cancel</button>
+                <button onClick={()=>{ setConflictOpen(false); setConflictErr(""); setAskMode("conflict"); setPreSignAsk(false); }} style={{ ...S.btnOutline, flex:1, fontSize:13 }}>Cancel</button>
                 <button onClick={sendConflict} disabled={conflictSending} style={{ ...S.btnBrass, flex:1, fontSize:13, opacity:conflictSending?0.6:1 }}>
-                  {conflictSending ? "Sending\u2026" : (preSignAsk ? "Send the request" : "Email the buyer")}
+                  {conflictSending ? "Sending\u2026" : (reviseAsk ? "Reopen and ask the buyer" : preSignAsk ? "Send the request" : "Email the buyer")}
                 </button>
               </div>
             </div>
@@ -5956,9 +5978,9 @@ function Landing({ onStart, onLegal }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LEGAL PAGES (Terms + Privacy) — reviewed by counsel and in force. Any change to
-// the wording below should go back to them before it ships.
+// LEGAL PAGES (Terms + Privacy) — plain-language starting drafts; attorney review needed
 // ─────────────────────────────────────────────────────────────────────────────
+const LEGAL_UPDATED = new Date().toLocaleDateString("en-US", { year:"numeric", month:"long", day:"numeric" });
 const LEGAL = {
   terms: {
     title: "Terms of Service",
