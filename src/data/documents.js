@@ -2158,36 +2158,32 @@ export function assembleDepositHolder(deal) {
   const path = d.escrowPath || "";
   const noDeposit = !d.depositAmount || /^\$?0(\.00)?$/.test(String(d.depositAmount).replace(/[,\s]/g, ""));
 
+  // The Purchase Agreement is signed in the Deal Room, not through the fill-in
+  // engine — there is no way to type into it. So this carries NO blanks. Where the
+  // Parties have chosen a holder the clause names it; where they have not, the
+  // wording binds them to designate one in writing and covers every arrangement
+  // they might pick.
+  const neutralDuty =
+    `<p>Whoever holds the earnest money holds it in accordance with the terms of this Agreement and applicable law, and is not responsible for determining which Party is entitled to it in the event of a dispute. The Parties shall confirm the identity of the Deposit Holder and its payment instructions in writing before the deposit is paid, and neither Party shall rely on payment instructions received by any other means.</p>`;
+
   if (noDeposit) {
     return `<p>The Parties have agreed that <b>no earnest money deposit</b> is payable under this Agreement. References in this Agreement to the earnest money deposit have no effect unless the Parties later agree to a deposit in writing.</p>`;
   }
 
-  const blanks =
-    `<div class="field"><span class="k">Holder \u2014 name</span><span class="v">________________________________</span></div>` +
-    `<div class="field"><span class="k">Company / firm</span><span class="v">________________________________</span></div>` +
-    `<div class="field"><span class="k">Address</span><span class="v">________________________________</span></div>` +
-    `<div class="field"><span class="k">Email</span><span class="v">________________________________</span></div>`;
-
-  const neutralDuty =
-    `<p>The holder of the earnest money holds it solely in accordance with the terms of this Agreement and applicable law, and is not responsible for determining whether Buyer or Seller is entitled to the deposit in the event of a dispute.</p>`;
-
   if (path === "escrow_com") {
-    return `<p>The earnest money deposit shall be delivered to and held by <b>Escrow.com</b>, a licensed online escrow service, under that service\u2019s own escrow terms, and shall be applied toward the Purchase Price at Closing. The Parties shall each complete the steps that service requires to fund and release the deposit.</p>` +
-      `<div class="field"><span class="k">Escrow.com transaction reference</span><span class="v">____________________</span></div>` +
-      neutralDuty;
+    return `<p>The earnest money deposit shall be delivered to and held by <b>Escrow.com</b>, a licensed online escrow service (the \u201cDeposit Holder\u201d), under that service\u2019s own escrow terms, and shall be applied toward the Purchase Price at Closing. Each Party shall complete the steps that service requires to fund and release the deposit.</p>` + neutralDuty;
   }
   if (path === "attorney") {
-    return `<p>The earnest money deposit shall be delivered to and held in the trust account of the <b>attorney</b> identified below, and shall be applied toward the Purchase Price at Closing.</p>` + blanks + neutralDuty;
+    return `<p>The earnest money deposit shall be delivered to and held in the trust account of the <b>attorney the Parties have designated in writing</b> (the \u201cDeposit Holder\u201d), and shall be applied toward the Purchase Price at Closing.</p>` + neutralDuty;
   }
   if (path === "brokerage") {
-    return `<p>The earnest money deposit shall be delivered to and held in the escrow or trust account of the <b>licensed broker</b> identified below, and shall be applied toward the Purchase Price at Closing.</p>` + blanks + neutralDuty;
+    return `<p>The earnest money deposit shall be delivered to and held in the escrow or trust account of the <b>licensed broker the Parties have designated in writing</b> (the \u201cDeposit Holder\u201d), and shall be applied toward the Purchase Price at Closing.</p>` + neutralDuty;
   }
   if (path === "direct") {
-    return `<p>The Parties have agreed that <b>no third-party escrow agent will be used</b>. The earnest money deposit shall be paid directly to Seller and shall be applied toward the Purchase Price at Closing.</p>` +
-      `<p>Buyer acknowledges that a deposit paid directly to Seller is not held by a neutral party, and that recovering it if the sale does not complete may require Buyer to pursue Seller directly. Seller shall return the deposit to Buyer where this Agreement requires it to be returned.</p>`;
+    return `<p>The Parties have agreed that <b>no third-party escrow will be used</b>. The earnest money deposit shall be paid directly to Seller, who shall hold it as the Deposit Holder, and it shall be applied toward the Purchase Price at Closing.</p>` +
+      `<p>Buyer acknowledges that a deposit paid directly to Seller is not held by a neutral party, and that recovering it if the sale does not complete may require Buyer to pursue Seller directly. Seller shall return the deposit to Buyer where this Agreement requires it to be returned, and shall not treat a disputed deposit as Seller\u2019s own funds while the dispute is unresolved.</p>` + neutralDuty;
   }
-  // Some other arrangement, or nothing chosen yet — leave it to be completed.
-  return `<p>The earnest money deposit shall be delivered to and held by the person or firm identified below, and shall be applied toward the Purchase Price at Closing. If the Parties have not agreed on a holder, they shall do so in writing before the deposit is paid.</p>` + blanks + neutralDuty;
+  return `<p>The earnest money deposit shall be delivered to and held by the person or entity the Parties designate in writing (the \u201cDeposit Holder\u201d), and shall be applied toward the Purchase Price at Closing. The Deposit Holder may be a licensed online escrow service, an attorney\u2019s trust account, a licensed broker\u2019s escrow or trust account, a title or closing agent, or \u2014 only if the Parties expressly agree in writing \u2014 the Seller. Where the Deposit Holder is the Seller, Buyer acknowledges the deposit is not held by a neutral party.</p>` + neutralDuty;
 }
 
 // Section 13 has to match. Where the Seller holds the money there is no agent to
