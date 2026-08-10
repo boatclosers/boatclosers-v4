@@ -414,6 +414,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // was being handed Florida forms, which is the wrong paperwork for that sale.
   const flDetected = _isFL(vessel?.regState) || _isFL(vessel?.location);
   const [flOptIn, setFlOptIn] = useState(false);
+  // Documents pulled in on demand past their showIf gate.
+  const [forcedDocs, setForcedDocs] = useState([]);
   // ── USCG-documented detection ──────────────────────────────────────────────
   // A vessel with a Coast Guard Official Number is federally documented, so the
   // CG-1340 / CG-1258 forms apply. Detect from the official number; allow opt-in.
@@ -539,6 +541,17 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // Open one document into focused view: mark it active, show its filled body,
   // and make sure its group is expanded.
   const openDoc = (docId) => {
+    // Some documents are hidden by showIf until the deal calls for them — the USCG
+    // transfer needs a documentation number, the lien release needs a lien. When
+    // something explicitly asks for one anyway (the bill of sale picker lists it,
+    // a search result, a required row), fall back to the full catalogue rather
+    // than doing nothing, which is what an Open button that appears dead is.
+    if (!DOC_SET.some(d => d.id === docId)) {
+      const raw = DOCUMENTS.find(d => (ID_MAP[d.id] || d.id) === docId || d.id === docId);
+      if (raw) {
+        setForcedDocs(f => (f.includes(docId) ? f : [...f, docId]));
+      }
+    }
     setActiveDoc(docId);
     setDocAction(d => ({ ...d, [docId]: "view" }));
     const grp = (DOC_SET.find(x => x.id === docId) || {}).group;
@@ -652,7 +665,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const REQUIRED = new Set(["purchase_agreement","bill_of_sale","deposit_receipt","as_is_acknowledgment","closing_statement","acceptance"]);
   const hasAddendum = !!(negotiate?.addendum && (negotiate.addendum.newPrice || negotiate.addendum.buyer));
   const DOC_SET = DOCUMENTS
-    .filter(d => typeof d.showIf !== "function" || d.showIf(deal))
+    .filter(d => typeof d.showIf !== "function" || d.showIf(deal) || forcedDocs.includes(ID_MAP[d.id] || d.id))
     // State and federal forms are always available. They used to be hidden behind an
     // "Add" box, which meant a customer who needed one had to know it existed before
     // they could find it. Detection now decides what we RECOMMEND, not what exists.
