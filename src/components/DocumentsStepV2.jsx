@@ -567,8 +567,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   };
 
   // ── Build the deal object documents.js fills from ──
-  const agreed = Number(negotiate.agreedPrice||0);
-  const dep = Number(negotiate.deposit||0);
+  // The Deal Room shows the price from the accepted offer; the documents used to
+  // read negotiate.agreedPrice alone. When a deal locked by a path that never
+  // wrote that field, the banner said $44,000 and the Bill of Sale said "Zero
+  // U.S. Dollars" — on a document that transfers ownership. Take whichever the
+  // deal actually has, preferring the offer both parties signed against.
+  const _acc = (negotiate.offers || []).find(o => o && o.status === "accepted")
+            || (negotiate.offers || []).find(o => o && o.status === "agreed");
+  const agreed = Number(_acc?.amount || negotiate.agreedPrice || 0);
+  const dep = Number(_acc?.deposit || negotiate.deposit || 0);
   const ddEndCalc = terms.ddStartDate && terms.dueDiligenceDays ? addDays(terms.ddStartDate, Number(terms.dueDiligenceDays)) : "";
   // Use the buyer's picks from Negotiate & Terms; fall back to a sensible default.
   let selectedContingencies = negotiate.selectedContingencies;
@@ -601,7 +608,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     sellerAddress: `${parties.seller.address||""} ${parties.seller.city||""} ${parties.seller.stateZip||""}`.trim() || BLANK,
     buyerName: parties.buyer.name || _accOffer?.paBuyerSig || BLANK,
     buyerAddress: `${parties.buyer.address||""} ${parties.buyer.city||""} ${parties.buyer.stateZip||""}`.trim() || BLANK,
-    vesselYear: vessel.year||"[Year]", vesselMake: vessel.make||"[Make]", vesselModel: vessel.model||"[Model]",
+    vesselYear: vessel.year||BLANK, vesselMake: vessel.make||BLANK, vesselModel: vessel.model||BLANK,
     vesselLength: vessel.loa ? vessel.loa+" ft" : BLANK,
     hullMaterial: vessel.hullType || BLANK,
     engineSerial: vessel.engineSerial || BLANK,
@@ -615,12 +622,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     trailerState: vessel.trailerState || BLANK,
     hin: vessel.hin || BLANK,
     uscgOfficialNo: vessel.uscgNumber || "N/A",
-    titleNo: vessel.regNumber || BLANK,
+    titleNo: vessel.titleNumber || BLANK,
     regNo: vessel.regNumber || BLANK,
     vesselState: vessel.regState || vessel.location || BLANK,
     engineDesc: engineParts ? `${vessel.engineCount||"1"} × ${engineParts}` : BLANK,
     salePrice: fmt(agreed), salePriceWords: priceToWords(agreed),
-    depositAmount: fmt(dep), depositPct: (negotiate.escrowPct||0)+"%",
+    depositAmount: fmt(dep), depositPct: (_acc?.escrowPct ?? negotiate.escrowPct ?? 0)+"%",
     balanceDue: fmt(Math.max(0, agreed-dep)),
     reducedPrice: "", reduction: "",
     closingDate: terms.closingDate || negotiate.closingDate || _accOffer?.closingDate || BLANK,
