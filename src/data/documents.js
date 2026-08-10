@@ -2109,10 +2109,19 @@ function escapeHtml(v) {
     .replace(/'/g, "&#39;");
 }
 
+// Values that came from the deal are wrapped so a customer can tell at a glance
+// what the app filled in versus the standard wording — and spot a wrong name or
+// hull number in prose, where a field row would otherwise carry it invisibly.
+// Field rows already right-align and bold their values, so those are left alone.
+const NO_EMPHASIS = new Set(["effectiveDate", "brokerFee", "docStatus"]);
+
 function mergeFields(text, deal) {
-  return text.replace(/\{\{(\w+)\}\}/g, (_, key) =>
-    deal && deal[key] != null ? escapeHtml(deal[key]) : ""
-  );
+  return text.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+    if (!deal || deal[key] == null) return "";
+    const safe = escapeHtml(deal[key]);
+    if (NO_EMPHASIS.has(key) || !String(safe).trim()) return safe;
+    return '<span class="bc-val">' + safe + '</span>';
+  });
 }
 
 // Comma-separated names of the contingencies the buyer selected.
