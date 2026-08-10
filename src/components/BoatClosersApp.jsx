@@ -3032,8 +3032,11 @@ const SELLER_PREP = [
 // Shared rejection notice + deposit-refund walkthrough. Shown to the seller in
 // due diligence, and to both parties at closing, from the synced negotiate data.
 function RejectionNotice({ rejection, escrowPath, viewerRole, vessel, isInitiator }) {
-  if (!rejection) return null;
+  // The ref must be created before any early return: React counts hooks per render,
+  // and bailing out first meant the count changed the moment a deal was rejected —
+  // "Rendered more hooks than during the previous render", and a blank screen.
   const noticeRef = useRef(null);
+  if (!rejection) return null;
   const printNotice = () => {
     const node = noticeRef.current;
     if (!node) return;
@@ -5160,10 +5163,14 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
       ) : (
         <div style={{ marginTop:"1.5rem" }}>
           <div style={{ background:C.sandDark, border:`1px solid ${C.brass}`, borderRadius:8, padding:"14px 16px", marginBottom:14, fontFamily:"sans-serif" }}>
-            <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:4 }}>Ready to close this deal?</div>
-            <div style={{ fontSize:12, color:C.slate, lineHeight:1.7 }}>Finalizing locks the entire deal &mdash; terms, documents, and signatures become permanent and can&rsquo;t be changed. Do this once the sale is fully complete and both sides have their copies.</div>
+            <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:4 }}>{amInitiator ? "Ready to close this deal?" : "Waiting on the other party to finalize"}</div>
+            <div style={{ fontSize:12, color:C.slate, lineHeight:1.7 }}>{!amInitiator && <><b>The person who started this deal finalizes it.</b> Everything above is still yours to complete &mdash; sign what is outstanding and tick off your steps, and they will close it when both sides are done.<br/><br/></>}Finalizing locks the entire deal &mdash; terms, documents, and signatures become permanent and can&rsquo;t be changed. Do this once the sale is fully complete and both sides have their copies.</div>
           </div>
-          {!confirmFinalize ? (
+          {!amInitiator ? (
+            <div style={{ display:"flex", justifyContent:"space-between", gap:10, flexWrap:"wrap" }}>
+              <button style={S.btnOutline} onClick={onBack}>&larr; Back to Documents</button>
+            </div>
+          ) : !confirmFinalize ? (
             <div style={{ display:"flex", justifyContent:"space-between", gap:10, flexWrap:"wrap" }}>
               <button style={S.btnOutline} onClick={onBack}>&larr; Back to Documents</button>
               <button style={{ ...S.btnBrass, fontSize:14, fontWeight:800, padding:"12px 22px" }} onClick={()=>setConfirmFinalize(true)}>✓ Finalize &mdash; Deal Closed</button>
