@@ -2635,32 +2635,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         {/* SELLER-ONLY: flag a conflict on dates/deposit terms (emails the buyer) */}
         {myRole==="seller" && (
           <div style={{ marginTop:14, border:`1px solid ${C.mist}`, borderRadius:8, padding:"12px 14px" }}>
-            {!conflictOpen && !conflictSent && (
+            {!conflictSent && (
               <button onClick={()=>setConflictOpen(true)} style={{ ...S.btnOutline, width:"100%", fontSize:13, padding:"9px 0", fontWeight:700 }}>
-                ⚠️ Flag a conflict with the buyer's terms
+                ⚠️ Flag a conflict with the buyer&rsquo;s terms &rarr;
               </button>
-            )}
-            {conflictOpen && !conflictSent && (
-              <div>
-                <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>Ask the buyer to adjust their terms</div>
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginBottom:10, lineHeight:1.5 }}>
-                  You can't edit the buyer's offer, but you can email them to flag a conflict on the schedule or deposit terms and ask them to adjust so the deal can move forward.
-                </div>
-                <label style={{ ...S.label, marginBottom:5 }}>What's the conflict about?</label>
-                <select style={{ ...S.input, marginBottom:10 }} value={conflictTopic} onChange={e=>setConflictTopic(e.target.value)}>
-                  <option value="dates">Schedule / Dates</option>
-                  <option value="deposit">Deposit Terms</option>
-                  <option value="contingencies">Contingencies</option>
-                </select>
-                <textarea style={{ ...S.textarea, minHeight:70 }} value={conflictMsg} onChange={e=>setConflictMsg(e.target.value)} placeholder="e.g. The 10-day closing won't work on my end — I'd need at least 21 days. Can you adjust?" />
-                {conflictErr && <div style={{ fontSize:11, color:"#dc2626", fontFamily:"sans-serif", marginTop:6 }}>{conflictErr}</div>}
-                <div style={{ display:"flex", gap:8, marginTop:10 }}>
-                  <button onClick={sendConflict} disabled={conflictSending} style={{ ...S.btnBrass, flex:1, fontSize:13, padding:"9px 0", opacity:conflictSending?0.6:1 }}>
-                    {conflictSending ? "Sending…" : "Email the buyer"}
-                  </button>
-                  <button onClick={()=>{ setConflictOpen(false); setConflictErr(""); }} style={{ ...S.btnOutline, fontSize:13, padding:"9px 16px" }}>Cancel</button>
-                </div>
-              </div>
             )}
             {conflictSent && (
               <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:"#166534", background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:6, padding:"10px 12px" }}>
@@ -2671,6 +2649,45 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         )}
       </div>
       ) : null}
+
+      {conflictOpen && !conflictSent && (
+        <div onClick={()=>{ setConflictOpen(false); setConflictErr(""); }}
+          style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.7)", zIndex:4000, overflowY:"auto", padding:"20px 12px", fontFamily:"sans-serif" }}>
+          <div onClick={e=>e.stopPropagation()}
+            style={{ maxWidth:520, margin:"4vh auto 0", background:"#fff", borderRadius:12, overflow:"hidden", border:`2px solid ${C.brass}` }}>
+            <div style={{ background:C.navy, color:"#fff", padding:"13px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ fontSize:12.5, letterSpacing:1, color:C.brass }}>FLAG A CONFLICT</span>
+              <button onClick={()=>{ setConflictOpen(false); setConflictErr(""); }}
+                style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.7)", fontSize:20, cursor:"pointer", lineHeight:1 }}>&times;</button>
+            </div>
+            <div style={{ padding:"18px 20px 20px" }}>
+              <div style={{ fontFamily:"'Georgia',serif", fontSize:18, color:C.navy, marginBottom:6 }}>Ask the buyer to adjust their terms</div>
+              <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:14 }}>
+                You can&rsquo;t edit the buyer&rsquo;s offer &mdash; they author the terms. What you can do is tell them exactly what doesn&rsquo;t work, so they can change it and send the offer again.
+              </div>
+              <label style={{ ...S.label, marginBottom:5 }}>What&rsquo;s the conflict about?</label>
+              <select style={{ ...S.input, marginBottom:12 }} value={conflictTopic} onChange={e=>setConflictTopic(e.target.value)}>
+                <option value="dates">Schedule / Dates</option>
+                <option value="deposit">Deposit Terms</option>
+                <option value="contingencies">Contingencies</option>
+              </select>
+              <label style={{ ...S.label, marginBottom:5 }}>What needs to change?</label>
+              <textarea style={{ ...S.textarea, minHeight:96 }} value={conflictMsg} onChange={e=>setConflictMsg(e.target.value)}
+                placeholder="e.g. The 10-day closing date won't work — I need until the 30th to clear the lien." />
+              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:8 }}>
+                This goes to the buyer by email with your deal attached. It does not change or reject their offer &mdash; they still hold the terms.
+              </div>
+              {conflictErr && <div style={{ fontSize:12, color:"#dc2626", marginTop:8 }}>{conflictErr}</div>}
+              <div style={{ display:"flex", gap:10, marginTop:16 }}>
+                <button onClick={()=>{ setConflictOpen(false); setConflictErr(""); }} style={{ ...S.btnOutline, flex:1, fontSize:13 }}>Cancel</button>
+                <button onClick={sendConflict} disabled={conflictSending} style={{ ...S.btnBrass, flex:1, fontSize:13, opacity:conflictSending?0.6:1 }}>
+                  {conflictSending ? "Sending\u2026" : "Email the buyer"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── NEGOTIATION LADDER ── */}
       {offers.length > 0 && (() => {
