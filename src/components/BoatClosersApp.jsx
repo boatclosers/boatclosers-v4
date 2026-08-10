@@ -974,7 +974,10 @@ function StepVessel({ data, setData, userRole, onNext }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 1 — PARTIES (role-aware)
 // ─────────────────────────────────────────────────────────────────────────────
-function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, onBack, dealId, user, ensureSaved }) {
+function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, onNext, onBack, dealId, user, ensureSaved }) {
+  // Citizenship is only asked where it changes anything: a Coast Guard documented
+  // vessel may only be owned by a US citizen.
+  const isDocumented = !!String(vessel?.uscgNumber || "").trim();
   const [inviteLink, setInviteLink] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -1093,6 +1096,46 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
         </div>
       )}
       {/* ── INVITE OTHER PARTY (only until the other side joins) ── */}
+      {isDocumented && (
+        <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:9, padding:"13px 15px", marginBottom:16, fontFamily:"sans-serif" }}>
+          <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:4 }}>🇺🇸 This vessel is U.S. Coast Guard documented</div>
+          <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7 }}>
+            A documented vessel may only be owned by a <b>U.S. citizen</b>, which is why each party&rsquo;s citizenship is asked below.
+            If the buyer is not a U.S. citizen the boat cannot stay documented &mdash; it must be removed from documentation and
+            retitled in the buyer&rsquo;s state instead. That is done with the Coast Guard&rsquo;s own transfer and deletion paperwork,
+            which is in your Documents step under <b>USCG Bill of Sale &amp; Transfer / Deletion</b>. Worth settling before you go
+            further, because it changes which forms this sale needs.
+          </div>
+        </div>
+      )}
+
+      {(() => {
+        // An offer landing while you are on Parties was invisible — you sat on a
+        // finished form with no sign the deal had moved. Not an auto-jump: someone
+        // mid-address would lose what they were typing, and the poll fires at any moment.
+        const live = (offers || []).filter(o => o && o.status !== "rejected" && o.status !== "expired");
+        const latest = live[live.length - 1];
+        if (!latest) return null;
+        if (latest.from === (userRole === "seller" ? "seller" : "buyer")) return null;
+        return (
+          <button onClick={onNext}
+            style={{ display:"flex", alignItems:"center", gap:12, width:"100%", textAlign:"left", background:"#f0fdf4",
+              border:"2px solid #22a06b", borderRadius:9, padding:"13px 15px", marginBottom:16, cursor:"pointer", fontFamily:"sans-serif" }}>
+            <span style={{ fontSize:20, lineHeight:1 }}>📩</span>
+            <span style={{ flex:1 }}>
+              <span style={{ display:"block", fontSize:13.5, fontWeight:800, color:"#166534" }}>
+                {latest.status === "agreed" ? "Price agreed" : "An offer has arrived"}
+                {latest.amount ? ` \u2014 ${fmt(Number(latest.amount))}` : ""}
+              </span>
+              <span style={{ display:"block", fontSize:11.5, color:"#176844", marginTop:2, lineHeight:1.5 }}>
+                It is waiting in the Deal Room. Nothing here needs finishing first.
+              </span>
+            </span>
+            <span style={{ fontSize:12, fontWeight:800, color:"#166534", whiteSpace:"nowrap" }}>Open the Deal Room &rarr;</span>
+          </button>
+        );
+      })()}
+
       {!partyBJoined ? (
       <div style={{ background:C.navy, borderRadius:8, padding:"14px 18px", marginTop:16, display:"flex", gap:14, alignItems:"flex-start" }}>
         <div style={{ fontSize:22, flexShrink:0 }}>📧</div>
@@ -1234,7 +1277,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
               </div>
               <button onClick={()=>onBack && onBack()}
                 style={{ marginTop:9, background:"transparent", border:`1px solid ${C.mist}`, color:C.navy, borderRadius:14, padding:"5px 13px", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>
-                Something wrong? Edit the boat &rarr;
+                Edit vessel details &rarr;
               </button>
             </div>
           )}
@@ -1288,11 +1331,11 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, onNext, on
               {/* The Purchase Agreement states each party's citizenship, and only a
                   US citizen may own a Coast Guard documented vessel. It used to be
                   asserted as "United States" without anyone being asked. */}
-              <Field label="Citizenship">
+              {isDocumented && <Field label="Citizenship">
                 <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input}
                   value={data[side].citizen || ""} readOnly={locked} placeholder="e.g. United States"
                   onChange={e=>!locked&&set(side,"citizen",e.target.value)} />
-              </Field>
+              </Field>}
             </Grid2>
             )}
             {locked && (
@@ -1352,6 +1395,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // Where the deposit is held is the buyer's call and the seller's to accept —
   // not something to pre-pick. Blank until chosen; the offer won't send without it.
   const [escrowPath, setEscrowPath] = useState(data.escrowPath || "");
+  const [sellerTermsOpen, setSellerTermsOpen] = useState(false);
   // A loan on the boat has to be cleared before title can transfer. These details
   // went onto three separate documents, typed three times, with three chances to
   // disagree — on paperwork that goes to a bank. Asked once, here.
@@ -2190,8 +2234,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </>
         ) : (
           <>
-            <h1 style={S.h1}>Build Your Offer</h1>
-            <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Put together your price, deposit, and terms, send it to the other party, and negotiate until you agree. Free until you lock the deal.</p>
+            <h1 style={S.h1}>{myRole==="seller" ? "Review the Offer" : "Build Your Offer"}</h1>
+            <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>{myRole==="seller"
+              ? "Set your asking price, then review the buyer\u2019s offer when it arrives. You can accept it, counter on price, or flag a conflict on the terms. Free until you lock the deal."
+              : "Put together your price, deposit, and terms, send it to the other party, and negotiate until you agree. Free until you lock the deal."}</p>
           </>
         )}
       </div>
@@ -2445,7 +2491,21 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         </div>
 
         {/* Terms below are authored by the buyer — read-only for the seller. */}
-        <div style={ myRole==="seller" ? { pointerEvents:"none", opacity:0.6 } : undefined }>
+        {myRole==="seller" && (
+          <div style={{ background:"#f7fbfd", border:`1px solid ${C.mist}`, borderRadius:8, padding:"12px 14px", marginBottom:10, fontFamily:"sans-serif" }}>
+            <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:3 }}>The terms below belong to the buyer</div>
+            <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65 }}>
+              Dates, contingencies and deposit terms are the buyer&rsquo;s to write, so they are shown here for reference only. What you can do is <b>counter on price</b> above, or <b>flag a conflict</b> at the bottom if something in these terms does not work for you.
+            </div>
+            <button type="button" onClick={()=>setSellerTermsOpen(o=>!o)}
+              style={{ marginTop:9, background:"transparent", border:`1px solid ${C.mist}`, color:C.navy, borderRadius:14, padding:"5px 13px", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>
+              {sellerTermsOpen ? "\u25b2 Hide the buyer\u2019s terms" : "\u25bc View the buyer\u2019s terms"}
+            </button>
+          </div>
+        )}
+        <div style={ myRole==="seller"
+          ? { pointerEvents:"none", opacity:0.6, display: sellerTermsOpen ? undefined : "none" }
+          : undefined }>
 
         {/* 📅 Dates & Timeline — opt-in */}
         <OfferSection icon="📅" title="Dates &amp; Timeline" desc="The due-diligence window to inspect the boat and your target closing date. Leave these out for a simple, as-is cash deal you want to close fast." checked={inclDates} onToggle={()=>setInclDates(v=>!v)}>
@@ -2484,6 +2544,19 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         {/* 🛡️ Contingencies — opt-in (placed after timeline so the escrow choice sits last) */}
         <OfferSection icon="🛡️" title="Contingencies" desc="Conditions that must be met or you can walk away with your deposit back — like a passing survey or sea trial. Most serious offers include at least a survey contingency." checked={inclContingencies} onToggle={()=>setInclContingencies(v=>!v)}>
           <ContingencyPicker value={localContingencies} onChange={setLocalContingencies} paymentType={paymentType} ddEnd={ddStart && ddDays ? addDays(ddStart, Number(ddDays)) : ""} cashWaived={cashWaived} onCashWaived={setCashWaived} />
+
+          {/* How long the offer stands. A deadline is a condition of the offer, so
+              it belongs with the others rather than floating above the send button. */}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, background:C.sandDark, borderRadius:6, padding:"8px 12px", marginTop:6, flexWrap:"wrap" }}>
+            <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate }}>⏳ This offer is good for:</span>
+            <select style={{...S.select, width:"auto", padding:"6px 10px", fontSize:12}} value={offerExpiry} onChange={e=>setOfferExpiry(e.target.value)}>
+              <option value="0">No expiration</option>
+              <option value="24">24 hours</option>
+              <option value="48">48 hours</option>
+              <option value="72">72 hours</option>
+            </select>
+          </div>
+          <BrokerTip>48 hours keeps a deal moving without pressuring anyone. An offer with no deadline is the single most common way private boat sales quietly die &mdash; the other side means to reply, then a week goes by.</BrokerTip>
         </OfferSection>
 
         {/* 🏦 Money owed on the boat — the most common reason a closing slips */}
@@ -2648,39 +2721,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         </OfferSection>
         </div>
 
-        {/* Sits OUTSIDE the buyer-authored block above, which is wrapped in
-            pointerEvents:none for the seller. Inside it, this was greyed out and
-            unclickable for the one person most likely to want it — a full-service
-            brokerage is traditionally a seller-side service. */}
-        <div style={{ marginTop:14, background:"#fff", border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px 16px" }}>
-          <div style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy, marginBottom:4 }}>
-            Would you rather a broker just handled all this for you?
-          </div>
-          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
-            <b>Sea Yachts</b> is a licensed, bonded Florida yacht brokerage with over 20 years in the marine industry. They&rsquo;ll
-            run this same deal for you by hand &mdash; {myRole==="seller"
-              ? <>the offer, the agreement, the deposit and escrow, due diligence and closing</>
-              : <>negotiating the offer, the agreement, the deposit and escrow, due diligence and closing</>} &mdash;
-            with a licensed broker guiding each step instead of you working through it yourself. A brokerage
-            commission applies instead of this flat fee.
-          </div>
-          <a href="mailto:support@boatclosers.com?subject=Full-service%20brokerage%20enquiry%20(Sea%20Yachts)&body=I%27d%20like%20to%20talk%20about%20having%20Sea%20Yachts%20handle%20my%20boat%20deal%20instead%20of%20doing%20it%20myself.%0A%0AThe%20boat%3A%0AWhat%20I%27m%20trying%20to%20do%3A"
-            style={{ display:"inline-block", marginTop:9, fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:"transparent", border:`1px solid ${C.brass}`, borderRadius:6, padding:"8px 15px", textDecoration:"none" }}>
-            Contact Sea Yachts &rarr;
-          </a>
-        </div>
 
         {/* Submit */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, background:C.sandDark, borderRadius:6, padding:"8px 12px", marginTop:6, flexWrap:"wrap" }}>
-          <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate }}>⏳ This offer is good for:</span>
-          <select style={{...S.select, width:"auto", padding:"6px 10px", fontSize:12}} value={offerExpiry} onChange={e=>setOfferExpiry(e.target.value)}>
-            <option value="0">No expiration</option>
-            <option value="24">24 hours</option>
-            <option value="48">48 hours</option>
-            <option value="72">72 hours</option>
-          </select>
-        </div>
-        <BrokerTip>48 hours keeps a deal moving without pressuring anyone. An offer with no deadline is the single most common way private boat sales quietly die &mdash; the other side means to reply, then a week goes by.</BrokerTip>
         {offerBlocked && !myOfferAwaiting && (
           <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.red, marginTop:8, textAlign:"center", lineHeight:1.5 }}>
             ⚠️ Before you send, please {[
@@ -2963,6 +3005,26 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         <button style={{...S.btnBrass, opacity:canProceed?1:0.5}} disabled={!canProceed} onClick={proceed}>
           {canProceed ? "Continue to Due Diligence →" : "🔒 Finalize the deal to continue"}
         </button>
+      </div>
+
+      {/* An exit from the flow, so it sits under everything and stays quiet. In a
+          warm accent mid-page it read like a suggested next step. */}
+      <div style={{ marginTop:34, paddingTop:18, borderTop:`1px solid ${C.mist}` }}>
+        <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.slate, marginBottom:4 }}>
+          Would you rather a broker just handled all this for you?
+        </div>
+        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, opacity:0.9 }}>
+          <b>Sea Yachts</b> is a licensed, bonded Florida yacht brokerage with over 20 years in the marine industry. They&rsquo;ll
+          run this same deal for you by hand &mdash; {myRole==="seller"
+            ? <>the offer, the agreement, the deposit and escrow, due diligence and closing</>
+            : <>negotiating the offer, the agreement, the deposit and escrow, due diligence and closing</>} &mdash;
+          with a licensed broker guiding each step instead of you working through it yourself. A brokerage
+          commission applies instead of this flat fee.
+        </div>
+        <a href="mailto:support@boatclosers.com?subject=Full-service%20brokerage%20enquiry%20(Sea%20Yachts)"
+          style={{ display:"inline-block", marginTop:9, fontSize:11.5, fontFamily:"sans-serif", fontWeight:700, color:C.slate, textDecoration:"underline" }}>
+          Contact Sea Yachts &rarr;
+        </a>
       </div>
     </div>
   );
@@ -7089,7 +7151,7 @@ export default function BoatClosers() {
       )}
       <div style={dealFrozen && step <= 3 ? { pointerEvents:"none", opacity:0.6, userSelect:"text" } : undefined} aria-disabled={dealFrozen && step <= 3 ? "true" : undefined}>
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} userRole={myDealRole || user?.role || "seller"} onNext={()=>goToStep(1)}/>}
-      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user} ensureSaved={ensureDealSaved}/>}
+      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} offers={negotiate?.offers} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user} ensureSaved={ensureDealSaved}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} stripeReturn={stripeReturn} authedFetch={authedFetch} onRefresh={()=>window.location.reload()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} authToken={tokenRef.current?.token} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
