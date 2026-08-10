@@ -2024,7 +2024,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         : "\u2591MISSING\u2591"),
       salePrice: fmt(paAgreed), salePriceWords: priceToWords(paAgreed),
       // The deposit clause reads this to name the right holder.
-      escrowPath: paModal.escrowPath || negotiate.escrowPath || "",
+      escrowPath: paModal.escrowPath || data?.escrowPath || "",
       depositAmount: fmt(paDep), depositPct: pctLabel(paModal.escrowPct||0)+"%",
       // The contract used to say the deposit was due "upon execution" while the app
       // enforced an agreed 12/24/36-hour window, and it named no consequence at all
