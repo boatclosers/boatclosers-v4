@@ -93,7 +93,7 @@ export const DOCUMENTS = [
 <p>Seller agrees to sell and Buyer agrees to purchase the following vessel, together with its engines, equipment, and gear as equipped (collectively, the \u201cVessel\u201d): a {{vesselYear}} {{vesselMake}} {{vesselModel}}, {{vesselLength}} in length, {{hullMaterial}} hull, Hull Identification Number {{hin}}, U.S. Coast Guard Official Number {{uscgOfficialNo}}, Title No. {{titleNo}}, Registration {{regNo}}, powered by {{engineDesc}}. The Seller\u2019s personal effects are excluded from the sale. If the Parties wish to itemize the specific gear and accessories that convey with the Vessel, they may complete and sign the optional Inventory Schedule.</p>
 
 <h3>2. Purchase Price</h3>
-<p>The total purchase price is {{salePrice}} ({{salePriceWords}} U.S. Dollars), payable as: an earnest money deposit of {{depositAmount}} ({{depositPct}}), and the balance of {{balanceDue}} in good funds at Closing.</p>
+<p>The total purchase price is {{salePrice}} ({{salePriceWords}} U.S. Dollars), payable as follows: {{depositAmount}} ({{depositPct}}) as an earnest money deposit and the remaining {{balanceDue}} in good funds at Closing.</p>
 {{DEPOSIT_TERMS}}
 
 <h3>3. Contingencies</h3>
@@ -2082,15 +2082,20 @@ export function assembleContingencyClauses(deal) {
 // every agreement was generated without its deposit clause.
 export function assembleDepositTerms(deal) {
   const d = deal || {};
-  const amt = d.depositAmount || "the earnest money deposit";
-  const where = d.escrowPath === "escrow" || d.escrowAgent
-    ? `held by ${d.escrowAgent || "the escrow agent named in this Agreement"}`
-    : "held by the Seller";
-  const due = d.depositDueBy ? ` The deposit is due by ${d.depositDueBy}.` : "";
-  return `<p>The earnest money deposit of ${amt} shall be ${where} and applied to the purchase price at Closing.${due} ` +
-    `If Buyer terminates this Agreement in accordance with a contingency in Section 3 within the time allowed, the deposit shall be returned to Buyer in full. ` +
-    `If Buyer fails to close for any other reason, the deposit shall be released to Seller as agreed damages. ` +
-    `If Seller fails to close, the deposit shall be returned to Buyer in full.</p>`;
+  const escrowed = d.escrowPath === "escrow" || !!d.escrowAgent;
+  const holder = escrowed
+    ? `the escrow agent identified in this Agreement`
+    : `Seller`;
+
+  const stalemate = escrowed
+    ? `<p>If the escrow agent is unable or unwilling to release the earnest money without joint written instructions from the parties or other legally sufficient authority, the escrow agent may continue to hold the deposit until such instructions or authority are provided. Nothing in this section shall limit either party\u2019s rights or remedies arising from the other party\u2019s breach of this Agreement.</p>`
+    : `<p>If the parties do not agree in writing as to the disposition of the earnest money, the party holding it may continue to hold the deposit until joint written instructions or other legally sufficient authority are provided. Nothing in this section shall limit either party\u2019s rights or remedies arising from the other party\u2019s breach of this Agreement.</p>`;
+
+  return `<p>The earnest money deposit shall be delivered to and held by ${holder} and shall be applied toward the Purchase Price at Closing.</p>` +
+    `<p>If Buyer terminates this Agreement pursuant to a contingency or other termination right expressly provided in Section 3, and such termination is made within the applicable time period, the earnest money deposit shall be returned to Buyer in full.</p>` +
+    `<p>If Buyer fails or refuses to close after all applicable contingencies and termination rights have expired or been satisfied, and such failure is not caused by Seller\u2019s default or by another circumstance for which this Agreement provides Buyer a right to terminate, the parties agree that the earnest money deposit shall be released to Seller as liquidated damages. The parties acknowledge that the actual damages Seller would suffer from Buyer\u2019s failure to close may be difficult to determine and that the earnest money amount is intended as a reasonable estimate of such damages and not as a penalty.</p>` +
+    `<p>If Seller fails or refuses to close when required under this Agreement, and such failure is not caused by Buyer\u2019s default, the earnest money deposit shall be returned to Buyer in full.</p>` +
+    stalemate;
 }
 
 export function fillDocument(doc, deal) {
