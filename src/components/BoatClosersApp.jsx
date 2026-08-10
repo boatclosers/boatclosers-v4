@@ -101,6 +101,9 @@ const priceToWords = (n) => {
 };
 const PA_DOC_CSS = `
 .bc-pa .bc-blank{display:inline-block;min-width:110px;border-bottom:1px solid #b9b2a4;vertical-align:baseline}
+.bc-pa .field{border-bottom:1px solid #e6e0d4;padding:6px 0;display:flex;justify-content:space-between;gap:14px;font-size:12.5px;font-family:'Helvetica Neue',Arial,sans-serif}
+.bc-pa .field .k{color:#3d5166;flex-shrink:0}
+.bc-pa .field .v{font-weight:700;color:#08152e;text-align:right}
 .bc-pa{font-family:Georgia,'Times New Roman',serif;color:#1c1c1a;font-size:13px;line-height:1.7}
 .bc-pa h3{font-family:Georgia,serif;color:#08152e;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;margin:18px 0 6px}
 .bc-pa p{margin:0 0 10px}
@@ -933,6 +936,10 @@ function StepVessel({ data, setData, userRole, onNext }) {
         <h3 style={S.h3}>Registration & Documentation</h3>
         <Grid2>
           <Field label="State Registration # — needed for documents"><input style={S.input} value={data.regNumber} onChange={e=>set("regNumber",e.target.value)} placeholder="FL1234AB" /></Field>
+          {/* A title number and a registration number are different things. Documents
+              that ask for the title number were being handed the registration number,
+              which puts a wrong figure on the title paperwork. */}
+          <Field label="Certificate of Title # — if you have it"><input style={S.input} value={data.titleNumber || ""} placeholder="as shown on the title" onChange={e=>set("titleNumber", e.target.value)} /></Field>
           <Field label="Registration State"><input style={S.input} value={data.regState} onChange={e=>set("regState",e.target.value)} placeholder="FL" maxLength={2} /></Field>
           <Field label="USCG Documentation # (if applicable)"><input style={S.input} value={data.uscgNumber} onChange={e=>set("uscgNumber",e.target.value)} placeholder="Leave blank if not documented" /></Field>
           <Field label="Trailer Included?">
@@ -2060,7 +2067,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       hullMaterial: vessel.hullType || "\u2591MISSING\u2591",
       hin: vessel.hin || "\u2591MISSING\u2591",
       uscgOfficialNo: vessel.uscgNumber || "N/A",
-      titleNo: vessel.regNumber || "\u2591MISSING\u2591",
+      titleNo: vessel.titleNumber || "\u2591MISSING\u2591",
       regNo: vessel.regNumber || "\u2591MISSING\u2591",
       vesselState: vessel.regState || vessel.location || "\u2591MISSING\u2591",
       engineDesc: (`${vessel.engineMake||""} ${vessel.engineModel||""}`.trim()
