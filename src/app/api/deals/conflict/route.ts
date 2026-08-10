@@ -32,6 +32,7 @@ export async function POST(req: Request) {
     // "preSign" means the sender is being asked to sign something they want
     // changed first — a different message from a mid-negotiation conflict.
     const preSign = !!body?.preSign;
+    const reviseKind = body?.kind === 'revise';
 
     const vesselName = deal?.vessel?.name || deal?.vessel?.make || 'your vessel';
     const topicLabel = topic === 'dates' ? 'Schedule / Dates'
@@ -41,15 +42,19 @@ export async function POST(req: Request) {
 
     const result = await sendEmail({
       to: toEmail,
-      subject: preSign
+      subject: reviseKind
+        ? `Action needed: the ${fromRole} has asked you to revise the terms`
+        : preSign
         ? `Action needed: the ${fromRole} wants a change before signing`
         : `Action needed: ${topicLabel} conflict on your BoatClosers deal`,
       html: emailLayout(`
-        <h2 style="margin:0 0 12px;">${preSign ? `The ${fromRole} wants a change before signing` : 'A conflict has been flagged'}</h2>
-        <p>${preSign
+        <h2 style="margin:0 0 12px;">${reviseKind ? `The ${fromRole} has asked you to revise the terms` : preSign ? `The ${fromRole} wants a change before signing` : 'A conflict has been flagged'}</h2>
+        <p>${reviseKind
+          ? `The ${fromRole} on your deal for <strong>${vesselName}</strong> has asked you to revise <strong>${topicLabel}</strong>. The offer has been reopened for editing \u2014 open the deal, change what needs changing, and send it again. Nothing has been signed or cancelled.`
+          : preSign
           ? `You have signed the Purchase Agreement for <strong>${vesselName}</strong>, but the ${fromRole} has asked for a change to <strong>${topicLabel}</strong> before they sign.`
           : `The ${fromRole} on your deal for <strong>${vesselName}</strong> has raised a conflict regarding <strong>${topicLabel}</strong> and is asking you to adjust the terms so the deal can move forward.`}</p>
-        ${preSign ? `<p>Nothing has changed yet. To revise the terms, open the deal and <strong>withdraw your signature</strong> — that reopens the offer for editing, and you both re-sign once you agree.</p>` : ''}
+        ${(preSign && !reviseKind) ? `<p>Nothing has changed yet. To revise the terms, open the deal and <strong>withdraw your signature</strong> — that reopens the offer for editing, and you both re-sign once you agree.</p>` : ''}
         <p style="background:#f8fafc;border-left:3px solid #b8863a;padding:12px 14px;margin:16px 0;">
           ${(message || '').replace(/</g, '&lt;')}
         </p>
