@@ -847,7 +847,8 @@ export async function GET(req: Request) {
                   subject: viewingRequest
                     ? `${boat} \u2014 you're in, and ${inviter} would like to arrange a viewing`
                     : `${boat} \u2014 you've joined this deal on BoatClosers`,
-                  html: emailLayout(`You've joined this deal`, `
+                  html: emailLayout(`
+                    <h2 style="margin:0 0 12px;color:#08152e;font-size:19px;">You've joined this deal</h2>
                     <p style="color:#475569;font-size:14px;line-height:1.6;">You have joined the deal for <strong>${boat}</strong> with <strong>${inviter}</strong>, where you are the <strong>${theirRole}</strong>.</p>
                     ${viewingRequest ? `<p style="color:#475569;font-size:14px;line-height:1.6;"><strong>${inviter}</strong> would like to arrange a time to see the boat. Open the deal and message them directly to agree a day and time \u2014 BoatClosers passes the request along, you two sort out the details between yourselves.</p>` : ''}
                     <p style="color:#475569;font-size:14px;line-height:1.6;"><strong>Keep this email.</strong> It is your way back into the deal if you sign out or change device.</p>
