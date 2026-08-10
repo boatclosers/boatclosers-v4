@@ -1,4 +1,5 @@
 'use client'
+import { useEffect } from "react";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BOATCLOSERS — CONTINGENCY PICKER
@@ -28,7 +29,8 @@ const OPTIONS = [
 
 // NOTHING is pre-selected. Contingencies are terms the buyer proposes and the
 // seller accepts or rejects — lighting them up automatically decides a negotiating
-// point on the buyer's behalf.
+// point on the buyer's behalf. The one exception is a financed offer, where
+// financing and insurance are not really optional (see the effect above).
 //
 // It was also a live mismatch: the picker used to auto-display survey/seaTrial/title
 // while the parent state stayed empty, so a buyer who never touched this control saw
@@ -36,6 +38,16 @@ const OPTIONS = [
 // would then record a waived survey the buyer believed they had.
 export default function ContingencyPicker({ value, onChange, paymentType, ddEnd, cashWaived, onCashWaived }) {
   const selected = Array.isArray(value) ? value : [];
+  const financed = /financ|loan/i.test(String(paymentType || ""));
+
+  // A financed buyer needs both, and the second is the one people miss: no lender
+  // funds a boat without proof of insurance. Added automatically, still removable
+  // — a buyer with an existing fleet policy may genuinely not need them.
+  useEffect(() => {
+    if (!financed || cashWaived) return;
+    const missing = ["financing", "insurance"].filter(k => !selected.includes(k));
+    if (missing.length) onChange([...selected, ...missing]);
+  }, [financed]); // eslint-disable-line
 
   const toggle = (key) => {
     // Choosing any contingency cancels a prior cash-waiver — they're opposites.
@@ -78,6 +90,24 @@ export default function ContingencyPicker({ value, onChange, paymentType, ddEnd,
           💵 No-contingency cash offer. You're buying the boat as-is, with no survey, personal inspection, sea-trial, financing, insurance, or title contingency. You can add a contingency any time before sending by tapping one above.
         </div>
       )}
+      {financed && !cashWaived && (
+        <div style={{ background:"#f7fbfd", border:`1px solid ${C.mist}`, borderRadius:7, padding:"11px 13px", marginBottom:11, fontFamily:"sans-serif" }}>
+          <div style={{ fontSize:12, fontWeight:800, color:C.navy, marginBottom:4 }}>Financing and Insurance added for you</div>
+          <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65 }}>
+            Your lender will not release funds without proof of insurance, so the two go together. You can remove either one, but do it deliberately.
+          </div>
+        </div>
+      )}
+
+      {selected.includes("insurance") && (
+        <div style={{ background:"#fffaf0", border:"1px solid #e3c98f", borderRadius:7, padding:"11px 13px", marginBottom:11, fontFamily:"sans-serif" }}>
+          <div style={{ fontSize:12, fontWeight:800, color:"#8a5a12", marginBottom:4 }}>Insurance is not a formality</div>
+          <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65 }}>
+            Cover can be refused outright &mdash; an older or wooden hull, high performance, survey findings, or a buyer with little boating history are all common reasons. Confirm you can actually get a policy <b>during due diligence</b>, while this contingency still protects your deposit. Find out afterwards and the money is already at risk.
+          </div>
+        </div>
+      )}
+
       <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
         {OPTIONS.map(opt => {
           const on = selected.includes(opt.key);
