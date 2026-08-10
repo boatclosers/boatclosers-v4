@@ -299,6 +299,81 @@ const DISCLAIMER = {
   ],
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// YOUR DEALS
+//
+// Signing in only ever loads your current ACTIVE deal, so a finalized one became
+// invisible — the record people paid for, reachable only through an old email
+// link. This lists every deal you are a party to and opens any of them.
+// ─────────────────────────────────────────────────────────────────────────────
+function MyDeals({ C, S, deals, loading, onOpen, onBack, onNew }) {
+  const LABEL = {
+    active:    { text: "In progress", bg: C.brass,  tint: "#fffaf0" },
+    finalized: { text: "Closed",      bg: C.green,  tint: "#f4f7f5" },
+    canceled:  { text: "Ended",       bg: C.slate,  tint: C.sand   },
+  };
+  const when = (d) => { try { return new Date(d).toLocaleDateString(); } catch { return ""; } };
+  const money = (n) => (n ? fmt(Number(n)) : "");
+  return (
+    <div style={{ minHeight:"100vh", background:C.sand }}>
+      <nav style={S.nav}>
+        <div style={{ cursor:"pointer" }} onClick={onBack}>
+          <div style={S.logo}>BOATCLOSERS</div>
+          <div style={S.logoSub}>Private Vessel Transactions</div>
+        </div>
+        <button onClick={onBack} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.3)", color:"#fff", borderRadius:16, padding:"6px 14px", fontSize:12, cursor:"pointer", fontFamily:"sans-serif" }}>&larr; Back</button>
+      </nav>
+
+      <div style={{ maxWidth:820, margin:"0 auto", padding:"28px 1.25rem 40px" }}>
+        <h1 style={S.h1}>Your deals</h1>
+        <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:4, marginBottom:20 }}>
+          Every deal you have been part of. Closed deals stay here permanently &mdash; open one any time to view, print or email its documents.
+        </div>
+
+        {loading ? (
+          <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Loading&hellip;</div>
+        ) : !deals.length ? (
+          <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderRadius:9, padding:"22px 20px", textAlign:"center", fontFamily:"sans-serif" }}>
+            <div style={{ fontSize:13.5, color:C.navy, fontWeight:700 }}>No deals yet</div>
+            <div style={{ fontSize:12.5, color:C.slate, marginTop:5, lineHeight:1.6 }}>When you start a deal or accept an invitation, it will appear here.</div>
+            <button onClick={onNew} style={{ ...S.btnBrass, marginTop:14, fontSize:13, padding:"10px 22px" }}>Start a deal</button>
+          </div>
+        ) : (
+          <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderRadius:9, overflow:"hidden" }}>
+            {deals.map((d, i) => {
+              const L = LABEL[d.status] || LABEL.active;
+              return (
+                <button key={d.id} onClick={()=>onOpen(d.id)}
+                  style={{ display:"flex", alignItems:"flex-start", gap:12, width:"100%", textAlign:"left", background:L.tint,
+                    border:"none", borderBottom: i < deals.length-1 ? `1px solid ${C.sand}` : "none", borderLeft:`3px solid ${L.bg}`,
+                    padding:"14px 16px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                  <span style={{ flex:1, minWidth:0 }}>
+                    <span style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                      <span style={{ fontFamily:"'Georgia',serif", fontSize:15.5, color:C.navy }}>{d.boat || "Untitled deal"}</span>
+                      <span style={{ fontSize:9.5, letterSpacing:0.7, textTransform:"uppercase", fontWeight:800, color:"#fff", background:L.bg, borderRadius:9, padding:"2px 8px" }}>{L.text}</span>
+                      {d.vesselName && <span style={{ fontSize:11.5, color:C.slate, fontStyle:"italic" }}>&ldquo;{d.vesselName}&rdquo;</span>}
+                    </span>
+                    <span style={{ display:"block", fontSize:12, color:C.slate, marginTop:4, lineHeight:1.6 }}>
+                      {[
+                        d.price ? `${d.agreed ? "Agreed" : "Asking"} ${money(d.price)}` : null,
+                        d.role === "initiator" ? "You started this" : "You were invited",
+                        d.status === "finalized" && d.finalizedAt ? `Closed ${when(d.finalizedAt)}` : `Updated ${when(d.updatedAt)}`,
+                      ].filter(Boolean).join(" · ")}
+                    </span>
+                  </span>
+                  <span style={{ fontSize:11.5, color:C.brass, fontWeight:700, whiteSpace:"nowrap", marginTop:3 }}>
+                    {d.status === "active" ? "Continue \u2192" : "View \u2192"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function LegalFooter({ C }) {
   const [openKey, setOpenKey] = useState(null);
   const doc = openKey === "disclaimer" ? DISCLAIMER : openKey ? LEGAL[openKey] : null;
@@ -5811,6 +5886,8 @@ const emptyDocs = {paid:false,signedDocs:{}};
 
 export default function BoatClosers() {
   const [screen, setScreen] = useState("landing");
+  const [myDeals, setMyDeals] = useState([]);
+  const [myDealsLoading, setMyDealsLoading] = useState(false);
   const [authRole, setAuthRole] = useState(null);
   const [stripeReturn, setStripeReturn] = useState(null);
   // If we just came back from Stripe Checkout, ask our server to confirm the
@@ -6372,6 +6449,48 @@ export default function BoatClosers() {
     } catch { return null; }
   };
 
+  // Load a specific deal into the app, whatever its status. Sign-in only ever
+  // fetches the current ACTIVE deal, so without this a finalized deal was
+  // unreachable except through a ?dealId= link in an old email.
+  const openDealById = async (id) => {
+    if (!id) return;
+    try {
+      const res = await authedFetch("/api/deals?dealId=" + encodeURIComponent(id));
+      const data = await res.json();
+      const d = data?.deal;
+      if (!d) { setToast({ k: Date.now(), text: "That deal could not be opened." }); return; }
+      setDealId(d.id);
+      setMyDealRole(computeDealRole(d, user?.userId, user?.role));
+      setPartyBJoined(!!(d.other_party_id || d.party_b_user_id));
+      finalizedRef.current = !!(d.negotiate && d.negotiate.dealFinalized);
+      setAmInitiator((d.initiator_id || d.party_a_user_id) === user?.userId);
+      setVessel(d.vessel || emptyVessel);
+      setParties(d.parties || emptyParties);
+      setNegotiate(d.negotiate || emptyNeg);
+      setDdData(d.dd_data || emptyDD);
+      setDocsData(d.docs_data || emptyDocs);
+      if (typeof d.step === "number") { setStep(d.step); setMaxStep(d.max_step || d.step); }
+      setScreen("deal");
+      try {
+        const raw = localStorage.getItem("bc_session");
+        if (raw) { const sess = JSON.parse(raw); sess.dealId = d.id; localStorage.setItem("bc_session", JSON.stringify(sess)); }
+      } catch (e) {}
+    } catch (e) {
+      setToast({ k: Date.now(), text: "Could not open that deal. Please try again." });
+    }
+  };
+
+  const openMyDeals = async () => {
+    setScreen("mydeals");
+    setMyDealsLoading(true);
+    try {
+      const res = await authedFetch("/api/deals?list=1");
+      const data = await res.json();
+      setMyDeals(Array.isArray(data?.deals) ? data.deals : []);
+    } catch (e) { setMyDeals([]); }
+    setMyDealsLoading(false);
+  };
+
   const authedFetch = async (url, opts = {}) => {
     const tok = tokenRef.current.token || user?.token;
     const withAuth = (t) => ({ ...opts, headers: { ...(opts.headers || {}), "Authorization": "Bearer " + t } });
@@ -6503,6 +6622,12 @@ export default function BoatClosers() {
   // Every screen carries the legal footer — landing, sign-in, and the deal.
   const withFooter = (node) => (<>{node}<LegalFooter C={C} /></>);
   if (screen==="landing") return withFooter(<Landing onStart={(r)=>{ if(r==="buyer"||r==="seller") setAuthRole(r); setScreen("auth"); }} onLegal={(p)=>setScreen(p)}/>);
+  if (screen==="mydeals") return withFooter(
+    <MyDeals C={C} S={S} deals={myDeals} loading={myDealsLoading}
+      onOpen={(id)=>openDealById(id)}
+      onBack={()=>setScreen("deal")}
+      onNew={()=>{ startNewDeal(); setScreen("deal"); }} />
+  );
   if (screen==="terms") return withFooter(<LegalScreen page="terms" onBack={()=>setScreen("landing")} />);
   if (screen==="privacy") return withFooter(<LegalScreen page="privacy" onBack={()=>setScreen("landing")} />);
   if (screen==="auth") return withFooter(<AuthScreen onAuth={handleAuth} prefillEmail={deepLink?.email} notice={deepLink ? `Sign in as ${deepLink.email} to review this deal.` : null} defaultMode={deepLink ? "login" : "signup"} defaultRole={authRole} />);
@@ -6567,6 +6692,8 @@ export default function BoatClosers() {
           {(dealId || step>0) && !negotiate.canceled && (
             <button title="End this deal and free yourself to start another" onClick={()=>setCancelModal(true)} style={{ fontSize:11, color:"rgba(255,255,255,0.85)", background:"rgba(255,255,255,0.07)", border:`1px solid rgba(214,110,110,0.5)`, borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }}>End deal</button>
           )}
+          <button onClick={openMyDeals} title="All your deals, including closed ones"
+            style={{ fontSize:11, color:"rgba(255,255,255,0.85)", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.25)", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }}>My deals</button>
           <button title="Reload to pull the other party's latest offers, messages, and updates" style={{ fontSize:11, color:"#fff", background:C.brass, border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={()=>window.location.reload()}>🔄 Check for updates</button>
           <button title="Get help or report a problem or conflict" style={{ fontSize:11, color:"rgba(255,255,255,0.85)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={()=>{ setSupportSent(false); setSupportErr(""); setSupportModal(true); }}>help</button>
           <button style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }} onClick={handleSignOut}>Sign Out</button>
