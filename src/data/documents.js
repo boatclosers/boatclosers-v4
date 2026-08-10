@@ -87,39 +87,104 @@ export const DOCUMENTS = [
     useWhen: "Use once you and the other party agree on a price. This is the contract that binds the deal.",
     keywords: "purchase agreement contract offer accepted binding sale terms psa buy sell",
     body: `
-<p class="lead recital">This Vessel Purchase &amp; Sale Agreement (the \u201cAgreement\u201d) is made on {{effectiveDate}}, by and between {{sellerName}}, of {{sellerAddress}}, a citizen of {{sellerCitizen}} (the \u201cSeller\u201d), and {{buyerName}}, of {{buyerAddress}}, a citizen of {{buyerCitizen}} (the \u201cBuyer\u201d). The Parties may reside in different states or countries; their places of residence do not change the governing law set out in this Agreement.</p>
+<p class="lead recital">This Vessel Purchase &amp; Sale Agreement (the \u201cAgreement\u201d) is entered into on {{effectiveDate}} by and between {{sellerName}}, of {{sellerAddress}}, a citizen of {{sellerCitizen}} (the \u201cSeller\u201d), and {{buyerName}}, of {{buyerAddress}}, a citizen of {{buyerCitizen}} (the \u201cBuyer\u201d). Seller and Buyer may be referred to individually as a \u201cParty\u201d and collectively as the \u201cParties.\u201d</p>
 
 <h3>1. The Vessel</h3>
-<p>Seller agrees to sell and Buyer agrees to purchase the following vessel, together with its engines, equipment, and gear as equipped (collectively, the \u201cVessel\u201d): a {{vesselYear}} {{vesselMake}} {{vesselModel}}, {{vesselLength}} in length, {{hullMaterial}} hull, Hull Identification Number {{hin}}, U.S. Coast Guard Official Number {{uscgOfficialNo}}, Title No. {{titleNo}}, Registration {{regNo}}, powered by {{engineDesc}}. The Seller\u2019s personal effects are excluded from the sale. If the Parties wish to itemize the specific gear and accessories that convey with the Vessel, they may complete and sign the optional Inventory Schedule.</p>
+<p>Seller agrees to sell, and Buyer agrees to purchase, the following vessel (the \u201cVessel\u201d):</p>
+<div class="field"><span class="k">Year / Make / Model</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+<div class="field"><span class="k">Length</span><span class="v">{{vesselLength}}</span></div>
+<div class="field"><span class="k">Hull Identification Number</span><span class="v">{{hin}}</span></div>
+<div class="field"><span class="k">State Registration No.</span><span class="v">{{regNo}}</span></div>
+<div class="field"><span class="k">USCG Documentation No.</span><span class="v">{{uscgOfficialNo}}</span></div>
+<div class="field"><span class="k">Engine(s)</span><span class="v">{{engineDesc}}</span></div>
+<p>The Vessel includes the engines, equipment, electronics, accessories, and other items the Parties identify as included. Where the Parties wish to itemize what conveys, they may complete and sign the <b>Inventory Schedule</b>, which forms part of this Agreement when signed by both Parties. Seller\u2019s personal property, and any item identified in writing as excluded, is not included in the sale.</p>
 
 <h3>2. Purchase Price</h3>
 <p>The total purchase price is {{salePrice}} ({{salePriceWords}} U.S. Dollars), payable as follows: {{depositAmount}} ({{depositPct}}) as an earnest money deposit and the remaining {{balanceDue}} in good funds at Closing.</p>
-{{DEPOSIT_TERMS}}
+{{DEPOSIT_HOLDER}}
 
-<h3>3. Contingencies</h3>
+<h3>3. Buyer Contingencies</h3>
+<p>Buyer shall have only the contingencies selected below. Any contingency not selected is waived.</p>
 {{CONTINGENCY_CLAUSES}}
-<p class="recital">It is the Buyer\u2019s responsibility to obtain any assurances the Buyer requires regarding the availability of satisfactory financing and insurance before accepting the Vessel, except to the extent a financing or insurance contingency has been selected above.</p>
 
-<h3>4. Closing</h3>
-<p>Closing shall occur on or before {{closingDate}} at {{closingLocation}}. At Closing, Seller shall deliver an executed Bill of Sale, the original Certificate of Title properly endorsed, the Vessel\u2019s registration and any U.S. Coast Guard documentation transfer materials, and keys and possession. Buyer shall deliver the balance of the Purchase Price in good funds.</p>
+<h3>4. Exercise of Contingencies</h3>
+<p>If a selected contingency is not satisfied by the applicable deadline, Buyer may (a) accept the Vessel and waive the contingency, (b) request a mutually agreed price adjustment or repair, or (c) terminate this Agreement by written notice.</p>
+<p>If Buyer properly terminates this Agreement pursuant to a selected contingency and within the applicable deadline, the earnest money deposit shall be returned to Buyer in full. If Buyer does not timely exercise a selected contingency, that contingency shall be deemed waived, except as otherwise expressly provided in this Agreement.</p>
+<p>Any amendment, extension, price adjustment, repair agreement, or other change to this Agreement must be agreed to in writing by Buyer and Seller.</p>
 
-<h3>5. Condition, Risk of Loss &amp; Damage Before Closing</h3>
-<p>Except as expressly stated in writing, the Vessel is sold \u201cAS-IS, WHERE-IS,\u201d as described in the As-Is Acknowledgment executed with this Agreement. Risk of loss remains with Seller until possession and title pass to Buyer at Closing. If the Vessel sustains damage after Buyer\u2019s acceptance but before Closing, Seller shall repair the damage at Seller\u2019s expense prior to Closing, subject to Buyer\u2019s approval of the repair. If the damage is substantial and cannot be repaired to Buyer\u2019s reasonable satisfaction before Closing, Buyer may either accept an appropriate adjustment to the Purchase Price or terminate this Agreement and receive a full refund of the earnest money deposit.</p>
+<h3>5. Condition of the Vessel</h3>
+<p>Except for the express representations and warranties contained in this Agreement, the Vessel is being sold \u201cAS IS, WHERE IS,\u201d with all faults, in its present condition.</p>
+<p>Buyer acknowledges that Buyer has been given the opportunity to inspect, survey, and sea-trial the Vessel and to obtain independent professional advice concerning its condition. Buyer is responsible for making Buyer\u2019s own determination regarding the Vessel\u2019s condition, value, seaworthiness, mechanical and electrical systems, engines, equipment, maintenance history, suitability for Buyer\u2019s intended use, and insurance eligibility.</p>
+<p>Seller makes no representation regarding the Vessel\u2019s condition except for representations expressly stated in this Agreement. Nothing in this section limits Seller\u2019s express representations regarding ownership, authority to sell, title, or liens.</p>
 
-<h3>6. Seller\u2019s Warranties of Title</h3>
-<p>Seller warrants lawful ownership of the Vessel, that it is free of all liens and encumbrances \u2014 including, without limitation, maritime liens for crew wages, salvage, necessaries (repairs, dockage, fuel, or supplies), and any preferred ship mortgage recorded with the U.S. Coast Guard \u2014 except those disclosed in writing and released at or before Closing, and that Seller has full authority to sell and transfer it. Seller shall indemnify and hold Buyer harmless from any lien, claim, or encumbrance arising from events occurring before Closing, and this warranty survives Closing.</p>
+<h3>6. Seller\u2019s Representations Regarding Title</h3>
+<p>Seller represents and warrants that, as of Closing: Seller is the lawful owner of the Vessel or is otherwise legally authorized to sell it; Seller has full authority to enter into this Agreement and complete the sale; except as disclosed in writing to Buyer, the Vessel is free of all liens, mortgages, security interests, claims, and encumbrances \u2014 including, without limitation, maritime liens for crew wages, salvage, and necessaries (repairs, dockage, fuel, or supplies), and any preferred ship mortgage recorded with the U.S. Coast Guard; Seller has not previously sold, assigned, pledged, or transferred the Vessel or any ownership interest in it to another person; there is no undisclosed agreement giving another person a right to purchase or claim an ownership interest in the Vessel; and Seller will convey the Vessel to Buyer free and clear of all liens and encumbrances created by or attributable to Seller.</p>
+<p>Seller shall be responsible for satisfying and releasing any lien or encumbrance that must be released in order to deliver the Vessel as required by this Agreement. This section survives Closing.</p>
 
-<h3>7. Default &amp; Remedies</h3>
-<p>If Buyer defaults without a permitted contingency, Seller may retain the deposit as liquidated damages. If Seller defaults, Buyer shall receive a full refund of the deposit and any remedy available at law or equity.</p>
+<h3>7. Closing</h3>
+<p>Closing shall occur on or before {{closingDate}}, unless the Parties agree otherwise in writing.</p>
+<p>At Closing, Seller shall deliver: properly executed vessel title or other applicable ownership documentation; a properly executed bill of sale; registration documentation, if applicable; USCG documentation and transfer documents, if applicable; lien releases or other evidence reasonably necessary to establish clear title; keys and access devices; the Vessel and included equipment; and any other document specifically required by this Agreement.</p>
+<p>At Closing, Buyer shall deliver the remaining Purchase Price in good funds and any document reasonably required from Buyer to complete the transfer.</p>
+<p>Seller\u2019s obligation to deliver the Vessel and transfer ownership is conditioned upon Seller\u2019s receipt of the full Purchase Price. Buyer\u2019s obligation to pay the remaining Purchase Price is conditioned upon Seller\u2019s tender of the required closing documents and delivery obligations. The Parties intend that the exchange of payment, title documents, and possession occur substantially concurrently at Closing.</p>
 
-<h3>8. Time Is of the Essence</h3>
-<p>Time is of the essence in this Agreement. Each Party shall meet the deadlines stated for contingencies, acceptance, and Closing. Any deadline may be extended only by written agreement of both Parties.</p>
+<h3>8. Delivery and Possession</h3>
+<p>The Vessel shall be delivered to Buyer at {{closingLocation}}.</p>
+<p>Unless otherwise agreed in writing, Seller shall retain possession and control of the Vessel until Closing. Upon Closing and delivery, Buyer shall assume responsibility for the Vessel, including its operation, storage, insurance, maintenance, and other expenses arising after Closing.</p>
 
-<h3>9. Dispute Resolution</h3>
-<p>The Parties shall first attempt in good faith to resolve any dispute arising out of this Agreement through direct negotiation, and then through mediation. Any dispute not resolved by mediation shall be settled by binding arbitration administered under the rules of the American Arbitration Association, with the arbitration seated in the State of {{vesselState}} (where the Vessel is located) regardless of where the Parties reside. Judgment on the award may be entered in any court of competent jurisdiction. Each Party bears its own costs unless the arbitrator directs otherwise.</p>
+<h3>9. Risk of Loss</h3>
+<p>Until Closing and delivery of the Vessel to Buyer, Seller shall bear the risk of loss, theft, destruction, or material damage to the Vessel.</p>
+<p>If the Vessel is lost or suffers material damage before Closing, Buyer may (a) terminate this Agreement and receive a full return of the earnest money deposit, or (b) proceed with the transaction under terms mutually agreed upon in writing by Buyer and Seller.</p>
 
-<h3>10. Governing Law</h3>
-<p>This Agreement is governed by the laws of the State of {{vesselState}}, where the Vessel is located, and by applicable United States maritime law, without regard to the state or country in which either Party resides. Where a Party is located outside the United States, that Party remains bound by this choice of law and is responsible for complying with the export, import, tax, and registration requirements of their own jurisdiction. This Agreement constitutes the entire agreement between the Parties and supersedes all prior understandings.</p>
+<h3>10. Taxes, Fees, and Transfer Costs</h3>
+<p>Unless otherwise agreed in writing: Buyer shall be responsible for sales or use taxes imposed on Buyer\u2019s purchase of the Vessel, and for registration and titling fees associated with registering the Vessel in Buyer\u2019s name; Seller shall be responsible for satisfying liens and encumbrances attributable to Seller, and for any tax, fee, or charge attributable to Seller\u2019s ownership or operation of the Vessel before Closing. The Parties are responsible for obtaining their own tax advice.</p>
+
+<h3>11. Buyer Default</h3>
+<p>If all applicable Buyer contingencies have expired, been satisfied, or been waived; Seller is ready, willing, and able to complete the Closing; Seller has complied with Seller\u2019s obligations under this Agreement; and Buyer fails or refuses to complete the purchase without a termination right permitted by this Agreement \u2014 then Seller may retain the earnest money deposit as liquidated damages.</p>
+<p>The Parties acknowledge that the actual damages that may result from Buyer\u2019s failure to close may be difficult to determine and that the earnest money amount is intended as a reasonable estimate of such anticipated damages and is not intended as a penalty.</p>
+<p>Upon release of the earnest money to Seller as liquidated damages, neither Party shall have any further claim against the other arising solely from Buyer\u2019s failure to close, except for obligations that expressly survive termination.</p>
+
+<h3>12. Seller Default</h3>
+<p>If Buyer has satisfied or waived all applicable contingencies; Buyer is ready, willing, and able to complete the Closing; and Seller fails or refuses to complete the sale when required under this Agreement \u2014 the earnest money deposit shall be returned to Buyer in full.</p>
+<p>Buyer shall retain any other right or remedy expressly provided by this Agreement or available under applicable law.</p>
+
+<h3>13. Disputed Earnest Money</h3>
+{{DISPUTED_DEPOSIT}}
+
+<h3>14. BoatClosers Transaction Facilitation</h3>
+<p>BoatClosers is not a party to the sale of the Vessel. BoatClosers provides transaction facilitation, documentation, communication, and workflow tools intended to assist Buyer and Seller in completing their transaction.</p>
+<p>Unless separately agreed in writing, BoatClosers does not act as Buyer or Seller; a broker or dealer; an escrow agent; a surveyor; a mechanic; an insurer; a lender; a title company; an attorney; a maritime professional; a guarantor of the Vessel; or a guarantor of either Party\u2019s performance. Buyer and Seller acknowledge that they are entering into this Agreement directly with one another.</p>
+<p>Buyer and Seller are solely responsible for the accuracy of information they provide; representations they make; decisions they make; inspections and surveys they obtain; financing; insurance; title and ownership information provided by them; the condition and value of the Vessel; and their respective obligations under this Agreement.</p>
+<p>BoatClosers does not independently verify the Vessel\u2019s condition, value, ownership, title, liens, mechanical condition, seaworthiness, documentation, insurance eligibility, financing, or other characteristics of the Vessel unless a specific service is separately identified and agreed to in writing. Buyer and Seller are encouraged to obtain independent legal, tax, insurance, survey, mechanical, title, and other professional advice as appropriate.</p>
+<p>Nothing in this Agreement makes BoatClosers responsible for the acts or omissions of Buyer, Seller, the escrow agent, a surveyor, mechanic, insurer, lender, title authority, or any other third party.</p>
+
+<h3>15. BoatClosers\u2019 Role in the Transaction</h3>
+<p>The Parties acknowledge that BoatClosers\u2019 role is intended to facilitate an organized transaction between Buyer and Seller. BoatClosers may provide forms, checklists, reminders, transaction status information, document organization, and communication tools. BoatClosers does not make the underlying transaction decisions for either Party. Buyer and Seller remain responsible for reviewing this Agreement and all transaction information before signing or taking action.</p>
+
+<h3>16. Notices</h3>
+<p>Any notice required or permitted under this Agreement shall be made in writing and may be delivered by email, an electronic signature platform, the BoatClosers transaction platform, or another method agreed upon by the Parties. A notice shall be effective when transmitted to the email address or electronic account designated by the receiving Party, unless the sender receives notice that the transmission was not delivered.</p>
+
+<h3>17. Time Is of the Essence</h3>
+<p>Time is of the essence with respect to the deadlines and Closing Date stated in this Agreement. Any deadline may be extended only by written agreement of Buyer and Seller.</p>
+
+<h3>18. Dispute Resolution</h3>
+<p>Buyer and Seller shall first attempt in good faith to resolve any dispute arising from this Agreement through direct communication. If the dispute cannot be resolved directly, the Parties shall attempt to resolve it through mediation before commencing arbitration or litigation, unless emergency or other circumstances make immediate legal action reasonably necessary.</p>
+<p>If mediation does not resolve the dispute, the Parties may pursue any remedy available under applicable law or any arbitration requirement contained in a separate agreement signed by the Parties. Nothing in this section requires BoatClosers to participate in a dispute between Buyer and Seller merely because BoatClosers facilitated the transaction.</p>
+
+<h3>19. Governing Law</h3>
+<p>This Agreement shall be governed by the laws of the State of Florida, without regard to conflict-of-law principles, except to the extent applicable federal maritime law or another mandatory law governs a particular issue. If the Vessel is documented, titled, or registered in another jurisdiction, the Parties acknowledge that additional federal or state requirements may apply to the transfer.</p>
+
+<h3>20. Electronic Signatures</h3>
+<p>The Parties agree that electronic signatures, electronic records, and electronic delivery of this Agreement may be used and shall have the same force and effect as original signatures and paper documents to the extent permitted by applicable law. Each person signing represents that they have authority to enter into this Agreement.</p>
+
+<h3>21. Entire Agreement, Amendments, and Severability</h3>
+<p>This Agreement, together with any exhibit and written amendment signed by Buyer and Seller, constitutes the entire agreement between Buyer and Seller concerning the purchase and sale of the Vessel, and supersedes prior oral or written agreements, understandings, offers, negotiations, and representations concerning it, except for any separate written agreement expressly incorporated into this Agreement.</p>
+<p>No amendment, modification, waiver, extension, price change, contingency change, or other modification shall be effective unless made in writing and accepted by both Buyer and Seller. If any provision is determined to be invalid or unenforceable, the remaining provisions shall remain in effect to the fullest extent permitted by law. A Party\u2019s failure to enforce any provision shall not constitute a waiver of that provision or of the Party\u2019s right to enforce it later.</p>
+
+<h3>22. Survival</h3>
+<p>Any provision that by its nature is intended to survive Closing or termination \u2014 including obligations relating to title, liens, confidentiality, indemnification, or unresolved claims \u2014 shall survive Closing or termination as applicable.</p>
+
+<h3>23. Acknowledgment of the Parties</h3>
+<p>Buyer and Seller acknowledge that they have read this Agreement; they understand its terms; they have had the opportunity to ask questions and obtain independent professional advice; they are voluntarily entering into this Agreement; they understand that BoatClosers is facilitating the transaction and is not a party to the sale; and they are responsible for determining whether the Vessel and transaction are suitable for their respective purposes.</p>
 
 <div class="sig">
   <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller<br>Date: ____________</small></div>
@@ -2069,6 +2134,9 @@ export function assembleContingencyClauses(deal) {
   chosen.forEach(c => { html += `<li>${c.clause}</li>`; });
   html += "</ol>";
 
+  if (!chosen.length) {
+    html = `<p class="recital">Buyer has selected no contingencies. This is a cash purchase with no survey, sea trial, financing, insurance, or title contingency, and Buyer has no contingency-based right to terminate under Section 4.</p>`;
+  }
   if (waived.length) {
     html += `<p class="recital">Buyer has waived the following contingencies: ${waived.join(", ")}.</p>`;
   }
@@ -2080,6 +2148,61 @@ export function assembleContingencyClauses(deal) {
 // The deposit paragraph of the Purchase Agreement: where the money sits, who holds
 // it, and what happens to it. Referenced as {{DEPOSIT_TERMS}} but never built, so
 // every agreement was generated without its deposit clause.
+// Who holds the earnest money, written to match what the Parties actually chose
+// in Price & Terms. Five paths are possible and they are genuinely different:
+// a regulated online escrow, an attorney, a licensed broker, a named third party,
+// or the Seller holding it directly. A single "escrow agent identified below"
+// block was wrong for most of them.
+export function assembleDepositHolder(deal) {
+  const d = deal || {};
+  const path = d.escrowPath || "";
+  const noDeposit = !d.depositAmount || /^\$?0(\.00)?$/.test(String(d.depositAmount).replace(/[,\s]/g, ""));
+
+  if (noDeposit) {
+    return `<p>The Parties have agreed that <b>no earnest money deposit</b> is payable under this Agreement. References in this Agreement to the earnest money deposit have no effect unless the Parties later agree to a deposit in writing.</p>`;
+  }
+
+  const blanks =
+    `<div class="field"><span class="k">Holder \u2014 name</span><span class="v">________________________________</span></div>` +
+    `<div class="field"><span class="k">Company / firm</span><span class="v">________________________________</span></div>` +
+    `<div class="field"><span class="k">Address</span><span class="v">________________________________</span></div>` +
+    `<div class="field"><span class="k">Email</span><span class="v">________________________________</span></div>`;
+
+  const neutralDuty =
+    `<p>The holder of the earnest money holds it solely in accordance with the terms of this Agreement and applicable law, and is not responsible for determining whether Buyer or Seller is entitled to the deposit in the event of a dispute.</p>`;
+
+  if (path === "escrow_com") {
+    return `<p>The earnest money deposit shall be delivered to and held by <b>Escrow.com</b>, a licensed online escrow service, under that service\u2019s own escrow terms, and shall be applied toward the Purchase Price at Closing. The Parties shall each complete the steps that service requires to fund and release the deposit.</p>` +
+      `<div class="field"><span class="k">Escrow.com transaction reference</span><span class="v">____________________</span></div>` +
+      neutralDuty;
+  }
+  if (path === "attorney") {
+    return `<p>The earnest money deposit shall be delivered to and held in the trust account of the <b>attorney</b> identified below, and shall be applied toward the Purchase Price at Closing.</p>` + blanks + neutralDuty;
+  }
+  if (path === "brokerage") {
+    return `<p>The earnest money deposit shall be delivered to and held in the escrow or trust account of the <b>licensed broker</b> identified below, and shall be applied toward the Purchase Price at Closing.</p>` + blanks + neutralDuty;
+  }
+  if (path === "direct") {
+    return `<p>The Parties have agreed that <b>no third-party escrow agent will be used</b>. The earnest money deposit shall be paid directly to Seller and shall be applied toward the Purchase Price at Closing.</p>` +
+      `<p>Buyer acknowledges that a deposit paid directly to Seller is not held by a neutral party, and that recovering it if the sale does not complete may require Buyer to pursue Seller directly. Seller shall return the deposit to Buyer where this Agreement requires it to be returned.</p>`;
+  }
+  // Some other arrangement, or nothing chosen yet — leave it to be completed.
+  return `<p>The earnest money deposit shall be delivered to and held by the person or firm identified below, and shall be applied toward the Purchase Price at Closing. If the Parties have not agreed on a holder, they shall do so in writing before the deposit is paid.</p>` + blanks + neutralDuty;
+}
+
+// Section 13 has to match. Where the Seller holds the money there is no agent to
+// keep holding it, so telling the Parties one will is simply untrue.
+export function assembleDisputedDeposit(deal) {
+  const path = (deal || {}).escrowPath || "";
+  const third = path === "escrow_com" || path === "attorney" || path === "brokerage" || (!path);
+  if (third) {
+    return `<p>If Buyer and Seller dispute entitlement to the earnest money deposit, the holder of the deposit may continue to hold it until Buyer and Seller provide joint written instructions for its release, the Parties reach a written settlement concerning the deposit, or the holder receives other legally sufficient authority directing its release.</p>` +
+      `<p>The holder shall not be required to determine which Party is legally entitled to the deposit. Nothing in this section prevents either Party from pursuing a lawful remedy concerning the deposit.</p>`;
+  }
+  return `<p>If Buyer and Seller dispute entitlement to the earnest money deposit, and the deposit is held by Seller rather than by a neutral third party, the Parties shall attempt in good faith to resolve the dispute under Section 18 before either Party pursues another remedy. Seller shall not treat a disputed deposit as Seller\u2019s own funds while the dispute is unresolved.</p>` +
+    `<p>Nothing in this section prevents either Party from pursuing a lawful remedy concerning the deposit.</p>`;
+}
+
 export function assembleDepositTerms(deal) {
   const d = deal || {};
   const escrowed = d.escrowPath === "escrow" || !!d.escrowAgent;
@@ -2100,6 +2223,8 @@ export function assembleDepositTerms(deal) {
 
 export function fillDocument(doc, deal) {
   let body = doc.body || "";
+  body = body.replace("{{DEPOSIT_HOLDER}}", assembleDepositHolder(deal));
+  body = body.replace(/\{\{DISPUTED_DEPOSIT\}\}/g, assembleDisputedDeposit(deal));
   body = body.replace("{{DEPOSIT_TERMS}}", assembleDepositTerms(deal));
   body = body.replace("{{CONTINGENCY_CLAUSES}}", assembleContingencyClauses(deal));
   body = body.replace("{{DOC_REQUEST_STATUS}}", buildDocRequestStatus(deal));
