@@ -724,6 +724,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const allRequiredSigned = requiredDocs.every(d => signed[d.id]) && bosSigned;
   const reqMissing = requiredDocs.filter(d => !signed[d.id]);
   const reqNotaryMissing = reqMissing.filter(d => (d.body||"").includes("Notary Acknowledgment"));
+  // One built copy of each document per unique deal state. Handing React the very
+  // same string on re-render means it leaves the page alone — so a blank being
+  // typed into is never torn out from under the user.
+  const htmlCache = useRef({ key: "", map: {} });
+
   const signedCount = Object.keys(signed).length;
 
   // ── PAYWALL ──
@@ -800,10 +805,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // ── helpers ──
   const setAction = (id, action) => setDocAction(d => ({ ...d, [id]: d[id] === action ? null : action }));
   // Turn a filled in-app document into a self-contained HTML file so it can be
-  // One built copy of each document per unique deal state. Handing React the very
-  // same string on re-render means it leaves the page alone — so a blank being
-  // typed into is never torn out from under the user.
-  const htmlCache = useRef({ key: "", map: {} });
   const getDocHtml = (docObj) => {
     const key = JSON.stringify(deal);
     if (htmlCache.current.key !== key) htmlCache.current = { key, map: {} };
