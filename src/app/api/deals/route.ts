@@ -958,8 +958,24 @@ export async function POST(req: Request) {
           // since changed. (Guarded below: a revision requires that neither party
           // had signed, so nothing real is lost here.)
           const clearingForRevision = ex.status === 'agreed' && merged.status === 'countered'
+          // A party may withdraw their OWN signature while the other has not signed
+          // and no money has moved — otherwise the second signer is left choosing
+          // between signing terms they disagree with and killing the deal. The
+          // marker has to be explicit so an ordinary stale save can never wipe a
+          // signature by accident, and it only ever clears that party's own lines.
+          const bothAlreadySigned = !!(ex.paBuyerSig && ex.paSellerSig)
+          const paidNow = !!(existingRow.paid || existingNeg.paid || existingNeg.dealLocked)
+          const withdrawing = (merged.withdrawnBy === 'buyer' || merged.withdrawnBy === 'seller')
+            && !bothAlreadySigned && !paidNow
+          const mine = merged.withdrawnBy === 'buyer'
+            ? ['paBuyerSig','paBuyerDisc','paBuyerDate']
+            : ['paSellerSig','paSellerDisc','paSellerDate']
+          if (withdrawing) {
+            for (const k of mine) merged[k] = null
+          }
           if (!clearingForRevision) {
             for (const k of ['paBuyerSig','paBuyerDisc','paBuyerDate','paSellerSig','paSellerDisc','paSellerDate']) {
+              if (withdrawing && mine.includes(k)) continue   // deliberately cleared above
               if (!merged[k] && ex[k]) merged[k] = ex[k]
             }
           }
