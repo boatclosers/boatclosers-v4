@@ -953,13 +953,30 @@ export async function POST(req: Request) {
           // PA signatures are sticky: once a party has signed their own line, a
           // later save from the OTHER party (whose copy may not have that
           // signature yet) must never erase it.
-          for (const k of ['paBuyerSig','paBuyerDisc','paBuyerDate','paSellerSig','paSellerDisc','paSellerDate']) {
-            if (!merged[k] && ex[k]) merged[k] = ex[k]
+          // Signatures are never erased by a stale save — except by a genuine
+          // revision, which must clear them so nobody is bound to terms that have
+          // since changed. (Guarded below: a revision requires that neither party
+          // had signed, so nothing real is lost here.)
+          const clearingForRevision = ex.status === 'agreed' && merged.status === 'countered'
+          if (!clearingForRevision) {
+            for (const k of ['paBuyerSig','paBuyerDisc','paBuyerDate','paSellerSig','paSellerDisc','paSellerDate']) {
+              if (!merged[k] && ex[k]) merged[k] = ex[k]
+            }
           }
           // Status only advances (pending → agreed → accepted). A stale save from
           // the other party must never knock an offer back from accepted to agreed.
-          const rank: any = { pending: 1, rejected: 1, agreed: 2, accepted: 3 }
-          if ((rank[ex.status] || 0) > (rank[merged.status] || 0)) merged.status = ex.status
+          //
+          // ONE deliberate exception: "Revise offer" moves an agreed offer back to
+          // countered so the terms can be edited before anyone signs. "countered"
+          // was not in this table, so it scored zero, lost to "agreed", and the
+          // server quietly restored the agreement — the button appeared to do
+          // nothing but post a message. Revising is only allowed while the deal is
+          // unpaid and neither party has signed the Purchase Agreement.
+          const rank: any = { pending: 1, rejected: 1, countered: 1, expired: 1, agreed: 2, accepted: 3 }
+          const dealPaidAlready = !!(existingRow.paid || existingNeg.paid || existingNeg.dealLocked)
+          const nobodySigned = !ex.paBuyerSig && !ex.paSellerSig
+          const isRevision = ex.status === 'agreed' && merged.status === 'countered' && !dealPaidAlready && nobodySigned
+          if (!isRevision && (rank[ex.status] || 0) > (rank[merged.status] || 0)) merged.status = ex.status
           // SECURITY: "accepted" is what unlocks the paid half of the app. Only a
           // deal the server knows is paid may hold an accepted offer.
           const dealIsPaid = !!(existingRow.paid || existingNeg.paid || existingNeg.dealLocked)
