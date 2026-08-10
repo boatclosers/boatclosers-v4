@@ -623,6 +623,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     closingDate: terms.closingDate || negotiate.closingDate || _accOffer?.closingDate || BLANK,
     closingLocation: vessel.location || "the location where the Vessel is moored",
     surveyDeadline: ddEndCalc || BLANK,
+    // Every contingency clause fills its deadline from here. This one was missing,
+    // so choosing "Buyer's Personal Inspection" produced a clause in the Purchase
+    // Agreement reading "completed on or before ." with no date at all.
+    inspectionDeadline: ddEndCalc || BLANK,
     seaTrialDeadline: ddEndCalc || BLANK,
     financingDeadline: ddEndCalc || BLANK,
     brokerFee: "$249.00",
