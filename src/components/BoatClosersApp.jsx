@@ -544,7 +544,6 @@ function DealAssistant({ step, role, vessel, seen, onSeen }) {
   const r = role === "seller" ? "seller" : "buyer";
   const g = c[r] || c;
   const faqs = g.faqs || c.faqs || [];
-  const hasVessel = vessel && (vessel.year || vessel.make || vessel.model);
   return (
     <div style={{ border:`1px solid ${C.navy}`, borderRadius:8, marginBottom:20, overflow:"hidden", background:"#fff" }}>
       <div onClick={()=>setOpen(o=>!o)} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"11px 14px", background:C.navy }}>
@@ -557,14 +556,6 @@ function DealAssistant({ step, role, vessel, seen, onSeen }) {
       </div>
       {open && (
         <div style={{ padding:"14px 16px" }}>
-          {hasVessel && (
-            <div style={{ background:C.sandDark, borderRadius:6, padding:"9px 12px", marginBottom:12, fontSize:11.5, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6 }}>
-              <b>This deal:</b> {[vessel.year, vessel.make, vessel.model].filter(Boolean).join(" ")}
-              {vessel.length ? ` · ${vessel.length}` : ""}
-              {vessel.hin ? ` · HIN ${vessel.hin}` : ""}
-              {vessel.askingPrice ? ` · Asking ${fmt(Number(vessel.askingPrice))}` : ""}
-            </div>
-          )}
           <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.text, lineHeight:1.65, marginBottom:12 }}>{g.summary}</div>
           {g.todo && (
             <div style={{ marginBottom:12 }}>
