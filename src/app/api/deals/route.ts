@@ -24,6 +24,12 @@ async function getUserId(req: Request): Promise<string | null> {
   }
 }
 
+function escHtml(v: any) {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
 function fmtMoney(n: number) {
   if (typeof n !== 'number') return ''
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
@@ -427,7 +433,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
             <p style="color:#475569; font-size:14px; line-height:1.5;">
               Following due diligence on <strong>${vesselName}</strong>, the buyer has proposed a
               <strong>new final price of ${fmtMoney(newProposed)}</strong> as an addendum to the
-              signed Purchase Agreement. The original agreement stays intact${reason ? `. Reason given: "${String(reason).replace(/</g,'&lt;')}"` : ''}.
+              signed Purchase Agreement. The original agreement stays intact${reason ? `. Reason given: "${escHtml(reason)}"` : ''}.
             </p>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
               Open the deal to <strong>accept or decline</strong> this addendum.
@@ -483,7 +489,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
       }
       const reasonList = (newRej.reasons || []).map((id: string) => REJECTION_LABELS[id] || id)
       const reasonsHtml = reasonList.length
-        ? `<ul style="margin:8px 0;padding-left:20px;color:#334155;font-size:13px;">${reasonList.map((r: string) => `<li>${r}</li>`).join('')}</ul>`
+        ? `<ul style="margin:8px 0;padding-left:20px;color:#334155;font-size:13px;">${reasonList.map((r: string) => `<li>${escHtml(r)}</li>`).join('')}</ul>`
         : ''
       const rejRecips = [buyerEmail, sellerEmail].filter(Boolean)
       for (const email of rejRecips) {
@@ -639,7 +645,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               <h2 style="color:#08152e; font-size:18px;">The deal is secured</h2>
               <p style="color:#475569; font-size:14px; line-height:1.5;">
                 The seller has confirmed the earnest-money deposit on <strong>${vesselName}</strong>
-                arrived (reference <strong>${proofRef}</strong>).${note ? ` Seller's note: ${note}` : ''}
+                arrived (reference <strong>${proofRef}</strong>).${note ? ` Seller's note: ${escHtml(note)}` : ''}
               </p>
               <p style="color:#475569; font-size:14px; line-height:1.5;">
                 The boat is now held off the market while due diligence is completed. Both sides
@@ -665,7 +671,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               <h2 style="color:#08152e; font-size:18px;">Your deposit hasn't shown up yet</h2>
               <p style="color:#475569; font-size:14px; line-height:1.5;">
                 The seller reports that the earnest-money deposit on <strong>${vesselName}</strong>
-                has not arrived.${note ? ` Their note: ${note}` : ''} <strong>This deal is on hold</strong> until it's sorted out.
+                has not arrived.${note ? ` Their note: ${escHtml(note)}` : ''} <strong>This deal is on hold</strong> until it's sorted out.
               </p>
               <p style="color:#475569; font-size:14px; line-height:1.5;">
                 Check with your escrow agent or bank first &mdash; wires can take 1&ndash;2 business
@@ -979,6 +985,12 @@ export async function POST(req: Request) {
       // silently wrote nothing. This is the fix for "joiner's data doesn't save."
       const wasFinal = !!existingNegForLock.dealFinalized
       const nowFinal = !!mergedPayload.negotiate?.dealFinalized
+      if (nowFinal && !wasFinal && existingRow.initiator_id !== userId) {
+        return NextResponse.json(
+          { error: 'Only the person who started this deal can finalize it.' },
+          { status: 403 }
+        )
+      }
       const wasCanceled = !!existingNeg.canceled
       const nowCanceled = !!mergedPayload.negotiate?.canceled
       if (nowFinal && !wasFinal) {
