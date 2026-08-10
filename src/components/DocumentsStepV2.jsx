@@ -1016,13 +1016,13 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     reader.onerror = () => { setUploadErr(e => ({ ...e, [docId]: "Couldn't read that file — please try a different one." })); };
     reader.readAsDataURL(file);
   };
-  const printDoc = (docId, title, retry) => {
+  const printDoc = (docId, title, retry, asPdf) => {
     const node = docId != null ? document.getElementById("bc-print-" + docId) : null;
     // If Print is tapped straight from the Fill In screen the finished document is
     // not on screen yet — switch to it, then print a moment later.
     if (!node && docId != null && !retry) {
       setDocAction(d => ({ ...d, [docId]: "view" }));
-      setTimeout(() => printDoc(docId, title, true), 250);
+      setTimeout(() => printDoc(docId, title, true, asPdf), 250);
       return;
     }
     if (!node) { window.print(); return; }
@@ -1035,11 +1035,25 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       '\nbody{margin:0;padding:28px;background:#fff}' +
       '\n.bc-fill-hint,.bc-lock-note{display:none}' +
       '\n@page{margin:0.6in}' +
-      '</style></head><body>' + node.innerHTML + '</body></html>'
+      '</style></head><body>' + node.innerHTML +
+      // Browsers ignore CSS @page footers, so the reference is carried in the
+      // document itself — a loose page two is otherwise unattributable.
+      '<div class="bc-print-foot">' + String(title || "Document").replace(/[<>]/g, "") +
+        ' \u00b7 Ref ' + dealRef + '</div>' +
+      '</body></html>'
     );
     w.document.close();
     w.focus();
-    setTimeout(function(){ try { w.print(); } catch (e) {} }, 300);
+    setTimeout(function(){
+      try {
+        if (asPdf && w.document && w.document.body) {
+          // Nudge the print dialogue toward "Save as PDF" where the browser
+          // supports naming the file; otherwise it behaves exactly like Print.
+          w.document.title = String(title || "Document").replace(/[^\w \-]/g, "").trim() || "Document";
+        }
+        w.print();
+      } catch (e) {}
+    }, 300);
   };
 
   const ActionBtn = ({ docId, action, icon, label, color }) => {
@@ -1485,6 +1499,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                       {!frozen && doc.kind !== "upload" && !doc.viewOnly && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
                       <ActionBtn docId={doc.id} action="send"   icon="📤" label="Send"   color={C.brass} />
                       {!frozen && !doc.viewOnly && <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />}
+                      <button onClick={()=>printDoc(doc.id, doc.title, false, true)} title="Save as PDF"
+                        style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:"1.5px solid #e3ddd0", background:C.white, color:C.navy, whiteSpace:"nowrap" }}>
+                        <span style={{ fontSize:12 }}>⬇</span> PDF
+                      </button>
                       <button onClick={()=>printDoc(doc.id, doc.title)} title="Print" style={{ fontSize:13, padding:"7px 11px", borderRadius:20, cursor:"pointer", border:`1.5px solid #e3ddd0`, background:C.white, color:C.slate }}>🖨️</button>
                     </div>
                   </div>
