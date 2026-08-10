@@ -87,7 +87,7 @@ export const DOCUMENTS = [
     useWhen: "Use once you and the other party agree on a price. This is the contract that binds the deal.",
     keywords: "purchase agreement contract offer accepted binding sale terms psa buy sell",
     body: `
-<p class="lead recital">This Vessel Purchase &amp; Sale Agreement (the \u201cAgreement\u201d) is entered into on {{effectiveDate}} by and between {{sellerName}}, of {{sellerAddress}}, a citizen of {{sellerCitizen}} (the \u201cSeller\u201d), and {{buyerName}}, of {{buyerAddress}}, a citizen of {{buyerCitizen}} (the \u201cBuyer\u201d). Seller and Buyer may be referred to individually as a \u201cParty\u201d and collectively as the \u201cParties.\u201d</p>
+<p class="lead recital">This Vessel Purchase &amp; Sale Agreement (the \u201cAgreement\u201d) is entered into on {{effectiveDate}} by and between {{sellerName}}, of {{sellerAddress}}{{SELLER_CITIZEN_PHRASE}} (the \u201cSeller\u201d), and {{buyerName}}, of {{buyerAddress}}{{BUYER_CITIZEN_PHRASE}} (the \u201cBuyer\u201d). Seller and Buyer may be referred to individually as a \u201cParty\u201d and collectively as the \u201cParties.\u201d</p>
 
 <h3>1. The Vessel</h3>
 <p>Seller agrees to sell, and Buyer agrees to purchase, the following vessel (the \u201cVessel\u201d):</p>
@@ -2219,6 +2219,15 @@ export function assembleDepositTerms(deal) {
 
 export function fillDocument(doc, deal) {
   let body = doc.body || "";
+  // Citizenship is only stated where it means something — a documented vessel may
+  // only be owned by a US citizen. On a state-titled boat the phrase is dropped
+  // rather than left as a blank line nobody was asked to fill.
+  const _doc = String((deal && (deal.uscgOfficialNo || deal.uscgNumber)) || "").trim();
+  const _isDoc = !!_doc && !/^n\/?a$/i.test(_doc);
+  body = body.replace("{{SELLER_CITIZEN_PHRASE}}",
+    _isDoc && deal?.sellerCitizen ? `, a citizen of ${deal.sellerCitizen}` : "");
+  body = body.replace("{{BUYER_CITIZEN_PHRASE}}",
+    _isDoc && deal?.buyerCitizen ? `, a citizen of ${deal.buyerCitizen}` : "");
   body = body.replace("{{DEPOSIT_HOLDER}}", assembleDepositHolder(deal));
   body = body.replace(/\{\{DISPUTED_DEPOSIT\}\}/g, assembleDisputedDeposit(deal));
   body = body.replace("{{DEPOSIT_TERMS}}", assembleDepositTerms(deal));
