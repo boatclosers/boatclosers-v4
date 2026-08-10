@@ -101,6 +101,7 @@ const priceToWords = (n) => {
 };
 const PA_DOC_CSS = `
 .bc-pa .bc-blank{display:inline-block;min-width:110px;border-bottom:1px solid #b9b2a4;vertical-align:baseline}
+.bc-pa .bc-val{font-weight:700;color:#08152e}
 .bc-pa .field{border-bottom:1px solid #e6e0d4;padding:6px 0;display:flex;justify-content:space-between;gap:14px;font-size:12.5px;font-family:'Helvetica Neue',Arial,sans-serif}
 .bc-pa .field .k{color:#3d5166;flex-shrink:0}
 .bc-pa .field .v{font-weight:700;color:#08152e;text-align:right}
@@ -941,6 +942,25 @@ function StepVessel({ data, setData, userRole, onNext }) {
               which puts a wrong figure on the title paperwork. */}
           <Field label="Certificate of Title # — if you have it"><input style={S.input} value={data.titleNumber || ""} placeholder="as shown on the title" onChange={e=>set("titleNumber", e.target.value)} /></Field>
           <Field label="Registration State"><input style={S.input} value={data.regState} onChange={e=>set("regState",e.target.value)} placeholder="FL" maxLength={2} /></Field>
+          {/* An explicit answer, not an inference from whether a number was typed.
+              A seller who has a documented boat but no number to hand still needs
+              the citizenship question and the foreign-buyer warning. */}
+          <Field label="Is this vessel U.S. Coast Guard documented?">
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+              {[["yes","Yes"],["no","No — state titled"],["unsure","Not sure"]].map(([v,lbl]) => (
+                <button key={v} type="button" onClick={()=>set("isDocumented", v)}
+                  style={{ fontSize:12.5, padding:"8px 14px", borderRadius:18, cursor:"pointer", fontFamily:"sans-serif", fontWeight:700,
+                    border:`1.5px solid ${data.isDocumented===v ? C.brass : C.mist}`,
+                    background: data.isDocumented===v ? C.brass : C.white,
+                    color: data.isDocumented===v ? "#fff" : C.slate }}>{lbl}</button>
+              ))}
+            </div>
+            {data.isDocumented === "unsure" && (
+              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:8 }}>
+                A documented vessel has a Certificate of Documentation from the Coast Guard and its official number carved into the hull &mdash; not a state registration decal. Larger boats usually are; most trailerable boats are not.
+              </div>
+            )}
+          </Field>
           <Field label="USCG Documentation # (if applicable)"><input style={S.input} value={data.uscgNumber} onChange={e=>set("uscgNumber",e.target.value)} placeholder="Leave blank if not documented" /></Field>
           <Field label="Trailer Included?">
             <select style={S.select} value={data.trailerIncluded} onChange={e=>set("trailerIncluded",e.target.value)}>
@@ -984,7 +1004,10 @@ function StepVessel({ data, setData, userRole, onNext }) {
 function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, onNext, onBack, dealId, user, ensureSaved }) {
   // Citizenship is only asked where it changes anything: a Coast Guard documented
   // vessel may only be owned by a US citizen.
-  const isDocumented = !!String(vessel?.uscgNumber || "").trim();
+  // The explicit answer wins; a typed documentation number still counts, so deals
+  // saved before that question existed keep working.
+  const isDocumented = vessel?.isDocumented === "yes"
+    || (vessel?.isDocumented !== "no" && !!String(vessel?.uscgNumber || "").trim());
   const [inviteLink, setInviteLink] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -2249,28 +2272,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         )}
       </div>
 
-      {/* ── DEAL ROOM STATUS BAR ── live snapshot of where the negotiation stands */}
-      {offers.length > 0 && !acceptedOffer && !agreedOffer && (
-        <div style={{ background:C.navy, borderRadius:10, padding:"14px 18px", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
-          <div>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", letterSpacing:0.5 }}>CURRENT GAP</div>
-            <div style={{ fontSize:22, fontWeight:800, fontFamily:"sans-serif", color:"#fff" }}>
-              {dealGap !== null ? `${fmt(dealGap)} apart` : "Awaiting response"}
-            </div>
-          </div>
-          <div style={{ textAlign:"center" }}>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", letterSpacing:0.5 }}>WHOSE TURN</div>
-            <div style={{ fontSize:15, fontWeight:700, fontFamily:"sans-serif", color: myTurn ? C.brass : "rgba(255,255,255,0.7)" }}>
-              {myTurn ? "Your move" : `Waiting on ${whoseTurn}`}
-            </div>
-          </div>
-          <div style={{ textAlign:"right" }}>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", letterSpacing:0.5 }}>ROUNDS</div>
-            <div style={{ fontSize:15, fontWeight:700, fontFamily:"sans-serif", color:"#fff" }}>{offers.length} offer{offers.length>1?"s":""}</div>
-          </div>
-        </div>
-      )}
-
       {/* ── ASKING PRICE ANCHOR — the seller's starting number the buyer offers against ── */}
       {vessel.askingPrice && !acceptedOffer && !agreedOffer && (
         <div style={{ background:C.sandDark, border:`1px solid ${C.mist}`, borderRadius:8, padding:"10px 16px", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
@@ -2321,6 +2322,22 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                myOfferAwaiting ? `Your offer of ${fmt(latestPendingTop.amount)} is on the table — waiting for the ${myRole==="buyer" ? "seller" : "buyer"} to respond.` :
                "Review the latest offer below."}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DEAL ROOM STATUS BAR ── live snapshot of where the negotiation stands */}
+      {offers.length > 0 && !acceptedOffer && !agreedOffer && (
+        <div style={{ background:C.navy, borderRadius:10, padding:"14px 18px", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
+          <div>
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", letterSpacing:0.5 }}>CURRENT GAP</div>
+            <div style={{ fontSize:22, fontWeight:800, fontFamily:"sans-serif", color:"#fff" }}>
+              {dealGap !== null ? `${fmt(dealGap)} apart` : "Awaiting response"}
+            </div>
+          </div>
+          <div style={{ textAlign:"right" }}>
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", letterSpacing:0.5 }}>ROUNDS</div>
+            <div style={{ fontSize:15, fontWeight:700, fontFamily:"sans-serif", color:"#fff" }}>{offers.length} offer{offers.length>1?"s":""}</div>
           </div>
         </div>
       )}
@@ -5563,7 +5580,7 @@ function Welcome({ name, onStart, onSignOut }) {
   );
 }
 
-function AuthScreen({ onAuth, prefillEmail, notice, defaultMode, defaultRole }) {
+function AuthScreen({ onAuth, prefillEmail, notice, defaultMode, defaultRole, onHome }) {
   const [mode, setMode] = useState(defaultMode || "signup");
   const [role, setRole] = useState(defaultRole || null);
   const [name, setName] = useState("");
@@ -5631,9 +5648,11 @@ function AuthScreen({ onAuth, prefillEmail, notice, defaultMode, defaultRole }) 
           {mode==="signup" && (
             <div style={{ marginBottom:20 }}>
               <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:600, color:C.navy, marginBottom:10 }}>I am the...</div>
-              <div className="bc-grid2" style={{ gap:10 }}>
-                {[["buyer","🛒 Buyer","I am purchasing a vessel"],["seller","⚓ Seller","I own the vessel being sold"]].map(([r,l,d])=>(
-                  <button key={r} onClick={()=>setRole(r)} style={{ padding:"14px 10px", borderRadius:6, cursor:"pointer", textAlign:"center", background:role===r?C.navy:"transparent", color:role===r?"#fff":C.navy, border:`2px solid ${role===r?C.brass:C.mist}`, fontFamily:"sans-serif" }}>
+              {/* Three across: two roles and a way back. The third is styled as an
+                  aside rather than a role, so nobody mistakes it for one. */}
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+                {[["buyer","🛒 Buyer","I am purchasing a vessel"],["seller","⚓ Seller","I own the vessel being sold"],["__home","↩ Not yet","Take me back to read more first"]].map(([r,l,d])=>(
+                  <button key={r} onClick={()=>{ if (r === "__home") { onHome && onHome(); return; } setRole(r); }} style={{ padding:"14px 10px", borderRadius:6, cursor:"pointer", textAlign:"center", background:role===r?C.navy:"transparent", color: r==="__home" ? C.slate : (role===r?"#fff":C.navy), border: r==="__home" ? `1px dashed ${C.mist}` : `2px solid ${role===r?C.brass:C.mist}`, fontFamily:"sans-serif" }}>
                     <div style={{ fontSize:18, marginBottom:4 }}>{l.split(" ")[0]}</div>
                     <div style={{ fontSize:13, fontWeight:700 }}>{l.split(" ").slice(1).join(" ")}</div>
                     <div style={{ fontSize:11, color:role===r?"rgba(255,255,255,0.65)":C.slate, marginTop:3 }}>{d}</div>
@@ -6885,7 +6904,7 @@ export default function BoatClosers() {
   );
   if (screen==="terms") return withFooter(<LegalScreen page="terms" onBack={()=>setScreen("landing")} />);
   if (screen==="privacy") return withFooter(<LegalScreen page="privacy" onBack={()=>setScreen("landing")} />);
-  if (screen==="auth") return withFooter(<AuthScreen onAuth={handleAuth} prefillEmail={deepLink?.email} notice={deepLink ? `Sign in as ${deepLink.email} to review this deal.` : null} defaultMode={deepLink ? "login" : "signup"} defaultRole={authRole} />);
+  if (screen==="auth") return withFooter(<AuthScreen onAuth={handleAuth} onHome={()=>setScreen("landing")} prefillEmail={deepLink?.email} notice={deepLink ? `Sign in as ${deepLink.email} to review this deal.` : null} defaultMode={deepLink ? "login" : "signup"} defaultRole={authRole} />);
   if (screen==="deal" && showWelcome) return withFooter(<Welcome name={user?.name} onStart={()=>setShowWelcome(false)} onSignOut={handleSignOut} />);
 
   return (
