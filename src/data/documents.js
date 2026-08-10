@@ -87,7 +87,7 @@ export const DOCUMENTS = [
     useWhen: "Use once you and the other party agree on a price. This is the contract that binds the deal.",
     keywords: "purchase agreement contract offer accepted binding sale terms psa buy sell",
     body: `
-<p class="lead recital">This Vessel Purchase &amp; Sale Agreement (the \u201cAgreement\u201d) is made on {{effectiveDate}}, by and between {{sellerName}}, of {{sellerAddress}}, a citizen of {{sellerCitizen}} (the \u201cSeller\u201d), and {{buyerName}}, of {{buyerAddress}}, a citizen of {{buyerCitizen}} (the \u201cBuyer\u201d). The Parties may reside in different states or countries; their places of residence do not change the governing law set out in this Agreement.</p>
+<p class="lead recital">This Vessel Purchase &amp; Sale Agreement (the \u201cAgreement\u201d) is made on {{effectiveDate}}, by and between {{sellerName}}, of {{sellerAddress}}, a citizen of ____________________ (the \u201cSeller\u201d), and {{buyerName}}, of {{buyerAddress}}, a citizen of ____________________ (the \u201cBuyer\u201d). The Parties may reside in different states or countries; their places of residence do not change the governing law set out in this Agreement.</p>
 
 <h3>1. The Vessel</h3>
 <p>Seller agrees to sell and Buyer agrees to purchase the following vessel, together with its engines, equipment, and gear as equipped (collectively, the \u201cVessel\u201d): a {{vesselYear}} {{vesselMake}} {{vesselModel}}, {{vesselLength}} in length, {{hullMaterial}} hull, Hull Identification Number {{hin}}, U.S. Coast Guard Official Number {{uscgOfficialNo}}, Title No. {{titleNo}}, Registration {{regNo}}, powered by {{engineDesc}}. The Seller\u2019s personal effects are excluded from the sale. If the Parties wish to itemize the specific gear and accessories that convey with the Vessel, they may complete and sign the optional Inventory Schedule.</p>
@@ -580,11 +580,14 @@ export const DOCUMENTS = [
   <tr class="tot"><td>Balance Due From Buyer at Closing</td><td class="r">{{balanceDue}}</td></tr>
   <tr><td class="sec" colspan="2">Seller\u2019s Side</td></tr>
   <tr><td>Gross Sale Proceeds</td><td class="r">{{salePrice}}</td></tr>
-  <tr><td>Less: Outstanding Lien Payoff (if any)</td><td class="r">\u2013 $0.00</td></tr>
-  <tr class="tot"><td>Net Proceeds to Seller</td><td class="r">{{salePrice}}</td></tr>
+  <tr><td>Less: Outstanding Lien Payoff (if any)</td><td class="r">\u2013 $ ______________</td></tr>
+  <tr><td>Less: Other Seller Costs (if any)</td><td class="r">\u2013 $ ______________</td></tr>
+  <tr class="tot"><td>Net Proceeds to Seller</td><td class="r">$ ______________</td></tr>
   <tr><td class="sec" colspan="2">Platform</td></tr>
   <tr><td>BoatClosers Flat Fee (paid at signup)</td><td class="r">{{brokerFee}}</td></tr>
 </table>
+
+<div class="note"><b>Seller\u2019s side:</b> enter any loan payoff and other seller costs, then the net proceeds \u2014 gross sale proceeds less those amounts. The payoff figure should come from the lender in writing, good through the closing date. BoatClosers does not calculate or verify these numbers.</div>
 
 <div class="note">Title transfer and registration fees payable to the state are the responsibility of the Buyer and are paid directly to the state agency; they are not collected by BoatClosers.</div>
 
@@ -635,8 +638,8 @@ export const DOCUMENTS = [
 <h3>2. Revised Terms</h3>
 <table class="stmt">
   <tr class="head"><td>Term</td><td class="r">Original \u2192 Revised</td></tr>
-  <tr><td>Purchase Price</td><td class="r">{{salePrice}} \u2192 {{reducedPrice}}</td></tr>
-  <tr><td>Price Reduction</td><td class="r">{{reduction}}</td></tr>
+  <tr><td>Purchase Price</td><td class="r">{{salePrice}} \u2192 $ ______________</td></tr>
+  <tr><td>Price Reduction</td><td class="r">$ ______________</td></tr>
   <tr><td>Repairs by Seller before Closing</td><td class="r">\u2610 None &nbsp; \u2610 As listed above</td></tr>
   <tr><td>Revised Closing Date</td><td class="r">{{closingDate}}</td></tr>
 </table>
@@ -796,12 +799,12 @@ export const DOCUMENTS = [
     keywords: "lien release satisfaction paid off loan cleared bank release encumbrance removed",
     showIf: (deal) => !!(deal && deal.hasLien),
     body: `
-<p class="lead recital">This Lien Release applies only where the vessel was subject to a recorded lien or loan. {{lienholderName}} (the \u201cLienholder\u201d) confirms the following regarding the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}.</p>
+<p class="lead recital">This Lien Release applies only where the vessel was subject to a recorded lien or loan. ________________________________ (the \u201cLienholder\u201d) confirms the following regarding the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}.</p>
 
 <h3>Lien Details</h3>
-<div class="field"><span class="k">Lienholder</span><span class="v">{{lienholderName}}</span></div>
-<div class="field"><span class="k">Loan / Account No.</span><span class="v">{{lienAcctNo}}</span></div>
-<div class="field"><span class="k">Payoff Amount</span><span class="v">{{lienAmount}}</span></div>
+<div class="field"><span class="k">Lienholder</span><span class="v">________________________________</span></div>
+<div class="field"><span class="k">Loan / Account No.</span><span class="v">____________________</span></div>
+<div class="field"><span class="k">Payoff Amount</span><span class="v">$ ______________</span></div>
 <div class="field"><span class="k">Vessel Owner of Record</span><span class="v">{{sellerName}}</span></div>
 
 <h3>Release</h3>
@@ -810,14 +813,14 @@ export const DOCUMENTS = [
 <div class="note">This document appears only when the deal indicates the vessel had a loan. A clear, recorded lien release is what lets a clean title transfer to the buyer.</div>
 
 <div class="sig">
-  <div class="sigbox"><div class="ln"></div><small>Authorized Officer \u2014 <b>{{lienholderName}}</b><br>Title: ____________ \u00b7 Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small>Authorized Officer \u2014 <b>________________________________</b><br>Title: ____________ \u00b7 Date: ____________</small></div>
   <div class="sigbox"><div class="ln"></div><small>Received \u2014 <b>{{sellerName}}</b> (Owner of Record)<br>Date: ____________</small></div>
 </div>
 
 <div class="notary">
   <div class="nt">Notary Acknowledgment (if required)</div>
   <p>State of __________________ \u00b7 County of __________________</p>
-  <p>Acknowledged before me this ______ day of __________, 20____, by the authorized officer of {{lienholderName}}, who is personally known to me or produced ____________________ as identification.</p>
+  <p>Acknowledged before me this ______ day of __________, 20____, by the authorized officer of ________________________________, who is personally known to me or produced ____________________ as identification.</p>
   <p style="margin-top:12px">Notary Public: ____________________________ &nbsp; My commission expires: __________</p>
 </div>`
   },
@@ -1505,9 +1508,9 @@ export const DOCUMENTS = [
 <p class="lead">The Seller, {{sellerName}}, authorizes the lienholder below to provide a payoff figure and to release its lien on the vessel upon receipt of payment at closing, so clear title can pass to {{buyerName}}.</p>
 
 <h3>Existing Loan</h3>
-<div class="field"><span class="k">Lienholder</span><span class="v">{{lienholderName}}</span></div>
-<div class="field"><span class="k">Loan / Account No.</span><span class="v">{{lienAcctNo}}</span></div>
-<div class="field"><span class="k">Estimated payoff</span><span class="v">{{lienAmount}}</span></div>
+<div class="field"><span class="k">Lienholder</span><span class="v">________________________________</span></div>
+<div class="field"><span class="k">Loan / Account No.</span><span class="v">____________________</span></div>
+<div class="field"><span class="k">Estimated payoff</span><span class="v">$ ______________</span></div>
 <div class="field"><span class="k">Vessel</span><span class="v">{{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}</span></div>
 
 <h3>Authorization</h3>
