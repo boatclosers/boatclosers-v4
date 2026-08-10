@@ -1437,6 +1437,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   const [negMode, setNegMode] = useState("negotiate"); // "negotiate" | "agreed"
   // Seller-only: flag a conflict on dates/deposit terms via email to the buyer.
   const [conflictOpen, setConflictOpen] = useState(false);
+  // The same overlay serves two jobs: a seller flagging a conflict mid-negotiation,
+  // and either party asking for a change before they sign.
+  const [preSignAsk, setPreSignAsk] = useState(false);
   const [conflictTopic, setConflictTopic] = useState("dates");
   const [conflictMsg, setConflictMsg] = useState("");
   const [conflictSending, setConflictSending] = useState(false);
@@ -1454,7 +1457,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           dealId: dealId,
           topic: conflictTopic,
           message: conflictMsg,
-          fromName: parties?.seller?.name || ""
+          toRole: myRole === "seller" ? "buyer" : "seller",
+          preSign: preSignAsk,
+          fromName: (myRole === "seller" ? parties?.seller?.name : parties?.buyer?.name) || ""
         })
       });
       const r = await res.json();
@@ -1583,6 +1588,25 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   };
 
   // Do-over: reopen the agreed offer to fix a forgotten term BEFORE signing.
+  // Withdraw my own signature so the terms can be reopened. Only mine, only while
+  // the other party has not signed and nothing has been paid — the server enforces
+  // the same three conditions, so a stale save cannot wipe a signature.
+  const withdrawSignature = () => {
+    const ag = offers.find(o => o.status === "agreed");
+    if (!ag) return;
+    const me = myRole === "seller" ? "seller" : "buyer";
+    const cleared = offers.map(of => of.id === ag.id
+      ? (me === "buyer"
+          ? { ...of, paBuyerSig:null, paBuyerDisc:null, paBuyerDate:null, withdrawnBy:"buyer" }
+          : { ...of, paSellerSig:null, paSellerDisc:null, paSellerDate:null, withdrawnBy:"seller" })
+      : of);
+    const note = { from: myRole, text:"↩️ Withdrew their signature so the terms can be revised before signing.", time:new Date().toLocaleTimeString() };
+    const msgs = [...messages, note];
+    setOffers(cleared);
+    setMessages(msgs);
+    setData(d => ({ ...d, offers: cleared, messages: msgs }));
+  };
+
   const reviseOffer = () => {
     const ag = offers.find(o => o.status==="agreed");
     if (!ag) return;
@@ -1822,6 +1846,19 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 22px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>
                   {iSigned ? "View Purchase Agreement →" : "Sign the Purchase Agreement →"}
                 </button>
+                {iSigned && !bothSigned && (
+                  <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={withdrawSignature}
+                    title="Clears your signature so the terms can be edited. The other party has not signed.">
+                    ↩️ Withdraw my signature
+                  </button>
+                )}
+                {!iSigned && ((myRole === "seller" && buyerSigned) || (myRole !== "seller" && sellerSigned)) && (
+                  <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }}
+                    onClick={()=>{ setConflictTopic("dates"); setPreSignAsk(true); setConflictOpen(true); }}
+                    title="Ask the other party for a change before you sign">
+                    ✋ I need a change before I sign
+                  </button>
+                )}
                 {!buyerSigned && !sellerSigned && (
                   <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={reviseOffer} title="Reopen the offer to fix a term before signing">↩️ Revise offer</button>
                 )}
@@ -2686,19 +2723,21 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       ) : null}
 
       {conflictOpen && !conflictSent && (
-        <div onClick={()=>{ setConflictOpen(false); setConflictErr(""); }}
+        <div onClick={()=>{ setConflictOpen(false); setConflictErr(""); setPreSignAsk(false); setPreSignAsk(false); }}
           style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.7)", zIndex:4000, overflowY:"auto", padding:"20px 12px", fontFamily:"sans-serif" }}>
           <div onClick={e=>e.stopPropagation()}
             style={{ maxWidth:520, margin:"4vh auto 0", background:"#fff", borderRadius:12, overflow:"hidden", border:`2px solid ${C.brass}` }}>
             <div style={{ background:C.navy, color:"#fff", padding:"13px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <span style={{ fontSize:12.5, letterSpacing:1, color:C.brass }}>FLAG A CONFLICT</span>
-              <button onClick={()=>{ setConflictOpen(false); setConflictErr(""); }}
+              <span style={{ fontSize:12.5, letterSpacing:1, color:C.brass }}>{preSignAsk ? "ASK FOR A CHANGE BEFORE SIGNING" : "FLAG A CONFLICT"}</span>
+              <button onClick={()=>{ setConflictOpen(false); setConflictErr(""); setPreSignAsk(false); setPreSignAsk(false); }}
                 style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.7)", fontSize:20, cursor:"pointer", lineHeight:1 }}>&times;</button>
             </div>
             <div style={{ padding:"18px 20px 20px" }}>
-              <div style={{ fontFamily:"'Georgia',serif", fontSize:18, color:C.navy, marginBottom:6 }}>Ask the buyer to adjust their terms</div>
+              <div style={{ fontFamily:"'Georgia',serif", fontSize:18, color:C.navy, marginBottom:6 }}>{preSignAsk ? "Ask for a change before you sign" : "Ask the buyer to adjust their terms"}</div>
               <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:14 }}>
-                You can&rsquo;t edit the buyer&rsquo;s offer &mdash; they author the terms. What you can do is tell them exactly what doesn&rsquo;t work, so they can change it and send the offer again.
+                {preSignAsk
+                  ? <>The other party has already signed, so nothing can be edited while their signature stands. Tell them what needs to change &mdash; they can withdraw their signature to reopen the terms, and you both sign the revised agreement. <b>Sending this does not sign anything or end the deal.</b></>
+                  : <>You can&rsquo;t edit the buyer&rsquo;s offer &mdash; they author the terms. What you can do is tell them exactly what doesn&rsquo;t work, so they can change it and send the offer again.</>}
               </div>
               <label style={{ ...S.label, marginBottom:5 }}>What&rsquo;s the conflict about?</label>
               <select style={{ ...S.input, marginBottom:12 }} value={conflictTopic} onChange={e=>setConflictTopic(e.target.value)}>
@@ -2710,13 +2749,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               <textarea style={{ ...S.textarea, minHeight:96 }} value={conflictMsg} onChange={e=>setConflictMsg(e.target.value)}
                 placeholder="e.g. The 10-day closing date won't work — I need until the 30th to clear the lien." />
               <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:8 }}>
-                This goes to the buyer by email with your deal attached. It does not change or reject their offer &mdash; they still hold the terms.
+                {preSignAsk
+                  ? "This emails the other party. Their signature stays in place until they choose to withdraw it."
+                  : "This goes to the buyer by email with your deal attached. It does not change or reject their offer \u2014 they still hold the terms."}
               </div>
               {conflictErr && <div style={{ fontSize:12, color:"#dc2626", marginTop:8 }}>{conflictErr}</div>}
               <div style={{ display:"flex", gap:10, marginTop:16 }}>
-                <button onClick={()=>{ setConflictOpen(false); setConflictErr(""); }} style={{ ...S.btnOutline, flex:1, fontSize:13 }}>Cancel</button>
+                <button onClick={()=>{ setConflictOpen(false); setConflictErr(""); setPreSignAsk(false); setPreSignAsk(false); }} style={{ ...S.btnOutline, flex:1, fontSize:13 }}>Cancel</button>
                 <button onClick={sendConflict} disabled={conflictSending} style={{ ...S.btnBrass, flex:1, fontSize:13, opacity:conflictSending?0.6:1 }}>
-                  {conflictSending ? "Sending\u2026" : "Email the buyer"}
+                  {conflictSending ? "Sending\u2026" : (preSignAsk ? "Send the request" : "Email the buyer")}
                 </button>
               </div>
             </div>
