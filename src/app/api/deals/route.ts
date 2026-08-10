@@ -824,6 +824,40 @@ export async function GET(req: Request) {
               .from('deals')
               .update({ other_party_id: userId, invite_status: 'accepted', invite_accepted_at: new Date().toISOString() })
               .eq('id', dealId).select().single()
+
+            // A shareable-link invite sends no email, because at the time it is
+            // created nobody knows the address. Two things are lost as a result:
+            // the request to arrange a viewing, and — more importantly — any way
+            // back into the deal once they sign out and lose the link. Now that
+            // they have signed in we know their address, so send it here.
+            if (isLinkShare && myEmail) {
+              try {
+                const v: any = row.vessel || {}
+                const boat = [v.year, v.make, v.model].filter(Boolean).join(' ') || 'the vessel'
+                const p: any = row.parties || {}
+                const inviterRole = row.initiator_role === 'seller' ? 'seller' : 'buyer'
+                const inviter = (inviterRole === 'seller' ? p.seller?.name : p.buyer?.name) || `the ${inviterRole}`
+                const theirRole = inviterRole === 'seller' ? 'buyer' : 'seller'
+                const viewingRequest = !!p.viewingRequested
+                const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://boatclosers.com').replace(/\/$/, '')
+                const link = `${base}/?dealId=${encodeURIComponent(String(dealId))}`
+
+                await sendEmail({
+                  to: myEmail,
+                  subject: viewingRequest
+                    ? `${boat} \u2014 you're in, and ${inviter} would like to arrange a viewing`
+                    : `${boat} \u2014 you've joined this deal on BoatClosers`,
+                  html: emailLayout(`You've joined this deal`, `
+                    <p style="color:#475569;font-size:14px;line-height:1.6;">You have joined the deal for <strong>${boat}</strong> with <strong>${inviter}</strong>, where you are the <strong>${theirRole}</strong>.</p>
+                    ${viewingRequest ? `<p style="color:#475569;font-size:14px;line-height:1.6;"><strong>${inviter}</strong> would like to arrange a time to see the boat. Open the deal and message them directly to agree a day and time \u2014 BoatClosers passes the request along, you two sort out the details between yourselves.</p>` : ''}
+                    <p style="color:#475569;font-size:14px;line-height:1.6;"><strong>Keep this email.</strong> It is your way back into the deal if you sign out or change device.</p>
+                    <p style="margin:18px 0;"><a href="${link}" style="background:#08152e;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block;">Open the deal</a></p>
+                    <p style="color:#64748b;font-size:12px;line-height:1.6;">Sign in with this email address to reach it at any time.</p>
+                  `),
+                })
+              } catch { /* the join has already succeeded; a failed email must not undo it */ }
+            }
+
             return NextResponse.json({ deal: attached || row })
           }
         }
