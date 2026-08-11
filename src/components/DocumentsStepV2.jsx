@@ -1590,6 +1590,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       </div>
       )}
 
+      {/* Search sits above the groups. It used to render inside Closing Instruments,
+          which put it below ten collapsible sections — past everything a person
+          searching would have already given up scrolling through. */}
+      <FindDocument C={C} DOC_SET={DOC_SET} onOpenDoc={jumpToDoc} signed={signed} />
+
       {/* ── REQUIRED DOCUMENTS TRACKER ── */}
       <div style={{ border:`2px solid ${allRequiredSigned ? C.green : C.brass}`, borderRadius:8, padding:"13px 16px", marginBottom:22, background: allRequiredSigned ? C.greenLight : "#fff9ee" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
@@ -1964,7 +1969,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
           </div>
           )}
         </div>
-        {g === "Closing Instruments" && <FindDocument C={C} DOC_SET={DOC_SET} onOpenDoc={jumpToDoc} signed={signed} />}
         </React.Fragment>
         );
       })}
