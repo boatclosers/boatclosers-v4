@@ -720,7 +720,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // completed handover, because the government forms are signed by hand and
   // cannot be e-signed at all.
   const handover = data.handover || null;
-  const bosSigned = bosDocs.some(d => signed[d.id]) || handover?.done === true;
+  const _hv = data.handover || {};
+  const bosSigned = bosDocs.some(d => signed[d.id])
+    || _hv.done === true
+    || (_hv.mode === "distance" && !!_hv.sellerSent && !!_hv.buyerGot);
   // The main required list EXCLUDES the bill of sale (it has its own box).
   let requiredDocs = DOC_SET.filter(d => d.required && d.id !== "bill_of_sale");
   // Questionnaire → suggested documents (additive; the full list stays browsable).
@@ -1294,7 +1297,66 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         </div>
       )}
 
-      {/* ── BILL OF SALE — its own box (the ownership-transfer document) ── */}
+      {/* ── BILL OF SALE ─────────────────────────────────────────────────────
+          The seller holds the title and knows whether the boat is documented, so
+          choosing the form is theirs. The buyer still needs to see what is coming
+          to the table — they are signing it and their money is moving — but has
+          nothing to decide, so they get the same information read-only. */}
+      {myRole !== "seller" ? (
+        <div style={{ border:`2px solid ${bosSigned ? C.green : C.mist}`, borderRadius:8, padding:"13px 16px", marginBottom:16, background: bosSigned ? "#f4f7f5" : C.white }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6, gap:8, flexWrap:"wrap" }}>
+            <div style={{ fontSize:13.5, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}>
+              {bosSigned ? "✓ Bill of Sale complete" : "📜 Bill of Sale"}
+            </div>
+            <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:C.slate }}>the seller brings this</span>
+          </div>
+          {(() => {
+            const chosen = bosDocs.find(d => d.id === (ID_MAP[bosChoice] || bosChoice)) || null;
+            const h = handover || {};
+            return (
+              <>
+                <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:8 }}>
+                  {chosen
+                    ? <>The seller is bringing the <b>{chosen.title}</b>.</>
+                    : <>The seller hasn&rsquo;t chosen a version yet &mdash; they&rsquo;ll bring whichever one their state requires.</>}
+                </div>
+                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65 }}>
+                  This is the document that legally transfers the boat, and you&rsquo;ll both sign it at the handover &mdash; not in the app.
+                </div>
+                <div style={{ background:"#fffaf0", border:`1px solid ${C.brass}`, borderRadius:7, padding:"11px 13px", marginTop:10 }}>
+                  <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:800, color:"#8a5a12", marginBottom:4 }}>What to check when you sign</div>
+                  <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
+                    The names on the bill of sale match the names on the title <b>exactly</b>{h.mode === "distance" ? <>, and that it has been <b>notarised</b> &mdash; that matters more when you aren&rsquo;t meeting</> : null}. If something looks wrong, message the seller before you sign.
+                  </div>
+                </div>
+                {h.mode && !h.done && (
+                  <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65, marginTop:9 }}>
+                    {h.mode === "person"
+                      ? "You're closing in person — bring the balance in cleared funds and sign at the table."
+                      : "You're closing by post — check the photo of the signed title and the tracking before you send the balance."}
+                  </div>
+                )}
+                {/* The buyer's own half of a distance handover. Confirming the title
+                    arrived is genuinely theirs to say, and it is the more meaningful
+                    of the two confirmations. */}
+                {h.mode === "distance" && !h.done && (
+                  <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:10, alignItems:"center" }}>
+                    <button onClick={()=>setData(d => ({ ...d, handover: { ...(d.handover || {}), buyerGot: Date.now() } }))}
+                      disabled={!h.sellerSent || !!h.buyerGot}
+                      style={{ ...S.btnBrass, fontSize:12.5, padding:"9px 16px", opacity:(!h.sellerSent || h.buyerGot) ? 0.55 : 1 }}>
+                      {h.buyerGot ? "✓ Title received" : "✓ The title arrived"}
+                    </button>
+                    <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.5 }}>
+                      {h.sellerSent ? "The seller has posted it." : "Waiting for the seller to post the title."}
+                    </span>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      ) : (
+
       <div style={{ border:`2px solid ${bosSigned ? C.green : "#4a90d9"}`, borderRadius:8, padding:"13px 16px", marginBottom:16, background: bosSigned ? C.greenLight : "#eaf4ff" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
           <div style={{ fontSize:13.5, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}>
@@ -1370,10 +1432,22 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
               <ol style={{ margin:"9px 0 0", paddingLeft:19, fontSize:12, color:C.slate, lineHeight:1.75 }}>
                 {steps.map((t,i) => <li key={i} style={{ marginBottom:3 }}>{t}</li>)}
               </ol>
-              <button onClick={()=>setHand({ done:true, by:(myRole==="seller"?"the seller":"the buyer"), at:Date.now() })}
-                style={{ ...S.btnBrass, marginTop:11, fontSize:12.5, padding:"9px 18px" }}>
-                ✓ Done &mdash; we&rsquo;ve completed the handover
-              </button>
+              {h.mode === "distance" ? (
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:11 }}>
+                  <button onClick={()=>setHand({ sellerSent:Date.now() })} disabled={!!h.sellerSent}
+                    style={{ ...S.btnBrass, fontSize:12.5, padding:"9px 16px", opacity:h.sellerSent?0.55:1 }}>
+                    {h.sellerSent ? "✓ Title posted" : "✓ I&rsquo;ve posted the title"}
+                  </button>
+                  <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, alignSelf:"center", lineHeight:1.5 }}>
+                    {h.buyerGot ? "The buyer has confirmed it arrived." : "The buyer confirms it arrived on their side."}
+                  </span>
+                </div>
+              ) : (
+                <button onClick={()=>setHand({ done:true, by:(myRole==="seller"?"the seller":"the buyer"), at:Date.now() })}
+                  style={{ ...S.btnBrass, marginTop:11, fontSize:12.5, padding:"9px 18px" }}>
+                  ✓ Done &mdash; we&rsquo;ve completed the handover
+                </button>
+              )}
             </div>
           );
         })()}
@@ -1508,6 +1582,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         </div>
 
       </div>
+      )}
 
       {/* ── REQUIRED DOCUMENTS TRACKER ── */}
       <div style={{ border:`2px solid ${allRequiredSigned ? C.green : C.brass}`, borderRadius:8, padding:"13px 16px", marginBottom:22, background: allRequiredSigned ? C.greenLight : "#fff9ee" }}>
