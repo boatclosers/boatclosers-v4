@@ -2450,24 +2450,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             Your asking price of <b>{fmt(Number(vessel.askingPrice)) || "—"}</b> is set as the buyer's anchor. If you want to review or pre-set the full terms a buyer can offer against, you can open them below.
           </div>
           <button onClick={()=>setShowBuilder(true)} style={{ ...S.btnOutline, fontSize:12.5, padding:"9px 18px", marginTop:12 }}>View / set full terms &amp; conflicts</button>
-          {/* Shown while the seller is idle waiting on a buyer. This is the honest
-              moment for the offer: nothing is asked of them, and it's when someone
-              decides whether doing it themselves is worth it. */}
-          <div style={{ marginTop:18, paddingTop:16, borderTop:`1px solid ${C.mist}`, maxWidth:460, marginLeft:"auto", marginRight:"auto", textAlign:"left" }}>
-            <div style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy, marginBottom:4 }}>
-              Would you rather a broker just handled all this for you?
-            </div>
-            <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
-              <b>Sea Yachts</b> is a licensed, bonded Florida yacht brokerage with over 20 years in the marine
-              industry. They&rsquo;ll run this same deal for you by hand &mdash; the offer, the agreement, the deposit
-              and escrow, due diligence and closing &mdash; with a licensed broker guiding each step instead of you
-              working through it yourself. A brokerage commission applies instead of this flat fee.
-            </div>
-            <a href="mailto:support@boatclosers.com?subject=Full-service%20brokerage%20enquiry%20(Sea%20Yachts)&body=I%27d%20like%20to%20talk%20about%20having%20Sea%20Yachts%20sell%20my%20boat%20instead%20of%20doing%20it%20myself.%0A%0AThe%20boat%3A%0AWhat%20I%27m%20trying%20to%20do%3A"
-              style={{ display:"inline-block", marginTop:9, fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:"transparent", border:`1px solid ${C.brass}`, borderRadius:6, padding:"8px 15px", textDecoration:"none" }}>
-              Contact Sea Yachts &rarr;
-            </a>
-          </div>
         </div>
       ) : (!frozen && (offers.length === 0 || showBuilder)) ? (
       <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.brass}` }}>
@@ -5874,8 +5856,9 @@ function Landing({ onStart, onLegal }) {
 
   const secure = [
     { icon:"🎯", title:"Real offers, not noise", desc:"Offers come backed by an earnest-money deposit, so sellers can tell a committed buyer from a tire-kicker." },
+    { icon:"🔎", title:"Know what you're buying", desc:"Due diligence links you straight to the Coast Guard's free vessel search, the official Abstract of Title for liens, and independent history reports for accidents, storm damage, sinking, theft and salvage." },
     { icon:"🔒", title:"Lock it so nobody walks", desc:"Once both sides agree, a signed purchase agreement and deposit lock the deal — no ghosting, no selling out from under you." },
-    { icon:"🏦", title:"Move money safely — even remotely", desc:"Funds route through escrow so neither party wires thousands to a stranger. Money releases only when the deal is done." },
+    { icon:"🏦", title:"Move money safely — even remotely", desc:"Deposits and balances can route through Escrow.com, a licensed escrow service, so neither party wires thousands to a stranger. Money releases only when the deal is done. Prefer an attorney's trust account, a broker's escrow, or paying the seller direct? You choose — the agreement records whichever you pick." },
   ];
 
   const dealroom = [
@@ -6052,7 +6035,8 @@ function Landing({ onStart, onLegal }) {
               The riskiest part of a private boat sale isn't the price — it's the handshake that was never binding, the lowball offers with no commitment behind them, and the stranger you're about to wire money to. BoatClosers makes the commitment real, for both buyer and seller.
             </p>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:cols(3), gap:18 }}>
+          {/* Four cards, so two-by-two rather than one stranded on its own row. */}
+          <div style={{ display:"grid", gridTemplateColumns:cols(2), gap:18 }}>
             {secure.map(s=>(
               <div key={s.title} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid rgba(184,134,58,0.3)`, borderRadius:9, padding:"1.6rem 1.4rem" }}>
                 <div style={{ fontSize:26, marginBottom:12 }}>{s.icon}</div>
