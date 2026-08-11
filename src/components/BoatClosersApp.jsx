@@ -1431,6 +1431,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // not something to pre-pick. Blank until chosen; the offer won't send without it.
   const [escrowPath, setEscrowPath] = useState(data.escrowPath || "");
   const [sellerTermsOpen, setSellerTermsOpen] = useState(false);
+  const [depositReceiptOpen, setDepositReceiptOpen] = useState(false);
+  // Advancing with an unconfirmed deposit is allowed — someone paying through
+  // Escrow.com, or still arranging it, must not be blocked — but not silently.
+  const [depositAckOpen, setDepositAckOpen] = useState(false);
   // A loan on the boat has to be cleared before title can transfer. These details
   // went onto three separate documents, typed three times, with three chances to
   // disagree — on paperwork that goes to a bank. Asked once, here.
@@ -2400,7 +2404,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 <div style={{ fontSize:12.5, fontWeight:800, color: verified ? C.green : disputed ? C.red : "#7a5500", marginBottom:3 }}>{head}</div>
                 <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>{body}</div>
                 {showDepositCta && onNext && (
-                  <button onClick={()=>{ if (myRole !== "seller" && !hasProof) setData(d => ({ ...d, openReceipt: true })); onNext(); }}
+                  <button onClick={()=>{
+                      // Escrow.com verifies itself — there is nothing to sign, so
+                      // send them to the step that shows the status instead.
+                      if (data?.escrowPath === "escrow_com") { onNext(); return; }
+                      setDepositReceiptOpen(true);
+                    }}
                     style={{ ...S.btnBrass, marginTop:10, fontSize:12.5, fontWeight:800, padding:"9px 16px" }}>
                     {disputed ? "Sort out the deposit →" : hasProof ? "Check the deposit status →" : (myRole === "seller" ? `Confirm the ${fmt(acceptedOffer.deposit)} arrived →` : `Send the ${fmt(acceptedOffer.deposit)} earnest money →`)}
                   </button>
@@ -3029,7 +3038,16 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       <WhatsNext>Once the price is agreed and the deal is locked, you move to due diligence &mdash; survey, sea trial, and the earnest-money deposit that holds the boat off the market.</WhatsNext>
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
-        <button style={{...S.btnBrass, opacity:canProceed?1:0.5}} disabled={!canProceed} onClick={proceed}>
+        <button style={{...S.btnBrass, opacity:canProceed?1:0.5}} disabled={!canProceed}
+          onClick={()=>{
+            // Soft gate — never a block. Escrow.com verifies itself, and a deal with
+            // no deposit has nothing to confirm, so neither is interrupted.
+            const dv = data?.depositVerification;
+            const needsDeposit = !!(acceptedOffer && Number(acceptedOffer.deposit) > 0);
+            const auto = data?.escrowPath === "escrow_com";
+            if (needsDeposit && !auto && dv?.status !== "confirmed") { setDepositAckOpen(true); return; }
+            proceed();
+          }}>
           {canProceed ? "Continue to Due Diligence →" : "🔒 Finalize the deal to continue"}
         </button>
       </div>
@@ -3053,6 +3071,38 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           Contact Sea Yachts &rarr;
         </a>
       </div>
+
+      {/* The deposit is what makes the deal real, so it happens here rather than a
+          step away. Same receipt both parties sign — signing it IS the buyer's
+          confirmation. */}
+      <EarnestReceiptModal open={depositReceiptOpen} onClose={()=>setDepositReceiptOpen(false)}
+        vessel={vessel} parties={parties} negotiate={data} setNegotiate={setData} myRole={myRole} />
+
+      {/* Soft gate: you can go on without the deposit confirmed, but not without
+          being told what that means. */}
+      {depositAckOpen && (
+        <div onClick={()=>setDepositAckOpen(false)}
+          style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.7)", zIndex:4200, overflowY:"auto", padding:"20px 12px", fontFamily:"sans-serif" }}>
+          <div onClick={e=>e.stopPropagation()}
+            style={{ maxWidth:480, margin:"8vh auto 0", background:"#fff", borderRadius:12, overflow:"hidden", border:`2px solid ${C.brass}` }}>
+            <div style={{ background:C.navy, color:"#fff", padding:"13px 20px", fontSize:12.5, letterSpacing:1 }}>
+              <span style={{ color:C.brass }}>THE BOAT ISN&rsquo;T SECURED YET</span>
+            </div>
+            <div style={{ padding:"18px 20px 20px" }}>
+              <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7 }}>
+                The earnest money hasn&rsquo;t been confirmed by both of you, so nothing is holding this boat off the market. You can carry on to due diligence &mdash; surveys and sea trials often get booked before the deposit clears &mdash; but the seller is still free to take another offer until it is confirmed.
+              </div>
+              <div style={{ display:"flex", gap:10, marginTop:16, flexWrap:"wrap" }}>
+                <button onClick={()=>{ setDepositAckOpen(false); setDepositReceiptOpen(true); }}
+                  style={{ ...S.btnBrass, flex:1, fontSize:13, minWidth:160 }}>Handle the deposit first</button>
+                <button onClick={()=>{ setDepositAckOpen(false); proceed(); }}
+                  style={{ ...S.btnOutline, flex:1, fontSize:13, minWidth:160 }}>Carry on anyway &rarr;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
