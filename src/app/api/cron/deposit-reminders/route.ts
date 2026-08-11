@@ -52,7 +52,8 @@ export async function GET(req: Request) {
   try {
     const { data: deals, error } = await sb
       .from('deals')
-      .select('id, vessel, parties, negotiate, invite_role, invite_email, other_party_id, initiator_role')
+      // docs_data carries signedDocs, which the stalled-signature nudge reads.
+      .select('id, vessel, parties, negotiate, docs_data, invite_role, invite_email, other_party_id, initiator_role')
 
     if (error) {
       return NextResponse.json({ error: 'Could not read deals: ' + error.message }, { status: 500 })
@@ -79,8 +80,143 @@ export async function GET(req: Request) {
     const escKey = process.env.ESCROW_API_KEY || ''
     const escFundedStates = ['secured','in_dispute','dispute','closed','completed','shipped','received','accepted','in_progress','inspection']
 
+    // ── Offer expiry ────────────────────────────────────────────────────────
+    // The expiry is what RELEASES the seller. Without it a buyer can tie up a boat
+    // indefinitely at no cost. Two things happen here: a warning when a quarter of
+    // the window is left, and the lapse itself — which frees the seller to take
+    // another offer and invites the buyer to send a fresh one. Neither ends the deal.
+    const offerEmail = (deal: any, role: 'buyer' | 'seller') => {
+      const p = deal?.parties || {}
+      return role === 'buyer' ? p.buyer?.email : p.seller?.email
+    }
+
     for (const deal of deals || []) {
       const neg = deal?.negotiate || {}
+
+      // ── offer expiry: warning, then lapse ──
+      if (!neg.canceled && !neg.dealFinalized && Array.isArray(neg.offers) && neg.offers.length) {
+        const boat = [deal?.vessel?.year, deal?.vessel?.make, deal?.vessel?.model].filter(Boolean).join(' ') || 'your boat'
+        const link = `${base}/?dealId=${encodeURIComponent(String(deal.id))}`
+        let changed = false
+        const offers = neg.offers.map((o: any) => {
+          if (!o || o.status !== 'pending' || !o.expiresAt) return o
+          const from = o.from === 'seller' ? 'seller' : 'buyer'
+          const other = from === 'seller' ? 'buyer' : 'seller'
+          const total = Number(o.expiresHours || 0) * 3600000
+          const left = Number(o.expiresAt) - now
+
+          // Lapsed.
+          if (left <= 0) {
+            changed = true
+            const seller = offerEmail(deal, 'seller')
+            const buyer = offerEmail(deal, 'buyer')
+            const sellerIsSender = from === 'seller'
+            // The party who SENT it is told it lapsed; the party who received it is
+            // released. Which is which depends on who made the offer.
+            if (buyer) sendEmail({
+              to: buyer,
+              subject: `${boat} — the offer has expired`,
+              html: emailLayout(`
+                <h2 style="margin:0 0 12px;color:#08152e;font-size:19px;">The offer has expired</h2>
+                <p style="color:#475569;font-size:14px;line-height:1.6;">${sellerIsSender
+                  ? `The seller's offer on <strong>${boat}</strong> has passed its deadline and can no longer be accepted.`
+                  : `Your offer on <strong>${boat}</strong> has passed its deadline and can no longer be accepted. The boat is no longer held for you.`}</p>
+                <p style="color:#475569;font-size:14px;line-height:1.6;">Nothing has been cancelled. ${sellerIsSender
+                  ? 'You can send an offer of your own, or ask them to send a fresh one.'
+                  : 'If you are still interested, send a new offer — the deal is still open.'}</p>
+                <p style="margin:18px 0;"><a href="${link}" style="background:#08152e;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block;">Open the deal</a></p>
+              `),
+            }).catch(() => {})
+            if (seller) sendEmail({
+              to: seller,
+              subject: `${boat} — the offer expired, you are free to consider others`,
+              html: emailLayout(`
+                <h2 style="margin:0 0 12px;color:#08152e;font-size:19px;">The offer has expired</h2>
+                <p style="color:#475569;font-size:14px;line-height:1.6;">${sellerIsSender
+                  ? `Your offer on <strong>${boat}</strong> has passed its deadline. It can no longer be accepted.`
+                  : `The buyer's offer on <strong>${boat}</strong> has passed its deadline without being accepted. <strong>Your boat is no longer held</strong> — you are free to consider other offers.</p><p style="color:#475569;font-size:14px;line-height:1.6;">Nothing has been cancelled. If you would still like to sell to this buyer, they can send a fresh offer.`}</p>
+                <p style="margin:18px 0;"><a href="${link}" style="background:#08152e;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block;">Open the deal</a></p>
+              `),
+            }).catch(() => {})
+            results.push({ deal: deal.id, offerExpired: o.id })
+            return { ...o, status: 'expired', expiredAt: now }
+          }
+
+          // A quarter of the window left — one warning, never repeated.
+          if (total > 0 && left <= total / 4 && !o.expiryWarned) {
+            changed = true
+            const to = offerEmail(deal, other as 'buyer' | 'seller')
+            const hrs = Math.max(1, Math.round(left / 3600000))
+            if (to) sendEmail({
+              to,
+              subject: `${boat} — the offer expires in about ${hrs} hour${hrs === 1 ? '' : 's'}`,
+              html: emailLayout(`
+                <h2 style="margin:0 0 12px;color:#08152e;font-size:19px;">The offer is about to expire</h2>
+                <p style="color:#475569;font-size:14px;line-height:1.6;">The ${from}'s offer on <strong>${boat}</strong> expires in about <strong>${hrs} hour${hrs === 1 ? '' : 's'}</strong>. After that it can no longer be accepted.</p>
+                <p style="color:#475569;font-size:14px;line-height:1.6;">No rush if you are still thinking — nothing is cancelled when it lapses, and a new offer can be sent at any time.</p>
+                <p style="margin:18px 0;"><a href="${link}" style="background:#08152e;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block;">Open the deal</a></p>
+              `),
+            }).catch(() => {})
+            results.push({ deal: deal.id, offerExpiryWarned: o.id })
+            return { ...o, expiryWarned: now }
+          }
+          return o
+        })
+        if (changed) {
+          const nn = { ...neg, offers }
+          await sb.from('deals').update({ negotiate: nn }).eq('id', deal.id)
+          Object.assign(neg, nn)
+        }
+      }
+
+      // ── stalled signature: one side signed, the other hasn't noticed ──
+      // The app knows the deal is waiting on someone; nobody tells them. Named and
+      // specific, twice, then it stops — a third email is nagging, and a person who
+      // has gone quiet has a reason.
+      const SIG_STEPS = [
+        { key: 's1', afterHours: 24 },
+        { key: 's2', afterHours: 72 },
+      ]
+      if (!neg.canceled && !neg.dealFinalized && deal?.other_party_id) {
+        const signed: any = (deal as any)?.docs_data?.signedDocs || {}
+        const mine: Array<[string, any]> = Object.entries(signed)
+          .filter(([, v]: any) => v && v.role && v.at) as Array<[string, any]>
+        if (mine.length) {
+          const latest = mine.reduce((a: any, b: any) => (Number(b[1].at) > Number(a[1].at) ? b : a))
+          const lastRole = latest[1].role === 'seller' ? 'seller' : 'buyer'
+          const waitingOn = lastRole === 'seller' ? 'buyer' : 'seller'
+          const waitingEmail = offerEmail(deal, waitingOn as 'buyer' | 'seller')
+          const signerName = (deal?.parties?.[lastRole]?.name) || `the ${lastRole}`
+          const since = Number(latest[1].at) || 0
+          const sentMap = neg.sigNudges || {}
+          const boat2 = [deal?.vessel?.year, deal?.vessel?.make, deal?.vessel?.model].filter(Boolean).join(' ') || 'your boat'
+          const link2 = `${base}/?dealId=${encodeURIComponent(String(deal.id))}&step=4`
+          for (const step of SIG_STEPS) {
+            if (sentMap[step.key]) continue
+            if (!since || now - since < step.afterHours * 3600000) continue
+            // Only chase if the other side still has not signed anything since.
+            const theirs = mine.some(([, v]: any) => v.role === waitingOn && Number(v.at) > since)
+            if (theirs) break
+            if (waitingEmail) {
+              await sendEmail({
+                to: waitingEmail,
+                subject: `${boat2} — waiting on your signature`,
+                html: emailLayout(`
+                  <h2 style="margin:0 0 12px;color:#08152e;font-size:19px;">The deal is waiting on you</h2>
+                  <p style="color:#475569;font-size:14px;line-height:1.6;"><strong>${signerName}</strong> signed their side of the paperwork for <strong>${boat2}</strong>. Yours is still outstanding, and the deal cannot move on until both of you have signed.</p>
+                  <p style="color:#475569;font-size:14px;line-height:1.6;">It only takes a minute — open the deal and sign what is left.</p>
+                  <p style="margin:18px 0;"><a href="${link2}" style="background:#08152e;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block;">Open your documents</a></p>
+                `),
+              }).catch(() => {})
+            }
+            const nn2 = { ...neg, sigNudges: { ...sentMap, [step.key]: now } }
+            await sb.from('deals').update({ negotiate: nn2 }).eq('id', deal.id)
+            Object.assign(neg, nn2)
+            results.push({ deal: deal.id, signatureNudge: step.key, waitingOn })
+            break
+          }
+        }
+      }
 
       // ── background escrow auto-verify ──
       if (escEmail && escKey && neg.escrowPath === 'escrow_com' && neg.escrowTxId
