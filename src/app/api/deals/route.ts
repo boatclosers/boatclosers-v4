@@ -1028,6 +1028,15 @@ export async function POST(req: Request) {
           const nobodySigned = !ex.paBuyerSig && !ex.paSellerSig
           const isRevision = ex.status === 'agreed' && merged.status === 'countered' && !dealPaidAlready && nobodySigned
           if (!isRevision && (rank[ex.status] || 0) > (rank[merged.status] || 0)) merged.status = ex.status
+          // An expiry that only lives in the browser is not an expiry. The seller is
+          // released when an offer lapses, so a stale client must not be able to
+          // accept one afterwards.
+          const exp = Number(ex.expiresAt || merged.expiresAt || 0)
+          if (exp && Date.now() > exp && merged.status !== 'expired'
+              && ex.status !== 'accepted' && ex.status !== 'agreed') {
+            merged.status = 'expired'
+          }
+
           // SECURITY: "accepted" is what unlocks the paid half of the app. Only a
           // deal the server knows is paid may hold an accepted offer.
           const dealIsPaid = !!(existingRow.paid || existingNeg.paid || existingNeg.dealLocked)
