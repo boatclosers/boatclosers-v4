@@ -21,6 +21,22 @@ const C = {
 };
 const fmt = (n) => n ? new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n)) : "";
 const today = () => new Date().toISOString().split("T")[0];
+
+// Dates arrive from HTML date inputs as YYYY-MM-DD, which is unreadable on a
+// contract. Documents get longhand — "August 10, 2026" — which cannot be misread
+// the way 08/10 versus 10/08 can. Anything that is not a plain date is passed
+// through untouched, so blanks and the missing-value marker survive.
+const longDate = (v) => {
+  const s = String(v == null ? "" : v).trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return v;
+  const MONTHS = ["January","February","March","April","May","June",
+                  "July","August","September","October","November","December"];
+  const mi = Number(m[2]) - 1;
+  if (mi < 0 || mi > 11) return v;
+  return `${MONTHS[mi]} ${Number(m[3])}, ${m[1]}`;
+};
+
 // Full, provable timestamp: keeps the exact moment (ms) plus a human-readable
 // local string, so a signed document can show date AND time, not just the day.
 const signedStamp = () => { const d = new Date(); return { at: d.getTime(), when: d.toLocaleString() }; };
@@ -620,7 +636,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   }, []); // eslint-disable-line
   const deal = {
     dealRef,
-    effectiveDate: today(),
+    effectiveDate: longDate(today()),
     sellerName: parties.seller.name || _accOffer?.paSellerSig || BLANK,
     sellerAddress: `${parties.seller.address||""} ${parties.seller.city||""} ${parties.seller.stateZip||""}`.trim() || BLANK,
     buyerName: parties.buyer.name || _accOffer?.paBuyerSig || BLANK,
@@ -647,15 +663,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     depositAmount: fmt(dep), depositPct: (_acc?.escrowPct ?? negotiate.escrowPct ?? 0)+"%",
     balanceDue: fmt(Math.max(0, agreed-dep)),
     reducedPrice: "", reduction: "",
-    closingDate: terms.closingDate || negotiate.closingDate || _accOffer?.closingDate || BLANK,
+    closingDate: longDate(terms.closingDate || negotiate.closingDate || _accOffer?.closingDate || BLANK),
     closingLocation: vessel.location || "the location where the Vessel is moored",
-    surveyDeadline: ddEndCalc || BLANK,
+    surveyDeadline: longDate(ddEndCalc || BLANK),
     // Every contingency clause fills its deadline from here. This one was missing,
     // so choosing "Buyer's Personal Inspection" produced a clause in the Purchase
     // Agreement reading "completed on or before ." with no date at all.
-    inspectionDeadline: ddEndCalc || BLANK,
-    seaTrialDeadline: ddEndCalc || BLANK,
-    financingDeadline: ddEndCalc || BLANK,
+    inspectionDeadline: longDate(ddEndCalc || BLANK),
+    seaTrialDeadline: longDate(ddEndCalc || BLANK),
+    financingDeadline: longDate(ddEndCalc || BLANK),
     brokerFee: "$249.00",
     selectedContingencies,
     paymentType: negotiate.paymentType || "",
