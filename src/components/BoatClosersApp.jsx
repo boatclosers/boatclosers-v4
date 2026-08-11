@@ -5521,8 +5521,61 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
         </div>
       )}
 
-      {/* Document sections */}
-      {closingDocSections.map((section, si) => (
+      {/* ── THE HANDOVER ────────────────────────────────────────────────────────
+          The title and the bill of sale are signed wet-ink, together, when the
+          money changes hands — the app cannot do that part. What it can do is set
+          out the sequence so neither side is exposed. */}
+      {!isRejected && (() => {
+        const h = (docsData && docsData.handover) || {};
+        const done = h.done === true || (h.mode === "distance" && h.sellerSent && h.buyerGot);
+        const isSeller = myRole === "seller";
+        const steps = h.mode === "distance"
+          ? ["Seller signs the title and gets the bill of sale notarised",
+             "Seller photographs the signed title and posts both, tracked",
+             "Seller shares the photo and the tracking number in the deal",
+             "Buyer checks the bill of sale is notarised and the names match the title exactly",
+             "Buyer wires the balance and shares proof of payment",
+             "Buyer confirms the title arrived"]
+          : ["Seller brings the title, signed by every registered owner, and the bill of sale",
+             "Seller brings the lien release, if there was a loan on the boat",
+             "Buyer brings the balance in cleared funds",
+             "Sign the title and the bill of sale together, at the table",
+             "Seller hands over keys, title and paperwork; buyer hands over the money"];
+        return (
+          <div style={{ background: done ? "#f4f7f5" : C.white, border:`1.5px solid ${done ? C.green : C.brass}`, borderRadius:9, padding:"14px 16px", marginBottom:20, fontFamily:"sans-serif" }}>
+            <div style={{ fontSize:13.5, fontWeight:800, color: done ? C.green : C.navy, marginBottom:4 }}>
+              {done ? "✓ Title and bill of sale handed over" : (h.mode === "distance" ? "📦 Handing over by post" : h.mode === "person" ? "🤝 Handing over in person" : "📜 The title and bill of sale")}
+            </div>
+            <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7 }}>
+              {done
+                ? "Both sides have confirmed. Nothing further is needed here."
+                : <>These two are signed by hand, together, at the moment the money changes hands &mdash; not in the app. {isSeller
+                    ? "You choose how you're doing it on the Documents step."
+                    : "The seller sets this up on the Documents step; you'll both sign at the handover."}</>}
+            </div>
+            {!done && (
+              <>
+                <ol style={{ margin:"10px 0 0", paddingLeft:19, fontSize:12, color:C.slate, lineHeight:1.8 }}>
+                  {steps.map((t,i) => <li key={i} style={{ marginBottom:2 }}>{t}</li>)}
+                </ol>
+                {h.mode === "distance" && (
+                  <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65, marginTop:9, background:"#fffaf0", border:`1px solid ${C.brass}`, borderRadius:7, padding:"10px 12px" }}>
+                    One of you has to go first, so do it in this order &mdash; the photo proves the title exists and is signed, the tracking proves it is on its way. An escrow service removes the risk entirely if you would rather not rely on it.
+                  </div>
+                )}
+                <button onClick={onBack}
+                  style={{ marginTop:11, background:"transparent", border:`1px solid ${C.mist}`, color:C.navy, borderRadius:16, padding:"7px 15px", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>
+                  Open it on the Documents step &rarr;
+                </button>
+              </>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Document sections — the steps are handled by "Before you finalize" above,
+          which is the same list but tickable, so only the documents render here. */}
+      {closingDocSections.filter(sec => sec.heading !== "Final Actions").map((section, si) => (
         <div key={si} style={{ marginBottom:16 }}>
           <div style={{ display:"flex", alignItems:"baseline", gap:10, marginBottom:6 }}>
             <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>{section.heading}</div>
