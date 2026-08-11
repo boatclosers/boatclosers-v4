@@ -1311,14 +1311,20 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:C.slate }}>the seller brings this</span>
           </div>
           {(() => {
-            const chosen = bosDocs.find(d => d.id === (ID_MAP[bosChoice] || bosChoice)) || null;
+            // Whichever version the seller actually signed, or failing that the one
+            // recommended for this deal. (bosChoice never existed — that was a
+            // ReferenceError the moment a buyer opened this page.)
+            const chosen = bosDocs.find(d => signed[d.id]) || bosDocs.find(d => d.id === bosLeadId) || null;
+            const chosenIsSigned = !!(chosen && signed[chosen.id]);
             const h = handover || {};
             return (
               <>
                 <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:8 }}>
-                  {chosen
-                    ? <>The seller is bringing the <b>{chosen.title}</b>.</>
-                    : <>The seller hasn&rsquo;t chosen a version yet &mdash; they&rsquo;ll bring whichever one their state requires.</>}
+                  {chosenIsSigned
+                    ? <>The seller has prepared the <b>{chosen.title}</b>.</>
+                    : chosen
+                    ? <>For a sale like this the seller would normally bring the <b>{chosen.title}</b>. They choose the version and bring it to the handover.</>
+                    : <>The seller brings the bill of sale &mdash; they choose whichever version their state requires.</>}
                 </div>
                 <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65 }}>
                   This is the document that legally transfers the boat, and you&rsquo;ll both sign it at the handover &mdash; not in the app.
