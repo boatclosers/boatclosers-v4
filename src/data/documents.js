@@ -1496,7 +1496,7 @@ export const DOCUMENTS = [
     useWhen: "Use when the seller is financing the buyer. The buyer's written promise to pay.",
     keywords: "promissory note seller financing owner financing payments over time installment loan",
     body: `
-<div class="lawbanner"><b>\u26A0 Attorney review required.</b> This instrument creates a legally binding debt. Have it reviewed by a licensed attorney, and confirm interest limits (state usury caps) before use on a real deal.</div>
+<div class="note"><b>Seller financing.</b> This creates a binding debt. Interest limits vary by state and there are caps on what you can charge, so it is worth having a lawyer look at it before you sign.</div>
 <p class="lead">For value received, {{buyerName}} (the \u201cBorrower\u201d), of {{buyerAddress}}, promises to pay {{sellerName}} (the \u201cHolder\u201d), of {{sellerAddress}}, the principal sum below for the purchase of the {{vesselYear}} {{vesselMake}} {{vesselModel}}, HIN {{hin}}.</p>
 
 <h3>Terms</h3>
@@ -1534,7 +1534,7 @@ export const DOCUMENTS = [
     useWhen: "Use alongside seller financing so the seller can reclaim the boat if payments stop.",
     keywords: "security agreement collateral lien seller financing repossess secure the note",
     body: `
-<div class="lawbanner"><b>\u26A0 Attorney review required.</b> This instrument creates a lien on the vessel. Have it reviewed by a licensed attorney, and confirm the UCC-1 filing and title-lien steps for your state, before use on a real deal.</div>
+<div class="note"><b>Seller financing.</b> This puts a lien on the vessel so you can recover it if the buyer stops paying. The filing steps differ by state \u2014 a lien that is never properly recorded protects nobody, so it is worth having a lawyer set it up.</div>
 <p class="lead">{{buyerName}} (the \u201cDebtor\u201d) grants {{sellerName}} (the \u201cSecured Party\u201d) a security interest in the vessel below to secure payment of the Promissory Note of even date.</p>
 
 <h3>Collateral</h3>
@@ -1563,13 +1563,14 @@ export const DOCUMENTS = [
   {
     id: "payoff",
     group: "Deal Structures",
-    tab: "Payoff Authorization \u26A0",
+    tab: "Payoff Authorization",
     eyebrow: "Existing Loan Payoff",
-    title: "Payoff Demand & Authorization",
-    useWhen: "Use to get the exact payoff figure from the seller's lender, good through closing.",
+    title: "Lender Payoff Authorization",
+    useWhen: "Use so the seller's lender may share the payoff figure with the buyer or closing agent.",
     keywords: "payoff demand authorization loan balance bank payoff quote still owe money",
     body: `
-<div class="lawbanner"><b>\u26A0 Attorney review recommended.</b> This authorizes release of loan and payoff information and directs payment from closing funds. Confirm the lien is released before final payment.</div>
+<div class="note"><b>How this works.</b> Lenders issue payoff figures on their own letter, through their own channel \u2014 the seller requests it by phone or through their online account. What most lenders will not do is discuss the loan with anyone but the borrower. This is the seller\u2019s written permission for them to share the figures with the buyer or closing agent, and to release the lien when they are paid.</div>
+<div class="note">Ask for the payoff in writing, good through your closing date \u2014 a verbal figure changes with interest. Confirm the lender has released the lien before the final payment changes hands.</div>
 <p class="lead">The Seller, {{sellerName}}, authorizes the lienholder below to provide a payoff figure and to release its lien on the vessel upon receipt of payment at closing, so clear title can pass to {{buyerName}}.</p>
 
 <h3>Existing Loan</h3>
