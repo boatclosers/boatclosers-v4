@@ -850,7 +850,7 @@ export async function GET(req: Request) {
                   html: emailLayout(`
                     <h2 style="margin:0 0 12px;color:#08152e;font-size:19px;">You've joined this deal</h2>
                     <p style="color:#475569;font-size:14px;line-height:1.6;">You have joined the deal for <strong>${boat}</strong> with <strong>${inviter}</strong>, where you are the <strong>${theirRole}</strong>.</p>
-                    ${viewingRequest ? `<p style="color:#475569;font-size:14px;line-height:1.6;"><strong>${inviter}</strong> would like to arrange a time to see the boat. Open the deal and message them directly to agree a day and time \u2014 BoatClosers passes the request along, you two sort out the details between yourselves.</p>` : ''}
+                    ${viewingRequest ? `<p style="color:#475569;font-size:14px;line-height:1.6;">You and <strong>${inviter}</strong> still need to agree a time to see the boat. Open the deal and message each other to sort out a day and place \u2014 BoatClosers passes the message along, the two of you arrange the details.</p>` : ''}
                     <p style="color:#475569;font-size:14px;line-height:1.6;"><strong>Keep this email.</strong> It is your way back into the deal if you sign out or change device.</p>
                     <p style="margin:18px 0;"><a href="${link}" style="background:#08152e;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block;">Open the deal</a></p>
                     <p style="color:#64748b;font-size:12px;line-height:1.6;">Sign in with this email address to reach it at any time.</p>
