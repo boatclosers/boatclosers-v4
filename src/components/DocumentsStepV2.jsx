@@ -716,7 +716,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     const ao = OFFICIAL.has(a.id) ? 0 : 1, bo = OFFICIAL.has(b.id) ? 0 : 1;
     return ao - bo;
   });
-  const bosSigned = bosDocs.some(d => signed[d.id]); // any BoS variant signed = satisfied
+  // Any bill of sale variant signed in the app satisfies it — and so does a
+  // completed handover, because the government forms are signed by hand and
+  // cannot be e-signed at all.
+  const handover = data.handover || null;
+  const bosSigned = bosDocs.some(d => signed[d.id]) || handover?.done === true;
   // The main required list EXCLUDES the bill of sale (it has its own box).
   let requiredDocs = DOC_SET.filter(d => d.required && d.id !== "bill_of_sale");
   // Questionnaire → suggested documents (additive; the full list stays browsable).
@@ -1301,6 +1305,79 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginBottom:11, lineHeight:1.55 }}>
           This is the document that legally transfers the boat. Choose the version that fits your sale — you only need <b>one</b>. {documentedActive ? "Your vessel is Coast Guard documented, so the CG-1340 applies." : floridaActive ? "Florida\u2019s official 82050 is included." : ""}
         </div>
+        {/* ── HANDOVER ─────────────────────────────────────────────────────────
+            The title and the bill of sale are signed wet-ink, together, when the
+            money changes hands. The app cannot e-sign a state form, so it guides
+            the handover instead and records that it happened. */}
+        {(() => {
+          const setHand = (patch) => setData(d => ({ ...d, handover: { ...(d.handover || {}), ...patch } }));
+          const h = handover || {};
+          if (h.done) {
+            return (
+              <div style={{ background:"#f4f7f5", border:`1px solid ${C.green}`, borderRadius:8, padding:"12px 14px", marginBottom:11, fontFamily:"sans-serif" }}>
+                <div style={{ fontSize:12.5, fontWeight:800, color:C.green }}>✓ Handover complete</div>
+                <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:3 }}>
+                  {h.mode === "distance" ? "Title and bill of sale sent, received and confirmed." : "Signed in person — title and bill of sale handed over."}
+                  {h.by ? ` Confirmed by ${h.by}.` : ""}
+                </div>
+                <button onClick={()=>setHand({ done:false })}
+                  style={{ marginTop:8, background:"transparent", border:`1px solid ${C.mist}`, color:C.slate, borderRadius:14, padding:"5px 12px", fontSize:11, cursor:"pointer" }}>Undo</button>
+              </div>
+            );
+          }
+          if (!h.mode) {
+            return (
+              <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:8, padding:"13px 15px", marginBottom:11, fontFamily:"sans-serif" }}>
+                <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:3 }}>How will you hand the boat over?</div>
+                <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
+                  The title and the bill of sale are signed by hand, not in the app. Tell us how you&rsquo;re doing it and we&rsquo;ll set out the steps.
+                </div>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                  {[["person","🤝 Meeting in person"],["distance","📦 We won’t meet — by post"]].map(([v,lbl]) => (
+                    <button key={v} onClick={()=>setHand({ mode:v })}
+                      style={{ fontSize:12.5, padding:"9px 15px", borderRadius:18, cursor:"pointer", fontWeight:700, border:`1.5px solid ${C.mist}`, background:C.white, color:C.slate }}>{lbl}</button>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+          const steps = h.mode === "person"
+            ? ["Seller brings the title, signed by every registered owner, and the completed bill of sale",
+               "Seller brings the lien release, if there was a loan on the boat",
+               "Buyer brings the balance in cleared funds",
+               "Sign the title and the bill of sale together, at the table",
+               "Seller hands over keys, title and paperwork; buyer hands over the money"]
+            : ["Seller signs the title and gets the bill of sale notarised",
+               "Seller photographs the signed title and posts both, tracked",
+               "Seller shares the photo and the tracking number in the deal",
+               "Buyer checks the bill of sale is notarised and the names match the title exactly",
+               "Buyer wires the balance and shares proof of payment",
+               "Buyer confirms the title arrived"];
+          return (
+            <div style={{ background:"#fffaf0", border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", marginBottom:11, fontFamily:"sans-serif" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:8, flexWrap:"wrap" }}>
+                <span style={{ fontSize:12.5, fontWeight:800, color:C.navy }}>
+                  {h.mode === "person" ? "🤝 Closing in person" : "📦 Closing by post"}
+                </span>
+                <button onClick={()=>setHand({ mode:null })}
+                  style={{ fontSize:11, background:"transparent", border:"none", color:C.slate, textDecoration:"underline", cursor:"pointer" }}>change</button>
+              </div>
+              {h.mode === "distance" && (
+                <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:5 }}>
+                  One of you has to go first, so do it in this order &mdash; the photo proves the title exists and is signed, the tracking proves it&rsquo;s on its way. An escrow service removes the risk entirely if you&rsquo;d rather not rely on it.
+                </div>
+              )}
+              <ol style={{ margin:"9px 0 0", paddingLeft:19, fontSize:12, color:C.slate, lineHeight:1.75 }}>
+                {steps.map((t,i) => <li key={i} style={{ marginBottom:3 }}>{t}</li>)}
+              </ol>
+              <button onClick={()=>setHand({ done:true, by:(myRole==="seller"?"the seller":"the buyer"), at:Date.now() })}
+                style={{ ...S.btnBrass, marginTop:11, fontSize:12.5, padding:"9px 18px" }}>
+                ✓ Done &mdash; we&rsquo;ve completed the handover
+              </button>
+            </div>
+          );
+        })()}
+
         {/* Optional: a few questions that produce a ranked set — the form the state
             wants first, then anything that sensibly goes alongside it. */}
         {!bosSigned && (bosQOpen ? (() => {
@@ -1534,6 +1611,28 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                       {!frozen && doc.kind !== "upload" && !needsNotary && !doc.viewOnly && <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />}
                       {!frozen && doc.kind !== "upload" && !doc.viewOnly && <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />}
                       <ActionBtn docId={doc.id} action="send"   icon="📤" label="Send"   color={C.brass} />
+                      {/* A state or federal form is signed by hand at a tag office
+                          or in front of a notary — there is nothing for the app to
+                          sign, so the requirement could never be met. This records
+                          that it was completed, as an attestation rather than a
+                          signature. Uploading a scan stays optional. */}
+                      {!frozen && doc.viewOnly && (() => {
+                        const _who = (myRole === "seller" ? parties.seller?.name : parties.buyer?.name)
+                          || (myRole === "seller" ? "the seller" : "the buyer");
+                        return signed[doc.id]
+                          ? <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.green, fontWeight:700, padding:"7px 4px" }}>
+                              ✓ Confirmed complete{signed[doc.id].by ? ` by ${signed[doc.id].by}` : ""}
+                            </span>
+                          : <button onClick={()=>setSigned(sg => ({ ...sg, [doc.id]: {
+                                name: `Confirmed complete by ${_who}`,
+                                date: today(), at: Date.now(), attested: true,
+                                by: _who, role: myRole,
+                              } }))}
+                              style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:`1.5px solid ${C.mist}`, background:C.white, color:C.navy, whiteSpace:"nowrap" }}>
+                              ✓ I&rsquo;ve completed this form
+                            </button>;
+                      })()}
+                      {!frozen && doc.viewOnly && <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload a copy" color={C.slate} />}
                       {!frozen && !doc.viewOnly && <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />}
                       <button onClick={()=>printDoc(doc.id, doc.title, false, true)} title="Save as PDF"
                         style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:"1.5px solid #e3ddd0", background:C.white, color:C.navy, whiteSpace:"nowrap" }}>
