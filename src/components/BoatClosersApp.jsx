@@ -3880,7 +3880,9 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>The buyer rejected the vessel after due diligence. The full notice and the deposit-return steps are below{myRole==="seller" ? "" : " and on the closing page"}. No further action moves this deal forward.</div>
         </div>
       )}
-<VesselLookup />
+      {/* The buyer is the one deciding whether to accept the vessel, so this is
+          theirs. A seller does not need to look up the history of their own boat. */}
+      {myRole !== "seller" && <VesselLookup hin={vessel?.hin} />}
       {depositRequired && !depVerified && (() => {
         const msLeft = depDeadline > 0 ? (depDeadline - Date.now()) : 0;
         const expired = depDeadline > 0 && !depHasProof && msLeft <= 0;
