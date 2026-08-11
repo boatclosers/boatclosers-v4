@@ -1336,17 +1336,20 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
           // You can edit your own side always. You can edit the OTHER side only
           // to pre-fill it before that party has joined; once they're in, it
           // locks to them.
-          const locked = !isMine && partyBJoined;
+          // Read-only for the other party at all times — before they join it is an
+          // empty card that fills in as they complete their side, after they join it
+          // is theirs. Either way nobody types into someone else's details.
+          const locked = !isMine;
           return (
           <div key={side} style={{ ...S.card, border: side===userRole ? `2px solid ${C.brass}` : `0.5px solid ${C.mist}`, position:"relative", ...(!isMine && !partyBJoined ? { background:C.sandDark, opacity:0.92 } : {}) }}>
             {side===userRole && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.brass, color:C.navy }}>You</span>}
             {locked && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.mist, color:C.slate }}>🔒 Locked</span>}
             <h3 style={S.h3}>{side==="buyer" ? "Buyer" : "Seller"}</h3>
-            {!isMine && !partyBJoined ? (
-              <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
+            {!isMine && !partyBJoined && (
+              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:10 }}>
                 The {side} fills this in when they join &mdash; nothing needed from you here. Use the invite above to bring them in.
               </div>
-            ) : (
+            )}
             <Grid2>
               <Field label={`${side==="buyer"?"Buyer":"Seller"} Full Legal Name *`}>
                 <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].name} readOnly={locked} onChange={e=>!locked&&set(side,"name",capFirst(e.target.value))} />
@@ -1377,10 +1380,11 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
                   onChange={e=>!locked&&set(side,"citizen",e.target.value)} />
               </Field>}
             </Grid2>
-            )}
             {locked && (
               <div style={{ marginTop:12, padding:"10px 12px", background:C.sandDark, borderRadius:5, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
-                🔒 This is the other party's information. They control their own contact details and you can't edit them.
+                🔒 This is the other party&rsquo;s information. {partyBJoined
+                  ? "They control their own contact details and you can't edit them."
+                  : "It fills in when they join \u2014 they enter their own details, so nothing here is yours to complete."}
               </div>
             )}
           </div>
