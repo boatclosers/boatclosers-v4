@@ -32,6 +32,22 @@ const C = {
 
 const fmt = (n) => n ? new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n)) : "";
 const today = () => new Date().toISOString().split("T")[0];
+
+// Dates arrive from HTML date inputs as YYYY-MM-DD, which is unreadable on a
+// contract. Documents get longhand — "August 10, 2026" — which cannot be misread
+// the way 08/10 versus 10/08 can. Anything that is not a plain date is passed
+// through untouched, so blanks and the missing-value marker survive.
+const longDate = (v) => {
+  const s = String(v == null ? "" : v).trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return v;
+  const MONTHS = ["January","February","March","April","May","June",
+                  "July","August","September","October","November","December"];
+  const mi = Number(m[2]) - 1;
+  if (mi < 0 || mi > 11) return v;
+  return `${MONTHS[mi]} ${Number(m[3])}, ${m[1]}`;
+};
+
 const isValidYear = (y) => { const n = Number(y); return Number.isInteger(n) && n >= 1900 && n <= new Date().getFullYear() + 1; };
 const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e||"").trim());
 // ── SIGNATURE NAME MATCH ──────────────────────────────────────────────────────
@@ -1017,7 +1033,6 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
   // (system auto-emails the link, no link shown); "link" = no email, show a
   // copyable link the initiator sends themselves.
   const [inviteMode, setInviteMode] = useState(null);
-  const [showOtherForm, setShowOtherForm] = useState(false);
 
   const otherSide = userRole === "buyer" ? "seller" : "buyer";
   const mySide = userRole === "seller" ? "seller" : "buyer";
@@ -1327,14 +1342,9 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
             {side===userRole && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.brass, color:C.navy }}>You</span>}
             {locked && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.mist, color:C.slate }}>🔒 Locked</span>}
             <h3 style={S.h3}>{side==="buyer" ? "Buyer" : "Seller"}</h3>
-            {!isMine && !partyBJoined && !showOtherForm ? (
+            {!isMine && !partyBJoined ? (
               <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
                 The {side} fills this in when they join &mdash; nothing needed from you here. Use the invite above to bring them in.
-                <div style={{ marginTop:8 }}>
-                  <button onClick={()=>setShowOtherForm(true)} style={{ background:"none", border:`1px solid ${C.mist}`, borderRadius:5, color:C.slate, fontSize:11, fontFamily:"sans-serif", padding:"5px 11px", cursor:"pointer" }}>
-                    I already know their details &mdash; enter them for them
-                  </button>
-                </div>
               </div>
             ) : (
             <Grid2>
@@ -1371,11 +1381,6 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
             {locked && (
               <div style={{ marginTop:12, padding:"10px 12px", background:C.sandDark, borderRadius:5, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
                 🔒 This is the other party's information. They control their own contact details and you can't edit them.
-              </div>
-            )}
-            {!isMine && !partyBJoined && showOtherForm && (
-              <div style={{ marginTop:12, padding:"10px 12px", background:"#fff", borderRadius:5, fontSize:11.5, fontFamily:"sans-serif", color:C.slate }}>
-                Anything you enter here locks to them once they join. Leave blank if you're not sure &mdash; they'll complete it themselves.
               </div>
             )}
           </div>
@@ -2078,7 +2083,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     const paDDEnd = (_ddS && _ddD) ? addDays(_ddS, Number(_ddD)) : "";
     const paFill = {
       dealRef: data.dealRef || ("BC-" + String(Date.now()).slice(-5)),
-      effectiveDate: today(),
+      effectiveDate: longDate(today()),
       sellerName: parties.seller.name || paModal.paSellerSig || "\u2591MISSING\u2591",
       sellerAddress: `${parties.seller.address||""} ${parties.seller.city||""} ${parties.seller.stateZip||""}`.trim() || "\u2591MISSING\u2591ss]",
       sellerCitizen: parties.seller.citizen || "\u2591MISSING\u2591",
@@ -2108,9 +2113,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         ? `<p>Buyer shall deliver the earnest money deposit to the escrow holder identified in this Agreement within <strong>${Number(paModal.depositHours) || 24} hours</strong> of this Agreement being executed by both parties. Time is of the essence as to this obligation. If Buyer fails to deliver the deposit within that period, Seller may, at Seller&rsquo;s sole option and upon written notice to Buyer, either extend the time for delivery or terminate this Agreement, whereupon neither party shall have further obligation to the other and Seller shall be free to offer the Vessel to other buyers. Return or forfeiture of a deposit once delivered is governed by the contingencies and remedies stated elsewhere in this Agreement.</p>`
         : `<p>No earnest money deposit is required under this Agreement. The Vessel is not held off the market, and Seller may continue to show and offer the Vessel to other buyers until Closing.</p>`,
       balanceDue: fmt(Math.max(0, paAgreed - paDep)),
-      closingDate: paModal.closingDate || "\u2591MISSING\u2591",
+      closingDate: longDate(paModal.closingDate || "\u2591MISSING\u2591"),
       closingLocation: vessel.location || "the location where the Vessel is moored",
-      surveyDeadline: paDDEnd || "____________", inspectionDeadline: paDDEnd || "____________", seaTrialDeadline: paDDEnd || "____________", financingDeadline: paDDEnd || "____________",
+      surveyDeadline: longDate(paDDEnd) || "____________", inspectionDeadline: longDate(paDDEnd) || "____________", seaTrialDeadline: longDate(paDDEnd) || "____________", financingDeadline: longDate(paDDEnd) || "____________",
       brokerFee: "$249.00",
       selectedContingencies: (Array.isArray(paModal.contingencies) && paModal.contingencies.length) ? paModal.contingencies : ["survey","seaTrial","title"],
       paymentType: paModal.paymentType || "",
@@ -2383,7 +2388,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               ? `The buyer submitted proof but the seller reports the ${fmt(acceptedOffer.deposit)} has not arrived. Nothing moves forward until it's sorted out on the Due Diligence step.`
               : hasProof
               ? `The buyer has submitted proof of the ${fmt(acceptedOffer.deposit)} deposit. The seller is confirming it actually arrived — the deal is secured once they do.`
-              : `The terms are signed, but the boat isn't secured yet. The ${fmt(acceptedOffer.deposit)} earnest money is what holds it off the market. Handle it on the Due Diligence step.`;
+              : myRole === "seller"
+              ? `The terms are signed, but the boat isn't secured yet. The buyer sends the ${fmt(acceptedOffer.deposit)} earnest money directly to you, then signs a receipt for it. You confirm it arrived and the deal is secured.`
+              : `The terms are signed, but the boat isn't secured yet. Send the ${fmt(acceptedOffer.deposit)} the way you agreed, then sign the receipt to record it \u2014 that is what holds the boat off the market.`;
             // The buyer is the one who sends the deposit; give them a real button to
             // the step where it happens. Without this the banner says "handle it on
             // Due Diligence" but offers no way to get there — a dead end after signing.
@@ -2393,7 +2400,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 <div style={{ fontSize:12.5, fontWeight:800, color: verified ? C.green : disputed ? C.red : "#7a5500", marginBottom:3 }}>{head}</div>
                 <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>{body}</div>
                 {showDepositCta && onNext && (
-                  <button onClick={onNext} style={{ ...S.btnBrass, marginTop:10, fontSize:12.5, fontWeight:800, padding:"9px 16px" }}>
+                  <button onClick={()=>{ if (myRole !== "seller" && !hasProof) setData(d => ({ ...d, openReceipt: true })); onNext(); }}
+                    style={{ ...S.btnBrass, marginTop:10, fontSize:12.5, fontWeight:800, padding:"9px 16px" }}>
                     {disputed ? "Sort out the deposit →" : hasProof ? "Check the deposit status →" : (myRole === "seller" ? `Confirm the ${fmt(acceptedOffer.deposit)} arrived →` : `Send the ${fmt(acceptedOffer.deposit)} earnest money →`)}
                   </button>
                 )}
@@ -2496,7 +2504,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           {/* Your offer — pronounced, gold-highlighted */}
           <div style={{ border:`2px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", background:"#fffaf0" }}>
             <label style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, fontWeight:800, display:"block", marginBottom:6 }}>💰 Your Offer Price</label>
-            <input style={{ ...S.input, fontSize:22, fontWeight:800, color:C.navy, padding:"12px 14px", border:`1.5px solid ${C.brass}`, background:"#fff", margin:0 }} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder="Enter your offer" />
+            <input style={{ ...S.input, fontSize:22, fontWeight:800, color:C.navy, padding:"12px 14px", border:`1.5px solid ${C.brass}`, background:"#fff", margin:0 }} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder="Enter your offer here" />
             {offerAmt && Number(askingPrice)>0 && (
               <div style={{ fontSize:11.5, fontFamily:"sans-serif", color: Number(offerAmt) < Number(askingPrice) ? C.teal : C.slate, marginTop:6, fontWeight:700 }}>
                 {Number(offerAmt) < Number(askingPrice)
@@ -3124,7 +3132,7 @@ function EscrowSelector({ value, onChange, depositAmt }) {
 
       {!selected ? (
         <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"#b91c1c", fontWeight:700, lineHeight:1.5 }}>
-          Choose where the deposit will be held. A neutral third party protects both sides; sending it straight to the seller does not.
+          Choose where the deposit will be held.
         </div>
       ) : (
         <div style={{ background:selected.tint, border:`1px solid ${selected.line}`, borderRadius:6, padding:"10px 13px" }}>
@@ -3592,6 +3600,13 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   // close — walking away after this risks their deposit. Make that unmissable.
   const [acceptCommitAck, setAcceptCommitAck] = useState(!!negotiate?.vesselAcceptance);
   const [showReceipt, setShowReceipt] = useState(false);
+  // The Deal Room banner sets openReceipt when the buyer taps "send the earnest
+  // money", so they arrive with the receipt already open rather than hunting for it.
+  useEffect(() => {
+    if (!negotiate?.openReceipt) return;
+    setNegotiate(n => { const x = { ...n }; delete x.openReceipt; return x; });
+    setTimeout(() => setShowReceipt(true), 120);
+  }, [negotiate?.openReceipt]); // eslint-disable-line
   // ── DEPOSIT GATE ───────────────────────────────────────────────────────────
   // The deposit is in control of forward motion. Any attempt to move the deal on
   // (accept/reject/propose the vessel, continue to documents) runs through
@@ -4537,7 +4552,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             <div style={{ background:"#fff", padding:"16px 18px" }}>
               <style>{PA_DOC_CSS}</style>
               <div className="bc-pa" style={{ background:"#fffdf8", border:`1px solid ${C.mist}`, borderTop:`4px solid ${C.brass}`, borderRadius:4, padding:"18px 20px", marginBottom:14 }} dangerouslySetInnerHTML={{ __html: showBlanks(fillDocument(DOCUMENTS.find(d=>d.id==="accept"), {
-                effectiveDate: today(),
+                effectiveDate: longDate(today()),
                 sellerName: parties.seller?.name || "Seller",
                 buyerName: parties.buyer?.name || vaSigName || "Buyer",
                 vesselYear: vessel.year||"", vesselMake: vessel.make||"", vesselModel: vessel.model||"",
