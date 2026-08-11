@@ -51,8 +51,12 @@ const LINKS = [
   },
 ];
 
-export default function VesselLookup() {
+export default function VesselLookup({ hin }) {
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  // Every one of these searches wants the HIN, and it is already on the deal —
+  // showing it here saves hunting for it on another screen mid-task.
+  const cleanHin = String(hin || "").replace(/\u2591MISSING\u2591/g, "").trim();
 
   return (
     <div style={{ marginBottom:20 }}>
@@ -69,12 +73,23 @@ export default function VesselLookup() {
       >
         <span style={{ fontSize:16 }}>⚓</span>
         <span style={{ flex:1, fontSize:13, color:C.navy }}>
-          <strong>Optional:</strong> verify this boat's title history &amp; check for liens
+          <strong>Check this boat&rsquo;s history</strong> &mdash; accidents, storm damage, sinking, theft, salvage and liens
         </span>
         <span style={{ fontSize:12, fontWeight:700, color:C.teal, whiteSpace:"nowrap" }}>
-          {open ? "Close ▲" : "Open vessel lookup ▾"}
+          {open ? "Close ▲" : "See how ▾"}
         </span>
       </button>
+
+      {open && cleanHin && (
+        <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap", background:C.sand, border:`1px solid ${C.mist}`, borderRadius:7, padding:"9px 12px", marginTop:8, fontFamily:"sans-serif" }}>
+          <span style={{ fontSize:11.5, color:C.slate }}>This boat&rsquo;s HIN</span>
+          <code style={{ fontSize:13, fontWeight:700, color:C.navy, letterSpacing:0.5 }}>{cleanHin}</code>
+          <button onClick={()=>{ try { navigator.clipboard.writeText(cleanHin); setCopied(true); setTimeout(()=>setCopied(false), 1800); } catch (e) {} }}
+            style={{ fontSize:11, fontWeight:700, color:copied ? C.green : C.teal, background:"transparent", border:"none", cursor:"pointer", textDecoration:"underline" }}>
+            {copied ? "Copied ✓" : "Copy"}
+          </button>
+        </div>
+      )}
 
       {/* Full panel — only when opened */}
       {open && (
