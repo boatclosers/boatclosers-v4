@@ -3970,6 +3970,21 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
       {/* The buyer is the one deciding whether to accept the vessel, so this is
           theirs. A seller does not need to look up the history of their own boat. */}
       {myRole !== "seller" && <VesselLookup hin={vessel?.hin} />}
+
+      {/* Closing day is the default move day, but the seller's situation decides
+          what is actually workable — dockage paid to month end, a marina that wants
+          the slip immediately, or a trailer boat someone is driving three days for.
+          A question to ask, not a term to record. */}
+      {myRole !== "seller" && (
+        <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderRadius:8, padding:"12px 14px", marginBottom:20, fontFamily:"sans-serif" }}>
+          <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:4 }}>⏱ Ask when the boat needs to move</div>
+          <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7 }}>
+            Closing day is usually the day it moves, but that depends on the seller. Their dockage may be paid to the end of the month, or the marina may want the slip back as soon as it sells. If it is on a trailer, or you are arranging transport, you may need days rather than hours &mdash; and closing can happen on or before the agreed date if that helps.
+            <br /><br />
+            Settle it with the seller now, while you still have room to move the date. Message them in the deal so you both have it in writing.
+          </div>
+        </div>
+      )}
       {depositRequired && !depVerified && (() => {
         const msLeft = depDeadline > 0 ? (depDeadline - Date.now()) : 0;
         const expired = depDeadline > 0 && !depHasProof && msLeft <= 0;
@@ -5484,33 +5499,6 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
         );
       })()}
 
-      {!isRejected && (
-        <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap" }}>
-          <div style={{ flex:1, minWidth:240, border:`2px solid ${isBuyer?C.brass:C.mist}`, borderRadius:8, padding:"12px 14px", background: isBuyer?"#fff9ee":"#fff" }}>
-            <div style={{ fontSize:12, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:6 }}>
-              🧑‍💼 Buyer's Closing Steps {isBuyer && <span style={{ ...S.pill, background:C.brass, color:C.navy, marginLeft:6 }}>You</span>}
-            </div>
-            <ul style={{ margin:0, paddingLeft:16, fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.8 }}>
-              <li>Verify the seller's wire/escrow details by phone</li>
-              <li>Send the balance due ({fmt(balanceDue)})</li>
-              <li>Confirm receipt of signed Bill of Sale & title</li>
-              <li>Take possession of the vessel and keys</li>
-            </ul>
-          </div>
-          <div style={{ flex:1, minWidth:240, border:`2px solid ${!isBuyer?C.brass:C.mist}`, borderRadius:8, padding:"12px 14px", background: !isBuyer?"#fff9ee":"#fff" }}>
-            <div style={{ fontSize:12, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:6 }}>
-              ⚓ Seller's Closing Steps {!isBuyer && <span style={{ ...S.pill, background:C.brass, color:C.navy, marginLeft:6 }}>You</span>}
-            </div>
-            <ul style={{ margin:0, paddingLeft:16, fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.8 }}>
-              <li>Provide verified wire/escrow instructions</li>
-              <li>Sign and deliver the Bill of Sale</li>
-              <li>Transfer title and registration documents</li>
-              <li>Hand over keys once funds are confirmed</li>
-            </ul>
-          </div>
-        </div>
-      )}
-
       {isRejected && (
         <div style={{ marginBottom:20 }}>
           <RejectionNotice
@@ -5526,6 +5514,17 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
       {/* ── FINAL PAYMENT SECTION ── */}
       {!isRejected && (
         <div style={{ marginBottom:20 }}>
+          {/* The one line worth keeping from the old closing-steps boxes, moved to
+              where the money is about to move rather than a checklist above. Wire
+              fraud is the single most expensive mistake available on this page. */}
+          <div style={{ background:"#fffaf0", border:`1.5px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", marginBottom:10, fontFamily:"sans-serif" }}>
+            <div style={{ fontSize:12.5, fontWeight:800, color:"#8a5a12", marginBottom:4 }}>Before you send anything, phone {isBuyer ? "the seller" : "the buyer"}</div>
+            <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7 }}>
+              {isBuyer
+                ? <>Confirm the account details <b>by voice</b>, on a number you already had &mdash; not one from the email carrying the instructions. Wire details intercepted or altered by email are how money disappears in a boat sale, and a wire is very hard to recover once sent.</>
+                : <>Give your account details <b>by voice</b>, and expect the buyer to call and confirm them before sending. If anyone emails changed instructions in your name, that is not you &mdash; tell the buyer to phone you before acting on anything.</>}
+            </div>
+          </div>
           <div
             onClick={()=>setPayMethodOpen(v=>!v)}
             style={{ display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer", background:C.navy, borderRadius: payMethodOpen ? "8px 8px 0 0" : 8, padding:"12px 16px" }}
