@@ -529,7 +529,7 @@ export const DOCUMENTS = [
     group: "Closing Instruments",
     tab: "As-Is & Disclosure",
     eyebrow: "Condition & Defects",
-    title: "As-Is Acknowledgment & Disclosure of Known Defects",
+    title: "As-Is Acknowledgment & Known Defects",
     useWhen: "Use on nearly every sale. Confirms the boat sells as it sits and lists the faults disclosed.",
     keywords: "as is acknowledgment disclosure known defects problems faults condition no warranty",
     body: `
