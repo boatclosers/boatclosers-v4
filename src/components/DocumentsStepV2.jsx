@@ -1102,11 +1102,22 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     }, 300);
   };
 
+  // The title attribute used to repeat the label, so hovering "E-Sign" told you
+  // "E-Sign". These say what the button actually does — help for anyone who
+  // hesitates, no space taken from anyone who doesn't.
+  const ACTION_HELP = {
+    esign:  "Sign it here, in the app. Type your full legal name — that becomes your signature and is time-stamped.",
+    manual: "Print it and sign by hand instead, then record here that it was done. Use this when a document has to be wet-ink signed.",
+    send:   "Email a copy to the other party, or to yourself, your lender, your insurer, or your surveyor.",
+    upload: "Attach a scan or photo of the signed copy — useful after a notary, or for anything signed on paper.",
+    fill:   "Type into the gold blanks on the document. Everything else comes from your deal and is locked.",
+    view:   "Read the document as it will be signed, filled in with your deal details.",
+  };
   const ActionBtn = ({ docId, action, icon, label, color }) => {
     const active = docAction[docId] === action;
     const c = color || C.navy;
     return (
-      <button onClick={() => setAction(docId, action)} title={label}
+      <button onClick={() => setAction(docId, action)} title={ACTION_HELP[action] || label}
         style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:`1.5px solid ${active ? c : "#e3ddd0"}`, background: active ? c : C.white, color: active ? "#fff" : c, whiteSpace:"nowrap", transition:"all .12s", boxShadow: active ? "0 1px 3px rgba(0,0,0,0.12)" : "none" }}>
         <span style={{ fontSize:12 }}>{icon}</span> {label}
       </button>
@@ -1724,11 +1735,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                       })()}
                       {!frozen && doc.viewOnly && <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload a copy" color={C.slate} />}
                       {!frozen && !doc.viewOnly && <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />}
-                      <button onClick={()=>printDoc(doc.id, doc.title, false, true)} title="Save as PDF"
+                      <button onClick={()=>printDoc(doc.id, doc.title, false, true)} title="Download a PDF copy to keep, email, or take to the closing"
                         style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:"1.5px solid #e3ddd0", background:C.white, color:C.navy, whiteSpace:"nowrap" }}>
                         <span style={{ fontSize:12 }}>⬇</span> PDF
                       </button>
-                      <button onClick={()=>printDoc(doc.id, doc.title)} title="Print" style={{ fontSize:13, padding:"7px 11px", borderRadius:20, cursor:"pointer", border:`1.5px solid #e3ddd0`, background:C.white, color:C.slate }}>🖨️</button>
+                      <button onClick={()=>printDoc(doc.id, doc.title)} title="Print it — use this for anything signed by hand or in front of a notary" style={{ fontSize:13, padding:"7px 11px", borderRadius:20, cursor:"pointer", border:`1.5px solid #e3ddd0`, background:C.white, color:C.slate }}>🖨️</button>
                     </div>
                   </div>
 
