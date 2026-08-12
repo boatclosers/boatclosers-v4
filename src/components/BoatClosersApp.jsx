@@ -1450,6 +1450,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // not something to pre-pick. Blank until chosen; the offer won't send without it.
   const [escrowPath, setEscrowPath] = useState(data.escrowPath || "");
   const [sellerTermsOpen, setSellerTermsOpen] = useState(false);
+  // Optional: put the unrepresented-buyer request in writing with the offer, so it
+  // is on the record rather than a phone call neither side remembers the same way.
+  const [askCoBroke, setAskCoBroke] = useState(!!data.askCoBroke);
   const [depositReceiptOpen, setDepositReceiptOpen] = useState(false);
   // Advancing with an unconfirmed deposit is allowed — someone paying through
   // Escrow.com, or still arranging it, must not be blocked — but not silently.
@@ -1677,6 +1680,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     const deposit = Math.round(amt*Number(escrowPct||0)/100);
     const offer = {
       id:Date.now(), from:fromRole, amount:amt, askingPrice:Number(askingPrice)||0,
+      // Only meaningful on a broker-listed boat, and only from the buyer's side.
+      askCoBroke: (vessel?.brokerListed === "yes" && fromRole !== "seller") ? askCoBroke : false,
       escrowPct:Number(escrowPct), escrowPath, deposit,
       verbal:verbalDeal, status:"pending", time:new Date().toLocaleTimeString(),
       // opt-in contingencies
