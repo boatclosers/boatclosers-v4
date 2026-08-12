@@ -388,24 +388,12 @@ async function notifyOnDealChange(previous: any, updated: any) {
     const proposedChanged = newOutcome === 'propose_price' && newProposed && newProposed !== prevProposed
 
     if (sellerEmail && (outcomeChanged || proposedChanged)) {
-      if (newOutcome === 'accept') {
-        await sendEmail({
-          to: sellerEmail,
-          subject: `${boat} — Buyer accepted the vessel`,
-          html: emailLayout(`
-            <h2 style="color:#08152e; font-size:18px;">Buyer Accepted the Vessel</h2>
-            <p style="color:#475569; font-size:14px; line-height:1.5;">
-              The buyer has completed due diligence and <strong>accepted ${vesselName} as-is</strong>.
-              The deal proceeds to closing on the agreed terms.
-            </p>
-            <p style="text-align:center; margin: 24px 0;">
-              <a href="${dealLink(3, sellerEmail)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
-                View the Deal
-              </a>
-            </p>
-          `)
-        })
-      } else if (newOutcome === 'reject') {
+      // Accepting the vessel used to email here, the moment the green button was
+      // pressed — before the Vessel Acceptance had been signed. Signing it already
+      // sends "Documents signed" to both parties, so this was the same news twice,
+      // and the first one arrived early. Rejection and a proposed price still
+      // notify here, because neither produces a signature.
+      if (newOutcome === 'reject') {
         await sendEmail({
           to: sellerEmail,
           subject: `${boat} — Buyer rejected the vessel`,
