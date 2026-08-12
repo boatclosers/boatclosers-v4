@@ -40,6 +40,10 @@ export async function POST(req: Request) {
           ${fromName ? String(fromName).replace(/</g, '&lt;') + ' has' : 'Someone has'} shared a document with you on the BoatClosers deal for <strong>${vesselName}</strong>: <strong>${safeDoc}</strong>.${attachment && attachment.content ? ' The file is attached to this email.' : ''}
         </p>
         ${safeNote ? `<p style="background:#f8fafc;border-left:3px solid #b8863a;padding:12px 14px;margin:16px 0;color:#334155;font-size:13px;">${safeNote}</p>` : ''}
+        ${/wire|payment instruction/i.test(safeDoc) ? `
+        <p style="background:#fffaf0;border:1.5px solid #b8863a;border-radius:6px;padding:13px 15px;margin:16px 0;color:#8a5a12;font-size:13px;line-height:1.6;">
+          <strong>Do not act on these details from this email alone.</strong> Telephone the other party on a number you already had and have them read the account details back to you before sending anything. BoatClosers never sends payment instructions of its own and will never ask you to redirect funds. If you receive any message changing these details, it is fraud until proven otherwise by a phone call.
+        </p>` : ''}
         <p style="color:#475569; font-size:14px; line-height:1.5;">Open the deal to review, fill in, and sign the document right in the app.</p>
         <p style="text-align:center; margin: 24px 0;">
           <a href="${link}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">Open the Documents</a>
