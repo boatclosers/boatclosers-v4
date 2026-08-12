@@ -773,6 +773,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const _added = recDocs.filter(d => !_coreIds.has(d.id) && REASON[d.id]).map(d => ({ ...d, addedWhy: REASON[d.id] }));
   requiredDocs = [..._coreReq, ..._added];
   const allRequiredSigned = requiredDocs.every(d => signed[d.id]) && bosSigned;
+  // When the bill of sale is the only thing left, nothing has been neglected —
+  // it is signed at the handover by design. Say so, rather than raising an alarm
+  // and asking someone to acknowledge a failing that is not one.
+  const docsOnlyBos = !bosSigned && requiredDocs.every(d => signed[d.id]);
   const reqMissing = requiredDocs.filter(d => !signed[d.id]);
   const reqNotaryMissing = reqMissing.filter(d => (d.body||"").includes("Notary Acknowledgment"));
   // One built copy of each document per unique deal state. Handing React the very
@@ -1847,9 +1851,6 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                   {docAction[doc.id]==="esign" && (
                     <div style={{ marginTop:12, background:C.greenLight, border:`1px solid #a8d8b8`, borderRadius:6, padding:"14px" }}>
                       <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.green, marginBottom:10 }}>✏️ Electronic Signature — {doc.title}</div>
-                      <div style={{ background:C.navy, borderRadius:4, padding:"9px 12px", fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.85)", marginBottom:12, lineHeight:1.6 }}>
-                        ⚠️ <strong style={{ color:C.brass }}>Preview only — not legally binding until BoatClosers receives payment.</strong> Upon payment confirmation, the executed package is released to both parties. BoatClosers provides document facilitation only — not legal advice or brokerage services.
-                      </div>
                       {!signed[doc.id] || signed[doc.id].manual || signed[doc.id].uploaded ? (
                         <>
                           {/* E-Sign consent & disclosure */}
@@ -1975,22 +1976,30 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
       <div style={{ marginTop:"1.5rem" }}>
         {!allRequiredSigned && (
-          <div style={{ border:`1.5px solid ${C.brass}`, background:"#fff9ee", borderRadius:8, padding:"14px 16px", marginBottom:14 }}>
-            <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, color:"#7a5500", marginBottom:6 }}>⚠️ A few documents still need finishing before this sale is truly closed</div>
+          <div style={{ border:`1.5px solid ${docsOnlyBos ? C.teal : C.brass}`, background: docsOnlyBos ? "#f7fbfd" : "#fff9ee", borderRadius:8, padding:"14px 16px", marginBottom:14 }}>
+            <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, color: docsOnlyBos ? C.navy : "#7a5500", marginBottom:6 }}>{docsOnlyBos ? "📜 One thing to take with you" : "⚠️ A few documents still need finishing before this sale is truly closed"}</div>
             <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:10 }}>
-              Still outstanding: {[...(!bosSigned ? ["a Bill of Sale (choose one in the Bill of Sale box above)"] : []), ...reqMissing.map(d=>d.title)].join(", ")}.
-              {reqNotaryMissing.length > 0 && <> Note that <b>{reqNotaryMissing.map(d=>d.title).join(", ")}</b> must be printed, signed in front of a notary, and uploaded. <b>BoatClosers can't verify notarization</b> — completing that correctly is your responsibility.</>}
+              {!docsOnlyBos && <>Still outstanding: {[...reqMissing.map(d=>d.title)].join(", ")}.
+              {reqNotaryMissing.length > 0 && <> Note that <b>{reqNotaryMissing.map(d=>d.title).join(", ")}</b> must be printed, signed in front of a notary, and uploaded. <b>BoatClosers can't verify notarization</b> — completing that correctly is your responsibility.</>}</>}
             </div>
-            <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", fontSize:12, fontFamily:"sans-serif", color:C.navy, lineHeight:1.5 }}>
+            {!bosSigned && (
+              <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:7, padding:"11px 13px", marginBottom:10, fontFamily:"sans-serif" }}>
+                <div style={{ fontSize:12, fontWeight:800, color:C.navy, marginBottom:4 }}>📜 The Bill of Sale is signed at the handover, not here</div>
+                <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7 }}>
+                  This is normal &mdash; the title and the bill of sale are signed by hand, together, when the money changes hands. <b>Open the version you need in the Bill of Sale box above, print it, and take it with you</b> (or post it, if you are not meeting). If it has to be notarised, do that before the day. Nothing is missing from your deal.
+                </div>
+              </div>
+            )}
+            {!docsOnlyBos && <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", fontSize:12, fontFamily:"sans-serif", color:C.navy, lineHeight:1.5 }}>
               <input type="checkbox" checked={closeAck} onChange={e=>setCloseAck(e.target.checked)} style={{ marginTop:1, accentColor:C.brass, flexShrink:0 }} />
               I understand these documents still need to be completed{reqNotaryMissing.length>0?" and notarized":""} outside the app, that BoatClosers does not verify or notarize them, and I'm choosing to proceed.
-            </label>
+            </label>}
           </div>
         )}
         <div style={{ display:"flex", justifyContent:"space-between" }}>
           <button style={S.btnOutline} onClick={onBack}>← Back</button>
-          <button style={{...S.btnBrass, opacity:(allRequiredSigned||closeAck)?1:0.45, cursor:(allRequiredSigned||closeAck)?"pointer":"not-allowed"}} disabled={!allRequiredSigned && !closeAck} onClick={()=>{setData(d=>({...d,signedDocs:signed}));onNext();}}>
-            {allRequiredSigned ? "Proceed to Closing →" : "Proceed to Closing anyway →"}
+          <button style={{...S.btnBrass, opacity:(allRequiredSigned||docsOnlyBos||closeAck)?1:0.45, cursor:(allRequiredSigned||docsOnlyBos||closeAck)?"pointer":"not-allowed"}} disabled={!allRequiredSigned && !docsOnlyBos && !closeAck} onClick={()=>{setData(d=>({...d,signedDocs:signed}));onNext();}}>
+            {(allRequiredSigned || docsOnlyBos) ? "Proceed to Closing →" : "Proceed to Closing anyway →"}
           </button>
         </div>
       </div>
