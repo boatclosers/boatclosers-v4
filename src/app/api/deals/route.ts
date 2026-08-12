@@ -504,7 +504,14 @@ async function notifyOnDealChange(previous: any, updated: any) {
     }
     // ── GET READY TO FINALIZE ── due diligence cleared (vessel accepted, or the
     // price addendum accepted) → nudge BOTH parties to complete the closing docs.
-    const ddCleared = (newOutcome === 'accept' && newOutcome !== prevOutcome)
+    // Only once the acceptance is actually SIGNED. This used to fire the moment the
+    // green button was pressed, which is a decision, not a completed step — and it
+    // went to both parties saying the vessel had been accepted before anything was
+    // signed. An amended-terms acceptance is a signature in its own right, so that
+    // half still stands.
+    const acceptanceSigned = !!updated?.docs_data?.signedDocs?.acceptance
+      && !previous?.docs_data?.signedDocs?.acceptance
+    const ddCleared = (newOutcome === 'accept' && acceptanceSigned)
       || (newAdd === 'accepted' && newAdd !== prevAdd)
     if (ddCleared) {
       const recips = [buyerEmail, sellerEmail].filter(Boolean)
