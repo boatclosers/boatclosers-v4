@@ -1439,6 +1439,41 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // Advancing with an unconfirmed deposit is allowed — someone paying through
   // Escrow.com, or still arranging it, must not be blocked — but not silently.
   const [depositAckOpen, setDepositAckOpen] = useState(false);
+  // A bare mailto arrived with no name, no boat and no way to reply — it depended
+  // on whatever the sender's mail client did. Sent through the app instead, so the
+  // request carries who they are and which deal it is about.
+  const [brokerOpen, setBrokerOpen] = useState(false);
+  const [brokerPhone, setBrokerPhone] = useState("");
+  const [brokerNote, setBrokerNote] = useState("");
+  const [brokerState, setBrokerState] = useState("");   // "" | "sending" | "sent" | error text
+  const sendBrokerRequest = async () => {
+    if (brokerState === "sending") return;
+    setBrokerState("sending");
+    try {
+      const boat = [vessel?.year, vessel?.make, vessel?.model].filter(Boolean).join(" ") || "a boat";
+      const price = vessel?.askingPrice ? ` Asking ${fmt(Number(vessel.askingPrice))}.` : "";
+      const doFetch = authedFetch || fetch;
+      const res = await doFetch("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dealId,
+          issueType: "Full-service brokerage enquiry (Sea Yachts)",
+          role: myRole,
+          message:
+            `This ${myRole === "seller" ? "seller" : "buyer"} would like Sea Yachts to handle the deal instead of doing it themselves.\n\n` +
+            `Boat: ${boat}.${price}\n` +
+            `Best phone: ${brokerPhone.trim() || "not given"}\n\n` +
+            `Their note:\n${brokerNote.trim() || "(none)"}`,
+        }),
+      });
+      const d = await res.json();
+      if (d?.ok) { setBrokerState("sent"); }
+      else setBrokerState(d?.error || "Couldn't send that just now. Please try again.");
+    } catch (e) {
+      setBrokerState("Couldn't reach us just now. Please try again.");
+    }
+  };
   // A loan on the boat has to be cleared before title can transfer. These details
   // went onto three separate documents, typed three times, with three chances to
   // disagree — on paperwork that goes to a bank. Asked once, here.
@@ -3052,10 +3087,37 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           with a licensed broker guiding each step instead of you working through it yourself. A brokerage
           commission applies instead of this flat fee.
         </div>
-        <a href="mailto:support@boatclosers.com?subject=Full-service%20brokerage%20enquiry%20(Sea%20Yachts)"
-          style={{ display:"inline-block", marginTop:9, fontSize:11.5, fontFamily:"sans-serif", fontWeight:700, color:C.slate, textDecoration:"underline" }}>
-          Contact Sea Yachts &rarr;
-        </a>
+        {brokerState === "sent" ? (
+          <div style={{ marginTop:10, fontSize:11.5, fontFamily:"sans-serif", color:C.green, lineHeight:1.6 }}>
+            ✓ Request sent. Sea Yachts will be in touch about this boat &mdash; nothing on this deal has changed in the meantime.
+          </div>
+        ) : brokerOpen ? (
+          <div style={{ marginTop:10, background:C.white, border:`1px solid ${C.mist}`, borderRadius:8, padding:"12px 13px", maxWidth:420 }}>
+            <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:9 }}>
+              We&rsquo;ll send your name, email and this boat&rsquo;s details so a broker can reach you. Nothing on this deal changes.
+            </div>
+            <input value={brokerPhone} onChange={e=>setBrokerPhone(e.target.value)} placeholder="Best phone number (optional)"
+              style={{ ...S.input, fontSize:12.5, marginBottom:8 }} />
+            <textarea value={brokerNote} onChange={e=>setBrokerNote(e.target.value)} placeholder="Anything you'd like them to know (optional)"
+              style={{ ...S.textarea, fontSize:12.5, minHeight:64 }} />
+            {brokerState && brokerState !== "sending" && (
+              <div style={{ fontSize:11.5, color:"#dc2626", marginTop:6 }}>{brokerState}</div>
+            )}
+            <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap" }}>
+              <button onClick={sendBrokerRequest} disabled={brokerState === "sending"}
+                style={{ ...S.btnBrass, fontSize:12, padding:"8px 16px", opacity: brokerState === "sending" ? 0.6 : 1 }}>
+                {brokerState === "sending" ? "Sending…" : "Send my details"}
+              </button>
+              <button onClick={()=>{ setBrokerOpen(false); setBrokerState(""); }}
+                style={{ ...S.btnOutline, fontSize:12, padding:"8px 16px" }}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={()=>setBrokerOpen(true)}
+            style={{ display:"inline-block", marginTop:9, fontSize:11.5, fontFamily:"sans-serif", fontWeight:700, color:C.slate, textDecoration:"underline", background:"transparent", border:"none", cursor:"pointer", padding:0 }}>
+            Ask Sea Yachts to handle it &rarr;
+          </button>
+        )}
       </div>
 
       {/* The deposit is what makes the deal real, so it happens here rather than a
