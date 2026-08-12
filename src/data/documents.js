@@ -625,6 +625,48 @@ export const DOCUMENTS = [
   },
 
   {
+    id: "wire_instructions",
+    group: "Closing Instruments",
+    tab: "Wire Instructions",
+    eyebrow: "Payment Details",
+    title: "Wire Transfer Instructions",
+    useWhen: "Use when the balance is being wired. The seller fills it in, the buyer confirms it by phone, and both sign.",
+    keywords: "wire instructions bank account routing aba swift transfer payment where to send money funds balance",
+    body: `
+<div class="note"><b>Read this before sending anything.</b> Wire fraud is the most common way money is stolen in a boat sale. Criminals intercept email, copy the wording, change the account number, and send it again from an address that looks almost right. <b>Confirm every figure below by telephone</b>, on a number you already had \u2014 never a number written in an email. BoatClosers never sends payment instructions and will never ask you to redirect funds.</div>
+
+<h3>1. Sending To</h3>
+<div class="field"><span class="k">Account holder (exact name on the account)</span><span class="v">________________________________</span></div>
+<div class="field"><span class="k">Bank name</span><span class="v">________________________________</span></div>
+<div class="field"><span class="k">Bank address</span><span class="v">________________________________</span></div>
+<div class="field"><span class="k">ABA / routing number</span><span class="v">____________________</span></div>
+<div class="field"><span class="k">Account number</span><span class="v">____________________</span></div>
+<div class="field"><span class="k">SWIFT / BIC (international only)</span><span class="v">____________________</span></div>
+<div class="field"><span class="k">Reference to include</span><span class="v">{{dealRef}} \u2014 {{vesselYear}} {{vesselMake}} {{vesselModel}}</span></div>
+
+<h3>2. Amount</h3>
+<div class="field"><span class="k">Balance due at closing</span><span class="v">{{balanceDue}}</span></div>
+<div class="field"><span class="k">Purchase price</span><span class="v">{{salePrice}}</span></div>
+<div class="field"><span class="k">Earnest money already paid</span><span class="v">{{depositAmount}}</span></div>
+<p class="recital">Wire fees are the responsibility of the sending party unless the Parties have agreed otherwise in writing.</p>
+
+<h3>3. Voice Confirmation</h3>
+<p>Buyer confirms that the account details above were read back and agreed <b>by telephone</b> with the Seller, not by email or message.</p>
+<div class="field"><span class="k">Confirmed by phone on (date)</span><span class="v">____________________</span></div>
+<div class="field"><span class="k">Number called</span><span class="v">____________________</span></div>
+<div class="field"><span class="k">Spoke with</span><span class="v">____________________</span></div>
+
+<h3>4. If Anything Changes</h3>
+<p>If either Party receives a message changing these details \u2014 from any address, however convincing, and however urgent it sounds \u2014 <b>stop and telephone the other Party</b> on the number recorded above before sending or accepting any funds. A genuine change will survive a phone call. A fraudulent one will not.</p>
+<p class="recital">Seller confirms these are the details of an account they hold and control. Buyer confirms they have verified them by voice. BoatClosers does not hold, transfer, or verify funds, and is not a party to the payment.</p>
+
+<div class="sig">
+  <div class="sigbox"><div class="ln"></div><small><b>{{sellerName}}</b> \u2014 Seller, account holder<br>Date: ____________</small></div>
+  <div class="sigbox"><div class="ln"></div><small><b>{{buyerName}}</b> \u2014 Buyer, confirmed by voice<br>Date: ____________</small></div>
+</div>`
+  },
+
+  {
     id: "stmt",
     group: "Closing Instruments",
     tab: "Settlement Statement",
