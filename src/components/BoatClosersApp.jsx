@@ -958,6 +958,21 @@ function StepVessel({ data, setData, userRole, onNext }) {
               which puts a wrong figure on the title paperwork. */}
           <Field label="Certificate of Title # — if you have it"><input style={S.input} value={data.titleNumber || ""} placeholder="as shown on the title" onChange={e=>set("titleNumber", e.target.value)} /></Field>
           <Field label="Registration State"><input style={S.input} value={data.regState} onChange={e=>set("regState",e.target.value)} placeholder="FL" maxLength={2} /></Field>
+          {/* A fact about the listing, asked once here so the buyer can be told what
+              it means later — at the moment they are deciding their number, rather
+              than in a paragraph nobody reads up front. */}
+          <Field label="Is this boat listed by a broker?">
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+              {[["yes","Yes — broker listed"],["no","No — private sale"],["unsure","Not sure"]].map(([v,lbl]) => (
+                <button key={v} type="button" onClick={()=>set("brokerListed", v)}
+                  style={{ fontSize:12.5, padding:"8px 14px", borderRadius:18, cursor:"pointer", fontFamily:"sans-serif", fontWeight:700,
+                    border:`1.5px solid ${data.brokerListed===v ? C.brass : C.mist}`,
+                    background: data.brokerListed===v ? C.brass : C.white,
+                    color: data.brokerListed===v ? "#fff" : C.slate }}>{lbl}</button>
+              ))}
+            </div>
+          </Field>
+
           {/* An explicit answer, not an inference from whether a number was typed.
               A seller who has a documented boat but no number to hand still needs
               the citizenship question and the foreign-buyer warning. */}
@@ -2531,6 +2546,26 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             </div>
           </div>
 
+          {/* Raised where the number is actually being decided, and only when it
+              applies — a broker-listed boat, and a buyer who has no broker of their
+              own. It states the position; it does not name a figure. */}
+          {vessel?.brokerListed === "yes" && myRole !== "seller" && (
+            <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:8, padding:"12px 14px", marginBottom:10, fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:4 }}>You&rsquo;re representing yourself on a broker-listed boat</div>
+              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7 }}>
+                A listing broker&rsquo;s commission normally assumes a second broker brings the buyer and takes a share of it. Nobody is doing that here &mdash; you are, with BoatClosers handling the paperwork. That is worth taking into account when you decide your number, and far easier to raise <b>before</b> terms are agreed than after. What they will do about it is up to them.
+              </div>
+              <label style={{ display:"flex", alignItems:"flex-start", gap:8, marginTop:10, cursor:"pointer" }}>
+                <input type="checkbox" checked={askCoBroke}
+                  onChange={e=>{ setAskCoBroke(e.target.checked); setData(d => ({ ...d, askCoBroke: e.target.checked })); }}
+                  style={{ width:15, height:15, marginTop:2, accentColor:C.teal, flexShrink:0 }} />
+                <span style={{ fontSize:11.5, color:C.slate, lineHeight:1.6 }}>
+                  Note on my offer that I am unrepresented and would like the unclaimed buyer&rsquo;s side taken into account. Puts it in writing with the offer &mdash; it does not change your number.
+                </span>
+              </label>
+            </div>
+          )}
+
           {/* Your offer — pronounced, gold-highlighted */}
           <div style={{ border:`2px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", background:"#fffaf0" }}>
             <label style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, fontWeight:800, display:"block", marginBottom:6 }}>💰 Your Offer Price</label>
@@ -2954,6 +2989,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                         </span>
                       )}
                       {o.verbal && <span style={{...S.pill, background:C.tealLight, color:C.teal}}>Verbal</span>}
+                      {/* Ticking the box has to reach the other side, or it records
+                          nothing anyone will act on. */}
+                      {o.askCoBroke && <span style={{...S.pill, background:C.tealLight, color:C.teal}} title="The buyer has no broker and asks that the unclaimed buyer's side be taken into account.">Unrepresented buyer</span>}
                     </div>
                     <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:4, lineHeight:1.5 }}>
                       Deposit: {fmt(o.deposit)} ({pctLabel(o.escrowPct)}%) · {escLabel(o.escrowPath)}
@@ -6200,6 +6238,8 @@ function Landing({ onStart, onLegal }) {
           ["What if I inherited a boat I want to sell?","BoatClosers includes an estate and inheritance section with a plain-language guide plus affidavit of heirship, executor authorization, and small-estate forms. Estate rules vary by state, so the app points you to when a probate attorney is needed."],
           ["Who pays the $249 fee?","Whoever starts the deal pays the flat fee and controls the vessel details and terms. The other party joins free to review, add their information, and sign."],
           ["What escrow options do I have, and do you hold the money?","You choose from five: Escrow.com (a licensed third party, recommended), a licensed boat brokerage's trust account, a private attorney or title company, a direct wire to the seller, or your own custom arrangement. BoatClosers never holds, touches, or releases funds."],
+          ["The boat I want is listed with a broker. Can I still use BoatClosers?","Yes. You deal with the listing broker directly and BoatClosers handles your side of the paperwork \u2014 the offer, the agreement, the deposit, due diligence and closing. It is also worth knowing that a listing broker's commission normally assumes a second broker brings the buyer and takes a share of it. If nobody is doing that \u2014 because you are representing yourself \u2014 that is a reasonable thing to raise when you decide your number, and far easier to raise before terms are agreed than after. BoatClosers points it out at the right moment when you build your offer. What the broker does about it is entirely theirs to decide."],
+          ["A broker keeps calling about my boat. Should I talk to them?","Ask one question first: do you have a buyer, or do you want the listing? If they have a buyer, that is worth hearing out. They are working for that buyer, not for you, and how they are paid is between them and their buyer unless you agree otherwise. If they ask you to pay something, that is a separate conversation and it belongs in writing before you go any further \u2014 what the fee is, and what triggers it. If instead they want the listing, they are asking you to sign a commission agreement in exchange for running the sale. That can be a fair trade if you would rather hand it over, and you are free to take it. You just do not need one to sell through BoatClosers."],
           ["Can I still use a broker or attorney if I want one?","Yes. BoatClosers is built so you don't need one, but nothing stops you from bringing one in — for example, letting a licensed brokerage's trust account hold the escrow deposit, or having an attorney review the agreement before you sign. You run the deal and bring in whatever help you're comfortable with."],
           ["What if the deal falls through?","If the buyer formally rejects during due diligence, the earnest money is returned and the reason is recorded in a Rejection Notice. BoatClosers does not hold or release any funds."],
         ].map(([q,a])=>(
