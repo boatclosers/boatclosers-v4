@@ -1811,7 +1811,14 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     const ag = offers.find(o => o.status==="agreed");
     if (!ag) return;
     counterOffer(ag.id);
-    const reverted = offers.map(of => of.id===ag.id ? {...of, status:"countered", paBuyerSig:null, paSellerSig:null} : of);
+    // The signature is a name AND a disclosure tick — clearing only the name left
+    // the tick behind, so the deal still read as signed and the server restored
+    // the rest. Both lines have to go, and the dates with them.
+    const reverted = offers.map(of => of.id===ag.id ? {...of,
+      status:"countered",
+      paBuyerSig:null, paBuyerDisc:null, paBuyerDate:null,
+      paSellerSig:null, paSellerDisc:null, paSellerDate:null,
+    } : of);
     const note = { from: myRole, text: opts.note || "↩️ Reopened the offer to revise the terms before signing.", time:new Date().toLocaleTimeString() };
     const msgs = [...messages, note];
     setOffers(reverted);
