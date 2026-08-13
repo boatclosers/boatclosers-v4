@@ -1867,7 +1867,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                               <ul style={{ margin:"6px 0 0", paddingLeft:18 }}>
                                 <li style={{ marginBottom:4 }}>By typing your name and signing, you agree to conduct this transaction electronically and that your electronic signature is intended to be your legal signature on this document.</li>
                                 <li style={{ marginBottom:4 }}>BoatClosers is a document-preparation tool only. It does <strong>not</strong> verify the identity of any signer, does not guarantee the legal validity or enforceability of any signature, and is not responsible for record-keeping, storage, or authentication of signed documents.</li>
-                                <li style={{ marginBottom:4 }}>You are responsible for keeping your own signed copies. If you need a verifiable, court-defensible signature, use a dedicated e-signature service or sign in ink before a notary.</li>
+                                <li style={{ marginBottom:4 }}>Your signed documents are saved to your BoatClosers account &mdash; open, print or download them from any device where you sign in. Keep your own copies too: download the PDFs when the deal closes, so you have them whatever happens to any account.</li>
+                                <li style={{ marginBottom:4 }}>If you need a signature that stands up to challenge &mdash; a lender, a court, a foreign registry &mdash; use a dedicated e-signature service or sign in ink before a notary.</li>
                                 <li style={{ marginBottom:0 }}><strong>Not comfortable signing electronically?</strong> Use the <strong>Manual</strong> option to record an in-person ink signature, or <strong>Print</strong> the document to sign by hand. Notarized documents must always be printed and signed in ink before a notary.</li>
                               </ul>
                             </div>
