@@ -6936,7 +6936,11 @@ export default function BoatClosers() {
         // rejection pill down in the offer ladder was far too easy to scroll past.
         const offs = negotiate.offers || [];
         const last = offs.length ? offs[offs.length - 1] : null;
-        const stalled = offs.length > 0
+        // Only worth surfacing when you are NOT already in the Deal Room. Shown on
+        // step 2 as well, the "Back to the Deal Room" button appeared to do nothing
+        // — you were looking at the room, with the banner still pinned above it.
+        const stalled = step !== 2
+          && offs.length > 0
           && !offs.some(o => o.status === "accepted")
           && last?.status === "rejected"
           && !negotiate.canceled
@@ -6952,7 +6956,11 @@ export default function BoatClosers() {
                 : "You can counter with terms that work for you, or talk it through in the message thread. If this buyer isn't the one, you can start fresh with a different buyer and keep this boat's details."}
             </div>
             <div style={{ display:"flex", gap:9, justifyContent:"center", flexWrap:"wrap" }}>
-              <button onClick={()=>setStep(2)} style={{ ...S.btnBrass, fontSize:13, padding:"10px 20px" }}>Back to the Deal Room →</button>
+              {/* setStep alone did nothing useful: the buyer is already on step 2 so
+                  nothing changed, and the seller sits on step 1 where raw setStep
+                  never raises maxStep, so the step bar blocked them. goToStep is the
+                  path the rest of the app uses — it lifts maxStep and saves. */}
+              <button onClick={()=>goToStep(2)} style={{ ...S.btnBrass, fontSize:13, padding:"10px 20px" }}>Back to the Deal Room →</button>
               {!isBuyer && amInitiator && <button onClick={()=>relistBoat()} style={{ ...S.btnOutline, fontSize:13, padding:"10px 20px" }}>Start over with a different buyer</button>}
             </div>
           </div>
@@ -7007,7 +7015,9 @@ export default function BoatClosers() {
           <div style={{ background:bg, borderBottom:`2px solid ${bar}`, padding:"12px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
             <div style={{ fontSize:13, fontWeight:800, color:headColor, marginBottom:3 }}>{head}</div>
             <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, maxWidth:620, margin:"0 auto" }}>{body}</div>
-            {showBtn && <button onClick={()=>setStep(3)} style={{ ...S.btnBrass, fontSize:12, padding:"7px 16px", marginTop:8 }}>Go to Due Diligence →</button>}
+            {/* Same fault as the rejection banner: raw setStep never raises maxStep,
+                so the step bar refused the move and the button looked dead. */}
+            {showBtn && <button onClick={()=>goToStep(3)} style={{ ...S.btnBrass, fontSize:12, padding:"7px 16px", marginTop:8 }}>Go to Due Diligence →</button>}
           </div>
         );
       })()}
