@@ -6358,6 +6358,19 @@ export default function BoatClosers() {
   // End the current deal: mark it canceled, drop a note in the thread, and save so
   // the other party sees it. Available at ANY stage, deliberately — the moment you
   // most need a way out is after the deal is locked and the other side goes quiet.
+  // Leaving the deal entirely: clears the local state and the stored deal id, so
+  // the next sign-in does not drop them back into a closed deal.
+  const leaveDeal = () => {
+    setDealId(null);
+    setVessel(emptyVessel); setParties(emptyParties); setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
+    setStep(0); setMaxStep(0);
+    try {
+      const raw = localStorage.getItem("bc_session");
+      if (raw) { const sess = JSON.parse(raw); delete sess.dealId; localStorage.setItem("bc_session", JSON.stringify(sess)); }
+    } catch (e) {}
+    setScreen("landing");
+  };
+
   const cancelDeal = () => {
     const who = myDealRole || user?.role || "a party";
     const whoName = user?.name || who;
@@ -6382,8 +6395,11 @@ export default function BoatClosers() {
     }
     setDealId(null);
     setParties(emptyParties); setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
-    setStep(0); setMaxStep(0); setShowWelcome(false);
-    setToast({ text: "Your boat details carried over — invite a new buyer to start." });
+    // Land on Parties, where the invite lives — the boat details are already
+    // filled in, so dropping them on step 0 makes them page through a form they
+    // have nothing to change.
+    setStep(1); setMaxStep(1); setShowWelcome(false);
+    setToast({ k: Date.now(), text: "Boat details carried over — send a new invite below to bring someone in." });
   };
 
   // ── LIVE SYNC ───────────────────────────────────────────────────────────
@@ -6897,8 +6913,22 @@ export default function BoatClosers() {
             {negotiate.canceled.byName} canceled this deal on {negotiate.canceled.date}{negotiate.canceled.reason?` — “${negotiate.canceled.reason}”`:""}. It's now closed for both parties.
           </div>
           <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
-            {amInitiator && <button onClick={()=>relistBoat()} style={{ ...S.btnBrass, fontSize:13, padding:"9px 20px" }}>Same boat, new buyer →</button>}
-            <button onClick={()=>startNewDeal()} style={{ ...S.btnOutline, fontSize:13, padding:"9px 20px" }}>Start a fresh deal (different boat)</button>
+            {amInitiator ? (
+              <>
+                {/* The fee follows the person who paid it, so only they carry a deal
+                    forward. Re-inviting keeps the boat and the terms and simply
+                    replaces the other party. */}
+                <button onClick={()=>relistBoat()} style={{ ...S.btnBrass, fontSize:13, padding:"9px 20px" }}>Same boat, invite someone else &rarr;</button>
+                <button onClick={()=>startNewDeal()} style={{ ...S.btnOutline, fontSize:13, padding:"9px 20px" }}>Start a fresh deal (different boat)</button>
+              </>
+            ) : (
+              <>
+                {/* The invited party paid nothing. Giving them "Start a fresh deal"
+                    handed them a full deal builder for free — they go back to the
+                    landing page and start their own deal like anyone else. */}
+                <button onClick={leaveDeal} style={{ ...S.btnBrass, fontSize:13, padding:"9px 20px" }}>Close this deal and sign out of it &rarr;</button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -6927,6 +6957,11 @@ export default function BoatClosers() {
                   </button>
                 </div>
               </>
+            )}
+            {!iPaid && (
+              // Whoever did not pay was left sitting in a dead deal with no way
+              // out. They leave it; they do not get a free one.
+              <button onClick={leaveDeal} style={{ ...S.btnBrass, fontSize:13, padding:"9px 20px" }}>Close this deal and sign out of it &rarr;</button>
             )}
           </div>
         );
