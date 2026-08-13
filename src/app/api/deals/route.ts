@@ -509,9 +509,9 @@ async function notifyOnDealChange(previous: any, updated: any) {
     // went to both parties saying the vessel had been accepted before anything was
     // signed. An amended-terms acceptance is a signature in its own right, so that
     // half still stands.
-    const acceptanceSigned = !!updated?.docs_data?.signedDocs?.acceptance
-      && !previous?.docs_data?.signedDocs?.acceptance
-    const ddCleared = (newOutcome === 'accept' && acceptanceSigned)
+    const acceptanceNowSigned = !!updated?.docs_data?.signedDocs?.acceptance
+    const alreadyTold = !!updated?.negotiate?.ddClearedNotified
+    const ddCleared = (!alreadyTold && newOutcome === 'accept' && acceptanceNowSigned)
       || (newAdd === 'accepted' && newAdd !== prevAdd)
     if (ddCleared) {
       const recips = [buyerEmail, sellerEmail].filter(Boolean)
@@ -1001,6 +1001,40 @@ export async function POST(req: Request) {
         }
       }
       const mergedPayload = { ...payload, parties: mergedParties }
+
+      // docs_data was passed through whole, so a save from one side replaced the
+      // other side's signatures and required list outright. Both parties write to
+      // this object now — signatures, attested government forms, and the shared
+      // required-document set — so it is merged the same way parties and offers are.
+      {
+        const exDocs: any = existingRow.docs_data || {}
+        const inDocs: any = payload.docs_data || {}
+        const merged: any = { ...exDocs, ...inDocs }
+
+        // Signatures only ever accumulate. A both-sign document already signed by
+        // the other party keeps that fact when this party signs it too.
+        const exSigned: any = exDocs.signedDocs || {}
+        const inSigned: any = inDocs.signedDocs || {}
+        const outSigned: any = { ...exSigned }
+        for (const k of Object.keys(inSigned)) {
+          const a = exSigned[k]
+          const b = inSigned[k]
+          if (!a) { outSigned[k] = b; continue }
+          // Keep whichever record shows both parties signed.
+          outSigned[k] = (b?.bothSigned && !a?.bothSigned) ? b : (a?.bothSigned ? a : b)
+        }
+        merged.signedDocs = outSigned
+
+        // The required set is the union of what each side's answers produced.
+        const exReq: any[] = Array.isArray(exDocs.requiredList) ? exDocs.requiredList : []
+        const inReq: any[] = Array.isArray(inDocs.requiredList) ? inDocs.requiredList : []
+        const byId = new Map<string, any>()
+        for (const r of exReq) if (r?.id) byId.set(r.id, r)
+        for (const r of inReq) if (r?.id && !byId.has(r.id)) byId.set(r.id, r)
+        if (byId.size) merged.requiredList = Array.from(byId.values())
+
+        mergedPayload.docs_data = merged
+      }
 
       // Protect the negotiation offers the same way we protect parties: a save
       // coming from one side must never wipe offers the other side already made.
