@@ -6315,14 +6315,31 @@ export default function BoatClosers() {
   // most need a way out is after the deal is locked and the other side goes quiet.
   // Leaving the deal entirely: clears the local state and the stored deal id, so
   // the next sign-in does not drop them back into a closed deal.
-  const leaveDeal = () => {
-    setDealId(null);
-    setVessel(emptyVessel); setParties(emptyParties); setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
-    setStep(0); setMaxStep(0);
+  // The stored deal id survives a reset unless it is explicitly removed, and the
+  // boot effect reads it on the next load. Every path that abandons a deal clears
+  // it, or the old one reappears.
+  // Everything that belongs to the OTHER party, cleared together. Forgetting any
+  // one of these is how a reset deal ends up half-attached to the last one.
+  const clearOtherParty = () => {
+    setPartyBJoined(false);
+    setMyDealRole(null);
+    setAmInitiator(true);
+    setGuestUntil(null);
+  };
+
+  const forgetStoredDeal = () => {
     try {
       const raw = localStorage.getItem("bc_session");
       if (raw) { const sess = JSON.parse(raw); delete sess.dealId; localStorage.setItem("bc_session", JSON.stringify(sess)); }
     } catch (e) {}
+  };
+
+  const leaveDeal = () => {
+    setDealId(null);
+    setVessel(emptyVessel); setParties(emptyParties); setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
+    setStep(0); setMaxStep(0);
+    forgetStoredDeal();
+    clearOtherParty();
     setScreen("landing");
   };
 
@@ -6337,6 +6354,8 @@ export default function BoatClosers() {
   // Reset everything to a clean slate for a brand-new deal (keeps you signed in).
   const startNewDeal = () => {
     setDealId(null);
+    forgetStoredDeal();
+    clearOtherParty();
     setVessel(emptyVessel); setParties(emptyParties); setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
     setStep(0); setMaxStep(0); setShowWelcome(true);
   };
@@ -6349,6 +6368,8 @@ export default function BoatClosers() {
       return;
     }
     setDealId(null);
+    forgetStoredDeal();
+    clearOtherParty();
     setParties(emptyParties); setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
     // Land on Parties, where the invite lives — the boat details are already
     // filled in, so dropping them on step 0 makes them page through a form they
