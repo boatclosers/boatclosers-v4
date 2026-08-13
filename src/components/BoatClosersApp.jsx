@@ -2411,15 +2411,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         )}
       </div>
 
-      {/* ── ASKING PRICE ANCHOR — the seller's starting number the buyer offers against ── */}
-      {vessel.askingPrice && !acceptedOffer && !agreedOffer && (
-        <div style={{ background:C.sandDark, border:`1px solid ${C.mist}`, borderRadius:8, padding:"10px 16px", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
-            <b style={{ color:C.navy }}>Seller's asking price</b> — the starting anchor{myRole==="buyer" ? "; build your offer against it below" : ""}
-          </div>
-          <div style={{ fontSize:17, fontWeight:800, fontFamily:"sans-serif", color:C.navy }}>{fmt(Number(vessel.askingPrice))}</div>
-        </div>
-      )}
 
       {/* ── PRICE AGREED — awaiting initiator payment to lock ── */}
       {agreedBanner}
@@ -2465,26 +2456,32 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         </div>
       )}
 
-      {/* ── DEAL ROOM STATUS BAR ── live snapshot of where the negotiation stands */}
-      {offers.length > 0 && !acceptedOffer && !agreedOffer && (
-        <div style={{ background:C.navy, borderRadius:10, padding:"14px 18px", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
-          <div>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", letterSpacing:0.5 }}>CURRENT GAP</div>
-            <div style={{ fontSize:22, fontWeight:800, fontFamily:"sans-serif", color:"#fff" }}>
-              {dealGap !== null ? `${fmt(dealGap)} apart` : "Awaiting response"}
-            </div>
-          </div>
-          <div style={{ textAlign:"right" }}>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", letterSpacing:0.5 }}>ROUNDS</div>
-            <div style={{ fontSize:15, fontWeight:700, fontFamily:"sans-serif", color:"#fff" }}>{offers.length} offer{offers.length>1?"s":""}</div>
-          </div>
+      {/* The seller's four responses are accept, counter, reject and flag a
+          conflict. The first three sit on the offer itself; this one was buried
+          inside the builder, so it now sits beside the button that opens it. */}
+      {myRole === "seller" && offers.length > 0 && !frozen && !acceptedOffer && !conflictSent && (
+        <button onClick={()=>setConflictOpen(true)}
+          style={{ width:"100%", fontSize:15, padding:"14px 12px", fontWeight:800, marginBottom:10, cursor:"pointer",
+            fontFamily:"sans-serif", borderRadius:8, background:C.white, color:"#8a5a12",
+            border:`2px solid ${C.brass}` }}>
+          ⚠️ Something in these terms doesn&rsquo;t work &mdash; tell the buyer &rarr;
+        </button>
+      )}
+      {/* The confirmation lived in the block that moved, so it moves with it. */}
+      {myRole === "seller" && conflictSent && !frozen && !acceptedOffer && (
+        <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:8, padding:"11px 13px", marginBottom:10, fontFamily:"sans-serif", fontSize:12, color:C.slate, lineHeight:1.6 }}>
+          ✓ Sent. The buyer has been emailed and can revise their offer &mdash; nothing here has changed in the meantime.
         </div>
       )}
 
       {/* ── EDIT FULL TERMS — opens the builder for contingencies, dates, deposit ── */}
       {offers.length > 0 && !frozen && (
-        <button onClick={()=>{ if(!showBuilder && latestPendingTop){ counterOffer(latestPendingTop.id); } else { setShowBuilder(v=>!v); } }} style={{ ...S.btnOutline, width:"100%", fontSize:13, padding:"10px 0", fontWeight:700, marginBottom:16 }}>
-          {showBuilder ? "✕ Close" : (myRole==="seller" ? "⚙️ View full terms / flag a conflict" : "✏️ Counter with full terms (contingencies, dates, deposit)")}
+        <button onClick={()=>{ if(!showBuilder && latestPendingTop){ counterOffer(latestPendingTop.id); } else { setShowBuilder(v=>!v); } }}
+          style={showBuilder
+            ? { ...S.btnOutline, width:"100%", fontSize:13, padding:"10px 0", fontWeight:700, marginBottom:16 }
+            : { ...S.btnBrass, width:"100%", fontSize:16.5, fontWeight:800, padding:"15px 12px",
+                letterSpacing:0.2, marginBottom:16, boxShadow:"0 3px 10px rgba(184,134,58,0.35)" }}>
+          {showBuilder ? "✕ Close" : (myRole==="seller" ? "⚙️ See the buyer's full terms →" : "✏️ Counter with full terms — contingencies, dates, deposit →")}
         </button>
       )}
 
@@ -2970,20 +2967,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         )}
 
         {/* SELLER-ONLY: flag a conflict on dates/deposit terms (emails the buyer) */}
-        {myRole==="seller" && (
-          <div style={{ marginTop:14, border:`1px solid ${C.mist}`, borderRadius:8, padding:"12px 14px" }}>
-            {!conflictSent && (
-              <button onClick={()=>setConflictOpen(true)} style={{ ...S.btnOutline, width:"100%", fontSize:13, padding:"9px 0", fontWeight:700 }}>
-                ⚠️ Flag a conflict with the buyer&rsquo;s terms &rarr;
-              </button>
-            )}
-            {conflictSent && (
-              <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:"#166534", background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:6, padding:"10px 12px" }}>
-                ✓ Your conflict note was emailed to the buyer. They can adjust their terms and re-send the offer.
-              </div>
-            )}
-          </div>
-        )}
+        {/* Moved out of the builder — see the standalone block above the ladder.
+            Reaching it used to mean opening a form the seller cannot author. */}
       </div>
       ) : null}
 
