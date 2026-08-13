@@ -1145,9 +1145,12 @@ export async function POST(req: Request) {
     let bornPaid = false
     let creditRowId: string | null = null
     try {
+      // The credit belongs to whoever paid the fee, which is always the initiator.
+      // Including other_party_id here handed the invited party — who paid nothing —
+      // a free deal off the back of someone else's cancelled one.
       const { data: cancelled } = await admin()
         .from('deals').select('*')
-        .or(`initiator_id.eq.${userId},other_party_id.eq.${userId}`)
+        .eq('initiator_id', userId)
         .eq('status', 'canceled')
         .order('created_at', { ascending: false }).limit(10)
       for (const row of (cancelled || [])) {
