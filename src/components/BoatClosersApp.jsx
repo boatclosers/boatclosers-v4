@@ -4591,9 +4591,23 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         <h3 style={S.h3}>Buyer's Vessel Decision</h3>
         {!isBuyer ? (
           <div>
-            <div style={{ background:C.sandDark, borderRadius:6, padding:"14px 16px", fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom: negotiate.addendum?14:0 }}>
-              🔒 Only the buyer makes the vessel decision after due diligence. {negotiate.vesselRejection ? "The buyer has REJECTED the vessel — see the notice below." : negotiate.addendum ? `The buyer has PROPOSED A NEW PRICE: ${fmt(Number(negotiate.addendum.newPrice))}.` : negotiate.vesselAcceptance ? "The buyer has ACCEPTED the vessel." : "Awaiting the buyer's decision (accept as-is, reject, or propose a new final price)."}
+            {/* Acceptance is the moment the boat is effectively sold — the buyer has
+                committed and their deposit is now at risk if they walk. It was
+                reported in the same grey box as "awaiting a decision". */}
+            {negotiate.vesselAcceptance && !negotiate.vesselRejection ? (
+              <div style={{ background:"#f0fdf4", border:`2px solid ${C.green}`, borderRadius:9, padding:"16px 18px", fontFamily:"sans-serif" }}>
+                <div style={{ fontSize:15.5, fontWeight:800, color:"#166534", marginBottom:5 }}>🎉 The buyer has accepted your boat</div>
+                <div style={{ fontSize:12.5, color:"#176844", lineHeight:1.7 }}>
+                  They have completed due diligence and committed to buying <b>{vessel.year} {vessel.make} {vessel.model}</b> as it stands. This is the big one &mdash; the boat is as good as sold.
+                  <br /><br />
+                  From here it is paperwork and money. If the buyer walks away now without a contingency to stand on, <b>you may be entitled to keep the earnest money</b> under your deposit terms.
+                </div>
+              </div>
+            ) : (
+            <div style={{ background:C.sandDark, borderRadius:6, padding:"14px 16px", fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:14 }}>
+              🔒 Only the buyer makes the vessel decision after due diligence. {negotiate.vesselRejection ? "The buyer has REJECTED the vessel — see the notice below." : negotiate.addendum ? `The buyer has PROPOSED A NEW PRICE: ${fmt(Number(negotiate.addendum.newPrice))}.` : "Awaiting the buyer's decision (accept as-is, reject, or propose a new figure)."}
             </div>
+            )}
             {negotiate.addendum && !negotiate.vesselRejection && (
               <div style={{ border:`1px solid ${C.brass}`, borderRadius:8, overflow:"hidden" }}>
                 <div style={{ background:C.navy, color:"#fff", padding:"10px 14px", fontSize:12, fontWeight:700, fontFamily:"sans-serif", letterSpacing:0.5 }}>ADDENDUM TO PURCHASE AGREEMENT — Your Response Needed</div>
@@ -4623,9 +4637,12 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             {/* The seller has no vessel decision to make, so they need their OWN way
                 to move on to Documents once the deposit is verified. Without this the
                 seller got stuck on Due Diligence while the buyer moved ahead. */}
-            {decisionUnlocked ? (
-              <button onClick={onNext} style={{ ...S.btnBrass, width:"100%", marginTop:16, fontSize:14, fontWeight:800, padding:"13px 20px" }}>Continue to Documents &rarr;</button>
-            ) : (
+            {/* The page already ends with Continue to Documents. A second full-width
+                one inside this box was the loudest thing on the screen, at the very
+                moment the news itself should be. The waiting message stays — it
+                explains why the button at the bottom is disabled. */}
+            {decisionUnlocked ? null : (
+
               <div style={{ background:C.sandDark, border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", marginTop:16, fontFamily:"sans-serif", fontSize:12.5, color:C.slate, lineHeight:1.6 }}>
                 Once the {fmt(dep.deposit)} deposit is confirmed by both sides, you&rsquo;ll continue to the documents here. Your paperwork prep above stays open in the meantime.
               </div>
