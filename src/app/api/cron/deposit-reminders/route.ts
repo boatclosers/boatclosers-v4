@@ -53,7 +53,8 @@ export async function GET(req: Request) {
     const { data: deals, error } = await sb
       .from('deals')
       // docs_data carries signedDocs, which the stalled-signature nudge reads.
-      .select('id, vessel, parties, negotiate, docs_data, invite_role, invite_email, other_party_id, initiator_role')
+      // finalized_at drives the guest's 60-day download window.
+      .select('id, vessel, parties, negotiate, docs_data, invite_role, invite_email, other_party_id, initiator_role, finalized_at')
 
     if (error) {
       return NextResponse.json({ error: 'Could not read deals: ' + error.message }, { status: 500 })
@@ -214,6 +215,42 @@ export async function GET(req: Request) {
             Object.assign(neg, nn2)
             results.push({ deal: deal.id, signatureNudge: step.key, waitingOn })
             break
+          }
+        }
+      }
+
+      // ── guest download window closing ──
+      // The invited party keeps 60 days after a deal finalizes to retrieve their
+      // documents. Losing a bill of sale because nobody mentioned a deadline is
+      // exactly the sort of thing this app exists to prevent, so they get one
+      // reminder with ten days to go.
+      if (neg.dealFinalized && deal?.other_party_id && !neg.guestWindowWarned) {
+        const finAt = Date.parse((deal as any)?.finalized_at || neg.finalizedAt || '') || 0
+        if (finAt) {
+          const endsAt = finAt + 60 * 86400000
+          const tenDaysLeft = endsAt - 10 * 86400000
+          if (now >= tenDaysLeft && now < endsAt) {
+            const guestRole = deal.initiator_role === 'seller' ? 'buyer' : 'seller'
+            const to = offerEmail(deal, guestRole as 'buyer' | 'seller')
+            const boat3 = [deal?.vessel?.year, deal?.vessel?.make, deal?.vessel?.model].filter(Boolean).join(' ') || 'your boat'
+            const link3 = `${base}/?dealId=${encodeURIComponent(String(deal.id))}`
+            const endsOn = new Date(endsAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+            if (to) {
+              await sendEmail({
+                to,
+                subject: `${boat3} — download your documents before ${endsOn}`,
+                html: emailLayout(`
+                  <h2 style="margin:0 0 12px;color:#08152e;font-size:19px;">Save your paperwork while you can</h2>
+                  <p style="color:#475569;font-size:14px;line-height:1.6;">Your deal for <strong>${boat3}</strong> closed a while ago. Access to it ends on <strong>${endsOn}</strong> — about ten days from now.</p>
+                  <p style="color:#475569;font-size:14px;line-height:1.6;">Open it and download or print anything you want to keep: the purchase agreement, the bill of sale, the deposit receipt, the closing statement. Once the window closes you will not be able to reach them here.</p>
+                  <p style="margin:18px 0;"><a href="${link3}" style="background:#08152e;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block;">Open the deal and download</a></p>
+                `),
+              }).catch(() => {})
+            }
+            const nn3 = { ...neg, guestWindowWarned: now }
+            await sb.from('deals').update({ negotiate: nn3 }).eq('id', deal.id)
+            Object.assign(neg, nn3)
+            results.push({ deal: deal.id, guestWindowWarned: true })
           }
         }
       }
