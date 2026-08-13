@@ -264,6 +264,23 @@ function showBlanks(html) {
     '<span class="bc-blank" title="Not filled in yet \u2014 add it in Vessel or Parties">&nbsp;</span>');
 }
 
+// The agreed terms live on the accepted offer. negotiate.agreedPrice / .deposit /
+// .escrowPath are mirrors that only some code paths write, so reading them
+// directly is how a signed receipt ends up with a blank amount and the wrong
+// escrow method. Everything that needs the agreed figures comes through here.
+function agreedTerms(neg) {
+  const n = neg || {};
+  const offers = Array.isArray(n.offers) ? n.offers : [];
+  const acc = offers.find(o => o && o.status === "accepted")
+           || offers.find(o => o && o.status === "agreed");
+  return {
+    price: Number(acc?.amount ?? n.agreedPrice ?? 0),
+    deposit: Number(acc?.deposit ?? n.deposit ?? 0),
+    escrowPath: acc?.escrowPath || n.escrowPath || "",
+    escrowPct: acc?.escrowPct ?? n.escrowPct ?? 0,
+  };
+}
+
 function escLabel(p){ return p==="escrow_com"?"Escrow.com":p==="attorney"?"Third-Party Attorney":p==="brokerage"?"Licensed Broker":p==="custom"?"Custom / Other":"Direct to Seller"; }
 
 function OfferSection({ icon, title, desc, checked, onToggle, children }) {
@@ -3300,15 +3317,23 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
   if (!open) return null;
 
   const isBuyer = myRole !== "seller";
-  const amt = fmt(negotiate.deposit||0);
-  const price = fmt(negotiate.agreedPrice||0);
-  const escrowLabel = escLabel(negotiate.escrowPath);
+  // Same split source that blanked the price on the Bill of Sale: the agreed
+  // figures live on the accepted offer, and negotiate.deposit / agreedPrice are
+  // only written on some paths. Take the offer first — on a signed receipt a
+  // blank amount is worse than useless.
+  const _terms = agreedTerms(negotiate);
+  const amt = fmt(_terms.deposit);
+  const price = fmt(_terms.price);
+  // Same split source again: the escrow method is agreed on the offer, so a deal
+  // that never wrote negotiate.escrowPath showed "Direct to Seller" on the receipt
+  // while the rest of the app correctly ran the Escrow.com flow.
+  const escrowLabel = escLabel(_terms.escrowPath);
   // For Escrow.com deals the "reference" the buyer enters IS the Escrow.com
   // transaction ID — a number the app can later check against the API to confirm
   // funding automatically. Captured as its own field so the automated pieces have a
   // clean, validated value, separate from the free-text references used by
   // attorney/broker/direct deals.
-  const isEscrowCom = negotiate.escrowPath === "escrow_com";
+  const isEscrowCom = _terms.escrowPath === "escrow_com";
   const proof = negotiate.depositProof || null;
   const verif = negotiate.depositVerification || null;
   const buyerSigned = !!(proof && proof.sig);
@@ -3568,6 +3593,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const [proofRef, setProofRef] = useState("");
   const [proofNote, setProofNote] = useState("");
   const dep = negotiate || {};
+  const _ddTerms = agreedTerms(negotiate);
   const depHasProof = !!(dep.depositProof && dep.depositProof.ref);
   const depDeadline = Number(dep.depositDeadline) || 0;
   const depEnded = !!dep.depositEnded;
@@ -3586,7 +3612,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   // place BEFORE the inspection period starts, not settled halfway through it.
   // If the accepted offer carried no deposit, there is nothing to wait for and
   // Due Diligence opens immediately.
-  const depositRequired = Number(dep.deposit) > 0;
+  const depositRequired = _ddTerms.deposit > 0;
   const depBuyerSigned = !!(dep.depositProof && dep.depositProof.sig);
   const depSellerSigned = !!(dep.depositVerification && dep.depositVerification.status === "confirmed" && dep.depositVerification.sig);
   const depVerif = dep.depositVerification || null;
@@ -3602,7 +3628,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   //                   diligence — a signed statement that makes the buyer liable if
   //                   it's false. We trust the bonded professional holding the funds,
   //                   not the buyer's honesty alone.
-  const escMethod = dep.escrowPath || "";
+  const escMethod = _ddTerms.escrowPath;
   const apiConfirms = escMethod === "escrow_com";
   // ── THE APP ONLY VERIFIES. It is not part of moving the money. ─────────────
   // The buyer sends the deposit outside the app (to the seller, an attorney, a
@@ -4527,7 +4553,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                   <div style={{ fontSize:12, color:C.text, lineHeight:1.7 }}>
                     The buyer proposes amending the agreed price on <b>{vessel.year} {vessel.make} {vessel.model}</b>.
                   </div>
-                  <div style={{ fontSize:12, color:C.text, marginTop:6 }}>Original price: <b>{fmt(Number(negotiate.agreedPrice||0))}</b></div>
+                  <div style={{ fontSize:12, color:C.text, marginTop:6 }}>Original price: <b>{fmt(_ddTerms.price)}</b></div>
                   <div style={{ fontSize:12, color:C.text }}>Proposed price: <b>{fmt(Number(negotiate.addendum.newPrice))}</b></div>
                   {negotiate.addendum.reason && <div style={{ fontSize:12, color:C.slate, marginTop:6 }}>Basis: {negotiate.addendum.reason}</div>}
                   {negotiate.addendum.status ? (
@@ -4599,7 +4625,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 <div style={{ background:C.navy, color:"#fff", padding:"8px 12px", fontSize:11, fontWeight:700, fontFamily:"sans-serif", letterSpacing:0.5 }}>ADDENDUM TO PURCHASE AGREEMENT</div>
                 <div style={{ background:"#fff", padding:"12px 14px", fontSize:11.5, fontFamily:"sans-serif", color:C.text, lineHeight:1.7 }}>
                   <div>This addendum amends the executed Purchase Agreement for <b>{vessel.year} {vessel.make} {vessel.model}</b>.</div>
-                  <div style={{ marginTop:6 }}>Original agreed price: <b>{fmt(Number(negotiate.agreedPrice||0))}</b></div>
+                  <div style={{ marginTop:6 }}>Original agreed price: <b>{fmt(_ddTerms.price)}</b></div>
                   <div>Proposed amended price: <b>{fmt(Number(newPrice))}</b></div>
                   {newPriceReason && <div style={{ marginTop:6 }}>Basis: {newPriceReason}</div>}
                   <div style={{ marginTop:8, fontSize:10.5, color:C.slate }}>Pending seller acceptance. All other terms of the original Purchase Agreement remain in full effect.</div>
@@ -4785,8 +4811,9 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
   const isRejected = ddData.outcome==="reject";
   const toggleManual = (k) => setManualChecks(c => ({...c,[k]:!c[k]}));
 
-  const balanceDue = Math.max(0, Number(negotiate.agreedPrice||0) - Number(negotiate.deposit||0));
-  const escrowLabel = escLabel(negotiate.escrowPath);
+  const _clTerms = agreedTerms(negotiate);
+  const balanceDue = Math.max(0, _clTerms.price - _clTerms.deposit);
+  const escrowLabel = escLabel(_clTerms.escrowPath);
 
   const PAYMENT_METHODS = [
     {
@@ -4967,7 +4994,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
       heading:"Final Actions",
       desc:"Non-document steps required to complete the transaction.",
       docs:[
-        { id:"payment",      label:`Full Payment of ${fmt(negotiate.agreedPrice||0)} Received`, desc:"Buyer has sent and seller has confirmed receipt of the full closing balance.", signed:!!steps["payment"], manual:true, manualKey:"payment_received" },
+        { id:"payment",      label:`Full Payment of ${fmt(_clTerms.price)} Received`, desc:"Buyer has sent and seller has confirmed receipt of the full closing balance.", signed:!!steps["payment"], manual:true, manualKey:"payment_received" },
         { id:"keys",         label:"Keys, Manuals & Equipment Delivered",                       desc:"All physical items included in the sale handed over to buyer.", signed:!!steps["keys"], manual:true, manualKey:"keys_delivered" },
         { id:"escrow_rel",   label:"Escrow / Deposit Funds Released",                          desc:"Escrow agent or seller has confirmed deposit applied to purchase price.", signed:!!steps["escrow_rel"], manual:true, manualKey:"escrow_released" },
         { id:"reg_transfer", label:"Registration / Title Filed with State",                    desc:"New owner has submitted title transfer and registration application.", signed:!!steps["reg_transfer"], manual:true, manualKey:"reg_filed" },
@@ -4985,7 +5012,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
           <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>
             {isRejected
               ? `Rejected during due diligence · Earnest money ${fmt(negotiate.deposit||0)} to be returned`
-              : `${vessel.year} ${vessel.make} ${vessel.model} · ${fmt(negotiate.agreedPrice)} · Closing ${terms.closingDate||"TBD"}`}
+              : `${vessel.year} ${vessel.make} ${vessel.model} · ${fmt(_clTerms.price)} · Closing ${terms.closingDate||"TBD"}`}
           </p>
         </div>
       </div>
@@ -5108,7 +5135,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
               {/* Balance summary */}
               <div className="bc-grid3" style={{ background:C.sandDark, padding:"10px 16px", gap:10 }}>
                 {[
-                  ["Purchase Price", fmt(negotiate.agreedPrice||0)],
+                  ["Purchase Price", fmt(_clTerms.price)],
                   ["Deposit Paid", `− ${fmt(negotiate.deposit||0)}`],
                   ["Balance Due", fmt(balanceDue)],
                 ].map(([l,v])=>(
@@ -5262,7 +5289,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
         <h3 style={{...S.h3, color:C.brass}}>Transaction Summary</h3>
         <div style={{ fontSize:12, fontFamily:"sans-serif", lineHeight:2.2 }}>
           <div>⚓ <strong>Vessel:</strong> {vessel.year} {vessel.make} {vessel.model} — HIN {vessel.hin||"Not entered"}</div>
-          <div>💰 <strong>Price:</strong> {fmt(negotiate.agreedPrice)}</div>
+          <div>💰 <strong>Price:</strong> {fmt(_clTerms.price)}</div>
           <div>💳 <strong>Payment Method:</strong> {selectedMethod?.icon} {selectedMethod?.label}</div>
           <div>👤 <strong>Buyer:</strong> {parties.buyer.name||"—"} · {parties.buyer.email||"—"}</div>
           <div>👤 <strong>Seller:</strong> {parties.seller.name||"—"} · {parties.seller.email||"—"}</div>
