@@ -401,9 +401,22 @@ async function notifyOnDealChange(previous: any, updated: any) {
             <h2 style="color:#08152e; font-size:18px;">Buyer Rejected the Vessel</h2>
             <p style="color:#475569; font-size:14px; line-height:1.5;">
               After due diligence, the buyer has <strong>rejected ${vesselName}</strong>.
-              The earnest money is to be returned per your deposit terms, and the reason is
-              recorded in the Rejection Notice.
+              The earnest money is to be returned per your deposit terms.
             </p>
+            ${(() => {
+              // The seller needs the reason IN the email — it is what tells them
+              // whether to release the deposit, fix the fault, or relist. Sending
+              // them to the app to find it is a step nobody takes at this moment.
+              const d: any = updated?.dd_data || {}
+              const reasons: string[] = Array.isArray(d.rejectionReasons) ? d.rejectionReasons : []
+              const notes = String(d.rejectionNotes || '').trim()
+              if (!reasons.length && !notes) return ''
+              return `<div style="background:#fdecec;border-left:3px solid #dc2626;padding:12px 14px;margin:14px 0;">
+                <div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:5px;">Why the buyer rejected it</div>
+                ${reasons.length ? `<div style="color:#475569;font-size:14px;line-height:1.6;">${reasons.map((r: string) => escHtml(String(r))).join(' \u00b7 ')}</div>` : ''}
+                ${notes ? `<div style="color:#475569;font-size:14px;line-height:1.6;margin-top:6px;">${escHtml(notes)}</div>` : ''}
+              </div>`
+            })()}
             <p style="text-align:center; margin: 24px 0;">
               <a href="${dealLink(3, sellerEmail)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
                 View the Deal
@@ -514,6 +527,12 @@ async function notifyOnDealChange(previous: any, updated: any) {
     const ddCleared = (!alreadyTold && newOutcome === 'accept' && acceptanceNowSigned)
       || (newAdd === 'accepted' && newAdd !== prevAdd)
     if (ddCleared) {
+      // Record that we have told them, or every later save sends it again.
+      try {
+        await admin().from('deals').update({
+          negotiate: { ...(updated?.negotiate || {}), ddClearedNotified: Date.now() },
+        }).eq('id', updated.id)
+      } catch { /* the email still goes; a missed marker is better than a missed email */ }
       const recips = [buyerEmail, sellerEmail].filter(Boolean)
       for (const email of recips) {
         await sendEmail({
