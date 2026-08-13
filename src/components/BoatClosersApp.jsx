@@ -1623,6 +1623,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // Verbal deal
   const [verbalDeal, setVerbalDeal] = useState(data.verbalDeal||false);
   const [verbalNote, setVerbalNote] = useState(data.verbalNote||"");
+  // Why this number. Buyer-only: a seller counters, they do not make an offer.
+  // Kept off the Purchase Agreement — it is context, not a term.
+  const [priceNote, setPriceNote] = useState("");
+  const [priceNoteOpen, setPriceNoteOpen] = useState(false);
   const [negMode, setNegMode] = useState("negotiate"); // "negotiate" | "agreed"
   // Seller-only: flag a conflict on dates/deposit terms via email to the buyer.
   const [conflictOpen, setConflictOpen] = useState(false);
@@ -1718,24 +1722,44 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     if (needsEscrowPath) return;
     if (inclContingencies && localContingencies.length === 0 && !cashWaived) return;
     const deposit = Math.round(amt*Number(escrowPct||0)/100);
+    // A seller counters the PRICE only. Everything else on the offer is the
+    // buyer's to write, so it is carried forward from the offer being countered
+    // rather than read from a form the seller no longer sees.
+    const _base = fromRole === "seller"
+      ? [...offers].reverse().find(o => o && o.from !== "seller")
+      : null;
     const offer = {
       id:Date.now(), from:fromRole, amount:amt, askingPrice:Number(askingPrice)||0,
       // Only meaningful on a broker-listed boat, and only from the buyer's side.
       askCoBroke: (vessel?.brokerListed === "yes" && fromRole !== "seller") ? askCoBroke : false,
-      escrowPct:Number(escrowPct), escrowPath, deposit,
+      escrowPct: _base ? _base.escrowPct : Number(escrowPct),
+      escrowPath: _base ? _base.escrowPath : escrowPath,
+      deposit: _base ? _base.deposit : deposit,
       verbal:verbalDeal, status:"pending", time:new Date().toLocaleTimeString(),
       // opt-in contingencies
-      inclContingencies, contingencies: inclContingencies ? localContingencies : [], cashWaived,
+      inclContingencies: _base ? _base.inclContingencies : inclContingencies,
+      contingencies: _base ? (_base.contingencies || []) : (inclContingencies ? localContingencies : []),
+      cashWaived: _base ? _base.cashWaived : cashWaived,
       // opt-in dates & payment
-      inclDates,
-      ddDays: inclDates ? ddDays : "", ddStart: inclDates ? ddStart : "",
-      closingDate: inclDates ? closingDate : "", paymentType: inclDates ? paymentType : "",
-      financeContingency: inclDates ? financeContingency : "",
-      ddExtension: inclDates ? ddExtension : false, ddExtDays, ddExtDepositRule,
+      inclDates: _base ? _base.inclDates : inclDates,
+      ddDays: _base ? _base.ddDays : (inclDates ? ddDays : ""),
+      ddStart: _base ? _base.ddStart : (inclDates ? ddStart : ""),
+      closingDate: _base ? _base.closingDate : (inclDates ? closingDate : ""),
+      paymentType: _base ? _base.paymentType : (inclDates ? paymentType : ""),
+      financeContingency: _base ? _base.financeContingency : (inclDates ? financeContingency : ""),
+      ddExtension: _base ? _base.ddExtension : (inclDates ? ddExtension : false),
+      ddExtDays: _base ? _base.ddExtDays : ddExtDays,
+      ddExtDepositRule: _base ? _base.ddExtDepositRule : ddExtDepositRule,
       // opt-in deposit terms / notes
-      inclDepositTerms, depositRule: inclDepositTerms ? depositRule : "", depositRuleCustom, note: verbalNote,
-      depositHours: Number(depositHours) || 24,
-      feePayer,
+      inclDepositTerms: _base ? _base.inclDepositTerms : inclDepositTerms,
+      depositRule: _base ? _base.depositRule : (inclDepositTerms ? depositRule : ""),
+      depositRuleCustom: _base ? _base.depositRuleCustom : depositRuleCustom,
+      // The note explains the BUYER's number, so a seller counter never inherits it.
+      note: fromRole === "seller" ? "" : verbalNote,
+      // Explains the number to the other party. Never on a seller's counter.
+      priceNote: fromRole === "seller" ? "" : (priceNote || "").trim(),
+      depositHours: _base ? _base.depositHours : (Number(depositHours) || 24),
+      feePayer: _base ? _base.feePayer : feePayer,
       expiresHours: Number(offerExpiry) || 0,
       expiresAt: offerExpiry !== "0" ? Date.now() + Number(offerExpiry) * 3600000 : null,
     };
@@ -2583,14 +2607,17 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         {/* 💵 Price — the OFFER is the star; asking price is muted reference */}
         <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px", marginBottom:10, background:"#fff" }}>
           <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>💵 Price</div>
-          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, margin:"3px 0 12px", lineHeight:1.55 }}>The seller's asking price is shown for reference. Enter the amount you're actually offering below.</div>
+          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, margin:"3px 0 12px", lineHeight:1.55, display: myRole==="seller" ? "none" : undefined }}>The seller's asking price is shown for reference. Enter the amount you're actually offering below.</div>
 
-          {/* Asking price — muted reference + one-tap "match asking" to drive participation */}
+          {/* Asking price. For the BUYER this is muted reference with a one-tap
+              match. For the SELLER it is their own anchor — shown plainly, and
+              never with an "offer full asking" button, which would have them
+              offering their own price back to themselves. */}
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, background:C.sandDark, borderRadius:6, padding:"8px 12px", marginBottom:12, flexWrap:"wrap" }}>
-            <label style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, fontWeight:600 }}>Asking price (reference)</label>
+            <label style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, fontWeight:600 }}>{myRole==="seller" ? "Your asking price" : "Asking price (reference)"}</label>
             <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
               <input style={{ ...S.input, width:130, textAlign:"right", padding:"6px 10px", fontSize:13, color:C.slate, background:"#fff", margin:0 }} type="number" value={askingPrice} onChange={e=>setAskingPrice(e.target.value)} placeholder={vessel.askingPrice||"85000"} />
-              {Number(askingPrice)>0 && (
+              {Number(askingPrice)>0 && myRole!=="seller" && (
                 <button type="button" onClick={()=>setOfferAmt(String(Number(askingPrice)))} style={{ background:C.navy, color:"#fff", border:"none", borderRadius:5, padding:"7px 12px", fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", whiteSpace:"nowrap" }}>
                   Offer full asking →
                 </button>
@@ -2620,8 +2647,29 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
           {/* Your offer — pronounced, gold-highlighted */}
           <div style={{ border:`2px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", background:"#fffaf0" }}>
-            <label style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, fontWeight:800, display:"block", marginBottom:6 }}>💰 Your Offer Price</label>
-            <input style={{ ...S.input, fontSize:22, fontWeight:800, color:C.navy, padding:"12px 14px", border:`1.5px solid ${C.brass}`, background:"#fff", margin:0 }} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder="Enter your offer here" />
+            {/* A seller does not make an offer — they counter one. Same field,
+                honest label. */}
+            <label style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, fontWeight:800, display:"block", marginBottom:6 }}>{myRole==="seller" ? "\ud83d\udcb0 Your Counter Price" : "\ud83d\udcb0 Your Offer Price"}</label>
+            <input style={{ ...S.input, fontSize:22, fontWeight:800, color:C.navy, padding:"12px 14px", border:`1.5px solid ${C.brass}`, background:"#fff", margin:0 }} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder={myRole==="seller" ? "Enter your counter" : "Enter your offer here"} />
+            {/* Optional, buyer only, collapsed. A bare lower number reads as
+                haggling; a reason reads as a case. */}
+            {myRole !== "seller" && (
+              <div style={{ marginTop:9 }}>
+                {!priceNoteOpen && !priceNote ? (
+                  <button type="button" onClick={()=>setPriceNoteOpen(true)}
+                    style={{ background:"transparent", border:"none", color:C.teal, fontSize:11.5, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", textDecoration:"underline", padding:0 }}>
+                    Add a note about your number (optional)
+                  </button>
+                ) : (
+                  <>
+                    <label style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, display:"block", marginBottom:4 }}>Why this number (optional &mdash; the seller sees this with your offer)</label>
+                    <textarea value={priceNote} onChange={e=>setPriceNote(e.target.value)}
+                      placeholder="e.g. needs a trailer, the port engine is due for service, or it wasn't quite what the listing described"
+                      style={{ ...S.textarea, minHeight:52, fontSize:12.5 }} />
+                  </>
+                )}
+              </div>
+            )}
             {offerAmt && Number(askingPrice)>0 && (
               <div style={{ fontSize:11.5, fontFamily:"sans-serif", color: Number(offerAmt) < Number(askingPrice) ? C.teal : C.slate, marginTop:6, fontWeight:700 }}>
                 {Number(offerAmt) < Number(askingPrice)
@@ -3044,6 +3092,14 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                       {/* Ticking the box has to reach the other side, or it records
                           nothing anyone will act on. */}
                       {o.askCoBroke && <span style={{...S.pill, background:C.tealLight, color:C.teal}} title="The buyer has no broker and asks that the unclaimed buyer's side be taken into account.">Unrepresented buyer</span>}
+                      {/* The reason travels with the number it explains — a message
+                          six replies later is no longer attached to anything. */}
+                      {o.priceNote && (
+                        <div style={{ background:"#fff", border:`1px solid ${C.mist}`, borderRadius:6, padding:"8px 10px", marginTop:6, fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.55, fontStyle:"italic" }}>
+                          &ldquo;{o.priceNote}&rdquo;
+                          <div style={{ fontStyle:"normal", fontSize:10.5, color:C.mist2 || "#8a8578", marginTop:3 }}>&mdash; the {o.from === "seller" ? "seller" : "buyer"}&rsquo;s note</div>
+                        </div>
+                      )}
                     </div>
                     <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:4, lineHeight:1.5 }}>
                       Deposit: {fmt(o.deposit)} ({pctLabel(o.escrowPct)}%) · {escLabel(o.escrowPath)}
