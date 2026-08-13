@@ -309,8 +309,8 @@ function TipBox({ tips }) {
 //
 // Three things a transaction platform has to say plainly and keep saying: what it
 // is, what it is not, and where the full terms live. The disclaimer describes what
-// this app actually does. Terms and Privacy are drafts and need a lawyer's review
-// before launch — they are marked as such rather than pretending otherwise.
+// this app actually does. Terms and Privacy have been reviewed and approved by
+// counsel — any change to their wording should go back to them before it ships.
 // ─────────────────────────────────────────────────────────────────────────────
 // The disclaimer describes what this app actually does, so it lives here. Terms
 // and Privacy already exist further down the file as LEGAL — they were just never
@@ -403,8 +403,29 @@ function MyDeals({ C, S, deals, loading, onOpen, onBack, onNew }) {
   );
 }
 
-function LegalFooter({ C }) {
+function LegalFooter({ C, authedFetch, signedIn }) {
   const [openKey, setOpenKey] = useState(null);
+  // A mailto opens whatever the machine happens to have configured — often a
+  // browser tab and nothing else. Signed-in users write to us in the app instead,
+  // which also carries who they are and which deal they are on. Visitors on the
+  // landing page have no session, so they get an address they can copy.
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpMsg, setHelpMsg] = useState("");
+  const [helpState, setHelpState] = useState("");
+  const sendHelp = async () => {
+    if (helpState === "sending" || !helpMsg.trim()) return;
+    setHelpState("sending");
+    try {
+      const res = await (authedFetch || fetch)("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ issueType: "Question from the footer", message: helpMsg.trim() }),
+      });
+      const d = await res.json();
+      if (d?.ok) { setHelpState("sent"); setHelpMsg(""); }
+      else setHelpState(d?.error || "Couldn't send that just now. Please try again.");
+    } catch (e) { setHelpState("Couldn't reach us just now. Please try again."); }
+  };
   const doc = openKey === "disclaimer" ? DISCLAIMER : openKey ? LEGAL[openKey] : null;
   const link = { background:"transparent", border:"none", color:"rgba(255,255,255,0.75)", fontSize:11.5, textDecoration:"underline", cursor:"pointer", fontFamily:"sans-serif", padding:0 };
   return (
@@ -418,13 +439,55 @@ function LegalFooter({ C }) {
             <button style={link} onClick={()=>setOpenKey("disclaimer")}>Disclaimer</button>
             <button style={link} onClick={()=>setOpenKey("terms")}>Terms of Service</button>
             <button style={link} onClick={()=>setOpenKey("privacy")}>Privacy Policy</button>
-            <a href="mailto:support@boatclosers.com" style={link}>support@boatclosers.com</a>
+            {signedIn
+              ? <button style={link} onClick={()=>{ setHelpOpen(true); setHelpState(""); }}>Contact support</button>
+              : <span style={{ fontSize:11.5, color:"rgba(255,255,255,0.75)" }}>support@boatclosers.com</span>}
           </div>
           <div style={{ fontSize:10.5, marginTop:12, color:"rgba(255,255,255,0.4)", lineHeight:1.6 }}>
             &copy; {new Date().getFullYear()} Sea Yachts LLC &middot; Licensed Florida Yacht Broker &middot; BoatClosers.com
           </div>
         </div>
       </footer>
+
+      {helpOpen && (
+        <div onClick={()=>setHelpOpen(false)}
+          style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", zIndex:5100, overflowY:"auto", padding:"20px 12px", fontFamily:"sans-serif" }}>
+          <div onClick={e=>e.stopPropagation()}
+            style={{ maxWidth:520, margin:"8vh auto 0", background:"#fff", borderRadius:12, overflow:"hidden", border:`2px solid ${C.brass}` }}>
+            <div style={{ background:C.navy, color:"#fff", padding:"13px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ fontSize:12.5, letterSpacing:1, color:C.brass }}>CONTACT SUPPORT</span>
+              <button onClick={()=>setHelpOpen(false)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.7)", fontSize:20, cursor:"pointer", lineHeight:1 }}>&times;</button>
+            </div>
+            <div style={{ padding:"18px 20px 20px" }}>
+              {helpState === "sent" ? (
+                <div style={{ fontSize:13, color:C.green, lineHeight:1.7 }}>
+                  ✓ Sent. We&rsquo;ll reply to the email address on your account. Nothing on your deal has changed.
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:10 }}>
+                    Tell us what&rsquo;s going on and we&rsquo;ll come back to you. Your name, email and the deal you&rsquo;re on come through with it, so there&rsquo;s no need to repeat them.
+                  </div>
+                  <textarea value={helpMsg} onChange={e=>setHelpMsg(e.target.value)}
+                    placeholder="What can we help with?"
+                    style={{ width:"100%", minHeight:110, fontSize:13, fontFamily:"sans-serif", padding:"10px 12px", border:`1px solid ${C.mist}`, borderRadius:7, resize:"vertical", boxSizing:"border-box" }} />
+                  {helpState && helpState !== "sending" && (
+                    <div style={{ fontSize:12, color:"#dc2626", marginTop:7 }}>{helpState}</div>
+                  )}
+                  <div style={{ display:"flex", gap:9, marginTop:12, flexWrap:"wrap" }}>
+                    <button onClick={sendHelp} disabled={helpState === "sending" || !helpMsg.trim()}
+                      style={{ background:C.brass, color:"#fff", border:"none", borderRadius:18, padding:"9px 20px", fontSize:12.5, fontWeight:800, cursor:"pointer", opacity:(helpState==="sending"||!helpMsg.trim())?0.55:1 }}>
+                      {helpState === "sending" ? "Sending…" : "Send"}
+                    </button>
+                    <button onClick={()=>setHelpOpen(false)}
+                      style={{ background:"transparent", border:`1px solid ${C.mist}`, color:C.slate, borderRadius:18, padding:"9px 20px", fontSize:12.5, cursor:"pointer" }}>Cancel</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {doc && (
         <div onClick={()=>setOpenKey(null)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", zIndex:5000, overflowY:"auto", padding:"20px 12px", fontFamily:"sans-serif" }}>
@@ -433,11 +496,6 @@ function LegalFooter({ C }) {
               <span style={{ fontFamily:"'Georgia',serif", fontSize:16, color:C.brass }}>{doc.title}</span>
               <button onClick={()=>setOpenKey(null)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.7)", fontSize:20, cursor:"pointer", lineHeight:1 }}>&times;</button>
             </div>
-            {openKey !== "disclaimer" && (
-              <div style={{ background:"#fff4e5", borderBottom:`1px solid ${C.brass}`, padding:"11px 20px", fontSize:11.5, color:"#8a5a12", lineHeight:1.6 }}>
-                Draft &mdash; under review by counsel. Binding terms will be published before launch.
-              </div>
-            )}
             <div style={{ padding:"18px 20px 22px" }}>
               {(doc.sections || []).map(([h, paras]) => (
                 <div key={h} style={{ marginBottom:15 }}>
@@ -3386,9 +3444,9 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
               <div style={{ fontSize:14, fontWeight:800, letterSpacing:1 }}>DEPOSIT RECEIPT</div>
               <div style={{ fontSize:10, color:C.slate }}>Date: {today()}</div>
             </div>
-            <div><strong>Received from (Buyer):</strong> {parties.buyer.name||"[Buyer]"}</div>
-            <div><strong>Received by (Seller):</strong> {parties.seller.name||"[Seller]"}</div>
-            <div><strong>Vessel:</strong> {vessel.year||""} {vessel.make||""} {vessel.model||""} · HIN: {vessel.hin||"[HIN]"}</div>
+            <div><strong>Received from (Buyer):</strong> {parties.buyer.name || <span style={{ borderBottom:"1px solid #b9b2a4", display:"inline-block", minWidth:120 }}>&nbsp;</span>}</div>
+            <div><strong>Received by (Seller):</strong> {parties.seller.name || <span style={{ borderBottom:"1px solid #b9b2a4", display:"inline-block", minWidth:120 }}>&nbsp;</span>}</div>
+            <div><strong>Vessel:</strong> {vessel.year||""} {vessel.make||""} {vessel.model||""} · HIN: {vessel.hin || <span style={{ borderBottom:"1px solid #b9b2a4", display:"inline-block", minWidth:110 }}>&nbsp;</span>}</div>
             <div><strong>Purchase Price:</strong> {price}</div>
             <div style={{ background:"#fff", border:`1px solid ${C.brass}`, borderRadius:4, padding:"8px 12px", margin:"8px 0" }}>
               <strong style={{ fontSize:14 }}>Earnest Money Amount: {amt}</strong>
@@ -4791,420 +4849,6 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STEP 4 — PAYWALL + DOCUMENTS
-// ─────────────────────────────────────────────────────────────────────────────
-function StepDocuments({ data, setData, vessel, parties, terms, negotiate, myRole, amInitiator, onNext, onBack }) {
-  // Payment happens once, at the PA-lock step in Negotiate. By the time the PA
-  // is locked (an accepted offer exists), the deal is paid — so Documents must
-  // NOT show a second paywall. Treat a locked deal as already paid.
-  const paLocked = !!(negotiate?.offers || []).find(o => o.status === "accepted") || !!data.paid;
-  const [paid, setPaid] = useState(paLocked || data.paid || false);
-  const [payDisc, setPayDisc] = useState(false);
-  const [agreedTos, setAgreedTos] = useState(false);
-  const [signed, setSigned] = useState(data.signedDocs||{});
-  const [sigName, setSigName] = useState({});
-
-  const requiredDocs = DOCS.filter(d => d.required);
-  const allRequiredSigned = requiredDocs.every(d => signed[d.id]);
-  const signedCount = Object.keys(signed).length;
-
-  const D = {
-    buyerName: parties.buyer.name||"[Buyer Name]",
-    sellerName: parties.seller.name||"[Seller Name]",
-    buyerEmail: parties.buyer.email||"[Email]",
-    sellerEmail: parties.seller.email||"[Email]",
-    buyerAddress: `${parties.buyer.address||""} ${parties.buyer.city||""} ${parties.buyer.stateZip||""}`.trim()||"[Address]",
-    sellerAddress: `${parties.seller.address||""} ${parties.seller.city||""} ${parties.seller.stateZip||""}`.trim()||"[Address]",
-    year: vessel.year||"[Year]", make: vessel.make||"[Make]", model: vessel.model||"[Model]",
-    hin: vessel.hin||"[HIN — Not Entered]",
-    engineDesc: `${vessel.engineCount||"1"} × ${vessel.engineMake||""} ${vessel.engineModel||""}`.trim()||"[Engine]",
-    engineHours: vessel.engineHours||"[Hours]",
-    engineSerial: vessel.engineSerial||"[Serial — Not Entered]",
-    reg: vessel.regNumber||"[Reg — Not Entered]",
-    uscg: vessel.uscgNumber||"N/A",
-    price: fmt(negotiate.agreedPrice||0),
-    deposit: fmt(negotiate.deposit||0),
-    escrow: escLabel(negotiate.escrowPath),
-    closing: terms.closingDate||"[Closing Date]",
-    ddDays: terms.dueDiligenceDays||"[Due Diligence Days]",
-    ddEnd: terms.ddStartDate && terms.dueDiligenceDays ? addDays(terms.ddStartDate, Number(terms.dueDiligenceDays)) : "[DD End]",
-    date: today(),
-  };
-
-  // ── per-doc action panel state (must be before any early return) ───────────
-  const [docAction, setDocAction] = useState({});
-  const [sendEmail, setSendEmail] = useState({});
-  const [sendNote, setSendNote] = useState({});
-  const [sentLog, setSentLog] = useState({});
-  const [uploadedFile, setUploadedFile] = useState({});
-  const [manualSig, setManualSig] = useState({});
-  const [manualFields, setManualFields] = useState({});
-
-  if (!paid) {
-    return (
-      <div style={S.page}>
-        <div style={{ marginBottom:"1.5rem" }}>
-          <h1 style={S.h1}>Unlock All Documents</h1>
-          <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Your deal is ready. Pay the flat $249 fee to unlock all documents, e-signatures, and your closing package.</p>
-        </div>
-
-        {/* ── E-SIGNATURE BINDING NOTICE ── */}
-        <div style={{ background:C.navy, borderRadius:8, padding:"14px 18px", marginBottom:16, display:"flex", gap:12, alignItems:"flex-start" }}>
-          <div style={{ fontSize:22, flexShrink:0 }}>⚠️</div>
-          <div>
-            <div style={{ fontSize:13, fontWeight:700, color:C.brass, fontFamily:"sans-serif", marginBottom:4 }}>Important — Electronic Signatures Are Not Released Until Payment</div>
-            <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.8)", lineHeight:1.7 }}>
-              Any signatures collected before payment are <strong style={{ color:C.brass }}>previews only and are not legally binding</strong>. Once your $249 payment is confirmed, BoatClosers releases the fully executed document package to both parties. <strong style={{ color:"#fff" }}>Documents are only considered complete and delivered upon payment receipt by BoatClosers.</strong>
-            </div>
-          </div>
-        </div>
-
-        <DataWarning vessel={vessel} parties={parties} />
-
-        <div style={S.cardGold}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-            <div>
-              <div style={{ fontSize:36, fontWeight:800, color:C.navy, fontFamily:"sans-serif", lineHeight:1 }}>$249</div>
-              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, marginTop:4 }}>One-time flat fee · One vessel · All documents</div>
-            </div>
-            <span style={{...S.pill, background:"#fff3cd", color:"#7a5500"}}>Flat Rate</span>
-          </div>
-          <hr style={S.divider}/>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
-            {["21 Professional Legal Documents","Electronic Signatures","Closing Checklist","PDF Download Package","No recurring fees","One deal covered","Buyer & seller copies"].map(f=>(
-              <div key={f} style={{ fontSize:12, fontFamily:"sans-serif", color:C.navy }}>✓ {f}</div>
-            ))}
-          </div>
-        </div>
-
-        <div style={{...S.card, marginTop:16}}>
-          <h3 style={S.h3}>Deal Summary</h3>
-          <div style={{ fontSize:12, fontFamily:"sans-serif", lineHeight:2, color:C.slate }}>
-            <div><strong>Vessel:</strong> {D.year} {D.make} {D.model} · HIN: {D.hin}</div>
-            <div><strong>Agreed Price:</strong> {D.price}</div>
-            <div><strong>Buyer:</strong> {D.buyerName} ({D.buyerEmail})</div>
-            <div><strong>Seller:</strong> {D.sellerName} ({D.sellerEmail})</div>
-            <div><strong>Closing Date:</strong> {D.closing}</div>
-          </div>
-        </div>
-
-        <div style={{...S.card, marginTop:16}}>
-          <div style={{ background:C.sandDark, borderRadius:5, padding:"12px 14px", fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, marginBottom:14 }}>
-            <strong>Disclaimer:</strong> BoatClosers facilitates document generation and e-signature collection only. We are not an escrow agent, broker, attorney, or party to any transaction. Payment of $249 grants access to document templates for this specific transaction only. All legal responsibility for accuracy, enforceability, and the outcome rests solely with the buyer and seller.
-          </div>
-          <label style={{ display:"flex", gap:10, alignItems:"flex-start", fontSize:12, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer" }}>
-            <input type="checkbox" checked={payDisc} onChange={e=>setPayDisc(e.target.checked)} style={{ marginTop:1, accentColor:C.navy }} />
-            I understand and agree to the disclaimer
-          </label>
-          <label style={{ display:"flex", gap:10, alignItems:"flex-start", fontSize:12, fontFamily:"sans-serif", color:C.slate, marginBottom:18, cursor:"pointer" }}>
-            <input type="checkbox" checked={agreedTos} onChange={e=>setAgreedTos(e.target.checked)} style={{ marginTop:1, accentColor:C.navy }} />
-            I agree to the BoatClosers Terms of Service
-          </label>
-          <button style={{...S.btnBrass, fontSize:15, padding:"13px", width:"100%"}} disabled={!payDisc||!agreedTos} onClick={()=>{setPaid(true);setData(d=>({...d,paid:true}))}}>
-            Pay $249 · Unlock All Documents
-          </button>
-        </div>
-        <div style={{ display:"flex", justifyContent:"flex-start", marginTop:"1.5rem" }}>
-          <button style={S.btnOutline} onClick={onBack}>← Back</button>
-        </div>
-      </div>
-    );
-  }
-
-  const setAction = (id, action) =>
-    setDocAction(d => ({ ...d, [id]: d[id] === action ? null : action }));
-
-  const sendDoc = (docId) => {
-    const to = sendEmail[docId]?.trim();
-    if (!to) return;
-    setSentLog(s => ({ ...s, [docId]: [...(s[docId]||[]), { to, time: new Date().toLocaleTimeString(), note: sendNote[docId]||"" }] }));
-    setSendEmail(e => ({ ...e, [docId]: "" }));
-    setSendNote(n => ({ ...n, [docId]: "" }));
-  };
-
-  const confirmManualSig = (docId) => {
-    const b = manualFields[docId]?.buyer?.trim();
-    const s = manualFields[docId]?.seller?.trim();
-    if (!b || !s) return;
-    setManualSig(m => ({ ...m, [docId]: { buyer: b, seller: s, date: today() } }));
-    setSigned(sg => ({ ...sg, [docId]: { name: `${b} & ${s} (manual)`, date: today(), manual: true } }));
-  };
-
-  const handleUpload = (docId, file) => {
-    if (!file) return;
-    setUploadedFile(u => ({ ...u, [docId]: file.name }));
-    setSigned(sg => ({ ...sg, [docId]: { name: `Uploaded: ${file.name}`, date: today(), uploaded: true } }));
-  };
-
-  const printDoc = (docId) => window.print();
-
-  // Action button component
-  const ActionBtn = ({ docId, action, icon, label, color }) => {
-    const active = docAction[docId] === action;
-    return (
-      <button
-        onClick={() => setAction(docId, action)}
-        title={label}
-        style={{ display:"flex", alignItems:"center", gap:5, fontSize:11, fontFamily:"sans-serif", fontWeight:600, padding:"6px 11px", borderRadius:5, cursor:"pointer", border:`1px solid ${active ? (color||C.navy) : C.mist}`, background: active ? (color||C.navy) : C.white, color: active ? "#fff" : (color||C.navy), whiteSpace:"nowrap" }}
-      >
-        <span style={{ fontSize:13 }}>{icon}</span> {label}
-      </button>
-    );
-  };
-
-  // Documents view
-  const categories = [...new Set(DOCS.map(d=>d.category))];
-  return (
-    <div style={S.page}>
-      <TipBox tips={TIPS.documents}/>
-      <DealAssistant step="documents" role={myRole} vessel={vessel} />
-      <div style={{ marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-        <div>
-          <h1 style={S.h1}>Documents</h1>
-          <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>{signedCount} of {DOCS.length} complete · {requiredDocs.filter(d=>signed[d.id]).length}/{requiredDocs.length} required</p>
-        </div>
-        <span style={{...S.pill, background:C.greenLight, color:C.green}}>Paid ✓</span>
-      </div>
-
-      {/* Legend */}
-      <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"10px 14px", marginBottom:16, fontSize:11, fontFamily:"sans-serif", color:C.teal, lineHeight:1.8 }}>
-        <strong>Each document has five options:</strong> &nbsp;
-        ✏️ <strong>E-Sign</strong> — type your name to sign in-app &nbsp;·&nbsp;
-        ✍️ <strong>Manual Sign</strong> — record wet ink signatures &nbsp;·&nbsp;
-        📤 <strong>Send</strong> — email the document to any party &nbsp;·&nbsp;
-        📎 <strong>Upload</strong> — attach a signed PDF you received &nbsp;·&nbsp;
-        🖨️ <strong>Print</strong> — open print dialog
-      </div>
-
-      <div style={{ height:5, background:C.mist, borderRadius:3, marginBottom:20, overflow:"hidden" }}>
-        <div style={{ height:"100%", width:`${(signedCount/DOCS.length)*100}%`, background:C.green, borderRadius:3, transition:"width 0.4s" }}/>
-      </div>
-
-      {categories.map(cat=>(
-        <div key={cat} style={{ marginBottom:14 }}>
-          <div style={{ fontSize:10, fontFamily:"sans-serif", fontWeight:700, letterSpacing:2, color:C.slate, textTransform:"uppercase", marginBottom:6 }}>{cat}</div>
-          <div style={S.card}>
-            {DOCS.filter(d=>d.category===cat).map((doc,i,arr)=>(
-              <div key={doc.id}>
-                {/* ── Row ── */}
-                <div style={{ padding:"11px 0" }}>
-                  <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12 }}>
-                    {/* Status icon + name */}
-                    <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
-                      <div style={{ width:30, height:30, borderRadius:5, flexShrink:0, background: signed[doc.id] ? C.greenLight : C.sandDark, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>
-                        {signed[doc.id] ? (signed[doc.id].uploaded ? "📎" : signed[doc.id].manual ? "✍️" : "✅") : "📄"}
-                      </div>
-                      <div style={{ minWidth:0 }}>
-                        <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:600, color:C.navy }}>{doc.name}</div>
-                        <div style={{ display:"flex", gap:5, marginTop:2, flexWrap:"wrap" }}>
-                          {doc.required && <span style={{...S.tag, background:"#fff3cd", color:"#7a5500"}}>Required</span>}
-                          {doc.suggested && !doc.required && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Suggested</span>}
-                          {signed[doc.id] && <span style={{...S.tag, background:C.greenLight, color:C.green}}>✓ {signed[doc.id].date} · {signed[doc.id].name}</span>}
-                          {sentLog[doc.id]?.length > 0 && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Sent ×{sentLog[doc.id].length}</span>}
-                          {uploadedFile[doc.id] && !signed[doc.id]?.uploaded && <span style={{...S.tag}}>📎 {uploadedFile[doc.id]}</span>}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action buttons */}
-                    <div style={{ display:"flex", gap:5, flexShrink:0, flexWrap:"wrap", justifyContent:"flex-end" }}>
-                      <ActionBtn docId={doc.id} action="view"   icon="👁" label="View"   />
-                      <ActionBtn docId={doc.id} action="esign"  icon="✏️" label="E-Sign" color={C.green} />
-                      <ActionBtn docId={doc.id} action="manual" icon="✍️" label="Manual" color={C.teal} />
-                      <ActionBtn docId={doc.id} action="send"   icon="📤" label="Send"   color={C.brass} />
-                      <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />
-                      <button onClick={()=>printDoc(doc.id)} title="Print" style={{ fontSize:13, padding:"6px 10px", borderRadius:5, cursor:"pointer", border:`1px solid ${C.mist}`, background:C.white, color:C.slate }}>🖨️</button>
-                    </div>
-                  </div>
-
-                  {/* ── Expandable panels ── */}
-
-                  {/* VIEW */}
-                  {docAction[doc.id]==="view" && (
-                    <div style={{ marginTop:12 }}>
-                      <DocPreview doc={doc} D={D} negotiate={negotiate}/>
-                    </div>
-                  )}
-
-                  {/* E-SIGN */}
-                  {docAction[doc.id]==="esign" && (
-                    <div style={{ marginTop:12, background:C.greenLight, border:`1px solid #a8d8b8`, borderRadius:6, padding:"14px" }}>
-                      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.green, marginBottom:10 }}>✏️ Electronic Signature — {doc.name}</div>
-                      <div style={{ background:C.navy, borderRadius:4, padding:"9px 12px", fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.85)", marginBottom:12, lineHeight:1.6 }}>
-                        ⚠️ <strong style={{ color:C.brass }}>Preview only — not legally binding until BoatClosers receives payment.</strong> Upon payment confirmation, the executed document package is released to both parties. BoatClosers is not a party to this agreement and provides document facilitation only — not legal advice or brokerage services.
-                      </div>
-                      {!signed[doc.id] || signed[doc.id].manual || signed[doc.id].uploaded ? (
-                        <div style={{ display:"flex", gap:10, alignItems:"flex-end" }}>
-                          <div style={{ flex:1 }}>
-                            <label style={S.label}>Type your full legal name to sign electronically</label>
-                            <input style={S.input} placeholder="Full legal name" value={sigName[doc.id]||""} onChange={e=>setSigName(s=>({...s,[doc.id]:e.target.value}))}/>
-                          </div>
-                          <button style={S.btnBrass} disabled={!sigName[doc.id]?.trim()} onClick={()=>{ setSigned(s=>({...s,[doc.id]:{name:sigName[doc.id],date:today()}})); setAction(doc.id,"esign"); }}>
-                            Sign Document
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Already signed by {signed[doc.id].name} on {signed[doc.id].date}</div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* MANUAL SIGN */}
-                  {docAction[doc.id]==="manual" && (
-                    <div style={{ marginTop:12, background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"14px" }}>
-                      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.teal, marginBottom:8 }}>✍️ Record Manual / Wet Ink Signatures</div>
-                      <p style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12, lineHeight:1.6 }}>
-                        Print the document, have both parties sign by hand, then record the signed names here to mark it complete. Retain the original signed document for your records.
-                      </p>
-                      {!manualSig[doc.id] ? (
-                        <>
-                          <Grid2>
-                            <Field label="Buyer signed name">
-                              <input style={S.input} placeholder="Buyer's name as signed" value={manualFields[doc.id]?.buyer||""} onChange={e=>setManualFields(f=>({...f,[doc.id]:{...f[doc.id],buyer:e.target.value}}))}/>
-                            </Field>
-                            <Field label="Seller signed name">
-                              <input style={S.input} placeholder="Seller's name as signed" value={manualFields[doc.id]?.seller||""} onChange={e=>setManualFields(f=>({...f,[doc.id]:{...f[doc.id],seller:e.target.value}}))}/>
-                            </Field>
-                          </Grid2>
-                          <button style={S.btnTeal} disabled={!manualFields[doc.id]?.buyer?.trim()||!manualFields[doc.id]?.seller?.trim()} onClick={()=>{ confirmManualSig(doc.id); setAction(doc.id,"manual"); }}>
-                            ✓ Confirm Both Parties Signed
-                          </button>
-                        </>
-                      ) : (
-                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.teal }}>
-                          ✓ Manual signatures recorded — Buyer: {manualSig[doc.id].buyer} · Seller: {manualSig[doc.id].seller} · {manualSig[doc.id].date}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* SEND */}
-                  {docAction[doc.id]==="send" && (
-                    <div style={{ marginTop:12, background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:6, padding:"14px" }}>
-                      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.brass, marginBottom:8 }}>📤 Send Document by Email</div>
-                      <p style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12, lineHeight:1.6 }}>
-                        Enter the recipient's email address to send them this document. You can send to the buyer, seller, their attorney, lender, insurance agent, or any other party.
-                      </p>
-                      <div style={{ display:"flex", gap:8, marginBottom:8 }}>
-                        {[parties.buyer.email, parties.seller.email].filter(Boolean).map(e=>(
-                          <button key={e} onClick={()=>setSendEmail(s=>({...s,[doc.id]:e}))} style={{ fontSize:11, fontFamily:"sans-serif", padding:"4px 10px", borderRadius:16, border:`1px solid ${C.brass}`, background:"transparent", color:C.brass, cursor:"pointer" }}>
-                            {e}
-                          </button>
-                        ))}
-                        <span style={{ fontSize:10, fontFamily:"sans-serif", color:C.slate, alignSelf:"center" }}>or type below</span>
-                      </div>
-                      <Grid2>
-                        <Field label="Recipient email">
-                          <input style={S.input} type="email" placeholder="recipient@email.com" value={sendEmail[doc.id]||""} onChange={e=>setSendEmail(s=>({...s,[doc.id]:e.target.value}))}/>
-                        </Field>
-                        <Field label="Optional note">
-                          <input style={S.input} placeholder="Please review and sign…" value={sendNote[doc.id]||""} onChange={e=>setSendNote(n=>({...n,[doc.id]:e.target.value}))}/>
-                        </Field>
-                      </Grid2>
-                      <button style={S.btnBrass} disabled={!sendEmail[doc.id]?.trim()} onClick={()=>{ sendDoc(doc.id); setAction(doc.id,"send"); }}>
-                        Send Document →
-                      </button>
-                      {sentLog[doc.id]?.length > 0 && (
-                        <div style={{ marginTop:10, fontSize:11, fontFamily:"sans-serif", color:C.slate }}>
-                          <strong>Sent log:</strong>
-                          {sentLog[doc.id].map((s,i)=>(
-                            <div key={i}>→ {s.to} at {s.time}{s.note ? ` — "${s.note}"` : ""}</div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* UPLOAD */}
-                  {docAction[doc.id]==="upload" && (
-                    <div style={{ marginTop:12, background:C.sandDark, border:`1px solid ${C.mist}`, borderRadius:6, padding:"14px" }}>
-                      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.slate, marginBottom:8 }}>📎 Upload Signed Document</div>
-                      <p style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12, lineHeight:1.6 }}>
-                        If this document was signed outside the platform (wet ink, notary, attorney office, DocuSign, etc.), upload the signed PDF here to attach it to your deal file.
-                      </p>
-                      {!uploadedFile[doc.id] ? (
-                        <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"9px 18px", fontSize:12, fontFamily:"sans-serif", fontWeight:600 }}>
-                          <span>📎</span> Choose File to Upload
-                          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); setAction(doc.id,"upload"); }}/>
-                        </label>
-                      ) : (
-                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>
-                          ✓ Uploaded: <strong>{uploadedFile[doc.id]}</strong> — attached to deal file on {today()}
-                          <button onClick={()=>{ setUploadedFile(u=>({...u,[doc.id]:null})); setSigned(s=>{const n={...s}; delete n[doc.id]; return n;}); }} style={{ marginLeft:12, fontSize:11, fontFamily:"sans-serif", background:"none", border:`1px solid ${C.mist}`, borderRadius:4, padding:"2px 8px", cursor:"pointer", color:C.slate }}>Replace</button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {i<arr.length-1 && <hr style={{...S.divider, margin:0}}/>}
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      <WhatsNext>Last step is closing &mdash; final funds, handing over keys and title, and your record of the completed sale. Everything signed here stays in the deal for both of you.</WhatsNext>
-      <div style={{ display:"flex", justifyContent:"space-between", marginTop:"1.5rem" }}>
-        <button style={S.btnOutline} onClick={onBack}>← Back</button>
-        <button style={S.btnBrass} disabled={!allRequiredSigned} onClick={()=>{setData(d=>({...d,signedDocs:signed}));onNext();}}>
-          {allRequiredSigned ? "Proceed to Closing →" : `Sign required docs to continue (${requiredDocs.filter(d=>signed[d.id]).length}/${requiredDocs.length})`}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function DocPreview({ doc, D, negotiate }) {
-  const hdr = { fontSize:10, color:C.slate, fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:0.5, marginBottom:4 };
-  const row = { display:"flex", justifyContent:"space-between", padding:"5px 0", borderBottom:`1px solid ${C.mist}`, fontSize:11, fontFamily:"sans-serif" };
-  return (
-    <div style={{ background:"#fff", padding:"18px 20px", borderRadius:4, border:`1px solid ${C.mist}`, maxHeight:320, overflowY:"auto" }}>
-      <div style={{ textAlign:"center", borderBottom:`2px solid ${C.navy}`, paddingBottom:10, marginBottom:14 }}>
-        <div style={{ fontSize:8, letterSpacing:3, color:C.brass, fontWeight:700, textTransform:"uppercase", marginBottom:3 }}>BoatClosers.com</div>
-        <div style={{ fontSize:14, fontWeight:700, letterSpacing:0.5 }}>{doc.name.toUpperCase()}</div>
-        <div style={{ fontSize:10, color:C.slate, marginTop:3 }}>Date: {D.date}</div>
-      </div>
-      <div style={{ marginBottom:10 }}>
-        <div style={hdr}>Parties</div>
-        <div style={row}><span><strong>Buyer:</strong> {D.buyerName}</span><span>{D.buyerEmail}</span></div>
-        <div style={row}><span><strong>Seller:</strong> {D.sellerName}</span><span>{D.sellerEmail}</span></div>
-      </div>
-      <div style={{ marginBottom:10 }}>
-        <div style={hdr}>Vessel</div>
-        <div style={row}><span>{D.year} {D.make} {D.model}</span><span>HIN: {D.hin}</span></div>
-        <div style={row}><span>Engine: {D.engineDesc}</span><span>Hours: {D.engineHours}</span></div>
-        <div style={row}><span>Reg: {D.reg}</span><span>Serial: {D.engineSerial}</span></div>
-      </div>
-      <div style={{ marginBottom:10 }}>
-        <div style={hdr}>Transaction</div>
-        <div style={row}><span><strong>Purchase Price:</strong></span><span><strong>{D.price}</strong></span></div>
-        <div style={row}><span>Earnest Money Deposit:</span><span>{D.deposit}</span></div>
-        <div style={row}><span>Escrow Method:</span><span>{D.escrow}</span></div>
-        <div style={row}><span>Closing Date:</span><span>{D.closing}</span></div>
-      </div>
-      {doc.id==="purchase_agreement" && <div style={{ fontSize:10, color:C.slate, fontFamily:"sans-serif", lineHeight:1.7 }}>This Purchase and Sale Agreement is entered into between Buyer and Seller. Seller agrees to sell and Buyer agrees to purchase the vessel described herein at the price stated, subject to the terms and conditions herein. Vessel is sold "as-is, where-is." Buyer was afforded a {D.ddDays}-day due diligence period ending {D.ddEnd}. BoatClosers.com is a document facilitation platform and is not a broker, escrow agent, attorney, or party to this agreement.</div>}
-      {doc.id==="bill_of_sale" && <div style={{ fontSize:10, color:C.slate, fontFamily:"sans-serif", lineHeight:1.7 }}>For consideration of {D.price}, Seller hereby grants, bargains, sells, transfers, conveys, and delivers to Buyer all right, title, and interest in the vessel described herein, free and clear of all liens and encumbrances. Seller warrants lawful ownership and full authority to transfer title.</div>}
-      {doc.id==="closing_statement" && (
-        <div style={{ fontFamily:"sans-serif" }}>
-          {[[`Purchase Price`,D.price],[`Earnest Money (credit)`,`(${D.deposit})`],[`Balance Due at Closing`,fmt(Number(negotiate.agreedPrice||0)-Number(negotiate.deposit||0))]].map(([l,v])=>(
-            <div key={l} style={row}><span style={{ fontSize:11 }}>{l}</span><span style={{ fontSize:11, fontWeight:700 }}>{v}</span></div>
-          ))}
-        </div>
-      )}
-      <div className="bc-grid2" style={{ marginTop:16, gap:20 }}>
-        {["Buyer","Seller"].map(p=>(
-          <div key={p} style={{ borderTop:`1px solid ${C.navy}`, paddingTop:6 }}>
-            <div style={{ fontSize:10, color:C.slate, fontFamily:"sans-serif" }}>{p} Signature</div>
-            <div style={{ fontSize:10, color:C.slate, fontFamily:"sans-serif", marginTop:18 }}>Printed Name / Date</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // STEP 5 — CLOSING
 // ─────────────────────────────────────────────────────────────────────────────
 function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, docsData, setDocsData, myRole, amInitiator, onBack, onOpenDoc, onFinalize }) {
@@ -6283,9 +5927,14 @@ function Landing({ onStart, onLegal }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LEGAL PAGES (Terms + Privacy) — plain-language starting drafts; attorney review needed
+// LEGAL PAGES (Terms + Privacy) — reviewed and approved by counsel. Any change to
+// the wording below should go back to them before it ships.
 // ─────────────────────────────────────────────────────────────────────────────
-const LEGAL_UPDATED = new Date().toLocaleDateString("en-US", { year:"numeric", month:"long", day:"numeric" });
+// A FIXED date, deliberately. As new Date() this claimed the Terms had been
+// updated today, every day — which tells a customer nothing and makes it
+// impossible to know which version they agreed to. Change it by hand when the
+// wording actually changes, and only after counsel has seen it.
+const LEGAL_UPDATED = "August 12, 2026";
 const LEGAL = {
   terms: {
     title: "Terms of Service",
@@ -7108,7 +6757,7 @@ export default function BoatClosers() {
   }
 
   // Every screen carries the legal footer — landing, sign-in, and the deal.
-  const withFooter = (node) => (<>{node}<LegalFooter C={C} /></>);
+  const withFooter = (node) => (<>{node}<LegalFooter C={C} authedFetch={authedFetch} signedIn={!!user} /></>);
   if (screen==="landing") return withFooter(<Landing onStart={(r)=>{ if(r==="buyer"||r==="seller") setAuthRole(r); setScreen("auth"); }} onLegal={(p)=>setScreen(p)}/>);
   if (screen==="mydeals") return withFooter(
     <MyDeals C={C} S={S} deals={myDeals} loading={myDealsLoading}
@@ -7456,7 +7105,7 @@ export default function BoatClosers() {
           </div>
         </div>
       )}
-      <LegalFooter C={C} />
+      <LegalFooter C={C} authedFetch={authedFetch} signedIn={!!user} />
     </div>
   );
 }
