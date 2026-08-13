@@ -80,6 +80,8 @@ export const DOCUMENTS = [
   // ===== GROUP 1: CLOSING INSTRUMENTS =====
   {
     id: "psa",
+    signer: "both",
+    completion: "esign",
     group: "Closing Instruments",
     tab: "Purchase Agreement",
     eyebrow: "Master Contract",
@@ -194,6 +196,8 @@ export const DOCUMENTS = [
 
   {
     id: "bos",
+    signer: "both",
+    completion: "esign",
     group: "Closing Instruments",
     tab: "Bill of Sale (Notarized)",
     eyebrow: "Transfer of Ownership",
@@ -236,6 +240,8 @@ export const DOCUMENTS = [
 
   {
     id: "bos_plain",
+    signer: "both",
+    completion: "esign",
     group: "Closing Instruments",
     tab: "Bill of Sale (Simple)",
     eyebrow: "Transfer of Ownership",
@@ -272,6 +278,8 @@ export const DOCUMENTS = [
 
   {
     id: "fl_82050",
+    signer: "seller",
+    completion: "wet",
     group: "Closing Instruments",
     tab: "FL Official Bill of Sale (82050)",
     florida: true,
@@ -315,6 +323,8 @@ export const DOCUMENTS = [
 
   {
     id: "fl_82040vs",
+    signer: "buyer",
+    completion: "wet",
     group: "Closing Instruments",
     tab: "FL Vessel Title App (82040-VS)",
     eyebrow: "Florida Official Form",
@@ -356,6 +366,8 @@ export const DOCUMENTS = [
 
   {
     id: "fl_82053",
+    signer: "dynamic",
+    completion: "wet",
     group: "Deal Structures",
     tab: "FL Power of Attorney (82053)",
     eyebrow: "Florida Official Form",
@@ -385,6 +397,8 @@ export const DOCUMENTS = [
 
   {
     id: "fl_82101",
+    signer: "dynamic",
+    completion: "wet",
     group: "Title & Government",
     tab: "FL Duplicate Title (82101)",
     eyebrow: "Florida Official Form",
@@ -414,6 +428,8 @@ export const DOCUMENTS = [
 
   {
     id: "cg_1340",
+    signer: "seller",
+    completion: "wet",
     group: "Closing Instruments",
     tab: "Coast Guard Bill of Sale (CG-1340)",
     eyebrow: "USCG Documented Vessel",
@@ -453,6 +469,8 @@ export const DOCUMENTS = [
 
   {
     id: "cg_1258",
+    signer: "buyer",
+    completion: "wet",
     group: "Title & Government",
     tab: "USCG Documentation App (CG-1258)",
     eyebrow: "USCG Documented Vessel",
@@ -487,6 +505,8 @@ export const DOCUMENTS = [
 
   {
     id: "dep",
+    signer: "both",
+    completion: "esign",
     group: "Closing Instruments",
     tab: "Deposit Receipt",
     eyebrow: "Earnest Money",
@@ -526,6 +546,8 @@ export const DOCUMENTS = [
 
   {
     id: "asis",
+    signer: "both",
+    completion: "esign",
     group: "Closing Instruments",
     tab: "As-Is & Disclosure",
     eyebrow: "Condition & Defects",
@@ -560,6 +582,8 @@ export const DOCUMENTS = [
 
   {
     id: "inventory",
+    signer: "both",
+    completion: "esign",
     group: "Closing Instruments",
     tab: "Inventory Schedule",
     eyebrow: "What Conveys",
@@ -626,6 +650,8 @@ export const DOCUMENTS = [
 
   {
     id: "wire_instructions",
+    signer: "both",
+    completion: "esign",
     group: "Closing Instruments",
     tab: "Wire Instructions",
     eyebrow: "Payment Details",
@@ -668,6 +694,8 @@ export const DOCUMENTS = [
 
   {
     id: "stmt",
+    signer: "both",
+    completion: "esign",
     group: "Closing Instruments",
     tab: "Settlement Statement",
     eyebrow: "Final Tally",
@@ -707,6 +735,8 @@ export const DOCUMENTS = [
   // ===== GROUP 2: DUE-DILIGENCE OUTCOMES =====
   {
     id: "accept",
+    signer: "both",
+    completion: "esign",
     group: "Due-Diligence Outcomes",
     tab: "Acceptance",
     eyebrow: "Contingencies Satisfied",
@@ -729,6 +759,8 @@ export const DOCUMENTS = [
 
   {
     id: "amend",
+    signer: "both",
+    completion: "esign",
     group: "Due-Diligence Outcomes",
     tab: "Renegotiation",
     eyebrow: "Post-Survey Adjustment",
@@ -760,6 +792,8 @@ export const DOCUMENTS = [
 
   {
     id: "title_search_letter",
+    signer: "seller",
+    completion: "esign",
     group: "Title & Lien Check",
     tab: "Title Search Letter",
     eyebrow: "Recommended \u2014 Verify Clear Title",
@@ -799,6 +833,8 @@ export const DOCUMENTS = [
 
   {
     id: "term",
+    signer: "both",
+    completion: "esign",
     group: "Due-Diligence Outcomes",
     tab: "Termination",
     eyebrow: "Contingency Not Met",
@@ -835,6 +871,8 @@ export const DOCUMENTS = [
   // `showIf(deal)` (optional) hides a document unless the deal calls for it.
   {
     id: "title_app",
+    signer: "buyer",
+    completion: "wet",
     group: "Title & Government",
     tab: "Title Application",
     eyebrow: "New Owner Registration",
@@ -870,6 +908,8 @@ export const DOCUMENTS = [
 
   {
     id: "notice_sale",
+    signer: "seller",
+    completion: "esign",
     group: "Title & Government",
     tab: "Notice of Sale",
     eyebrow: "Seller Liability Release",
@@ -898,6 +938,8 @@ export const DOCUMENTS = [
 
   {
     id: "lien_release",
+    signer: "seller",
+    completion: "wet",
     group: "Title & Government",
     tab: "Lien Release",
     eyebrow: "Conditional \u2014 If Financed",
@@ -934,6 +976,8 @@ export const DOCUMENTS = [
 
   {
     id: "uscg_transfer",
+    signer: "seller",
+    completion: "wet",
     group: "Title & Government",
     tab: "USCG Transfer",
     eyebrow: "Federal \u2014 Documented Vessels",
@@ -972,6 +1016,8 @@ export const DOCUMENTS = [
 
   {
     id: "hin_affidavit",
+    signer: "seller",
+    completion: "wet",
     group: "Title & Government",
     tab: "HIN Verification",
     eyebrow: "Hull Identity",
@@ -1010,6 +1056,8 @@ export const DOCUMENTS = [
   // the lender, insurer, and surveyor issue.
   {
     id: "fin_conditions",
+    signer: "buyer",
+    completion: "esign",
     group: "Financing & Insurance",
     tab: "Conditions Checklist",
     eyebrow: "Your Guide",
@@ -1039,6 +1087,8 @@ export const DOCUMENTS = [
 
   {
     id: "commitment",
+    signer: "buyer",
+    completion: "esign",
     group: "Financing & Insurance",
     tab: "Commitment Letter",
     kind: "upload",
@@ -1056,6 +1106,8 @@ export const DOCUMENTS = [
 
   {
     id: "binder",
+    signer: "none",
+    completion: "info",
     group: "Financing & Insurance",
     tab: "Insurance Binder",
     kind: "upload",
@@ -1072,6 +1124,8 @@ export const DOCUMENTS = [
 
   {
     id: "survey_report",
+    signer: "none",
+    completion: "info",
     group: "Financing & Insurance",
     tab: "Survey Report",
     kind: "upload",
@@ -1092,6 +1146,8 @@ export const DOCUMENTS = [
   // lines, since the app does not yet capture them in the Parties step.
   {
     id: "poa",
+    signer: "dynamic",
+    completion: "wet",
     group: "Authority & Signing",
     tab: "Power of Attorney",
     eyebrow: "Authority to Sign",
@@ -1132,6 +1188,8 @@ export const DOCUMENTS = [
 
   {
     id: "entity_auth",
+    signer: "dynamic",
+    completion: "wet",
     group: "Authority & Signing",
     tab: "Entity Authorization",
     eyebrow: "Business / Trust Owner",
@@ -1168,6 +1226,8 @@ export const DOCUMENTS = [
 
   {
     id: "coowner",
+    signer: "dynamic",
+    completion: "wet",
     group: "Authority & Signing",
     tab: "Co-Owner Consent",
     eyebrow: "Joint Ownership",
@@ -1197,6 +1257,8 @@ export const DOCUMENTS = [
 
   {
     id: "same_person",
+    signer: "dynamic",
+    completion: "wet",
     group: "Authority & Signing",
     tab: "Name Affidavit",
     eyebrow: "Name Discrepancy",
@@ -1236,6 +1298,8 @@ export const DOCUMENTS = [
   // financing docs carry an attorney-review banner (lawBanner prepended to body).
   {
     id: "extension_addendum",
+    signer: "both",
+    completion: "esign",
     group: "Deal Structures",
     tab: "Extension Addendum",
     eyebrow: "Deadline Change",
@@ -1267,6 +1331,8 @@ export const DOCUMENTS = [
 
   {
     id: "repair_agreement",
+    signer: "both",
+    completion: "esign",
     group: "Deal Structures",
     tab: "Repair Agreement",
     eyebrow: "Seller Repairs",
@@ -1302,6 +1368,8 @@ export const DOCUMENTS = [
 
   {
     id: "contingency_waiver",
+    signer: "both",
+    completion: "esign",
     group: "Deal Structures",
     tab: "Contingency Waiver",
     eyebrow: "Waive a Condition",
@@ -1332,6 +1400,8 @@ export const DOCUMENTS = [
 
   {
     id: "early_possession",
+    signer: "both",
+    completion: "esign",
     group: "Deal Structures",
     tab: "Early Possession",
     eyebrow: "Use Before Closing",
@@ -1363,6 +1433,8 @@ export const DOCUMENTS = [
 
   {
     id: "trade_in",
+    signer: "both",
+    completion: "esign",
     group: "Deal Structures",
     tab: "Trade-In Addendum",
     eyebrow: "Partial Payment",
@@ -1396,6 +1468,8 @@ export const DOCUMENTS = [
 
   {
     id: "fl_bos_itemized",
+    signer: "both",
+    completion: "esign",
     group: "Closing Instruments",
     tab: "Itemized Bill of Sale (FL)",
     florida: true,
@@ -1463,6 +1537,8 @@ export const DOCUMENTS = [
 
   {
     id: "trailer_bos",
+    signer: "both",
+    completion: "esign",
     group: "Deal Structures",
     tab: "Trailer Bill of Sale",
     eyebrow: "Separate Title",
@@ -1493,6 +1569,8 @@ export const DOCUMENTS = [
 
   {
     id: "gift_transfer",
+    signer: "seller",
+    completion: "esign",
     group: "Deal Structures",
     tab: "Gift / Family",
     eyebrow: "No / Nominal Money",
@@ -1531,6 +1609,8 @@ export const DOCUMENTS = [
 
   {
     id: "promissory_note",
+    signer: "buyer",
+    completion: "esign",
     group: "Deal Structures",
     tab: "Promissory Note \u26A0",
     eyebrow: "Seller Financing",
@@ -1569,6 +1649,8 @@ export const DOCUMENTS = [
 
   {
     id: "security_agreement",
+    signer: "buyer",
+    completion: "esign",
     group: "Deal Structures",
     tab: "Security Agreement \u26A0",
     eyebrow: "Seller Financing",
@@ -1604,6 +1686,8 @@ export const DOCUMENTS = [
 
   {
     id: "payoff",
+    signer: "seller",
+    completion: "esign",
     group: "Deal Structures",
     tab: "Payoff Authorization",
     eyebrow: "Existing Loan Payoff",
@@ -1638,6 +1722,8 @@ export const DOCUMENTS = [
   // + a death-certificate upload slot. Framed as a guide that includes forms.
   {
     id: "estate_guide",
+    signer: "none",
+    completion: "info",
     group: "Estate & Inheritance",
     tab: "Start Here",
     eyebrow: "Inherited a Boat?",
@@ -1667,6 +1753,8 @@ export const DOCUMENTS = [
 
   {
     id: "heirship",
+    signer: "dynamic",
+    completion: "wet",
     group: "Estate & Inheritance",
     tab: "Affidavit of Heirship",
     eyebrow: "No Probate",
@@ -1711,6 +1799,8 @@ export const DOCUMENTS = [
 
   {
     id: "executor_auth",
+    signer: "dynamic",
+    completion: "wet",
     group: "Estate & Inheritance",
     tab: "Executor Authorization",
     eyebrow: "Probate Opened",
@@ -1749,6 +1839,8 @@ export const DOCUMENTS = [
 
   {
     id: "small_estate",
+    signer: "dynamic",
+    completion: "wet",
     group: "Estate & Inheritance",
     tab: "Small Estate Affidavit",
     eyebrow: "Simplified Transfer",
@@ -1787,6 +1879,8 @@ export const DOCUMENTS = [
 
   {
     id: "death_cert",
+    signer: "none",
+    completion: "info",
     group: "Estate & Inheritance",
     tab: "Death Certificate",
     kind: "upload",
@@ -1806,6 +1900,8 @@ export const DOCUMENTS = [
   // documentation, and state registration. Each body opens with a system badge.
   {
     id: "lost_title",
+    signer: "seller",
+    completion: "wet",
     group: "Title Problems",
     tab: "Lost Title",
     eyebrow: "State Title Missing",
@@ -1841,6 +1937,8 @@ export const DOCUMENTS = [
 
   {
     id: "bos_only",
+    signer: "seller",
+    completion: "wet",
     group: "Title Problems",
     tab: "Bill-of-Sale Only",
     eyebrow: "No Title Exists",
@@ -1874,6 +1972,8 @@ export const DOCUMENTS = [
 
   {
     id: "chain_title",
+    signer: "seller",
+    completion: "wet",
     group: "Title Problems",
     tab: "Chain of Title",
     eyebrow: "Ownership Gap",
@@ -1911,6 +2011,8 @@ export const DOCUMENTS = [
 
   {
     id: "lost_cod",
+    signer: "seller",
+    completion: "wet",
     group: "Title Problems",
     tab: "Lost COD",
     eyebrow: "Documentation Missing",
@@ -1945,6 +2047,8 @@ export const DOCUMENTS = [
 
   {
     id: "mortgage_release",
+    signer: "seller",
+    completion: "wet",
     group: "Title Problems",
     tab: "Mortgage Release",
     eyebrow: "Clear the Abstract",
@@ -1979,6 +2083,8 @@ export const DOCUMENTS = [
 
   {
     id: "lost_reg",
+    signer: "seller",
+    completion: "wet",
     group: "Title Problems",
     tab: "Lost Registration",
     eyebrow: "Registration Only",
@@ -2016,6 +2122,8 @@ export const DOCUMENTS = [
   // checklists (checklist array + <!--CHECKLIST--> marker in body).
   {
     id: "delivery_receipt",
+    signer: "both",
+    completion: "esign",
     group: "Closing-Day",
     tab: "Delivery Receipt",
     eyebrow: "Possession Handoff",
@@ -2051,6 +2159,8 @@ export const DOCUMENTS = [
 
   {
     id: "defect_disclosure",
+    signer: "seller",
+    completion: "esign",
     group: "Closing-Day",
     tab: "Defect Disclosure",
     eyebrow: "Seller's Disclosure",
@@ -2090,6 +2200,8 @@ export const DOCUMENTS = [
 
   {
     id: "engine_hours",
+    signer: "seller",
+    completion: "esign",
     group: "Closing-Day",
     tab: "Engine Hours",
     eyebrow: "Hours / Condition",
