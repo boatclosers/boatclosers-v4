@@ -749,6 +749,32 @@ async function notifyOnDealChange(previous: any, updated: any) {
   }
 }
 
+// Who may still see a deal, and for how long.
+//   • The initiator paid for it, so it stays theirs permanently.
+//   • The invited party is out the moment it is CANCELLED — the deal was not
+//     theirs and they must not piggy-back on someone else's fee.
+//   • After a FINALIZED deal they keep 60 days to download their documents,
+//     then it closes to them too.
+// An active deal is untouched by any of this.
+const GUEST_DAYS_AFTER_FINALIZE = 60
+function guestAccess(row: any, userId: string) {
+  const isInitiator = row?.initiator_id === userId || row?.party_a_user_id === userId
+  if (isInitiator) return { allowed: true, isInitiator: true, reason: '' }
+  const n = row?.negotiate || {}
+  const canceled = row?.status === 'canceled' || !!n.canceled
+  if (canceled) return { allowed: false, isInitiator: false, reason: 'canceled' }
+  const finalized = row?.status === 'finalized' || !!n.dealFinalized
+  if (finalized) {
+    const at = Date.parse(row?.finalized_at || n.finalizedAt || '') || 0
+    // No timestamp means we cannot prove the window has passed, so let them in.
+    if (!at) return { allowed: true, isInitiator: false, reason: '' }
+    const endsAt = at + GUEST_DAYS_AFTER_FINALIZE * 86400000
+    if (Date.now() > endsAt) return { allowed: false, isInitiator: false, reason: 'window_closed' }
+    return { allowed: true, isInitiator: false, reason: '', endsAt }
+  }
+  return { allowed: true, isInitiator: false, reason: '' }
+}
+
 export async function GET(req: Request) {
   const userId = await getUserId(req)
   if (!userId) return NextResponse.json({ deal: null })
@@ -764,7 +790,9 @@ export async function GET(req: Request) {
         .or(`initiator_id.eq.${userId},other_party_id.eq.${userId},party_a_user_id.eq.${userId},party_b_user_id.eq.${userId}`)
         .order('updated_at', { ascending: false })
         .limit(50)
-      const deals = (rows || []).map((r: any) => {
+      // My deals must honour the same rule, or a guest sees a cancelled deal
+      // listed and gets an error when they tap it.
+      const deals = (rows || []).filter((r: any) => guestAccess(r, userId).allowed).map((r: any) => {
         const v = r.vessel || {}
         const n = r.negotiate || {}
         const offers: any[] = Array.isArray(n.offers) ? n.offers : []
@@ -793,9 +821,15 @@ export async function GET(req: Request) {
       if (row) {
         const isInitiator = row.initiator_id === userId || row.party_a_user_id === userId
         const isPartyB = (row.other_party_id || row.party_b_user_id) === userId
-        // Already a member → just return the deal, never modify membership.
+        // Already a member → return it, subject to the access rule. The initiator
+        // always gets theirs; a guest loses a cancelled deal at once and a
+        // finalized one after their window.
         if (isInitiator || isPartyB) {
-          return NextResponse.json({ deal: row })
+          const acc = guestAccess(row, userId)
+          if (!acc.allowed) {
+            return NextResponse.json({ deal: null, accessEnded: acc.reason })
+          }
+          return NextResponse.json({ deal: row, guestUntil: acc.endsAt || null })
         }
         // Not a member, and the party-B slot is open. Only attach this user as
         // party B if they were ACTUALLY INVITED — i.e. there's a pending invite on
@@ -872,7 +906,12 @@ export async function GET(req: Request) {
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(1)
-    return NextResponse.json({ deal: data && data.length ? data[0] : null })
+    const found = data && data.length ? data[0] : null
+    if (found) {
+      const acc = guestAccess(found, userId)
+      if (!acc.allowed) return NextResponse.json({ deal: null, accessEnded: acc.reason })
+    }
+    return NextResponse.json({ deal: found })
   } catch {
     return NextResponse.json({ deal: null })
   }
