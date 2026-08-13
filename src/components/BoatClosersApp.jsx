@@ -5850,23 +5850,6 @@ function Landing({ onStart, onLegal }) {
         <button style={{...S.btnBrass, fontSize:15, padding:"13px 36px"}} onClick={onStart}>Get Started — It's Free</button>
       </div>
 
-      {/* Footer */}
-      <footer style={{ background:C.navy, padding:"2rem 2.5rem" }}>
-        <div style={{ maxWidth:880, margin:"0 auto", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:16 }}>
-          <div>
-            <div style={S.logo}>BOATCLOSERS</div>
-            <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", fontFamily:"sans-serif", marginTop:4 }}>© {new Date().getFullYear()} BoatClosers.com · Buy or sell a boat without a broker · All rights reserved</div>
-          </div>
-          <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(255,255,255,0.3)", lineHeight:1.8, maxWidth:420, textAlign:"right" }}>
-            <div style={{ marginBottom:8 }}>
-              <button onClick={()=>onLegal && onLegal("terms")} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif", fontSize:11, cursor:"pointer", textDecoration:"underline", padding:0 }}>Terms of Service</button>
-              <span style={{ margin:"0 8px", color:"rgba(255,255,255,0.25)" }}>·</span>
-              <button onClick={()=>onLegal && onLegal("privacy")} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif", fontSize:11, cursor:"pointer", textDecoration:"underline", padding:0 }}>Privacy Policy</button>
-            </div>
-            BoatClosers is a document facilitation platform only. Not a broker, escrow agent, or attorney. Not a party to any transaction. All parties are solely responsible for their own deal outcomes. Consult a licensed maritime attorney for legal advice.
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
