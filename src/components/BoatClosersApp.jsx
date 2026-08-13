@@ -3772,7 +3772,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
     setEscLoading(true);
     try {
       const r = await fetch("/api/deals/escrow-status", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", ...(authToken ? { "Authorization": "Bearer " + authToken } : {}) },
         body: JSON.stringify({ dealId }),
       });
       const j = await r.json();
@@ -3791,7 +3791,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
       }
     } catch { setEscStatus({ ok:false, error:"Couldn't reach the server." }); }
     setEscLoading(false);
-  }, [dealIsEscrowCom, dealTxId, dealId, setNegotiate]);
+  }, [dealIsEscrowCom, dealTxId, dealId, setNegotiate, authToken]);
   useEffect(() => { refreshEscrow(); }, [refreshEscrow]);
   // ── Escrow.com 3-option flow (Piece 2) ─────────────────────────────────────
   // Option A: app creates the transaction via API. Option B: buyer creates it on
