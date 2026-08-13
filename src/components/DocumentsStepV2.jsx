@@ -772,12 +772,44 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   const _coreIds = new Set(_coreReq.map(d => d.id).concat(["bill_of_sale"]));
   const _added = recDocs.filter(d => !_coreIds.has(d.id) && REASON[d.id]).map(d => ({ ...d, addedWhy: REASON[d.id] }));
   requiredDocs = [..._coreReq, ..._added];
-  const allRequiredSigned = requiredDocs.every(d => signed[d.id]) && bosSigned;
+  // Anything the OTHER party's answers put on the deal that this side must also
+  // act on. Without this a both-sign document added by the seller never reached
+  // the buyer's list at all. One-sided documents stay one-sided: a seller-only
+  // form never enters the buyer's set.
+  {
+    const mine = myRole === "seller" ? "seller" : "buyer";
+    const have = new Set(requiredDocs.map(d => d.id));
+    const shared = Array.isArray(data.requiredList) ? data.requiredList : [];
+    const fromOther = shared
+      .filter(x => x && !have.has(x.id) && (x.signer === "both" || x.signer === mine))
+      .map(x => {
+        const doc = DOC_SET.find(d => d.id === x.id);
+        return doc ? { ...doc, addedWhy: x.why || doc.addedWhy || "" } : null;
+      })
+      .filter(Boolean);
+    if (fromOther.length) requiredDocs = [...requiredDocs, ...fromOther];
+  }
+  const _mine = myRole === "seller" ? "seller" : "buyer";
+  const _rl = Array.isArray(data.requiredList) ? data.requiredList : [];
+  const _signerOf = (d) => {
+    if (d.signer === "dynamic") return (_rl.find(x => x.id === d.id)?.signer || _mine);
+    return d.signer || "both";
+  };
+  // Mine to act on: both-sign documents, plus any assigned to me.
+  const _isMine = (d) => { const r = _signerOf(d); return r === "both" || r === _mine; };
+  // A both-sign document only counts as done for me once I have signed it.
+  const _doneForMe = (d) => {
+    const sg = signed[d.id];
+    if (!sg) return false;
+    if (_signerOf(d) !== "both") return true;
+    return !sg.role || sg.role === _mine || !!sg.bothSigned;
+  };
+  const allRequiredSigned = requiredDocs.filter(_isMine).every(_doneForMe) && bosSigned;
   // When the bill of sale is the only thing left, nothing has been neglected —
   // it is signed at the handover by design. Say so, rather than raising an alarm
   // and asking someone to acknowledge a failing that is not one.
-  const docsOnlyBos = !bosSigned && requiredDocs.every(d => signed[d.id]);
-  const reqMissing = requiredDocs.filter(d => !signed[d.id]);
+  const docsOnlyBos = !bosSigned && requiredDocs.filter(_isMine).every(_doneForMe);
+  const reqMissing = requiredDocs.filter(d => _isMine(d) && !_doneForMe(d));
   const reqNotaryMissing = reqMissing.filter(d => (d.body||"").includes("Notary Acknowledgment"));
   // One built copy of each document per unique deal state. Handing React the very
   // same string on re-render means it leaves the page alone — so a blank being
@@ -788,12 +820,38 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
   // What this deal actually requires, published for the Closing step. Built here
   // because this is where the deal facts and the questionnaire answers live.
-  const _reqForClosing = requiredDocs.map(d => ({ id: d.id, label: d.title, why: d.addedWhy || "" }));
-  const _reqKey = _reqForClosing.map(d => d.id).join("|");
+  const _reqForClosing = requiredDocs.map(d => ({
+    id: d.id,
+    label: d.title,
+    why: d.addedWhy || "",
+    // Who has to act, and how it gets done. "dynamic" resolves to whoever's
+    // answers put it here, and stays changeable.
+    signer: d.signer === "dynamic" ? (myRole === "seller" ? "seller" : "buyer") : (d.signer || "both"),
+    completion: d.completion || "esign",
+    addedBy: myRole === "seller" ? "seller" : "buyer",
+  }));
+  const _reqKey = _reqForClosing.map(d => `${d.id}:${d.signer}`).join("|");
   useEffect(() => {
-    setData(d => (
-      (d.requiredList || []).map(x => x.id).join("|") === _reqKey ? d : { ...d, requiredList: _reqForClosing }
-    ));
+    setData(d => {
+      // MERGE, never overwrite. Each party's browser only knows its own answers,
+      // so replacing the list would erase whatever the other side had added —
+      // which is exactly why the two sides disagreed.
+      const existing = Array.isArray(d.requiredList) ? d.requiredList : [];
+      const byId = new Map(existing.map(x => [x.id, x]));
+      let changed = false;
+      for (const item of _reqForClosing) {
+        const prev = byId.get(item.id);
+        if (!prev) { byId.set(item.id, item); changed = true; }
+        else if (prev.signer !== item.signer && prev.signerLocked !== true) {
+          // Keep the earlier reason and who added it; only the classification
+          // catches up if the document data changed.
+          byId.set(item.id, { ...prev, signer: item.signer, completion: item.completion });
+          changed = true;
+        }
+      }
+      if (!changed) return d;
+      return { ...d, requiredList: Array.from(byId.values()) };
+    });
   }, [_reqKey]); // eslint-disable-line
 
   // ── PAYWALL ──
@@ -1244,7 +1302,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             {allRequiredSigned ? "✓ All required documents signed" : "Required documents to sign"}
           </div>
           <span style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color: allRequiredSigned ? C.green : C.brass }}>
-            {requiredDocs.filter(d=>signed[d.id]).length} of {requiredDocs.length} signed
+            {requiredDocs.filter(d=>_isMine(d) && _doneForMe(d)).length} of {requiredDocs.filter(_isMine).length} signed
           </span>
         </div>
         <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, lineHeight:1.5 }}>
@@ -1252,8 +1310,20 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
           {requiredDocs.map(doc => {
-            const done = !!signed[doc.id];
-            const rowNotary = (doc.body||"").includes("Notary Acknowledgment");
+            const sg = signed[doc.id];
+            const mine = myRole === "seller" ? "seller" : "buyer";
+            const rowSigner = doc.signer === "dynamic"
+              ? ((data.requiredList || []).find(x => x.id === doc.id)?.signer || mine)
+              : (doc.signer || "both");
+            // #4 — a both-sign document signed by ONE party is not finished. It
+            // becomes the other party's task, said plainly, instead of leaving them
+            // to work it out from a paragraph at the bottom of the page.
+            const otherSigned = !!sg && sg.role && sg.role !== mine;
+            const needsMySignature = rowSigner === "both" && otherSigned && (!sg || sg.role !== mine);
+            const done = !!sg && !needsMySignature;
+            const wetInk = doc.completion === "wet";
+            const notMine = rowSigner !== "both" && rowSigner !== mine;
+            const rowNotary = wetInk || (doc.body||"").includes("Notary Acknowledgment");
             return (
               <button key={doc.id} onClick={()=>jumpToDoc(doc.id)}
                 style={{ display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left", background:"transparent", border:"none", borderBottom:`1px solid ${allRequiredSigned ? "#cfe6d8" : "#f0e2c4"}`, padding:"8px 2px", cursor:"pointer", fontFamily:"sans-serif" }}>
@@ -1262,7 +1332,13 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                   <span style={{ fontSize:12.5, color:C.navy, fontWeight: done ? 400 : 600, textDecoration: done ? "line-through" : "none", opacity: done ? 0.7 : 1 }}>{doc.title}{rowNotary && !done ? <span style={{ fontSize:10.5, color:"#8a6d1a", fontWeight:600 }}> · needs notary</span> : null}</span>
                   {doc.addedWhy && <span style={{ fontSize:10.5, color:C.slate, display:"block", marginTop:1, fontFamily:"sans-serif" }}>added because of: {doc.addedWhy}</span>}
                 </span>
-                <span style={{ fontSize:11, color: done ? C.green : C.brass, fontWeight:600, whiteSpace:"nowrap" }}>{done ? "Done" : rowNotary ? "Notarize offline" : "Sign →"}</span>
+                <span style={{ fontSize:11, color: done ? C.green : notMine ? C.slate : C.brass, fontWeight:600, whiteSpace:"nowrap" }}>{
+                  done ? "Done"
+                  : needsMySignature ? "Review & sign →"
+                  : notMine ? (rowSigner === "seller" ? "Seller \u2014 action required" : "Buyer \u2014 action required")
+                  : rowNotary ? (wetInk ? "Complete & attest" : "Notarize offline")
+                  : "Sign \u2192"
+                }</span>
               </button>
             );
           })}
@@ -1420,90 +1496,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginBottom:11, lineHeight:1.55 }}>
           This is the document that legally transfers the boat. Choose the version that fits your sale — you only need <b>one</b>. {documentedActive ? "Your vessel is Coast Guard documented, so the CG-1340 applies." : floridaActive ? "Florida\u2019s official 82050 is included." : ""}
         </div>
-        {/* ── HANDOVER ─────────────────────────────────────────────────────────
-            The title and the bill of sale are signed wet-ink, together, when the
-            money changes hands. The app cannot e-sign a state form, so it guides
-            the handover instead and records that it happened. */}
-        {(() => {
-          const setHand = (patch) => setData(d => ({ ...d, handover: { ...(d.handover || {}), ...patch } }));
-          const h = handover || {};
-          if (h.done) {
-            return (
-              <div style={{ background:"#f4f7f5", border:`1px solid ${C.green}`, borderRadius:8, padding:"12px 14px", marginBottom:11, fontFamily:"sans-serif" }}>
-                <div style={{ fontSize:12.5, fontWeight:800, color:C.green }}>✓ Handover complete</div>
-                <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:3 }}>
-                  {h.mode === "distance" ? "Title and bill of sale sent, received and confirmed." : "Signed in person — title and bill of sale handed over."}
-                  {h.by ? ` Confirmed by ${h.by}.` : ""}
-                </div>
-                <button onClick={()=>setHand({ done:false })}
-                  style={{ marginTop:8, background:"transparent", border:`1px solid ${C.mist}`, color:C.slate, borderRadius:14, padding:"5px 12px", fontSize:11, cursor:"pointer" }}>Undo</button>
-              </div>
-            );
-          }
-          if (!h.mode) {
-            return (
-              <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:8, padding:"13px 15px", marginBottom:11, fontFamily:"sans-serif" }}>
-                <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:3 }}>How will you hand the boat over?</div>
-                <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
-                  The title and the bill of sale are signed by hand, not in the app. Tell us how you&rsquo;re doing it and we&rsquo;ll set out the steps.
-                </div>
-                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-                  {[["person","🤝 Meeting in person"],["distance","📦 We won’t meet — by post"]].map(([v,lbl]) => (
-                    <button key={v} onClick={()=>setHand({ mode:v })}
-                      style={{ fontSize:12.5, padding:"9px 15px", borderRadius:18, cursor:"pointer", fontWeight:700, border:`1.5px solid ${C.mist}`, background:C.white, color:C.slate }}>{lbl}</button>
-                  ))}
-                </div>
-              </div>
-            );
-          }
-          const steps = h.mode === "person"
-            ? ["Seller brings the title, signed by every registered owner, and the completed bill of sale",
-               "Seller brings the lien release, if there was a loan on the boat",
-               "Buyer brings the balance in cleared funds",
-               "Sign the title and the bill of sale together, at the table",
-               "Seller hands over keys, title and paperwork; buyer hands over the money"]
-            : ["Seller signs the title and gets the bill of sale notarised",
-               "Seller photographs the signed title and posts both, tracked",
-               "Seller shares the photo and the tracking number in the deal",
-               "Buyer checks the bill of sale is notarised and the names match the title exactly",
-               "Buyer wires the balance and shares proof of payment",
-               "Buyer confirms the title arrived"];
-          return (
-            <div style={{ background:"#fffaf0", border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", marginBottom:11, fontFamily:"sans-serif" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:8, flexWrap:"wrap" }}>
-                <span style={{ fontSize:12.5, fontWeight:800, color:C.navy }}>
-                  {h.mode === "person" ? "🤝 Closing in person" : "📦 Closing by post"}
-                </span>
-                <button onClick={()=>setHand({ mode:null })}
-                  style={{ fontSize:11, background:"transparent", border:"none", color:C.slate, textDecoration:"underline", cursor:"pointer" }}>change</button>
-              </div>
-              {h.mode === "distance" && (
-                <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:5 }}>
-                  One of you has to go first, so do it in this order &mdash; the photo proves the title exists and is signed, the tracking proves it&rsquo;s on its way. An escrow service removes the risk entirely if you&rsquo;d rather not rely on it.
-                </div>
-              )}
-              <ol style={{ margin:"9px 0 0", paddingLeft:19, fontSize:12, color:C.slate, lineHeight:1.75 }}>
-                {steps.map((t,i) => <li key={i} style={{ marginBottom:3 }}>{t}</li>)}
-              </ol>
-              {h.mode === "distance" ? (
-                <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:11 }}>
-                  <button onClick={()=>setHand({ sellerSent:Date.now() })} disabled={!!h.sellerSent}
-                    style={{ ...S.btnBrass, fontSize:12.5, padding:"9px 16px", opacity:h.sellerSent?0.55:1 }}>
-                    {h.sellerSent ? "✓ Title posted" : "✓ I&rsquo;ve posted the title"}
-                  </button>
-                  <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, alignSelf:"center", lineHeight:1.5 }}>
-                    {h.buyerGot ? "The buyer has confirmed it arrived." : "The buyer confirms it arrived on their side."}
-                  </span>
-                </div>
-              ) : (
-                <button onClick={()=>setHand({ done:true, by:(myRole==="seller"?"the seller":"the buyer"), at:Date.now() })}
-                  style={{ ...S.btnBrass, marginTop:11, fontSize:12.5, padding:"9px 18px" }}>
-                  ✓ Done &mdash; we&rsquo;ve completed the handover
-                </button>
-              )}
-            </div>
-          );
-        })()}
+        {/* The handover question now lives on the Closing page, under Core Closing
+            Documents — it was being asked here long before anyone was closing.
+            The answer still drives the bill-of-sale gate below and the handover
+            box on Closing, both unchanged. */}
 
         {/* Optional: a few questions that produce a ranked set — the form the state
             wants first, then anything that sensibly goes alongside it. */}
@@ -1892,7 +1888,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                                     <label style={S.label}>Type your full legal name to sign electronically</label>
                                     <input style={S.input} placeholder="Full legal name" value={sigName[doc.id]||""} onChange={e=>setSigName(s=>({...s,[doc.id]:e.target.value}))}/>
                                   </div>
-                                  <button style={{...S.btnBrass, opacity:canSign?1:0.45, cursor:canSign?"pointer":"not-allowed"}} disabled={!canSign} onClick={()=>{ if(!sigMatchesName((sigName[doc.id]||"").trim(), myName)) return; const st=signedStamp(); setSigned(s=>({...s,[doc.id]:{name:sigName[doc.id],date:today(),at:st.at,when:st.when,consent:true,role:myRole}})); setAction(doc.id,"esign"); }}>Sign Document</button>
+                                  <button style={{...S.btnBrass, opacity:canSign?1:0.45, cursor:canSign?"pointer":"not-allowed"}} disabled={!canSign} onClick={()=>{ if(!sigMatchesName((sigName[doc.id]||"").trim(), myName)) return; const st=signedStamp(); setSigned(s=>{
+                                      const prev = s[doc.id];
+                                      const bothSigned = !!prev && prev.role && prev.role !== myRole;
+                                      return {...s,[doc.id]:{name: bothSigned ? `${prev.name} & ${sigName[doc.id]}` : sigName[doc.id], date:today(), at:st.at, when:st.when, consent:true, role:myRole, bothSigned, firstRole: prev?.role || myRole}};
+                                    }); setAction(doc.id,"esign"); }}>Sign Document</button>
                                 </div>
                                 {myName && typed && !nameOk && (
                                   <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:6, lineHeight:1.5 }}>Your signature must match your name on this deal: <b>{myName}</b>. To change it, update your name in the Parties step.</div>
