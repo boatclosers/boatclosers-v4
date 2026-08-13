@@ -6028,6 +6028,9 @@ export default function BoatClosers() {
   const [ddData, setDdData] = useState(emptyDD);
   const [docsData, setDocsData] = useState(emptyDocs);
   const [cancelModal, setCancelModal] = useState(false);
+  // When a guest is inside a finalized deal, how long they have left to download
+  // their documents. Set by the server; null for the initiator, who keeps it.
+  const [guestUntil, setGuestUntil] = useState(null);
   const [cancelReason, setCancelReason] = useState("");
   const [supportModal, setSupportModal] = useState(false);
   const [supportType, setSupportType] = useState("A conflict or disagreement with the other party");
@@ -6141,7 +6144,23 @@ export default function BoatClosers() {
             .then(data => {
               tokenRef.current = { token: session.token, refreshToken: session.refreshToken || null };
             setUser({ name: session.name, email: session.email, role: session.role, userId: session.userId, token: session.token, refreshToken: session.refreshToken || null });
+              // The server has closed this deal to them — cancelled, or their
+              // 60-day window after finalizing has passed. Clear the stored id so
+              // a stale tab or bookmark cannot keep pulling them back in.
+              if (data?.accessEnded) {
+                setDealId(null);
+                try {
+                  const raw = localStorage.getItem("bc_session");
+                  if (raw) { const ss = JSON.parse(raw); delete ss.dealId; localStorage.setItem("bc_session", JSON.stringify(ss)); }
+                } catch (e) {}
+                setScreen("landing");
+                setToast({ k: Date.now(), text: data.accessEnded === "canceled"
+                  ? "That deal was ended, so it's no longer open. You can start a deal of your own any time."
+                  : "Your access to that closed deal has ended. You can start a deal of your own any time." });
+                return;
+              }
               if (data?.deal) {
+                if (data.guestUntil) setGuestUntil(data.guestUntil);
                 setDealId(data.deal.id);
                 setMyDealRole(computeDealRole(data.deal, session.userId, session.role));
                 setPartyBJoined(!!(data.deal.other_party_id || data.deal.party_b_user_id));
@@ -6847,7 +6866,15 @@ export default function BoatClosers() {
           <div style={{ fontSize:14, fontWeight:800, color:"#0f6e56", marginBottom:3 }}>🔒 Deal Finalized &amp; Closed — permanent record</div>
           <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, maxWidth:600, margin:"0 auto" }}>
             Everything here is frozen: terms, documents, and signatures are final and can no longer be changed, added, or deleted. You can view and print any part of it as your record of the sale, but nothing can be edited.
+          
           </div>
+          {guestUntil && (
+            // The guest keeps 60 days to download. Saying so is the difference
+            // between them saving their bill of sale and losing it.
+            <div style={{ fontSize:12, color:"#0f6e56", fontWeight:700, marginTop:8, lineHeight:1.6, maxWidth:620, margin:"8px auto 0" }}>
+              You can open this deal until <b>{new Date(guestUntil).toLocaleDateString("en-US", { year:"numeric", month:"long", day:"numeric" })}</b> to download or print anything you need. Save your copies before then.
+            </div>
+          )}
         </div>
       )}
 
