@@ -5227,9 +5227,17 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
               {done
                 ? "Both sides have confirmed. Nothing further is needed here."
                 : <>These two are signed by hand, together, at the moment the money changes hands &mdash; not in the app. {isSeller
-                    ? "You choose how you're doing it on the Documents step."
-                    : "The seller sets this up on the Documents step; you'll both sign at the handover."}</>}
+                    ? "Tell us how you're handing over and we'll set out the steps."
+                    : "The seller sets this up; you'll both sign at the handover."}</>}
             </div>
+            {!done && isSeller && !h.mode && (
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:11 }}>
+                {[["person","\ud83e\udd1d Meeting in person"],["distance","\ud83d\udce6 We won\u2019t meet \u2014 by post"]].map(([v,lbl]) => (
+                  <button key={v} onClick={()=>setDocsData(d => ({ ...d, handover: { ...(d.handover || {}), mode: v } }))}
+                    style={{ fontSize:12.5, padding:"9px 15px", borderRadius:18, cursor:"pointer", fontWeight:700, border:`1.5px solid ${C.mist}`, background:C.white, color:C.slate, fontFamily:"sans-serif" }}>{lbl}</button>
+                ))}
+              </div>
+            )}
             {!done && (
               <>
                 <ol style={{ margin:"10px 0 0", paddingLeft:19, fontSize:12, color:C.slate, lineHeight:1.8 }}>
