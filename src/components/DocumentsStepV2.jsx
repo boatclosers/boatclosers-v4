@@ -1510,10 +1510,26 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginBottom:11, lineHeight:1.55 }}>
           This is the document that legally transfers the boat. Choose the version that fits your sale — you only need <b>one</b>. {documentedActive ? "Your vessel is Coast Guard documented, so the CG-1340 applies." : floridaActive ? "Florida\u2019s official 82050 is included." : ""}
         </div>
-        {/* The handover question now lives on the Closing page, under Core Closing
-            Documents — it was being asked here long before anyone was closing.
-            The answer still drives the bill-of-sale gate below and the handover
-            box on Closing, both unchanged. */}
+        {/* Back here, next to the document it belongs to. It went to Closing for a
+            day, and the box that carried it there has since been removed as
+            clutter — leaving nobody able to choose a handover method at all. */}
+        {!bosSigned && (
+          <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:7, padding:"11px 13px", marginBottom:11, fontFamily:"sans-serif" }}>
+            <div style={{ fontSize:12, fontWeight:800, color:C.navy, marginBottom:3 }}>How will you hand the boat over?</div>
+            <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginBottom:9 }}>
+              The title and the bill of sale are signed by hand, together, when the money changes hands &mdash; not in the app. Tell us how you&rsquo;re doing it and we&rsquo;ll set out the steps.
+            </div>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              {[["person","🤝 Meeting in person"],["distance","📦 We won’t meet — by post"]].map(([v,lbl]) => (
+                <button key={v} onClick={()=>setData(d => ({ ...d, handover: { ...(d.handover || {}), mode: v } }))}
+                  style={{ fontSize:12.5, padding:"8px 14px", borderRadius:18, cursor:"pointer", fontWeight:700,
+                    border:`1.5px solid ${(handover||{}).mode===v ? C.teal : C.mist}`,
+                    background: (handover||{}).mode===v ? C.teal : C.white,
+                    color: (handover||{}).mode===v ? "#fff" : C.slate }}>{lbl}</button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Optional: a few questions that produce a ranked set — the form the state
             wants first, then anything that sensibly goes alongside it. */}
