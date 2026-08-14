@@ -1040,7 +1040,23 @@ export async function POST(req: Request) {
           const b = inSigned[k]
           if (!a) { outSigned[k] = b; continue }
           // Keep whichever record shows both parties signed.
-          outSigned[k] = (b?.bothSigned && !a?.bothSigned) ? b : (a?.bothSigned ? a : b)
+          if (b?.bothSigned && !a?.bothSigned) { outSigned[k] = b; continue }
+          if (a?.bothSigned) { outSigned[k] = a; continue }
+          // Neither says both — but if they are from DIFFERENT parties, then between
+          // them both have now signed. Whichever browser was out of date, the record
+          // that reaches the database is complete.
+          if (a?.role && b?.role && a.role !== b.role) {
+            const first = Number(a.at || 0) <= Number(b.at || 0) ? a : b
+            const second = first === a ? b : a
+            outSigned[k] = {
+              ...second,
+              name: `${first.name} & ${second.name}`,
+              bothSigned: true,
+              firstRole: first.role,
+            }
+            continue
+          }
+          outSigned[k] = b
         }
         merged.signedDocs = outSigned
 
