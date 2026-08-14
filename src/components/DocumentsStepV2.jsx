@@ -443,7 +443,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       }
       return changed ? next : cur;
     });
-  }, [data.signedDocs]);
+    // Depend on the CONTENT, not the object reference. The persist effect writes
+    // our own object into data.signedDocs, so a poll that updates a value inside
+    // the same reference would otherwise never wake this up.
+  }, [JSON.stringify(data.signedDocs || {})]); // eslint-disable-line
   const [sigName, setSigName] = useState({});
 
   const [docAction, setDocAction] = useState({});
