@@ -2625,9 +2625,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:14, lineHeight:1.55, maxWidth:460, margin:"14px auto 0" }}>
             Your asking price of <b>{fmt(Number(vessel.askingPrice)) || "—"}</b> is set as the buyer's anchor. If you want to review or pre-set the full terms a buyer can offer against, you can open them below.
           </div>
-          <button onClick={()=>setShowBuilder(true)} style={{ ...S.btnOutline, fontSize:12.5, padding:"9px 18px", marginTop:12 }}>View / set full terms &amp; conflicts</button>
+
         </div>
-      ) : (!frozen && (offers.length === 0 || showBuilder)) ? (
+      ) : (!frozen && myRole !== "seller" && (offers.length === 0 || showBuilder)) ? (
       <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.brass}` }}>
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
           <div style={{ width:32, height:32, borderRadius:6, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>📝</div>
