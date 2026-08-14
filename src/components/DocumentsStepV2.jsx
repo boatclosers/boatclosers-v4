@@ -1411,10 +1411,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             // #4 — a both-sign document signed by ONE party is not finished. It
             // becomes the other party's task, said plainly, instead of leaving them
             // to work it out from a paragraph at the bottom of the page.
-            const otherSigned = !!sg && sg.role && sg.role !== mine;
-            const needsMySignature = rowSigner === "both" && otherSigned && (!sg || sg.role !== mine);
+            // bothSigned settles it: both parties have signed and nothing is
+            // outstanding, whichever role happens to be recorded last. Without
+            // this check the row asked the buyer to "Review & sign" a document
+            // they had already signed, purely because the seller signed second.
+            const rowBoth = !!sg && !!sg.bothSigned;
+            const otherSigned = !!sg && !rowBoth && sg.role && sg.role !== mine;
+            const needsMySignature = rowSigner === "both" && otherSigned;
             // I have signed but they have not — my part is done, the document is not.
-            const waitingOnThem = rowSigner === "both" && !!sg && !sg.bothSigned && sg.role === mine;
+            const waitingOnThem = rowSigner === "both" && !!sg && !rowBoth && sg.role === mine;
             const done = !!sg && !needsMySignature && !waitingOnThem;
             const wetInk = doc.completion === "wet";
             const notMine = rowSigner !== "both" && rowSigner !== mine;
