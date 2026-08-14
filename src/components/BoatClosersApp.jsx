@@ -1528,6 +1528,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // is on the record rather than a phone call neither side remembers the same way.
   const [askCoBroke, setAskCoBroke] = useState(!!data.askCoBroke);
   const [depositReceiptOpen, setDepositReceiptOpen] = useState(false);
+  // Optional reading for the seller, collapsed. Useful the first time, in the way.
+  const [cgGuideOpen, setCgGuideOpen] = useState(false);
   // Advancing with an unconfirmed deposit is allowed — someone paying through
   // Escrow.com, or still arranging it, must not be blocked — but not silently.
   const [depositAckOpen, setDepositAckOpen] = useState(false);
@@ -2450,10 +2452,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           inside the builder, so it now sits beside the button that opens it. */}
       {myRole === "seller" && offers.length > 0 && !frozen && !acceptedOffer && !conflictSent && (
         <button onClick={()=>setConflictOpen(true)}
-          style={{ width:"100%", fontSize:15, padding:"14px 12px", fontWeight:800, marginBottom:10, cursor:"pointer",
-            fontFamily:"sans-serif", borderRadius:8, background:C.white, color:"#8a5a12",
-            border:`2px solid ${C.brass}` }}>
-          ⚠️ Something in these terms doesn&rsquo;t work &mdash; tell the buyer &rarr;
+          style={{ fontSize:13, padding:"9px 16px", fontWeight:700, marginBottom:10, cursor:"pointer",
+            fontFamily:"sans-serif", borderRadius:20, background:C.white, color:C.navy,
+            border:`1px solid ${C.mist}` }}>
+          Ask the buyer to change something &rarr;
         </button>
       )}
       {/* The confirmation lived in the block that moved, so it moves with it. */}
@@ -2463,14 +2465,76 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         </div>
       )}
 
+      {/* Optional reading, collapsed. A seller deciding whether to accept needs to
+          know what each condition lets the buyer do — but not every time they open
+          the page. */}
+      {myRole === "seller" && offers.length > 0 && !frozen && !acceptedOffer && (() => {
+          const live = (() => {
+            const offs = (data.offers || []).filter(o => o && o.from !== "seller");
+            const last = offs.length ? offs[offs.length - 1] : null;
+            return Array.isArray(last?.contingencies) ? last.contingencies : [];
+          })();
+          const CG = [
+            ["survey", "Survey", "A marine surveyor inspects the boat. If it turns up something material the buyer didn't know about, they can walk away with their deposit, or come back and ask you to fix it or drop the price."],
+            ["personalInspection", "Personal Inspection", "The buyer looks the boat over themselves. Same effect as a survey \u2014 if what they find is materially different from what they were told, they can withdraw."],
+            ["seaTrial", "Sea Trial", "The boat goes out on the water. Engines, steering, electronics under load. If it doesn't run properly, the buyer can withdraw."],
+            ["financing", "Financing", "The buyer's loan has to be approved. If the lender declines, the deal ends and the deposit goes back \u2014 through no fault of yours. Worth asking how far along their approval already is."],
+            ["insurance", "Insurance", "The buyer has to be able to insure it. Cover can be refused outright on an older or wooden hull, on survey findings, or on an inexperienced buyer \u2014 and no lender funds without it."],
+            ["title", "Clear Title", "The title has to come back clean, with no liens attached. If there is a loan on the boat, it must be paid off and released before ownership can transfer."],
+          ];
+          const chosen = CG.filter(([k]) => live.includes(k));
+          const none = live.length === 0;
+                  return (
+          <div style={{ marginBottom:12 }}>
+            <button onClick={()=>setCgGuideOpen(o=>!o)}
+              style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, width:"100%", textAlign:"left",
+                background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius: cgGuideOpen ? "8px 8px 0 0" : 8, padding:"12px 14px", cursor:"pointer", fontFamily:"sans-serif" }}>
+              <span>
+                <span style={{ display:"block", fontSize:12.5, fontWeight:800, color:C.navy }}>
+                  {none ? "This offer has no contingencies" : "What the buyer\u2019s contingencies mean for you"}
+                </span>
+                <span style={{ display:"block", fontSize:11.5, color:C.slate, marginTop:2 }}>
+                  {none ? "Worth knowing before you decide \u2014 tap to see why." : `${chosen.length} condition${chosen.length === 1 ? "" : "s"} the buyer can withdraw under. Tap to see what each one means.`}
+                </span>
+              </span>
+              <span style={{ fontSize:12, fontWeight:800, color:C.teal, whiteSpace:"nowrap" }}>{cgGuideOpen ? "Hide \u25b2" : "Read \u25bc"}</span>
+            </button>
+            {cgGuideOpen && (
+
+            <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderTop:"none", borderRadius:"0 0 8px 8px", padding:"13px 15px" }}>
+              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7, fontFamily:"sans-serif" }}>
+                {none
+                  ? <>Nothing here lets the buyer walk away and keep their deposit. That is a stronger offer than one with conditions attached, and worth weighing against the price.</>
+                  : <>A contingency is a condition the buyer can withdraw under, with their deposit returned. The more of them, the more ways the deal can end. Here is what they have attached:</>}
+              </div>
+              {!none && (
+                <div style={{ marginTop:10 }}>
+                  {chosen.map(([k, name, what]) => (
+                    <div key={k} style={{ borderTop:`1px solid ${C.mist}`, paddingTop:8, marginTop:8, fontFamily:"sans-serif" }}>
+                      <div style={{ fontSize:12, fontWeight:800, color:C.navy }}>{name}</div>
+                      <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65, marginTop:2 }}>{what}</div>
+                    </div>
+                  ))}
+                  <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65, marginTop:10, paddingTop:8, borderTop:`1px solid ${C.mist}` }}>
+                    Each one is checked during due diligence, inside the window the offer sets. Once that window closes without the buyer raising anything, the contingency falls away and their deposit is at risk if they walk. <b>If one of these doesn&rsquo;t work for you, flag a conflict rather than rejecting the whole offer.</b>
+                  </div>
+                </div>
+              )}
+            </div>
+          
+            )}
+          </div>
+        );
+      })()}
+
       {/* ── EDIT FULL TERMS — opens the builder for contingencies, dates, deposit ── */}
-      {offers.length > 0 && !frozen && (
+      {offers.length > 0 && !frozen && myRole !== "seller" && (
         <button onClick={()=>{ if(!showBuilder && latestPendingTop){ counterOffer(latestPendingTop.id); } else { setShowBuilder(v=>!v); } }}
           style={showBuilder
             ? { ...S.btnOutline, width:"100%", fontSize:13, padding:"10px 0", fontWeight:700, marginBottom:16 }
             : { ...S.btnBrass, width:"100%", fontSize:16.5, fontWeight:800, padding:"15px 12px",
                 letterSpacing:0.2, marginBottom:16, boxShadow:"0 3px 10px rgba(184,134,58,0.35)" }}>
-          {showBuilder ? "✕ Close" : (myRole==="seller" ? "⚙️ See the buyer's full terms →" : "✏️ Counter with full terms — contingencies, dates, deposit →")}
+          {showBuilder ? "✕ Close" : ("✏️ Counter with full terms — contingencies, dates, deposit →")}
         </button>
       )}
 
@@ -2667,52 +2731,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             )}
           </div>
         </div>
-
-        {/* The seller was offered a whited-out copy of the buyer's builder — a form
-            they cannot touch. What they actually need before accepting is to know
-            what each contingency lets the buyer do, and what it means for them. */}
-        {myRole === "seller" && (() => {
-          const live = (() => {
-            const offs = (data.offers || []).filter(o => o && o.from !== "seller");
-            const last = offs.length ? offs[offs.length - 1] : null;
-            return Array.isArray(last?.contingencies) ? last.contingencies : [];
-          })();
-          const CG = [
-            ["survey", "Survey", "A marine surveyor inspects the boat. If it turns up something material the buyer didn't know about, they can walk away with their deposit, or come back and ask you to fix it or drop the price."],
-            ["personalInspection", "Personal Inspection", "The buyer looks the boat over themselves. Same effect as a survey \u2014 if what they find is materially different from what they were told, they can withdraw."],
-            ["seaTrial", "Sea Trial", "The boat goes out on the water. Engines, steering, electronics under load. If it doesn't run properly, the buyer can withdraw."],
-            ["financing", "Financing", "The buyer's loan has to be approved. If the lender declines, the deal ends and the deposit goes back \u2014 through no fault of yours. Worth asking how far along their approval already is."],
-            ["insurance", "Insurance", "The buyer has to be able to insure it. Cover can be refused outright on an older or wooden hull, on survey findings, or on an inexperienced buyer \u2014 and no lender funds without it."],
-            ["title", "Clear Title", "The title has to come back clean, with no liens attached. If there is a loan on the boat, it must be paid off and released before ownership can transfer."],
-          ];
-          const chosen = CG.filter(([k]) => live.includes(k));
-          const none = live.length === 0;
-          return (
-            <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:8, padding:"13px 15px", marginBottom:12 }}>
-              <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:4, fontFamily:"sans-serif" }}>
-                {none ? "This offer has no contingencies" : "What the buyer's contingencies mean for you"}
-              </div>
-              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7, fontFamily:"sans-serif" }}>
-                {none
-                  ? <>Nothing here lets the buyer walk away and keep their deposit. That is a stronger offer than one with conditions attached, and worth weighing against the price.</>
-                  : <>A contingency is a condition the buyer can withdraw under, with their deposit returned. The more of them, the more ways the deal can end. Here is what they have attached:</>}
-              </div>
-              {!none && (
-                <div style={{ marginTop:10 }}>
-                  {chosen.map(([k, name, what]) => (
-                    <div key={k} style={{ borderTop:`1px solid ${C.mist}`, paddingTop:8, marginTop:8, fontFamily:"sans-serif" }}>
-                      <div style={{ fontSize:12, fontWeight:800, color:C.navy }}>{name}</div>
-                      <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65, marginTop:2 }}>{what}</div>
-                    </div>
-                  ))}
-                  <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65, marginTop:10, paddingTop:8, borderTop:`1px solid ${C.mist}` }}>
-                    Each one is checked during due diligence, inside the window the offer sets. Once that window closes without the buyer raising anything, the contingency falls away and their deposit is at risk if they walk. <b>If one of these doesn&rsquo;t work for you, flag a conflict rather than rejecting the whole offer.</b>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })()}
 
         {/* The buyer's builder, hidden from the seller entirely — nothing opens it
             now, and a greyed-out form they cannot use was never useful to them. */}
