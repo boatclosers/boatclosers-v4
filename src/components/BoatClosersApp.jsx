@@ -2406,7 +2406,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             <h1 style={S.h1}>{myRole==="seller" ? "Review the Offer" : "Build Your Offer"}</h1>
             <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>{myRole==="seller"
               ? "Set your asking price, then review the buyer\u2019s offer when it arrives. You can accept it, counter on price, or flag a conflict on the terms. Free until you lock the deal."
-              : "Put together your price, deposit, and terms, send it to the other party, and negotiate until you agree. Free until you lock the deal."}</p>
+              : "Set your price and deposit \u2014 plus contingencies and dates if your deal needs them \u2014 and send it. The seller can accept, counter, or flag a conflict. It stays free until a full offer is accepted and you\u2019re ready to sign."}</p>
           </>
         )}
       </div>
@@ -2426,16 +2426,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             </div>
           </div>
         </div>
-      )}
-
-      {/* ── HOW IT WORKS (brief) — only while building the first offer ── */}
-      {offers.length === 0 && myRole!=="seller" && (
-      <div style={{ background:C.navy, borderRadius:8, padding:"13px 16px", marginBottom:16, display:"flex", gap:12, alignItems:"flex-start" }}>
-        <div style={{ fontSize:20, flexShrink:0 }}>🤝</div>
-        <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.78)", lineHeight:1.65 }}>
-          <b style={{ color:C.brass }}>Build your complete offer below</b> — price and deposit, plus contingencies and dates if your deal needs them. Send it to the other party; they can accept, counter, or reject. <b style={{ color:"#fff" }}>It's all free</b> — you only pay $249 once a full offer is accepted and you're ready to sign the Purchase Agreement.
-        </div>
-      </div>
       )}
 
       {/* ── YOUR POSITION + WHAT TO DO (Deal Room) ── */}
