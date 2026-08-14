@@ -405,6 +405,45 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       : {}),
   };
   const [signed, setSigned] = useState({ ..._paPrefill, ...(data.signedDocs||{}) });
+  // Signatures were only written to the deal when Proceed was pressed — and
+  // Proceed stays disabled until everything is signed. So nothing was ever saved,
+  // each browser kept its own copy, and neither side saw the other's signature.
+  // Every signature now persists the moment it is made.
+  const _sigFirst = useRef(true);
+  useEffect(() => {
+    if (_sigFirst.current) { _sigFirst.current = false; return; }
+    setData(d => {
+      const cur = d.signedDocs || {};
+      const same = Object.keys(signed).length === Object.keys(cur).length
+        && Object.keys(signed).every(k => {
+          const a = signed[k], b = cur[k];
+          return b && a.at === b.at && a.name === b.name && !!a.bothSigned === !!b.bothSigned;
+        });
+      return same ? d : { ...d, signedDocs: signed };
+    });
+  }, [signed]); // eslint-disable-line
+  // useState reads data.signedDocs ONCE. Polling brings the other party's
+  // signatures into data, but this local copy never saw them — so a document both
+  // parties had signed still read "waiting on the buyer" until the page was
+  // reloaded and the component remounted. Merge new arrivals in as they land.
+  useEffect(() => {
+    const incoming = data.signedDocs || {};
+    setSigned(cur => {
+      let changed = false;
+      const next = { ...cur };
+      for (const [id, rec] of Object.entries(incoming)) {
+        const mineRec = cur[id];
+        // Take the incoming record when we have none, or when it knows about a
+        // second signature that this copy does not.
+        if (!mineRec || (rec?.bothSigned && !mineRec?.bothSigned)
+            || (rec?.role && mineRec?.role && rec.role !== mineRec.role && !mineRec.bothSigned)) {
+          next[id] = rec?.bothSigned ? rec : { ...rec, ...(mineRec?.bothSigned ? mineRec : {}) };
+          changed = true;
+        }
+      }
+      return changed ? next : cur;
+    });
+  }, [data.signedDocs]);
   const [sigName, setSigName] = useState({});
 
   const [docAction, setDocAction] = useState({});
@@ -1953,8 +1992,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                                     <input style={S.input} placeholder="Full legal name" value={sigName[doc.id]||""} onChange={e=>setSigName(s=>({...s,[doc.id]:e.target.value}))}/>
                                   </div>
                                   <button style={{...S.btnBrass, opacity:canSign?1:0.45, cursor:canSign?"pointer":"not-allowed"}} disabled={!canSign} onClick={()=>{ if(!sigMatchesName((sigName[doc.id]||"").trim(), myName)) return; const st=signedStamp(); setSigned(s=>{
-                                      const prev = s[doc.id];
-                                      const bothSigned = !!prev && prev.role && prev.role !== myRole;
+                                      // Check the SAVED record too, not just this
+                                      // browser's copy — if the other party signed
+                                      // moments ago, local state may not have it yet
+                                      // and we would wrongly record bothSigned false.
+                                      const prev = s[doc.id] || (data.signedDocs || {})[doc.id];
+                                      const bothSigned = !!prev && ((prev.role && prev.role !== myRole) || !!prev.bothSigned);
                                       return {...s,[doc.id]:{name: bothSigned ? `${prev.name} & ${sigName[doc.id]}` : sigName[doc.id], date:today(), at:st.at, when:st.when, consent:true, role:myRole, bothSigned, firstRole: prev?.role || myRole}};
                                     }); setAction(doc.id,"esign"); }}>Sign Document</button>
                                 </div>
