@@ -874,11 +874,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     if (!sg) return false;
     return !sg.role || sg.role === _mine || !!sg.bothSigned;
   };
-  const allRequiredSigned = requiredDocs.filter(_isMine).every(_doneForMe) && bosSigned;
+  // Everything that can be signed IN THE APP is signed. The bill of sale is
+  // deliberately excluded: it is wet-ink at the handover, and holding the gate
+  // shut for it strands every deal at the last step.
+  const appDocsSigned = requiredDocs.filter(_isMine).every(_doneForMe);
+  const allRequiredSigned = appDocsSigned;
   // When the bill of sale is the only thing left, nothing has been neglected —
   // it is signed at the handover by design. Say so, rather than raising an alarm
   // and asking someone to acknowledge a failing that is not one.
-  const docsOnlyBos = !bosSigned && requiredDocs.filter(_isMine).every(_doneForMe);
+  const docsOnlyBos = !bosSigned && appDocsSigned;
   const reqMissing = requiredDocs.filter(d => _isMine(d) && !_doneForMe(d));
   const reqNotaryMissing = reqMissing.filter(d => (d.body||"").includes("Notary Acknowledgment"));
   // One built copy of each document per unique deal state. Handing React the very
@@ -2151,7 +2155,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         )}
         <div style={{ display:"flex", justifyContent:"space-between" }}>
           <button style={S.btnOutline} onClick={onBack}>← Back</button>
-          <button style={{...S.btnBrass, opacity:(allRequiredSigned||docsOnlyBos||closeAck)?1:0.45, cursor:(allRequiredSigned||docsOnlyBos||closeAck)?"pointer":"not-allowed"}} disabled={!allRequiredSigned && !docsOnlyBos && !closeAck} onClick={()=>{setData(d=>({...d,signedDocs:signed}));onNext();}}>
+          <button style={{...S.btnBrass, opacity:(allRequiredSigned||docsOnlyBos||closeAck)?1:0.45, cursor:(allRequiredSigned||docsOnlyBos||closeAck)?"pointer":"not-allowed"}} disabled={!allRequiredSigned && !docsOnlyBos && !closeAck} onClick={()=>{ onNext(); }}>
             {(allRequiredSigned || docsOnlyBos) ? "Proceed to Closing →" : "Proceed to Closing anyway →"}
           </button>
         </div>
