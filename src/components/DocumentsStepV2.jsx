@@ -1269,9 +1269,14 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 .bc-doc .reqtally b{color:${C.green}}
 .bc-doc .footer-flag{text-align:center;margin-top:24px;font-size:9px;color:${C.slate};letter-spacing:.12em;text-transform:uppercase;font-family:sans-serif}
 .bc-doc .val{font-weight:600;color:${C.navy}}
-.bc-docrow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.bc-docbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0}
-@media(max-width:640px){
+.bc-docrow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+/* The title must never be squeezed below a readable width — it wraps to its own
+   line before that happens. !important because the row's first child carries an
+   inline display:flex that would otherwise win. */
+.bc-docrow > div:first-child{flex:1 1 260px !important;min-width:240px !important}
+.bc-docbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex:0 1 auto;min-width:0}
+/* Below this the buttons get a full row of their own rather than competing. */
+@media(max-width:900px){
   .bc-docrow{flex-direction:column;gap:10px}
   .bc-docbtns{justify-content:flex-start;width:100%}
   .bc-docbtns button{flex:1 1 auto;justify-content:center;min-width:84px}
