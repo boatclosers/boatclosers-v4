@@ -1111,13 +1111,13 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     reader.onerror = () => { setUploadErr(e => ({ ...e, [docId]: "Couldn't read that file — please try a different one." })); };
     reader.readAsDataURL(file);
   };
-  const printDoc = (docId, title, retry, asPdf) => {
+  const printDoc = (docId, title, retry, asPdf, readOnly) => {
     const node = docId != null ? document.getElementById("bc-print-" + docId) : null;
     // If Print is tapped straight from the Fill In screen the finished document is
     // not on screen yet — switch to it, then print a moment later.
     if (!node && docId != null && !retry) {
       setDocAction(d => ({ ...d, [docId]: "view" }));
-      setTimeout(() => printDoc(docId, title, true, asPdf), 250);
+      setTimeout(() => printDoc(docId, title, true, asPdf, readOnly), 250);
       return;
     }
     if (!node) { window.print(); return; }
@@ -1148,6 +1148,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     );
     w.document.close();
     w.focus();
+    // Opened to read, not to print — leave the window and skip the dialogue.
+    if (readOnly) { try { w.document.title = String(title || "Document"); } catch (e) {} return; }
     setTimeout(function(){
       try {
         if (asPdf && w.document && w.document.body) {
@@ -1270,6 +1272,18 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   return (
     <div style={S.page}>
       <style>{docCSS}</style>
+      {/* This page runs to ten document groups. The only way back used to be a
+          thin "← Back" at the very bottom, so anyone deep in the list had no exit
+          on screen — which is why people were closing the tab instead. */}
+      <div style={{ position:"sticky", top:0, zIndex:40, background:C.sand, borderBottom:`1px solid ${C.mist}`,
+        margin:"-1rem -1rem 1rem", padding:"10px 1rem", display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
+        <button onClick={onBack}
+          style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:C.white,
+            border:`1.5px solid ${C.mist}`, borderRadius:16, padding:"7px 15px", cursor:"pointer", whiteSpace:"nowrap" }}>
+          &larr; Back to Due Diligence
+        </button>
+        <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate }}>Documents</span>
+      </div>
       <div style={{ marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div>
           <h1 style={S.h1}>Documents</h1>
@@ -1682,7 +1696,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                   </button>
                 ) : (
                 <div style={{ background:"#fcfaf4", borderRadius:8, border:`1px solid ${C.mist}`, padding:"12px 14px" }}>
-                  <button onClick={()=>setActiveDoc(null)} style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, background:"none", border:"none", cursor:"pointer", padding:"0 0 10px", fontWeight:700 }}>← Back to documents</button>
+                  {/* Plain grey text was too easy to miss with a long document
+                      filling the screen — people closed the tab instead. */}
+                  <button onClick={()=>setActiveDoc(null)} style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, background:C.white, border:`1.5px solid ${C.mist}`, borderRadius:16, cursor:"pointer", padding:"7px 15px", marginBottom:10, fontWeight:700 }}>&larr; Back to all documents</button>
                   <div className="bc-docrow">
                     <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
                       <div style={{ width:30, height:30, borderRadius:5, flexShrink:0, background: signed[doc.id] ? C.greenLight : C.sandDark, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>
@@ -1731,6 +1747,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                       })()}
                       {!frozen && doc.viewOnly && <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload a copy" color={C.slate} />}
                       {!frozen && !doc.viewOnly && <ActionBtn docId={doc.id} action="upload" icon="📎" label="Upload" color={C.slate} />}
+                      {/* Read it in its own tab — a 23-section agreement is easier
+                          to work through beside the deal than inside it. */}
+                      <button onClick={()=>printDoc(doc.id, doc.title, false, false, true)} title="Open this document in a new tab so you can read it alongside the deal"
+                        style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:"1.5px solid #e3ddd0", background:C.white, color:C.navy, whiteSpace:"nowrap" }}>
+                        <span style={{ fontSize:12 }}>⧉</span> New tab
+                      </button>
                       <button onClick={()=>printDoc(doc.id, doc.title, false, true)} title="Download a PDF copy to keep, email, or take to the closing"
                         style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:"1.5px solid #e3ddd0", background:C.white, color:C.navy, whiteSpace:"nowrap" }}>
                         <span style={{ fontSize:12 }}>⬇</span> PDF
@@ -1974,6 +1996,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                       )}
                     </div>
                   )}
+                  {/* A long document fills the screen and the only way back was at
+                      the very top, scrolled out of sight — people closed the tab. */}
+                  <button onClick={()=>setActiveDoc(null)}
+                    style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, background:C.white, border:`1.5px solid ${C.mist}`, borderRadius:16, cursor:"pointer", padding:"8px 16px", marginTop:14, fontWeight:700 }}>
+                    &larr; Back to all documents
+                  </button>
                 </div>
                 )}
                 {i<arr.length-1 && <hr style={{...S.divider, margin:0}}/>}
