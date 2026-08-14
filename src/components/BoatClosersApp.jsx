@@ -6142,6 +6142,14 @@ export default function BoatClosers() {
   const tokenRef = useRef({ token: null, refreshToken: null });
   const [savedOk, setSavedOk] = useState(false);
   const [booting, setBooting] = useState(true);
+  // After a few seconds of "Loading…", offer a way out rather than leaving
+  // someone staring at a screen with no controls on it.
+  const [bootStuck, setBootStuck] = useState(false);
+  useEffect(() => {
+    if (!booting) { setBootStuck(false); return; }
+    const t = setTimeout(() => setBootStuck(true), 6000);
+    return () => clearTimeout(t);
+  }, [booting]);
   const [showWelcome, setShowWelcome] = useState(false);
   // The logged-in user's role ON THIS SPECIFIC DEAL (buyer or seller),
   // computed from the deal's party columns — NOT their signup choice.
@@ -6830,6 +6838,19 @@ export default function BoatClosers() {
         <div style={{ textAlign:"center" }}>
           <div style={{ ...S.logo, fontSize:22 }}>BOATCLOSERS</div>
           <div style={{ ...S.logoSub, color:"rgba(255,255,255,0.35)" }}>Loading…</div>
+          {bootStuck && (
+            <div style={{ marginTop:22, fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:12.5, color:"rgba(255,255,255,0.6)", lineHeight:1.6, maxWidth:300, margin:"0 auto 12px" }}>
+                This is taking longer than it should. Your connection may have dropped.
+              </div>
+              <button onClick={()=>window.location.reload()}
+                style={{ ...S.btnBrass, fontSize:13, padding:"10px 20px", marginRight:8 }}>Try again</button>
+              <button onClick={()=>{ try { localStorage.removeItem("bc_session"); } catch (e) {} window.location.href = "/"; }}
+                style={{ fontSize:13, padding:"10px 20px", background:"transparent", color:"rgba(255,255,255,0.7)", border:"1px solid rgba(255,255,255,0.25)", borderRadius:8, cursor:"pointer", fontFamily:"sans-serif" }}>
+                Start over
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -6958,7 +6979,7 @@ export default function BoatClosers() {
           </div>
         </div>
       )}
-      <ProgressBar step={step} setStep={setStep} maxStep={maxStep} dealPaid={dealPaid}/>
+      <ProgressBar step={step} setStep={goToStep} maxStep={maxStep} dealPaid={dealPaid}/>
 
       {negotiate.dealFinalized && (
         <div style={{ background:C.greenLight, borderBottom:`2px solid ${C.green}`, padding:"12px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
