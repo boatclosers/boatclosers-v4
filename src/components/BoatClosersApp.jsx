@@ -2531,7 +2531,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             ? { ...S.btnOutline, width:"100%", fontSize:13, padding:"10px 0", fontWeight:700, marginBottom:16 }
             : { ...S.btnBrass, width:"100%", fontSize:16.5, fontWeight:800, padding:"15px 12px",
                 letterSpacing:0.2, marginBottom:16, boxShadow:"0 3px 10px rgba(184,134,58,0.35)" }}>
-          {showBuilder ? "✕ Close" : ("✏️ Counter with full terms — contingencies, dates, deposit →")}
+          {showBuilder ? "✕ Close" : "✏️ Change the terms →"}
         </button>
       )}
 
@@ -6515,7 +6515,30 @@ export default function BoatClosers() {
             prev = prev || {};
             return {
               ...sDocs, ...prev,
-              signedDocs: { ...(sDocs.signedDocs || {}), ...(prev.signedDocs || {}) },
+              // Local used to win every collision, so a browser holding
+              // {bothSigned:false} discarded the server's {bothSigned:true} the
+              // instant it arrived — the other party's signature was thrown away
+              // on every poll. Per record: keep whichever is further along.
+              signedDocs: (() => {
+                const sv = sDocs.signedDocs || {};
+                const lo = prev.signedDocs || {};
+                const out = { ...sv };
+                for (const k of Object.keys(lo)) {
+                  const a = sv[k], b = lo[k];
+                  if (!a) { out[k] = b; continue }
+                  if (a.bothSigned && !b.bothSigned) { out[k] = a; continue }   // server knows more
+                  if (b.bothSigned && !a.bothSigned) { out[k] = b; continue }   // we know more
+                  // Neither says both. Different parties means both have signed.
+                  if (a.role && b.role && a.role !== b.role) {
+                    const first = Number(a.at || 0) <= Number(b.at || 0) ? a : b;
+                    const second = first === a ? b : a;
+                    out[k] = { ...second, name: `${first.name} & ${second.name}`, bothSigned: true, firstRole: first.role };
+                    continue
+                  }
+                  out[k] = b;
+                }
+                return out;
+              })(),
               docChecks: { ...(sDocs.docChecks || {}), ...(prev.docChecks || {}) },
               docFields: { ...(sDocs.docFields || {}), ...(prev.docFields || {}) },
             };
