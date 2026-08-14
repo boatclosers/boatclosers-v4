@@ -1908,7 +1908,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                   {docAction[doc.id]==="esign" && (
                     <div style={{ marginTop:12, background:C.greenLight, border:`1px solid #a8d8b8`, borderRadius:6, padding:"14px" }}>
                       <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.green, marginBottom:10 }}>✏️ Electronic Signature — {doc.title}</div>
-                      {!signed[doc.id] || signed[doc.id].manual || signed[doc.id].uploaded ? (
+                      {(() => {
+                        const _sg = signed[doc.id];
+                        const _me = myRole === "seller" ? "seller" : "buyer";
+                        const _reqSig = (data.requiredList || []).find(x => x.id === doc.id)?.signer
+                          || (doc.signer === "dynamic" ? _me : (doc.signer || "both"));
+                        // My signature is outstanding unless I signed it, or both parties did.
+                        const _iSigned = !!_sg && (!_sg.role || _sg.role === _me || !!_sg.bothSigned);
+                        return (_reqSig === "both" ? !_iSigned : !_sg) || !_sg || _sg.manual || _sg.uploaded;
+                      })() ? (
                         <>
                           {/* E-Sign consent & disclosure */}
                           <div style={{ background:"#fffdf8", border:`1px solid ${C.mist}`, borderRadius:5, padding:"11px 13px", marginBottom:12 }}>
@@ -1953,7 +1961,14 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                           })()}
                         </>
                       ) : (
-                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Already signed by {signed[doc.id].name} on {signed[doc.id].when || signed[doc.id].date}</div>
+                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>
+                          ✓ Signed by {signed[doc.id].name} on {signed[doc.id].when || signed[doc.id].date}
+                          {signed[doc.id].role && !signed[doc.id].bothSigned && (
+                            <div style={{ color:C.brass, marginTop:4, fontWeight:700 }}>
+                              Waiting on the {signed[doc.id].role === "seller" ? "buyer" : "seller"} to sign it too.
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
