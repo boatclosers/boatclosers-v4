@@ -5190,17 +5190,6 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
       {/* ── FINAL PAYMENT SECTION ── */}
       {!isRejected && (
         <div style={{ marginBottom:20 }}>
-          {/* The one line worth keeping from the old closing-steps boxes, moved to
-              where the money is about to move rather than a checklist above. Wire
-              fraud is the single most expensive mistake available on this page. */}
-          <div style={{ background:"#fffaf0", border:`1.5px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", marginBottom:10, fontFamily:"sans-serif" }}>
-            <div style={{ fontSize:12.5, fontWeight:800, color:"#8a5a12", marginBottom:4 }}>Before you send anything, phone {isBuyer ? "the seller" : "the buyer"}</div>
-            <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7 }}>
-              {isBuyer
-                ? <>Confirm the account details <b>by voice</b>, on a number you already had &mdash; not one from the email carrying the instructions. Wire details intercepted or altered by email are how money disappears in a boat sale, and a wire is very hard to recover once sent.</>
-                : <>Give your account details <b>by voice</b>, and expect the buyer to call and confirm them before sending. If anyone emails changed instructions in your name, that is not you &mdash; tell the buyer to phone you before acting on anything.</>}
-            </div>
-          </div>
           <div
             onClick={()=>setPayMethodOpen(v=>!v)}
             style={{ display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer", background:C.navy, borderRadius: payMethodOpen ? "8px 8px 0 0" : 8, padding:"12px 16px" }}
@@ -5284,100 +5273,6 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
           )}
         </div>
       )}
-
-      {/* ── THE HANDOVER ────────────────────────────────────────────────────────
-          The title and the bill of sale are signed wet-ink, together, when the
-          money changes hands — the app cannot do that part. What it can do is set
-          out the sequence so neither side is exposed. */}
-      {!isRejected && (() => {
-        const h = (docsData && docsData.handover) || {};
-        const done = h.done === true || (h.mode === "distance" && h.sellerSent && h.buyerGot);
-        const isSeller = myRole === "seller";
-        const steps = h.mode === "distance"
-          ? ["Seller signs the title and gets the bill of sale notarised",
-             "Seller photographs the signed title and posts both, tracked",
-             "Seller shares the photo and the tracking number in the deal",
-             "Buyer checks the bill of sale is notarised and the names match the title exactly",
-             "Buyer wires the balance and shares proof of payment",
-             "Buyer confirms the title arrived"]
-          : ["Seller brings the title, signed by every registered owner, and the bill of sale",
-             "Seller brings the lien release, if there was a loan on the boat",
-             "Buyer brings the balance in cleared funds",
-             "Sign the title and the bill of sale together, at the table",
-             "Seller hands over keys, title and paperwork; buyer hands over the money"];
-        return (
-          <div style={{ background: done ? "#f4f7f5" : C.white, border:`1.5px solid ${done ? C.green : C.brass}`, borderRadius:9, padding:"14px 16px", marginBottom:20, fontFamily:"sans-serif" }}>
-            <div style={{ fontSize:13.5, fontWeight:800, color: done ? C.green : C.navy, marginBottom:4 }}>
-              {done ? "✓ Title and bill of sale handed over" : (h.mode === "distance" ? "📦 Handing over by post" : h.mode === "person" ? "🤝 Handing over in person" : "📜 The title and bill of sale")}
-            </div>
-            <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7 }}>
-              {done
-                ? "Both sides have confirmed. Nothing further is needed here."
-                : <>These two are signed by hand, together, at the moment the money changes hands &mdash; not in the app. {isSeller
-                    ? "Tell us how you're handing over and we'll set out the steps."
-                    : "The seller sets this up; you'll both sign at the handover."}</>}
-            </div>
-            {!done && isSeller && !h.mode && (
-              <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:11 }}>
-                {[["person","\ud83e\udd1d Meeting in person"],["distance","\ud83d\udce6 We won\u2019t meet \u2014 by post"]].map(([v,lbl]) => (
-                  <button key={v} onClick={()=>setDocsData(d => ({ ...d, handover: { ...(d.handover || {}), mode: v } }))}
-                    style={{ fontSize:12.5, padding:"9px 15px", borderRadius:18, cursor:"pointer", fontWeight:700, border:`1.5px solid ${C.mist}`, background:C.white, color:C.slate, fontFamily:"sans-serif" }}>{lbl}</button>
-                ))}
-              </div>
-            )}
-            {!done && (
-              <>
-                <ol style={{ margin:"10px 0 0", paddingLeft:19, fontSize:12, color:C.slate, lineHeight:1.8 }}>
-                  {steps.map((t,i) => <li key={i} style={{ marginBottom:2 }}>{t}</li>)}
-                </ol>
-                {h.mode === "distance" && (
-                  <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65, marginTop:9, background:"#fffaf0", border:`1px solid ${C.brass}`, borderRadius:7, padding:"10px 12px" }}>
-                    One of you has to go first, so do it in this order &mdash; the photo proves the title exists and is signed, the tracking proves it is on its way. An escrow service removes the risk entirely if you would rather not rely on it.
-                  </div>
-                )}
-                <button onClick={onBack}
-                  style={{ marginTop:11, background:"transparent", border:`1px solid ${C.mist}`, color:C.navy, borderRadius:16, padding:"7px 15px", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>
-                  Open it on the Documents step &rarr;
-                </button>
-              </>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* Document sections — the steps are handled by "Before you finalize" above,
-          which is the same list but tickable, so only the documents render here. */}
-      {closingDocSections.filter(sec => sec.heading !== "Final Actions").map((section, si) => (
-        <div key={si} style={{ marginBottom:16 }}>
-          <div style={{ display:"flex", alignItems:"baseline", gap:10, marginBottom:6 }}>
-            <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>{section.heading}</div>
-            {section.desc && <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>{section.desc}</div>}
-          </div>
-          <div style={S.card}>
-            {section.docs.map((doc, di) => {
-              const isComplete = doc.signed || (doc.manual && manualChecks[doc.manualKey]);
-              return (
-                <div key={doc.id} style={{ display:"flex", alignItems:"flex-start", gap:12, padding:"11px 0", borderBottom: di < section.docs.length-1 ? `1px solid ${C.mist}` : "none" }}>
-                  {doc.manual ? (
-                    <input type="checkbox" checked={!!manualChecks[doc.manualKey]} onChange={()=>toggleManual(doc.manualKey)}
-                      style={{ width:18, height:18, marginTop:2, cursor:"pointer", accentColor:C.navy, flexShrink:0 }} />
-                  ) : (
-                    <div style={{ width:20, height:20, borderRadius:"50%", background: isComplete ? C.green : C.mist, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginTop:2 }}>
-                      {isComplete ? <span style={{ color:"#fff", fontSize:11 }}>✓</span> : <span style={{ color:C.slate, fontSize:9 }}>–</span>}
-                    </div>
-                  )}
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:600, color: isComplete ? C.green : C.navy }}>{doc.label}</div>
-                    <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:2 }}>{doc.desc}</div>
-                    {!isComplete && !doc.manual && <div style={{ fontSize:10, fontFamily:"sans-serif", color:C.brass, marginTop:3 }}>→ Go to Documents step to sign</div>}
-                    {doc.manual && !manualChecks[doc.manualKey] && <div style={{ fontSize:10, fontFamily:"sans-serif", color:C.slate, marginTop:3 }}>Check when complete</div>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
 
       {/* Summary card */}
       <div style={{...S.card, background:C.navy, color:"#fff", marginTop:4}}>
