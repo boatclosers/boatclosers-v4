@@ -5035,7 +5035,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
       heading:"Rejection Documents",
       docs:[
         { id:"rejection", label:"Vessel Rejection Notice", desc:"Formally records buyer's rejection and reason. Required to release earnest money.", signed:!!docsData.signedDocs?.rejection },
-        { id:"deposit_receipt", label:"Deposit Receipt / Return Confirmation", desc:"Confirms the earnest money deposit amount to be returned to buyer.", signed:!!docsData.signedDocs?.deposit_receipt },
+        { id:"deposit_receipt", label:"Deposit Receipt / Return Confirmation", desc:"Confirms the earnest money deposit amount to be returned to buyer.", signed: sigStatus("deposit_receipt").done, waitingOn: sigStatus("deposit_receipt").waiting },
       ]
     }
   ] : [
@@ -5054,18 +5054,18 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
             })),
           ]
         : [
-        { id:"purchase_agreement",  label:"Purchase & Sale Agreement",   desc:"The main binding contract between buyer and seller.", signed:!!docsData.signedDocs?.purchase_agreement },
+        { id:"purchase_agreement",  label:"Purchase & Sale Agreement",   desc:"The main binding contract between buyer and seller.", signed: sigStatus("purchase_agreement").done, waitingOn: sigStatus("purchase_agreement").waiting },
         { id: bosSignedId || "bill_of_sale", label: bosSignedId ? BOS_LABELS[bosSignedId] : "Bill of Sale", desc: bosSignedId ? "Transfers legal ownership from seller to buyer." : "Transfers legal ownership. Pick the version that fits your sale on the Documents step.", signed: !!bosSignedId },
-        { id:"deposit_receipt",     label:"Earnest Money Deposit Receipt",desc:"Confirms earnest money received and how it applies to the price.", signed:!!docsData.signedDocs?.deposit_receipt },
-        { id:"as_is_acknowledgment",label:"As-Is Acknowledgment",        desc:"Buyer accepts the vessel in its present condition per the agreement.", signed:!!docsData.signedDocs?.as_is_acknowledgment },
-        { id:"closing_statement",   label:"Closing Statement",           desc:"Final figures: price, deposit credit, and balance due at closing.", signed:!!docsData.signedDocs?.closing_statement },
+        { id:"deposit_receipt",     label:"Earnest Money Deposit Receipt",desc:"Confirms earnest money received and how it applies to the price.", signed: sigStatus("deposit_receipt").done, waitingOn: sigStatus("deposit_receipt").waiting },
+        { id:"as_is_acknowledgment",label:"As-Is Acknowledgment",        desc:"Buyer accepts the vessel in its present condition per the agreement.", signed: sigStatus("as_is_acknowledgment").done, waitingOn: sigStatus("as_is_acknowledgment").waiting },
+        { id:"closing_statement",   label:"Closing Statement",           desc:"Final figures: price, deposit credit, and balance due at closing.", signed: sigStatus("closing_statement").done, waitingOn: sigStatus("closing_statement").waiting },
       ]
     },
     {
       heading:"Due-Diligence Outcome",
       desc:"The result of the survey and inspection period.",
       docs:[
-        { id:"acceptance", label:"Vessel Acceptance", desc:"Buyer's formal acceptance of the vessel after due diligence.", signed:!!docsData.signedDocs?.acceptance },
+        { id:"acceptance", label:"Vessel Acceptance", desc:"Buyer's formal acceptance of the vessel after due diligence.", signed: sigStatus("acceptance").done, waitingOn: sigStatus("acceptance").waiting },
       ]
     },
     {
@@ -5166,7 +5166,10 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
                       <span style={{ fontSize:12.5, color: d.signed ? C.slate : C.navy, display:"block", fontWeight: d.signed ? 400 : 600, textDecoration: d.signed ? "line-through" : "none" }}>{d.label}</span>
                       {d.desc && !d.signed && <span style={{ fontSize:11, color:C.slate, display:"block", marginTop:2, lineHeight:1.5 }}>{d.desc}</span>}
                     </span>
-                    <span style={{ fontSize:11, color: d.signed ? C.green : d.waitingOn ? C.brass : C.slate, whiteSpace:"nowrap", marginTop:2, fontWeight:600 }}>{d.signed ? "Confirmed" : d.waitingOn ? `Waiting on the ${d.waitingOn}` : "Tap to confirm"}</span>
+                    <span style={{ fontSize:11, color: d.signed ? C.green : d.waitingOn ? C.brass : C.slate, whiteSpace:"nowrap", marginTop:2, fontWeight:600 }}>{d.signed ? "Confirmed"
+                      : d.waitingOn === (isBuyer ? "buyer" : "seller") ? "Your signature"
+                      : d.waitingOn ? `Waiting on the ${d.waitingOn}`
+                      : "Tap to confirm"}</span>
                   </button>
                 ))}
               </div>
