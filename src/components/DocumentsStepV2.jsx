@@ -414,12 +414,26 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     if (_sigFirst.current) { _sigFirst.current = false; return; }
     setData(d => {
       const cur = d.signedDocs || {};
-      const same = Object.keys(signed).length === Object.keys(cur).length
-        && Object.keys(signed).every(k => {
-          const a = signed[k], b = cur[k];
-          return b && a.at === b.at && a.name === b.name && !!a.bothSigned === !!b.bothSigned;
-        });
-      return same ? d : { ...d, signedDocs: signed };
+      // MERGE, never replace. Writing the whole local object put this effect in a
+      // fight with the poll: the server's {bothSigned:true} arrived, this fired,
+      // and the stale local copy overwrote it again. Per record, keep whichever
+      // knows more.
+      const out = { ...cur };
+      let changed = false;
+      for (const k of Object.keys(signed)) {
+        const mine = signed[k], theirs = cur[k];
+        if (!theirs) { out[k] = mine; changed = true; continue; }
+        if (theirs.bothSigned && !mine.bothSigned) continue;              // saved knows more
+        if (mine.bothSigned && !theirs.bothSigned) { out[k] = mine; changed = true; continue; }
+        if (mine.role && theirs.role && mine.role !== theirs.role) {      // one each — both signed
+          const first = Number(theirs.at || 0) <= Number(mine.at || 0) ? theirs : mine;
+          const second = first === theirs ? mine : theirs;
+          out[k] = { ...second, name: `${first.name} & ${second.name}`, bothSigned: true, firstRole: first.role };
+          changed = true; continue;
+        }
+        if (mine.at !== theirs.at || mine.name !== theirs.name) { out[k] = mine; changed = true; }
+      }
+      return changed ? { ...d, signedDocs: out } : d;
     });
   }, [signed]); // eslint-disable-line
   // useState reads data.signedDocs ONCE. Polling brings the other party's
@@ -435,9 +449,14 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         const mineRec = cur[id];
         // Take the incoming record when we have none, or when it knows about a
         // second signature that this copy does not.
-        if (!mineRec || (rec?.bothSigned && !mineRec?.bothSigned)
-            || (rec?.role && mineRec?.role && rec.role !== mineRec.role && !mineRec.bothSigned)) {
-          next[id] = rec?.bothSigned ? rec : { ...rec, ...(mineRec?.bothSigned ? mineRec : {}) };
+        if (!mineRec) { next[id] = rec; changed = true; continue; }
+        if (rec?.bothSigned && !mineRec.bothSigned) { next[id] = rec; changed = true; continue; }
+        if (mineRec.bothSigned) continue;
+        // Different parties on each side means both have now signed.
+        if (rec?.role && mineRec.role && rec.role !== mineRec.role) {
+          const first = Number(rec.at || 0) <= Number(mineRec.at || 0) ? rec : mineRec;
+          const second = first === rec ? mineRec : rec;
+          next[id] = { ...second, name: `${first.name} & ${second.name}`, bothSigned: true, firstRole: first.role };
           changed = true;
         }
       }
