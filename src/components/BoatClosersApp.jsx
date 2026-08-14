@@ -3080,9 +3080,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 </span>
               )}
             </div>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:14 }}>Read top to bottom — buyer on the left, seller on the right.</div>
+            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:14 }}>Newest first — buyer on the left, seller on the right.</div>
 
-            {offers.map((o,i) => {
+            {[...offers].reverse().map((o,ri) => {
+              // ri walks the REVERSED list; i is the position in the real order, so
+              // the price-change arrow still compares against the offer before it.
+              const i = offers.length - 1 - ri;
               const isBuyer = o.from==="buyer";
               const prev = i>0 ? offers[i-1] : null;
               const delta = prev ? o.amount - prev.amount : 0;
@@ -3140,7 +3143,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                       {o.status==="accepted" && <span style={{...S.pill, background:C.green, color:"#fff"}}>Accepted ✓ — Purchase Agreement signed</span>}
                       {o.status==="agreed" && <span style={{...S.pill, background:"#166534", color:"#fff"}}>Price agreed ✓ — awaiting lock</span>}
                       {o.status==="rejected" && <span style={{...S.pill, background:C.red, color:"#fff"}}>Rejected</span>}
-                      {o.status==="countered" && <span style={{...S.pill, background:C.mist, color:C.slate}}>Countered — see newer offer below</span>}
+                      {o.status==="countered" && <span style={{...S.pill, background:C.mist, color:C.slate}}>Countered — see newer offer above</span>}
                       {isLatestPending && !frozen && oExpired ? (
                         <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.red, background:C.redLight, borderRadius:6, padding:"8px 12px", lineHeight:1.6 }}>
                           ⚠️ This offer expired. {o.from===myRole ? "Send a fresh offer above to keep the deal moving." : "It can no longer be accepted — send a counter-offer above to restart negotiation."}
