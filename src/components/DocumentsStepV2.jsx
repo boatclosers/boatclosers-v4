@@ -802,6 +802,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     const sg = signed[d.id];
     if (!sg) return false;
     if (_signerOf(d) !== "both") return true;
+    // A document both parties sign is not finished until both have. An older
+    // record with no role predates this and is treated as complete.
+    return !sg.role || !!sg.bothSigned;
+  };
+  // Have I personally signed it? Used to tell "waiting on them" apart from
+  // "waiting on me", so nobody is told to sign something twice.
+  const _signedByMe = (d) => {
+    const sg = signed[d.id];
+    if (!sg) return false;
     return !sg.role || sg.role === _mine || !!sg.bothSigned;
   };
   const allRequiredSigned = requiredDocs.filter(_isMine).every(_doneForMe) && bosSigned;
@@ -1334,7 +1343,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             // to work it out from a paragraph at the bottom of the page.
             const otherSigned = !!sg && sg.role && sg.role !== mine;
             const needsMySignature = rowSigner === "both" && otherSigned && (!sg || sg.role !== mine);
-            const done = !!sg && !needsMySignature;
+            // I have signed but they have not — my part is done, the document is not.
+            const waitingOnThem = rowSigner === "both" && !!sg && !sg.bothSigned && sg.role === mine;
+            const done = !!sg && !needsMySignature && !waitingOnThem;
             const wetInk = doc.completion === "wet";
             const notMine = rowSigner !== "both" && rowSigner !== mine;
             const rowNotary = wetInk || (doc.body||"").includes("Notary Acknowledgment");
@@ -1348,6 +1359,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                 </span>
                 <span style={{ fontSize:11, color: done ? C.green : notMine ? C.slate : C.brass, fontWeight:600, whiteSpace:"nowrap" }}>{
                   done ? "Done"
+                  : waitingOnThem ? `Signed \u2014 waiting on the ${mine === "seller" ? "buyer" : "seller"}`
                   : needsMySignature ? "Review & sign →"
                   : notMine ? (rowSigner === "seller" ? "Seller \u2014 action required" : "Buyer \u2014 action required")
                   : rowNotary ? (wetInk ? "Complete & attest" : "Notarize offline")
