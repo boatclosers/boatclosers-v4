@@ -5110,60 +5110,32 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
         const docsLeft  = all.filter(d => d && d.signed === false && !d.manual);
         const stepsLeft = all.filter(d => d && d.signed === false && d.manual);
         const stepsDone = all.filter(d => d && d.manual && d.signed);
-        const nothingLeft = !docsLeft.length && !stepsLeft.length;
+        const nothingLeft = !stepsLeft.length;
         return (
           <div style={{ background: nothingLeft ? "#f4f7f5" : "#fffaf0", border:`1.5px solid ${nothingLeft ? C.green : C.brass}`, borderRadius:9, marginBottom:20, overflow:"hidden" }}>
             <div style={{ padding:"13px 16px", borderBottom:`1px solid ${nothingLeft ? "#d7e5dc" : "#f0e2c8"}` }}>
               <div style={{ fontSize:13.5, fontFamily:"sans-serif", fontWeight:800, color: nothingLeft ? C.green : "#8a5a12" }}>
-                {nothingLeft ? "✓ Everything is done — you're ready to finalize" : `Before you finalize — ${docsLeft.length + stepsLeft.length} outstanding`}
+                {nothingLeft ? "✓ Every step confirmed — you're ready to finalize" : `Before you finalize — ${stepsLeft.length} step${stepsLeft.length === 1 ? "" : "s"} left`}
               </div>
               <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:3 }}>
                 {nothingLeft
-                  ? "Every document is signed and every step is confirmed. Finalizing will seal the record."
-                  : "You can still finalize without these — but once you do, nothing here can be signed or changed again."}
+                  ? "Every step is confirmed. Check your documents are all signed on the Documents step, then finalize to seal the record."
+                  : "Confirm each step as it happens. And before you finalize, go back to the Documents step and make sure everything there is signed \u2014 once you finalize, nothing can be signed or changed again."}
               </div>
             </div>
 
-            {docsLeft.length > 0 && (
-              <div>
-                <div style={{ padding:"9px 16px", background:"#fdf3e3", fontSize:10.5, fontFamily:"sans-serif", color:"#8a5a12", letterSpacing:0.5, textTransform:"uppercase", fontWeight:700 }}>
-                  Documents to sign &mdash; {docsLeft.length}
-                </div>
-                {docsLeft.map(d => (
-                  <div key={d.id} style={{ display:"flex", alignItems:"flex-start", gap:10, padding:"11px 16px", borderTop:`1px solid #f4e8d4`, fontFamily:"sans-serif", background:"#fff" }}>
-                    <span style={{ width:17, height:17, borderRadius:"50%", border:`1.5px solid ${C.brass}`, flexShrink:0, marginTop:2 }} />
-                    <span style={{ flex:1 }}>
-                      <span style={{ fontSize:12.5, color:C.navy, display:"block", fontWeight:600 }}>{d.label}</span>
-                      {d.desc && <span style={{ fontSize:11, color:C.slate, display:"block", marginTop:2, lineHeight:1.5 }}>{d.desc}</span>}
-                    </span>
-                    {/* A document I have already signed is not mine to sign again —
-                        telling me to "Sign" when I am waiting on the other party is
-                        how a one-sided deal looks finished. */}
-                    {d.waitingOn && d.waitingOn !== (isBuyer ? "buyer" : "seller") ? (
-                      <span style={{ fontSize:11.5, color:C.brass, whiteSpace:"nowrap", fontFamily:"sans-serif", fontWeight:700, padding:"6px 0" }}>
-                        Waiting on the {d.waitingOn}
-                      </span>
-                    ) : (
-                      <button onClick={()=>onOpenDoc ? onOpenDoc(d.id) : onBack()}
-                        style={{ fontSize:11.5, background:C.brass, border:"none", color:"#fff", borderRadius:14, padding:"6px 14px", cursor:"pointer", whiteSpace:"nowrap", fontFamily:"sans-serif", fontWeight:700 }}>Sign &rarr;</button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
             {(stepsLeft.length > 0 || stepsDone.length > 0) && (
               <div>
-                <div style={{ padding:"9px 16px", background:"#f5f0e8", fontSize:10.5, fontFamily:"sans-serif", color:C.slate, letterSpacing:0.5, textTransform:"uppercase", fontWeight:700 }}>
+                <div style={{ padding:"11px 16px", background:"#f5f0e8", fontSize:11.5, fontFamily:"sans-serif", color:C.slate, letterSpacing:0.5, textTransform:"uppercase", fontWeight:700 }}>
                   Steps to confirm &mdash; {stepsDone.length} of {stepsDone.length + stepsLeft.length} done
                 </div>
                 {[...stepsLeft, ...stepsDone].map(d => (
                   <button key={d.id} onClick={()=>toggleStep(d.id)}
                     style={{ display:"flex", alignItems:"flex-start", gap:10, width:"100%", textAlign:"left", padding:"11px 16px", borderTop:`1px solid ${C.sand}`, border:"none", borderTopWidth:1, borderTopStyle:"solid", background:"#fff", cursor:"pointer", fontFamily:"sans-serif" }}>
-                    <span style={{ width:17, height:17, borderRadius:4, flexShrink:0, marginTop:2, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:800,
+                    <span style={{ width:21, height:21, borderRadius:5, flexShrink:0, marginTop:1, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:800,
                       background: d.signed ? C.green : "transparent", color:"#fff", border: d.signed ? "none" : `1.5px solid ${C.mist}` }}>{d.signed ? "✓" : ""}</span>
                     <span style={{ flex:1 }}>
-                      <span style={{ fontSize:12.5, color: d.signed ? C.slate : C.navy, display:"block", fontWeight: d.signed ? 400 : 600, textDecoration: d.signed ? "line-through" : "none" }}>{d.label}</span>
+                      <span style={{ fontSize:13.5, color: d.signed ? C.slate : C.navy, display:"block", fontWeight: d.signed ? 400 : 600, textDecoration: d.signed ? "line-through" : "none" }}>{d.label}</span>
                       {d.desc && !d.signed && <span style={{ fontSize:11, color:C.slate, display:"block", marginTop:2, lineHeight:1.5 }}>{d.desc}</span>}
                     </span>
                     <span style={{ fontSize:11, color: d.signed ? C.green : d.waitingOn ? C.brass : C.slate, whiteSpace:"nowrap", marginTop:2, fontWeight:600 }}>{d.signed ? "Confirmed"
@@ -5174,6 +5146,18 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
                 ))}
               </div>
             )}
+            {/* Signing is tracked on the Documents step. This is the reminder to go
+                and look, at the moment it matters — once finalized nothing can be
+                signed. */}
+            <div style={{ borderTop:`1px solid ${nothingLeft ? "#d7e5dc" : "#f0e2c8"}`, padding:"13px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap" }}>
+              <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, flex:1, minWidth:200 }}>
+                <b style={{ color:C.navy }}>Have you both signed everything?</b> Finalizing is permanent &mdash; check the Documents step first.
+              </span>
+              <button onClick={onBack}
+                style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:C.white, border:`1.5px solid ${C.mist}`, borderRadius:16, padding:"8px 15px", cursor:"pointer", whiteSpace:"nowrap" }}>
+                Check the documents &rarr;
+              </button>
+            </div>
           </div>
         );
       })()}
@@ -5283,6 +5267,11 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
         <div style={{ fontSize:12, fontFamily:"sans-serif", lineHeight:2.2 }}>
           <div>⚓ <strong>Vessel:</strong> {vessel.year} {vessel.make} {vessel.model} — HIN {vessel.hin||"Not entered"}</div>
           <div>💰 <strong>Price:</strong> {fmt(_clTerms.price)}</div>
+          {/* The settlement figures — what the Closing Statement says, on the page
+              where the money actually moves. */}
+          {_clTerms.deposit > 0 && (
+            <div>💵 <strong>Deposit paid:</strong> {fmt(_clTerms.deposit)} &nbsp;·&nbsp; <strong>Balance due:</strong> {fmt(balanceDue)}</div>
+          )}
           <div>💳 <strong>Payment Method:</strong> {selectedMethod?.icon} {selectedMethod?.label}</div>
           <div>👤 <strong>Buyer:</strong> {parties.buyer.name||"—"} · {parties.buyer.email||"—"}</div>
           <div>👤 <strong>Seller:</strong> {parties.seller.name||"—"} · {parties.seller.email||"—"}</div>
