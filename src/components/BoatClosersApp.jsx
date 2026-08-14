@@ -1506,7 +1506,15 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
 function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiator, dealId, stripeReturn, onRefresh, refreshing, authedFetch, onNext, onBack }) {
   const [newMsg, setNewMsg] = useState("");
   const [offerAmt, setOfferAmt] = useState(data.currentOffer || "");
+  // The vessel is the single source of truth for the asking price — it is set on
+  // the Vessel step and nowhere else. This mirror exists only so the offer payload
+  // can record what the asking price WAS when the offer was made.
   const [askingPrice, setAskingPrice] = useState(vessel.askingPrice || data.askingPrice || "");
+  useEffect(() => {
+    if (vessel.askingPrice && String(vessel.askingPrice) !== String(askingPrice)) {
+      setAskingPrice(String(vessel.askingPrice));
+    }
+  }, [vessel.askingPrice]); // eslint-disable-line
   // Smart defaults: a first-time seller shouldn't have to KNOW what's normal.
   // 10% earnest money is the standard for private boat sales, and it's also what
   // switches on the whole deposit/secured-hold mechanic — leaving this at "None"
@@ -2378,17 +2386,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     <div style={S.page}>
       <TipBox tips={TIPS.negotiate} />
       <DealAssistant step="negotiate" role={myRole} vessel={vessel} />
-      <div style={{ display:"flex", alignItems:"center", gap:10, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12, flexWrap:"wrap" }}>
-        <span style={{ display:"inline-flex", alignItems:"center", gap:7 }}>
-          <span style={{ width:8, height:8, borderRadius:"50%", background:"#22a06b", display:"inline-block", flexShrink:0 }} />
-          Live — new offers, counters, and messages appear here automatically.
-        </span>
-        {onRefresh && (
-          <button onClick={onRefresh} disabled={refreshing} style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:"#eef4fb", border:`1px solid ${C.navy}`, borderRadius:14, padding:"4px 12px", cursor: refreshing ? "default" : "pointer", opacity: refreshing ? 0.6 : 1 }}>
-            {refreshing ? "Checking…" : "🔄 Check for new offers"}
-          </button>
-        )}
-      </div>
       <div style={{ marginBottom:"1.5rem" }}>
         {offers.length > 0 ? (
           <>
@@ -2666,7 +2663,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, background:C.sandDark, borderRadius:6, padding:"8px 12px", marginBottom:12, flexWrap:"wrap" }}>
             <label style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, fontWeight:600 }}>{myRole==="seller" ? "Your asking price" : "Asking price (reference)"}</label>
             <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-              <input style={{ ...S.input, width:130, textAlign:"right", padding:"6px 10px", fontSize:13, color:C.slate, background:"#fff", margin:0 }} type="number" value={askingPrice} onChange={e=>setAskingPrice(e.target.value)} placeholder={vessel.askingPrice||"85000"} />
+              {/* The asking price is the seller's, set on the Vessel step. It was an
+                  open input here — so the BUYER could edit the seller's asking price,
+                  which is not theirs to change. Shown, never edited. */}
+              <span style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif", color:C.navy, whiteSpace:"nowrap" }}>
+                {Number(vessel.askingPrice) > 0 ? fmt(Number(vessel.askingPrice)) : "\u2014"}
+              </span>
               {Number(askingPrice)>0 && myRole!=="seller" && (
                 <button type="button" onClick={()=>setOfferAmt(String(Number(askingPrice)))} style={{ background:C.navy, color:"#fff", border:"none", borderRadius:5, padding:"7px 12px", fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", whiteSpace:"nowrap" }}>
                   Offer full asking →
