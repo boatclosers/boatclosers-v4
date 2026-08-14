@@ -5017,6 +5017,18 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
     cg_1340:"U.S. Coast Guard Bill of Sale — CG-1340", uscg_transfer:"USCG Bill of Sale & Transfer",
   };
   const bosSignedId = BOS_VARIANTS.find(id => docsData.signedDocs?.[id]);
+  // Complete means EVERY required signature is in, not just mine. For a document
+  // both parties sign, one signature leaves it outstanding.
+  const _reqSigner = (id) => (docsData.requiredList || []).find(r => r.id === id)?.signer || "both";
+  const sigStatus = (id) => {
+    const sg = docsData.signedDocs?.[id];
+    if (!sg) return { done: false, waiting: null };
+    if (_reqSigner(id) !== "both") return { done: true, waiting: null };
+    if (sg.bothSigned) return { done: true, waiting: null };
+    // Only one side has signed it — say which side is still outstanding.
+    const signedBy = sg.role === "seller" ? "seller" : "buyer";
+    return { done: false, waiting: signedBy === "seller" ? "buyer" : "seller" };
+  };
 
   const closingDocSections = isRejected ? [
     {
@@ -5037,7 +5049,8 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
               id: r.id,
               label: r.label,
               desc: r.why ? `Added because of: ${r.why}.` : "",
-              signed: !!docsData.signedDocs?.[r.id],
+              signed: sigStatus(r.id).done,
+              waitingOn: sigStatus(r.id).waiting,
             })),
           ]
         : [
@@ -5123,8 +5136,17 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
                       <span style={{ fontSize:12.5, color:C.navy, display:"block", fontWeight:600 }}>{d.label}</span>
                       {d.desc && <span style={{ fontSize:11, color:C.slate, display:"block", marginTop:2, lineHeight:1.5 }}>{d.desc}</span>}
                     </span>
-                    <button onClick={()=>onOpenDoc ? onOpenDoc(d.id) : onBack()}
-                      style={{ fontSize:11.5, background:C.brass, border:"none", color:"#fff", borderRadius:14, padding:"6px 14px", cursor:"pointer", whiteSpace:"nowrap", fontFamily:"sans-serif", fontWeight:700 }}>Sign &rarr;</button>
+                    {/* A document I have already signed is not mine to sign again —
+                        telling me to "Sign" when I am waiting on the other party is
+                        how a one-sided deal looks finished. */}
+                    {d.waitingOn && d.waitingOn !== (isBuyer ? "buyer" : "seller") ? (
+                      <span style={{ fontSize:11.5, color:C.brass, whiteSpace:"nowrap", fontFamily:"sans-serif", fontWeight:700, padding:"6px 0" }}>
+                        Waiting on the {d.waitingOn}
+                      </span>
+                    ) : (
+                      <button onClick={()=>onOpenDoc ? onOpenDoc(d.id) : onBack()}
+                        style={{ fontSize:11.5, background:C.brass, border:"none", color:"#fff", borderRadius:14, padding:"6px 14px", cursor:"pointer", whiteSpace:"nowrap", fontFamily:"sans-serif", fontWeight:700 }}>Sign &rarr;</button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -5144,7 +5166,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
                       <span style={{ fontSize:12.5, color: d.signed ? C.slate : C.navy, display:"block", fontWeight: d.signed ? 400 : 600, textDecoration: d.signed ? "line-through" : "none" }}>{d.label}</span>
                       {d.desc && !d.signed && <span style={{ fontSize:11, color:C.slate, display:"block", marginTop:2, lineHeight:1.5 }}>{d.desc}</span>}
                     </span>
-                    <span style={{ fontSize:11, color: d.signed ? C.green : C.slate, whiteSpace:"nowrap", marginTop:2, fontWeight:600 }}>{d.signed ? "Confirmed" : "Tap to confirm"}</span>
+                    <span style={{ fontSize:11, color: d.signed ? C.green : d.waitingOn ? C.brass : C.slate, whiteSpace:"nowrap", marginTop:2, fontWeight:600 }}>{d.signed ? "Confirmed" : d.waitingOn ? `Waiting on the ${d.waitingOn}` : "Tap to confirm"}</span>
                   </button>
                 ))}
               </div>
