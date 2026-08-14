@@ -1524,7 +1524,6 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
   // Where the deposit is held is the buyer's call and the seller's to accept —
   // not something to pre-pick. Blank until chosen; the offer won't send without it.
   const [escrowPath, setEscrowPath] = useState(data.escrowPath || "");
-  const [sellerTermsOpen, setSellerTermsOpen] = useState(false);
   // Optional: put the unrepresented-buyer request in writing with the offer, so it
   // is on the record rather than a phone call neither side remembers the same way.
   const [askCoBroke, setAskCoBroke] = useState(!!data.askCoBroke);
@@ -2669,22 +2668,55 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </div>
         </div>
 
-        {/* Terms below are authored by the buyer — read-only for the seller. */}
-        {myRole==="seller" && (
-          <div style={{ background:"#f7fbfd", border:`1px solid ${C.mist}`, borderRadius:8, padding:"12px 14px", marginBottom:10, fontFamily:"sans-serif" }}>
-            <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:3 }}>The terms below belong to the buyer</div>
-            <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65 }}>
-              Dates, contingencies and deposit terms are the buyer&rsquo;s to write, so they are shown here for reference only. What you can do is <b>counter on price</b> above, or <b>flag a conflict</b> at the bottom if something in these terms does not work for you.
+        {/* The seller was offered a whited-out copy of the buyer's builder — a form
+            they cannot touch. What they actually need before accepting is to know
+            what each contingency lets the buyer do, and what it means for them. */}
+        {myRole === "seller" && (() => {
+          const live = (() => {
+            const offs = (data.offers || []).filter(o => o && o.from !== "seller");
+            const last = offs.length ? offs[offs.length - 1] : null;
+            return Array.isArray(last?.contingencies) ? last.contingencies : [];
+          })();
+          const CG = [
+            ["survey", "Survey", "A marine surveyor inspects the boat. If it turns up something material the buyer didn't know about, they can walk away with their deposit, or come back and ask you to fix it or drop the price."],
+            ["personalInspection", "Personal Inspection", "The buyer looks the boat over themselves. Same effect as a survey \u2014 if what they find is materially different from what they were told, they can withdraw."],
+            ["seaTrial", "Sea Trial", "The boat goes out on the water. Engines, steering, electronics under load. If it doesn't run properly, the buyer can withdraw."],
+            ["financing", "Financing", "The buyer's loan has to be approved. If the lender declines, the deal ends and the deposit goes back \u2014 through no fault of yours. Worth asking how far along their approval already is."],
+            ["insurance", "Insurance", "The buyer has to be able to insure it. Cover can be refused outright on an older or wooden hull, on survey findings, or on an inexperienced buyer \u2014 and no lender funds without it."],
+            ["title", "Clear Title", "The title has to come back clean, with no liens attached. If there is a loan on the boat, it must be paid off and released before ownership can transfer."],
+          ];
+          const chosen = CG.filter(([k]) => live.includes(k));
+          const none = live.length === 0;
+          return (
+            <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:8, padding:"13px 15px", marginBottom:12 }}>
+              <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:4, fontFamily:"sans-serif" }}>
+                {none ? "This offer has no contingencies" : "What the buyer's contingencies mean for you"}
+              </div>
+              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7, fontFamily:"sans-serif" }}>
+                {none
+                  ? <>Nothing here lets the buyer walk away and keep their deposit. That is a stronger offer than one with conditions attached, and worth weighing against the price.</>
+                  : <>A contingency is a condition the buyer can withdraw under, with their deposit returned. The more of them, the more ways the deal can end. Here is what they have attached:</>}
+              </div>
+              {!none && (
+                <div style={{ marginTop:10 }}>
+                  {chosen.map(([k, name, what]) => (
+                    <div key={k} style={{ borderTop:`1px solid ${C.mist}`, paddingTop:8, marginTop:8, fontFamily:"sans-serif" }}>
+                      <div style={{ fontSize:12, fontWeight:800, color:C.navy }}>{name}</div>
+                      <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65, marginTop:2 }}>{what}</div>
+                    </div>
+                  ))}
+                  <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65, marginTop:10, paddingTop:8, borderTop:`1px solid ${C.mist}` }}>
+                    Each one is checked during due diligence, inside the window the offer sets. Once that window closes without the buyer raising anything, the contingency falls away and their deposit is at risk if they walk. <b>If one of these doesn&rsquo;t work for you, flag a conflict rather than rejecting the whole offer.</b>
+                  </div>
+                </div>
+              )}
             </div>
-            <button type="button" onClick={()=>setSellerTermsOpen(o=>!o)}
-              style={{ marginTop:9, background:"transparent", border:`1px solid ${C.mist}`, color:C.navy, borderRadius:14, padding:"5px 13px", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>
-              {sellerTermsOpen ? "\u25b2 Hide the buyer\u2019s terms" : "\u25bc View the buyer\u2019s terms"}
-            </button>
-          </div>
-        )}
-        <div style={ myRole==="seller"
-          ? { pointerEvents:"none", opacity:0.6, display: sellerTermsOpen ? undefined : "none" }
-          : undefined }>
+          );
+        })()}
+
+        {/* The buyer's builder, hidden from the seller entirely — nothing opens it
+            now, and a greyed-out form they cannot use was never useful to them. */}
+        <div style={ myRole==="seller" ? { display:"none" } : undefined }>
 
         {/* 📅 Dates & Timeline — opt-in */}
         <OfferSection icon="📅" title="Dates &amp; Timeline" desc="The due-diligence window to inspect the boat and your target closing date. Leave these out for a simple, as-is cash deal you want to close fast." checked={inclDates} onToggle={()=>setInclDates(v=>!v)}>
