@@ -184,3 +184,18 @@ export default function Page() {
           </Link>
         </div>
       </main>
+
+      <footer
+        style={{
+          borderTop: `2px dashed ${gold}`,
+          padding: '28px 32px',
+          textAlign: 'center',
+          fontSize: 13,
+          opacity: 0.6,
+        }}
+      >
+        © {new Date().getFullYear()} BoatClosers · Private Vessel Transactions
+      </footer>
+    </div>
+  )
+}
