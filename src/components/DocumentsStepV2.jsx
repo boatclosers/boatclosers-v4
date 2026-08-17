@@ -220,7 +220,7 @@ function DocsAssistant({ C, myRole, seen, onSeen }) {
           </div>
           <ol style={{ margin:"11px 0 0", paddingLeft:19, fontSize:12.5, color:C.slate, lineHeight:1.75 }}>
             <li style={{ marginBottom:8 }}>
-              Start with <b>Required documents to sign</b>. That list is built for your transaction from your deal details and your answers. You are not expected to complete all 55 available documents &mdash; only the ones listed for your deal.
+              Start with <b>Required documents to sign</b>. That list is built for your transaction from your deal details and your answers. You are not expected to complete all 56 available documents &mdash; only the ones listed for your deal.
             </li>
             <li style={{ marginBottom:8 }}>
               Open each document, complete any gold-highlighted fields, and <b>E-Sign</b> it. The {isBuyer ? "seller" : "buyer"} signs their required documents separately. Once both parties have signed, both signatures appear on the completed document.
