@@ -339,20 +339,45 @@ async function notifyOnDealChange(previous: any, updated: any) {
       const recipients = [buyerEmail, sellerEmail].filter(Boolean)
       const paPdf = await buildPaPdfBase64(updated)
       const attachments = paPdf ? [{ filename: 'Purchase-Agreement.pdf', content: paPdf }] : undefined
+      // One email, worded for the reader. The signer gets confirmation; the party
+      // still to sign gets told plainly that the deal is frozen until they do —
+      // this is the step where deals stall, and nothing moves until both sign.
+      const bothHaveSigned = !!paAfter?.bothSigned
+      const signerRole = paAfter?.role === 'seller' ? 'seller' : 'buyer'
+      const signerEmail = signerRole === 'seller' ? sellerEmail : buyerEmail
       for (const email of recipients) {
+        const isSigner = !!email && email === signerEmail
+        const waitingOnMe = !bothHaveSigned && !isSigner
         await sendEmail({
           to: email,
-          subject: `${boat} — Purchase Agreement signed`,
+          subject: bothHaveSigned
+            ? `${boat} — Purchase Agreement signed by both parties`
+            : waitingOnMe
+              ? `${boat} — action needed: sign the Purchase Agreement`
+              : `${boat} — your signature is recorded`,
           attachments,
           html: emailLayout(`
-            <h2 style="color:#08152e; font-size:18px;">Purchase Agreement Signed</h2>
-            <p style="color:#475569; font-size:14px; line-height:1.5;">
-              The Purchase &amp; Sale Agreement for <strong>${vesselName}</strong> has been signed.
-              This is the binding contract for the deal.${paPdf ? ' A signed copy is attached to this email as a PDF.' : ''}
-            </p>
+            <h2 style="color:#08152e; font-size:18px;">${
+              bothHaveSigned ? 'Purchase Agreement signed by both parties'
+              : waitingOnMe ? 'The deal is waiting on your signature'
+              : 'Your signature is recorded'
+            }</h2>
+            ${bothHaveSigned ? `
+              <p style="color:#475569; font-size:14px; line-height:1.6;">
+                Both parties have now signed the Purchase &amp; Sale Agreement for <strong>${vesselName}</strong>. This is the binding contract for the deal.${paPdf ? ' A signed copy is attached as a PDF.' : ''}
+              </p>` : waitingOnMe ? `
+              <p style="color:#475569; font-size:14px; line-height:1.6;">
+                The ${signerRole} has signed the Purchase &amp; Sale Agreement for <strong>${vesselName}</strong>. It needs your signature too.
+              </p>
+              <div style="background:#fffaf0;border-left:3px solid #b8863a;padding:12px 14px;margin:14px 0;color:#8a5a12;font-size:13.5px;line-height:1.6;">
+                <strong>Nothing moves until you sign.</strong> The terms are not locked, the boat is not off the market, and due diligence cannot start. If you want a change before signing, say so in the deal rather than leaving it \u2014 the ${signerRole} is waiting either way.
+              </div>` : `
+              <p style="color:#475569; font-size:14px; line-height:1.6;">
+                Your signature on the Purchase &amp; Sale Agreement for <strong>${vesselName}</strong> is recorded.${paPdf ? ' A copy is attached as a PDF.' : ''} We have asked the other party to sign, and you will hear the moment they do.
+              </p>`}
             <p style="text-align:center; margin: 24px 0;">
               <a href="${dealLink(4, email)}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">
-                View the Agreement
+                ${waitingOnMe ? 'Sign the Purchase Agreement' : 'View the Agreement'}
               </a>
             </p>
           `)
