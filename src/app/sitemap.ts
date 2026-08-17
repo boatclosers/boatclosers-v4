@@ -7,6 +7,7 @@ const guides = [
   'documents-needed-private-boat-sale',
   'boat-deposit-and-escrow',
   'boat-bill-of-sale',
+  'marine-survey-what-it-covers',
 ]
 
 export default function sitemap(): MetadataRoute.Sitemap {
