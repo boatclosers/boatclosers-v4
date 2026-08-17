@@ -6,11 +6,11 @@ export const metadata: Metadata = {
   description:
     'How deposits and escrow protect both the buyer and the seller in a private boat sale, when a deposit is refundable, and why holding funds yourself is a mistake.',
   alternates: {
-    canonical: 'https://boatclosers.com/guides/boat-deposit-and-escrow',
+    canonical: 'https://www.boatclosers.com/guides/boat-deposit-and-escrow',
   },
   openGraph: {
     type: 'article',
-    url: 'https://boatclosers.com/guides/boat-deposit-and-escrow',
+    url: 'https://www.boatclosers.com/guides/boat-deposit-and-escrow',
     title: 'Why Every Private Boat Deal Needs a Deposit and Escrow',
     description:
       'How deposits and escrow protect both sides in a private boat sale.',
