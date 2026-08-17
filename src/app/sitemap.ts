@@ -4,10 +4,13 @@ const BASE = 'https://www.boatclosers.com'
 
 const guides = [
   'sell-a-boat-without-a-broker',
+  'how-to-negotiate-boat-purchase',
+  'marine-survey-what-it-covers',
+  'boat-survey-came-back-bad',
+  'seller-due-diligence-boat-sale',
   'documents-needed-private-boat-sale',
   'boat-deposit-and-escrow',
   'boat-bill-of-sale',
-  'marine-survey-what-it-covers',
 ]
 
 export default function sitemap(): MetadataRoute.Sitemap {
