@@ -49,20 +49,33 @@ export default function Page() {
             PRIVATE VESSEL TRANSACTIONS
           </div>
         </Link>
-        <Link
-          href="/"
-          style={{
-            background: gold,
-            color: navy,
-            padding: '12px 26px',
-            borderRadius: 4,
-            fontWeight: 700,
-            textDecoration: 'none',
-            fontSize: 15,
-          }}
-        >
-          Get Started
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <Link
+            href="/guides"
+            style={{
+              color: cream,
+              textDecoration: 'none',
+              fontSize: 15,
+              opacity: 0.85,
+            }}
+          >
+            Guides
+          </Link>
+          <Link
+            href="/"
+            style={{
+              background: gold,
+              color: navy,
+              padding: '12px 26px',
+              borderRadius: 4,
+              fontWeight: 700,
+              textDecoration: 'none',
+              fontSize: 15,
+            }}
+          >
+            Get Started
+          </Link>
+        </div>
       </header>
 
       <article
@@ -146,7 +159,11 @@ export default function Page() {
           The seller should affirm in writing that the vessel is free of liens and
           encumbrances, and that the seller has the legal right to sell it. If a lien
           exists and is being paid off at closing, say so explicitly and attach the
-          release from the lienholder.
+          release from the lienholder. The lien release is one of the{' '}
+          <Link href="/guides/documents-needed-private-boat-sale" style={{ color: gold }}>
+            four documents every private sale needs
+          </Link>
+          .
         </p>
         <p>
           A buyer who takes delivery on a verbal assurance that the loan is handled
@@ -177,6 +194,18 @@ export default function Page() {
           document the vessel. The seller needs it to prove the boat left their
           ownership on a specific date, which is the document that ends their
           liability for anything that happens on the water afterward.
+        </p>
+        <p>
+          The bill of sale is signed at closing, after the deposit and survey stages
+          are behind you. See{' '}
+          <Link href="/guides/boat-deposit-and-escrow" style={{ color: gold }}>
+            how deposits and escrow work
+          </Link>{' '}
+          and the full{' '}
+          <Link href="/guides/sell-a-boat-without-a-broker" style={{ color: gold }}>
+            private sale process from listing to closing
+          </Link>
+          .
         </p>
 
         <div
