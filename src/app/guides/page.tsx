@@ -4,7 +4,7 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'Private Boat Sale Guides',
   description:
-    'Practical guides to buying and selling a boat privately: required documents, deposits and escrow, marine surveys, bill of sale requirements, and how to close without a broker.',
+    'Practical guides to buying and selling a boat privately: negotiation, marine surveys, buyer and seller due diligence, required documents, deposits and escrow, and closing without a broker.',
   alternates: {
     canonical: 'https://www.boatclosers.com/guides',
   },
@@ -29,10 +29,28 @@ const guides = [
       'The full process end to end: pricing against real sold comps, gathering paperwork before you list, filtering serious buyers, and closing in the right order.',
   },
   {
+    slug: 'how-to-negotiate-boat-purchase',
+    title: 'How to Negotiate a Private Boat Purchase',
+    blurb:
+      'Why you should see the vessel before you make a real offer, how to anchor on sold prices, and why the survey is your second negotiation.',
+  },
+  {
     slug: 'marine-survey-what-it-covers',
     title: 'What a Marine Survey Covers and What It Costs',
     blurb:
       'What the surveyor actually inspects, what it costs, why the haul-out and sea trial are not optional, and how to read the report you get back.',
+  },
+  {
+    slug: 'boat-survey-came-back-bad',
+    title: 'What to Do When a Boat Survey Comes Back Bad',
+    blurb:
+      'How to sort the findings, get real repair numbers, and decide whether to renegotiate, require repairs, or withdraw and recover your deposit.',
+  },
+  {
+    slug: 'seller-due-diligence-boat-sale',
+    title: 'Seller Due Diligence: What You Owe the Buyer and What Protects You',
+    blurb:
+      'Verify your own title and payoff before you list, know what you must disclose, vet the buyer, and protect yourself after the boat leaves the dock.',
   },
   {
     slug: 'documents-needed-private-boat-sale',
