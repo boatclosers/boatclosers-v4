@@ -49,20 +49,33 @@ export default function Page() {
             PRIVATE VESSEL TRANSACTIONS
           </div>
         </Link>
-        <Link
-          href="/"
-          style={{
-            background: gold,
-            color: navy,
-            padding: '12px 26px',
-            borderRadius: 4,
-            fontWeight: 700,
-            textDecoration: 'none',
-            fontSize: 15,
-          }}
-        >
-          Get Started
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <Link
+            href="/guides"
+            style={{
+              color: cream,
+              textDecoration: 'none',
+              fontSize: 15,
+              opacity: 0.85,
+            }}
+          >
+            Guides
+          </Link>
+          <Link
+            href="/"
+            style={{
+              background: gold,
+              color: navy,
+              padding: '12px 26px',
+              borderRadius: 4,
+              fontWeight: 700,
+              textDecoration: 'none',
+              fontSize: 15,
+            }}
+          >
+            Get Started
+          </Link>
+        </div>
       </header>
 
       <article
@@ -109,8 +122,11 @@ export default function Page() {
           The bill of sale is the proof of transfer. It names buyer and seller,
           identifies the vessel by hull identification number, states the purchase
           price, and is signed at closing. Many states require it to be notarized
-          before the title office will accept it. This is the document that makes the
-          boat legally yours.
+          before the title office will accept it. See{' '}
+          <Link href="/guides/boat-bill-of-sale" style={{ color: gold }}>
+            what a bill of sale must include to hold up
+          </Link>
+          .
         </p>
 
         <h3 style={{ fontSize: 21, marginTop: 32, marginBottom: 8 }}>3. Title or Documentation</h3>
@@ -154,12 +170,21 @@ export default function Page() {
           The sequence protects both sides. Purchase agreement first, so the terms are
           fixed. Deposit into escrow second, so the buyer is committed and the seller
           stops showing the boat. Survey and contingency period third. Then the bill
-          of sale, title transfer, and release of funds together at closing.
+          of sale, title transfer, and release of funds together at closing. More on{' '}
+          <Link href="/guides/boat-deposit-and-escrow" style={{ color: gold }}>
+            how deposits and escrow protect both sides
+          </Link>
+          .
         </p>
         <p>
           Sellers who hand over a signed title before funds clear, and buyers who wire
           money before the lien is released, are the two most common ways a private
-          boat deal turns into a lawsuit.
+          boat deal turns into a lawsuit. If you are handling the whole sale yourself,
+          start with our{' '}
+          <Link href="/guides/sell-a-boat-without-a-broker" style={{ color: gold }}>
+            step-by-step guide to selling without a broker
+          </Link>
+          .
         </p>
 
         <div
