@@ -49,20 +49,33 @@ export default function Page() {
             PRIVATE VESSEL TRANSACTIONS
           </div>
         </Link>
-        <Link
-          href="/"
-          style={{
-            background: gold,
-            color: navy,
-            padding: '12px 26px',
-            borderRadius: 4,
-            fontWeight: 700,
-            textDecoration: 'none',
-            fontSize: 15,
-          }}
-        >
-          Get Started
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <Link
+            href="/guides"
+            style={{
+              color: cream,
+              textDecoration: 'none',
+              fontSize: 15,
+              opacity: 0.85,
+            }}
+          >
+            Guides
+          </Link>
+          <Link
+            href="/"
+            style={{
+              background: gold,
+              color: navy,
+              padding: '12px 26px',
+              borderRadius: 4,
+              fontWeight: 700,
+              textDecoration: 'none',
+              fontSize: 15,
+            }}
+          >
+            Get Started
+          </Link>
+        </div>
       </header>
 
       <article
@@ -136,7 +149,11 @@ export default function Page() {
         <p>
           If there is a lien on the boat, contact the lender now and find out exactly
           what their payoff and release process requires. That single phone call
-          prevents the most common closing delay in private vessel sales.
+          prevents the most common closing delay in private vessel sales. Our{' '}
+          <Link href="/guides/documents-needed-private-boat-sale" style={{ color: gold }}>
+            full document checklist
+          </Link>{' '}
+          covers everything you should have on hand.
         </p>
 
         <h2 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 28, marginTop: 52 }}>
@@ -165,6 +182,13 @@ export default function Page() {
           poorly. Every one of those becomes a dispute later if it is not settled
           first.
         </p>
+        <p>
+          The deposit is what turns the conversation into a commitment. See{' '}
+          <Link href="/guides/boat-deposit-and-escrow" style={{ color: gold }}>
+            why every private boat deal needs a deposit and escrow
+          </Link>
+          .
+        </p>
 
         <h2 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 28, marginTop: 52 }}>
           Step five: expect a survey, and expect a renegotiation
@@ -187,62 +211,4 @@ export default function Page() {
         </h2>
         <p>
           At closing, the balance of funds, the signed bill of sale, the lien release,
-          and the title transfer all move together. Never sign over a title before
-          funds have cleared, and never accept a personal check as final payment on a
-          vessel of any real value.
-        </p>
-        <p>
-          After closing, file the transfer with your state agency or the Coast Guard,
-          cancel your insurance and registration, and keep a signed copy of every
-          document. The paperwork is what proves the boat is no longer your liability.
-        </p>
-
-        <div
-          style={{
-            marginTop: 60,
-            padding: 36,
-            border: `1px solid ${gold}`,
-            borderRadius: 6,
-            background: 'rgba(201,150,46,0.07)',
-          }}
-        >
-          <h3 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 24, marginTop: 0 }}>
-            The structure of a broker-assisted deal, without the commission
-          </h3>
-          <p style={{ marginBottom: 26 }}>
-            BoatClosers guides a private buyer and seller through every step above:
-            deposit-backed offers, organized negotiation, secure escrow, and 56
-            professional documents generated and ready to sign. Flat $249, paid only
-            when you are ready to sign.
-          </p>
-          <Link
-            href="/"
-            style={{
-              display: 'inline-block',
-              background: gold,
-              color: navy,
-              padding: '14px 32px',
-              borderRadius: 4,
-              fontWeight: 700,
-              textDecoration: 'none',
-            }}
-          >
-            Start Your Deal
-          </Link>
-        </div>
-      </article>
-
-      <footer
-        style={{
-          borderTop: `2px dashed ${gold}`,
-          padding: '28px 32px',
-          textAlign: 'center',
-          fontSize: 13,
-          opacity: 0.6,
-        }}
-      >
-        © {new Date().getFullYear()} BoatClosers · Private Vessel Transactions
-      </footer>
-    </div>
-  )
-}
+          and
