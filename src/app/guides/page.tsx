@@ -4,7 +4,7 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'Private Boat Sale Guides',
   description:
-    'Practical guides to buying and selling a boat privately: required documents, deposits and escrow, bill of sale requirements, and how to close without a broker.',
+    'Practical guides to buying and selling a boat privately: required documents, deposits and escrow, marine surveys, bill of sale requirements, and how to close without a broker.',
   alternates: {
     canonical: 'https://www.boatclosers.com/guides',
   },
@@ -27,6 +27,12 @@ const guides = [
     title: 'How to Sell a Boat Privately Without a Broker',
     blurb:
       'The full process end to end: pricing against real sold comps, gathering paperwork before you list, filtering serious buyers, and closing in the right order.',
+  },
+  {
+    slug: 'marine-survey-what-it-covers',
+    title: 'What a Marine Survey Covers and What It Costs',
+    blurb:
+      'What the surveyor actually inspects, what it costs, why the haul-out and sea trial are not optional, and how to read the report you get back.',
   },
   {
     slug: 'documents-needed-private-boat-sale',
