@@ -184,3 +184,47 @@ export default function Page() {
             marginTop: 60,
             padding: 36,
             border: `1px solid ${gold}`,
+            borderRadius: 6,
+            background: 'rgba(201,150,46,0.07)',
+          }}
+        >
+          <h3 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 24, marginTop: 0 }}>
+            Generated correctly, every time
+          </h3>
+          <p style={{ marginBottom: 26 }}>
+            BoatClosers generates the bill of sale and 55 other professional documents
+            from your deal details, with the right variant for your vessel type and
+            state. Deposit-backed offers and secure escrow included. Flat $249, paid
+            only when you are ready to sign.
+          </p>
+          <Link
+            href="/"
+            style={{
+              display: 'inline-block',
+              background: gold,
+              color: navy,
+              padding: '14px 32px',
+              borderRadius: 4,
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            Start Your Deal
+          </Link>
+        </div>
+      </article>
+
+      <footer
+        style={{
+          borderTop: `2px dashed ${gold}`,
+          padding: '28px 32px',
+          textAlign: 'center',
+          fontSize: 13,
+          opacity: 0.6,
+        }}
+      >
+        © {new Date().getFullYear()} BoatClosers · Private Vessel Transactions
+      </footer>
+    </div>
+  )
+}
