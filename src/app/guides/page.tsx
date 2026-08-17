@@ -76,20 +76,33 @@ export default function Page() {
             PRIVATE VESSEL TRANSACTIONS
           </div>
         </Link>
-        <Link
-          href="/"
-          style={{
-            background: gold,
-            color: navy,
-            padding: '12px 26px',
-            borderRadius: 4,
-            fontWeight: 700,
-            textDecoration: 'none',
-            fontSize: 15,
-          }}
-        >
-          Get Started
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <Link
+            href="/guides"
+            style={{
+              color: cream,
+              textDecoration: 'none',
+              fontSize: 15,
+              opacity: 0.85,
+            }}
+          >
+            Guides
+          </Link>
+          <Link
+            href="/"
+            style={{
+              background: gold,
+              color: navy,
+              padding: '12px 26px',
+              borderRadius: 4,
+              fontWeight: 700,
+              textDecoration: 'none',
+              fontSize: 15,
+            }}
+          >
+            Get Started
+          </Link>
+        </div>
       </header>
 
       <main
