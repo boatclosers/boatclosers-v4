@@ -211,4 +211,66 @@ export default function Page() {
         </h2>
         <p>
           At closing, the balance of funds, the signed bill of sale, the lien release,
-          and
+          and the title transfer all move together. Never sign over a title before
+          funds have cleared, and never accept a personal check as final payment on a
+          vessel of any real value. The{' '}
+          <Link href="/guides/boat-bill-of-sale" style={{ color: gold }}>
+            bill of sale has to include specific elements
+          </Link>{' '}
+          to hold up at the title office.
+        </p>
+        <p>
+          After closing, file the transfer with your state agency or the Coast Guard,
+          cancel your insurance and registration, and keep a signed copy of every
+          document. The paperwork is what proves the boat is no longer your liability.
+        </p>
+
+        <div
+          style={{
+            marginTop: 60,
+            padding: 36,
+            border: `1px solid ${gold}`,
+            borderRadius: 6,
+            background: 'rgba(201,150,46,0.07)',
+          }}
+        >
+          <h3 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 24, marginTop: 0 }}>
+            The structure of a broker-assisted deal, without the commission
+          </h3>
+          <p style={{ marginBottom: 26 }}>
+            BoatClosers guides a private buyer and seller through every step above:
+            deposit-backed offers, organized negotiation, secure escrow, and 56
+            professional documents generated and ready to sign. Flat $249, paid only
+            when you are ready to sign.
+          </p>
+          <Link
+            href="/"
+            style={{
+              display: 'inline-block',
+              background: gold,
+              color: navy,
+              padding: '14px 32px',
+              borderRadius: 4,
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            Start Your Deal
+          </Link>
+        </div>
+      </article>
+
+      <footer
+        style={{
+          borderTop: `2px dashed ${gold}`,
+          padding: '28px 32px',
+          textAlign: 'center',
+          fontSize: 13,
+          opacity: 0.6,
+        }}
+      >
+        © {new Date().getFullYear()} BoatClosers · Private Vessel Transactions
+      </footer>
+    </div>
+  )
+}
