@@ -174,9 +174,12 @@ export async function GET(req: Request) {
       // The app knows the deal is waiting on someone; nobody tells them. Named and
       // specific, twice, then it stops — a third email is nagging, and a person who
       // has gone quiet has a reason.
+      // The Purchase Agreement is where deals stall, and where the fee is paid.
+      // 24 and 72 hours was far too slow: someone who signs and hears nothing for
+      // a day assumes the other side has gone quiet.
       const SIG_STEPS = [
-        { key: 's1', afterHours: 24 },
-        { key: 's2', afterHours: 72 },
+        { key: 's1', afterHours: 12 },
+        { key: 's2', afterHours: 36 },
       ]
       if (!neg.canceled && !neg.dealFinalized && deal?.other_party_id) {
         const signed: any = (deal as any)?.docs_data?.signedDocs || {}
@@ -218,6 +221,100 @@ export async function GET(req: Request) {
           }
         }
       }
+
+      // ── DEPOSIT DEADLINE CLOSING ────────────────────────────────────────────
+      // The buyer chose this window themselves, and missing it lets the seller end
+      // the deal. Warnings scale to the window: a 12-hour deadline and a 72-hour
+      // one need different notice.
+      try {
+        const offersD: any[] = Array.isArray(neg.offers) ? neg.offers : []
+        const agreedD = offersD.find((o: any) => o && (o.status === 'agreed' || o.status === 'accepted'))
+        const depHours = Number(agreedD?.depositHours) || 24
+        // The app already stores an absolute deadline when the deal locks — use it
+        // rather than deriving one from a lock time that is never recorded.
+        const dueAt = Number(neg.depositDeadline) || 0
+        const hasProof = !!(neg.depositProof && neg.depositProof.ref)
+        const verified = neg.depositVerification?.status === 'confirmed'
+        if (dueAt && !hasProof && !verified && !neg.canceled && !neg.depositEnded) {
+          const hrsLeft = (dueAt - now) / 3600000
+          const sentDep: any = neg.depNudges || {}
+          // Half the window gone, then the last stretch — 2 hours, or a quarter of
+          // a short window, whichever is longer.
+          const finalWarn = Math.max(2, depHours * 0.25)
+          const stepD = (hrsLeft <= finalWarn && hrsLeft > 0 && !sentDep.d2) ? { key: 'd2', urgent: true }
+                      : (hrsLeft <= depHours / 2 && hrsLeft > finalWarn && !sentDep.d1) ? { key: 'd1', urgent: false }
+                      : null
+          if (stepD) {
+            const buyerTo = offerEmail(deal, 'buyer')
+            const boatD = [deal?.vessel?.year, deal?.vessel?.make, deal?.vessel?.model].filter(Boolean).join(' ') || 'your boat'
+            const linkD = `${base}/?dealId=${encodeURIComponent(String(deal.id))}&step=3`
+            const left = hrsLeft >= 2 ? `${Math.round(hrsLeft)} hours` : 'less than 2 hours'
+            if (buyerTo) {
+              await sendEmail({
+                to: buyerTo,
+                subject: stepD.urgent
+                  ? `${boatD} — ${left} left to send the deposit`
+                  : `${boatD} — deposit due in ${left}`,
+                html: emailLayout(`
+                  <h2 style="margin:0 0 12px;color:#08152e;font-size:19px;">${stepD.urgent ? 'Your deposit deadline is close' : 'Deposit reminder'}</h2>
+                  <p style="color:#475569;font-size:14px;line-height:1.6;">You have <strong>${left}</strong> left to send the earnest money for <strong>${boatD}</strong> and record the proof on the deal.</p>
+                  ${stepD.urgent ? `<div style="background:#fdecec;border-left:3px solid #dc2626;padding:12px 14px;margin:14px 0;color:#991b1b;font-size:13.5px;line-height:1.6;"><strong>If the window closes without it, the seller can end the deal</strong> and put the boat back on the market. If you have sent the money but not recorded it, do that now \u2014 it only takes a moment.</div>` : `<p style="color:#475569;font-size:14px;line-height:1.6;">Send it however you agreed, then record the reference on the deal so the seller can confirm it arrived.</p>`}
+                  <p style="margin:18px 0;"><a href="${linkD}" style="background:#08152e;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block;">Record the deposit</a></p>
+                `),
+              }).catch(() => {})
+            }
+            const nnD = { ...neg, depNudges: { ...sentDep, [stepD.key]: now } }
+            await sb.from('deals').update({ negotiate: nnD }).eq('id', deal.id)
+            Object.assign(neg, nnD)
+            results.push({ deal: deal.id, depositNudge: stepD.key })
+          }
+        }
+      } catch { /* a missed reminder must never break the run */ }
+
+      // ── DUE DILIGENCE WINDOW CLOSING ────────────────────────────────────────
+      // When this closes without the buyer raising anything, their contingencies
+      // fall away and the deposit is at risk. Both sides need to know.
+      try {
+        const dd: any = (deal as any)?.dd_data || {}
+        const offersE: any[] = Array.isArray(neg.offers) ? neg.offers : []
+        const agreedE = offersE.find((o: any) => o && (o.status === 'agreed' || o.status === 'accepted'))
+        const ddDays = Number(agreedE?.ddDays) || 0
+        const ddStart = Date.parse(String(agreedE?.ddStart || '')) || 0
+        const decided = !!dd.outcome || !!neg.vesselAcceptance || !!neg.vesselRejection
+        if (ddDays > 0 && ddStart && !decided && !neg.canceled && !neg.dealFinalized) {
+          const endsAt = ddStart + ddDays * 86400000
+          const daysLeft = (endsAt - now) / 86400000
+          const sentDd: any = neg.ddNudges || {}
+          const stepE = (daysLeft <= 1 && daysLeft > -1 && !sentDd.e2) ? { key: 'e2', urgent: true }
+                      : (daysLeft <= 3 && daysLeft > 1 && !sentDd.e1) ? { key: 'e1', urgent: false }
+                      : null
+          if (stepE) {
+            const buyerE = offerEmail(deal, 'buyer')
+            const boatE = [deal?.vessel?.year, deal?.vessel?.make, deal?.vessel?.model].filter(Boolean).join(' ') || 'your boat'
+            const linkE = `${base}/?dealId=${encodeURIComponent(String(deal.id))}&step=3`
+            const endsOnE = new Date(endsAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+            const leftE = daysLeft <= 1 ? 'today' : `${Math.ceil(daysLeft)} days`
+            if (buyerE) {
+              await sendEmail({
+                to: buyerE,
+                subject: stepE.urgent
+                  ? `${boatE} — due diligence ends today`
+                  : `${boatE} — ${leftE} left of due diligence`,
+                html: emailLayout(`
+                  <h2 style="margin:0 0 12px;color:#08152e;font-size:19px;">${stepE.urgent ? 'Due diligence ends today' : 'Due diligence is closing'}</h2>
+                  <p style="color:#475569;font-size:14px;line-height:1.6;">Your inspection period for <strong>${boatE}</strong> ends on <strong>${endsOnE}</strong>. Survey, sea trial, engines, title \u2014 anything you want checked has to be done inside it.</p>
+                  ${stepE.urgent ? `<div style="background:#fdecec;border-left:3px solid #dc2626;padding:12px 14px;margin:14px 0;color:#991b1b;font-size:13.5px;line-height:1.6;"><strong>Once it closes, your contingencies fall away.</strong> Accept the vessel, reject it, or propose a new price before the end of the day. If you walk away after this without a contingency to stand on, your deposit is at risk.</div>` : `<p style="color:#475569;font-size:14px;line-height:1.6;">If a survey has turned something up, you can propose a new price or ask the seller to put it right \u2014 but only while the window is open.</p>`}
+                  <p style="margin:18px 0;"><a href="${linkE}" style="background:#08152e;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block;">Open due diligence</a></p>
+                `),
+              }).catch(() => {})
+            }
+            const nnE = { ...neg, ddNudges: { ...sentDd, [stepE.key]: now } }
+            await sb.from('deals').update({ negotiate: nnE }).eq('id', deal.id)
+            Object.assign(neg, nnE)
+            results.push({ deal: deal.id, ddNudge: stepE.key })
+          }
+        }
+      } catch { /* a missed reminder must never break the run */ }
 
       // ── guest download window closing ──
       // The invited party keeps 60 days after a deal finalizes to retrieve their
