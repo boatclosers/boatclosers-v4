@@ -6,11 +6,11 @@ export const metadata: Metadata = {
   description:
     'A step-by-step guide to selling your boat privately: pricing, listing, vetting buyers, handling the survey, and closing the transaction legally without paying a broker commission.',
   alternates: {
-    canonical: 'https://boatclosers.com/guides/sell-a-boat-without-a-broker',
+    canonical: 'https://www.boatclosers.com/guides/sell-a-boat-without-a-broker',
   },
   openGraph: {
     type: 'article',
-    url: 'https://boatclosers.com/guides/sell-a-boat-without-a-broker',
+    url: 'https://www.boatclosers.com/guides/sell-a-boat-without-a-broker',
     title: 'How to Sell a Boat Privately Without a Broker',
     description:
       'A step-by-step guide to selling your boat privately without paying a broker commission.',
