@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     template: '%s · BoatClosers',
   },
   description:
-    'Buy or sell a boat privately without a broker. Deposit-backed offers, secure escrow, and 41 professional documents — from the purchase agreement and bill of sale to title-transfer paperwork. Flat $249, no commission.',
+    'Buy or sell a boat privately without a broker. Deposit-backed offers, secure escrow, and 56 professional documents — from the purchase agreement and bill of sale to title-transfer paperwork. Flat $249, no commission.',
   keywords: [
     'sell a boat without a broker',
     'buy a boat without a broker',
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     siteName: 'BoatClosers',
     title: 'Buy or Sell a Boat Without a Broker — BoatClosers',
     description:
-      'The complete private boat sale, done right: deposit-backed offers, secure escrow, and 41 professional documents. Flat $249, no broker, no commission.',
+      'The complete private boat sale, done right: deposit-backed offers, secure escrow, and 56 professional documents. Flat $249, no broker, no commission.',
     locale: 'en_US',
     images: [
       {
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Buy or Sell a Boat Without a Broker — BoatClosers',
     description:
-      'Deposit-backed offers, secure escrow, and 41 professional documents for a private boat sale. Flat $249, no commission.',
+      'Deposit-backed offers, secure escrow, and 56 professional documents for a private boat sale. Flat $249, no commission.',
     images: ['/og-image.png'],
   },
   robots: {
