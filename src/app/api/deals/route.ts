@@ -267,6 +267,48 @@ async function notifyOnDealChange(previous: any, updated: any) {
       }
     }
 
+    // ── NEW MESSAGE ─────────────────────────────────────────────────────────
+    // The thread is only visible inside the deal, so a message sent to someone
+    // who is not looking at the app reaches nobody. One email per message, to the
+    // other party only, and never more than one every 30 minutes so a
+    // back-and-forth does not turn into a stack of notifications.
+    try {
+      const prevMsgs: any[] = Array.isArray(previous?.negotiate?.messages) ? previous.negotiate.messages : []
+      const newMsgs: any[] = Array.isArray(updated?.negotiate?.messages) ? updated.negotiate.messages : []
+      if (newMsgs.length > prevMsgs.length) {
+        const latest = newMsgs[newMsgs.length - 1]
+        const fromRole = latest?.from === 'seller' ? 'seller' : 'buyer'
+        const toEmail = fromRole === 'seller' ? buyerEmail : sellerEmail
+        const lastSent = Number(updated?.negotiate?.msgNotifiedAt || 0)
+        const quiet = Date.now() - lastSent < 30 * 60 * 1000
+        // System notes are written into the thread too; those are covered by their
+        // own emails and would otherwise double up.
+        const noteText = String(latest?.text || '')
+        const isSystemNote = /^(\u2713|\u2717|\u270D|\u{1F4B3}|\u{1F4CB}|\u26A0|\u{1F512})/u.test(noteText)
+          || /^Counter:/.test(noteText)
+          || /^Asking price is/.test(noteText)
+          || /^Offer:/.test(noteText)
+          || /^Reopened the offer/.test(noteText)
+        if (toEmail && !quiet && !isSystemNote && noteText) {
+          const preview = noteText.slice(0, 180).replace(/[<>]/g, '')
+          await sendEmail({
+            to: toEmail,
+            subject: `${boat} — new message from the ${fromRole}`,
+            html: emailLayout(`
+              <h2 style="margin:0 0 12px;color:#08152e;font-size:19px;">You have a new message</h2>
+              <p style="color:#475569;font-size:14px;line-height:1.6;">The ${fromRole} has written to you about <strong>${boat}</strong>:</p>
+              <div style="background:#f7f5f0;border-left:3px solid #b8863a;padding:12px 14px;margin:14px 0;color:#3d5166;font-size:14px;line-height:1.6;font-style:italic;">${escHtml(preview)}${noteText.length > 180 ? '&hellip;' : ''}</div>
+              <p style="color:#475569;font-size:14px;line-height:1.6;">Open the deal to read it in full and reply. Everything you both write stays on the deal.</p>
+              <p style="margin:18px 0;"><a href="${base}/?dealId=${encodeURIComponent(String(updated.id))}" style="background:#08152e;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block;">Open the deal</a></p>
+            `),
+          }).catch(() => {})
+          await admin().from('deals').update({
+            negotiate: { ...(updated?.negotiate || {}), msgNotifiedAt: Date.now() },
+          }).eq('id', updated.id).then(() => {}, () => {})
+        }
+      }
+    } catch { /* a missed notification must never break the save */ }
+
     const prevSigned = previous?.docs_data?.signedDocs || {}
     const newSigned = updated?.docs_data?.signedDocs || {}
     const prevSignedIds = Object.keys(prevSigned)
@@ -274,7 +316,14 @@ async function notifyOnDealChange(previous: any, updated: any) {
 
     // Purchase Agreement gets its own immediate email the first time it's signed,
     // because the PA is what makes the deal real and binding.
-    const paJustSigned = !prevSigned['purchase_agreement'] && !!newSigned['purchase_agreement']
+    // This only fired when the key first appeared — so the SECOND signature sent
+    // nothing, and the party still waiting was never told the other had signed.
+    // Fires on the first signature and again when it becomes fully signed.
+    const paBefore: any = prevSigned['purchase_agreement']
+    const paAfter: any = newSigned['purchase_agreement']
+    const paJustSigned = (!paBefore && !!paAfter)
+      || (!!paAfter?.bothSigned && !paBefore?.bothSigned)
+      || (!!paBefore?.role && !!paAfter?.role && paBefore.role !== paAfter.role)
     if (paJustSigned) {
       const recipients = [buyerEmail, sellerEmail].filter(Boolean)
       const paPdf = await buildPaPdfBase64(updated)
@@ -302,7 +351,17 @@ async function notifyOnDealChange(previous: any, updated: any) {
 
     // Any other documents getting signed → one batched email noting progress,
     // sent at this save point (which is when the Documents step is completed).
-    const otherNewlySigned = newSignedIds.filter(id => id !== 'purchase_agreement' && !prevSignedIds.includes(id))
+    // Same fault as the PA: only the FIRST signature counted, so the second party
+    // signing told nobody. A document also counts as newly signed when it becomes
+    // fully signed, or when the recorded signer changes from one party to the other.
+    const otherNewlySigned = newSignedIds.filter(id => {
+      if (id === 'purchase_agreement') return false
+      const before: any = prevSigned[id]
+      const after: any = newSigned[id]
+      if (!before) return true
+      if (after?.bothSigned && !before?.bothSigned) return true
+      return !!before?.role && !!after?.role && before.role !== after.role
+    })
     if (otherNewlySigned.length > 0) {
       const recipients = [buyerEmail, sellerEmail].filter(Boolean)
       const count = otherNewlySigned.length
