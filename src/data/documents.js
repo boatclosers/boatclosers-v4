@@ -9,7 +9,7 @@
 //
 // HOW IT WORKS (three small pieces, at the bottom of this file)
 //   1. CONTINGENCIES  — the standard clauses a buyer can switch on in Terms.
-//   2. DOCUMENTS      — the 55 documents, grouped, with {{fields}} in the text.
+//   2. DOCUMENTS      — the 56 documents, grouped, with {{fields}} in the text.
 //   3. fillDocument() — one function that fills any document from a deal object.
 //
 // ADDING A DOCUMENT LATER
