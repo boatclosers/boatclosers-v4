@@ -6,11 +6,11 @@ export const metadata: Metadata = {
   description:
     'Practical guides to buying and selling a boat privately: required documents, deposits and escrow, bill of sale requirements, and how to close without a broker.',
   alternates: {
-    canonical: 'https://boatclosers.com/guides',
+    canonical: 'https://www.boatclosers.com/guides',
   },
   openGraph: {
     type: 'website',
-    url: 'https://boatclosers.com/guides',
+    url: 'https://www.boatclosers.com/guides',
     title: 'Private Boat Sale Guides',
     description:
       'Practical guides to buying and selling a boat privately, without a broker.',
