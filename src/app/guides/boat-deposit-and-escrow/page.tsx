@@ -49,20 +49,33 @@ export default function Page() {
             PRIVATE VESSEL TRANSACTIONS
           </div>
         </Link>
-        <Link
-          href="/"
-          style={{
-            background: gold,
-            color: navy,
-            padding: '12px 26px',
-            borderRadius: 4,
-            fontWeight: 700,
-            textDecoration: 'none',
-            fontSize: 15,
-          }}
-        >
-          Get Started
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <Link
+            href="/guides"
+            style={{
+              color: cream,
+              textDecoration: 'none',
+              fontSize: 15,
+              opacity: 0.85,
+            }}
+          >
+            Guides
+          </Link>
+          <Link
+            href="/"
+            style={{
+              background: gold,
+              color: navy,
+              padding: '12px 26px',
+              borderRadius: 4,
+              fontWeight: 700,
+              textDecoration: 'none',
+              fontSize: 15,
+            }}
+          >
+            Get Started
+          </Link>
+        </div>
       </header>
 
       <article
@@ -121,7 +134,12 @@ export default function Page() {
         <p>
           What matters far more than the amount is that the terms are written down
           before the money moves: how much, where it is held, what events make it
-          refundable, and how long the seller has to return it.
+          refundable, and how long the seller has to return it. Those terms belong in
+          the purchase agreement, which is the first of the{' '}
+          <Link href="/guides/documents-needed-private-boat-sale" style={{ color: gold }}>
+            documents a private sale requires
+          </Link>
+          .
         </p>
 
         <h2 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 28, marginTop: 52 }}>
@@ -167,12 +185,20 @@ export default function Page() {
         <p>
           Purchase agreement signed first, with the deposit amount and contingencies
           stated. Deposit into escrow second. Survey and inspection during the
-          contingency window. Then, at closing, the balance funds, the bill of sale,
-          and the title transfer all move together, and the escrow releases.
+          contingency window. Then, at closing, the balance funds, the{' '}
+          <Link href="/guides/boat-bill-of-sale" style={{ color: gold }}>
+            bill of sale
+          </Link>
+          , and the title transfer all move together, and the escrow releases.
         </p>
         <p>
           Deals that follow that order rarely end badly. Deals that skip a step
-          usually end with one person holding money and the other holding nothing.
+          usually end with one person holding money and the other holding nothing. For
+          the whole process from listing to closing, see{' '}
+          <Link href="/guides/sell-a-boat-without-a-broker" style={{ color: gold }}>
+            how to sell a boat privately without a broker
+          </Link>
+          .
         </p>
 
         <div
