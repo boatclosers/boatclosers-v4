@@ -4,13 +4,13 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'What Documents You Need to Close a Private Boat Sale',
   description:
-    'A complete checklist of the documents required to legally close a private boat sale — bill of sale, purchase agreement, title transfer, lien release, and USCG paperwork.',
+    'A complete checklist of the documents required to legally close a private boat sale: bill of sale, purchase agreement, title transfer, lien release, and USCG paperwork.',
   alternates: {
-    canonical: 'https://boatclosers.com/guides/documents-needed-private-boat-sale',
+    canonical: 'https://www.boatclosers.com/guides/documents-needed-private-boat-sale',
   },
   openGraph: {
     type: 'article',
-    url: 'https://boatclosers.com/guides/documents-needed-private-boat-sale',
+    url: 'https://www.boatclosers.com/guides/documents-needed-private-boat-sale',
     title: 'What Documents You Need to Close a Private Boat Sale',
     description:
       'A complete checklist of the documents required to legally close a private boat sale.',
@@ -88,7 +88,7 @@ export default function Page() {
 
         <p style={{ fontSize: 20, opacity: 0.85, marginBottom: 44 }}>
           Selling a boat without a broker is legal in every state. What trips people
-          up is the paperwork — and the fact that missing one document can stall a
+          up is the paperwork, and the fact that missing one document can stall a
           closing for weeks or void the transfer entirely.
         </p>
 
@@ -99,7 +99,7 @@ export default function Page() {
         <h3 style={{ fontSize: 21, marginTop: 32, marginBottom: 8 }}>1. Purchase Agreement</h3>
         <p>
           This is the contract. It states the price, the deposit amount, who pays
-          what, and — critically — the contingencies. Without a written purchase
+          what, and, critically, the contingencies. Without a written purchase
           agreement, a handshake deal gives neither side any recourse when something
           goes wrong. It should be signed before any money changes hands.
         </p>
@@ -117,7 +117,7 @@ export default function Page() {
         <p>
           State-titled vessels need the original title, signed over by the seller.
           Vessels registered with the U.S. Coast Guard need a different set of forms
-          entirely — the state title process does not apply. Confirm which category
+          entirely, and the state title process does not apply. Confirm which category
           your boat falls into before you get to closing, because the paperwork paths
           do not overlap.
         </p>
@@ -126,7 +126,7 @@ export default function Page() {
         <p>
           If the seller still owes money on the boat, the lender holds a lien. A buyer
           who closes without a written lien release can end up owning a boat the bank
-          can still repossess. Get the release in writing from the lienholder — not a
+          can still repossess. Get the release in writing from the lienholder, not a
           verbal assurance from the seller.
         </p>
 
@@ -134,8 +134,8 @@ export default function Page() {
           The documents people forget
         </h2>
         <p>
-          Those four are the backbone. But a clean closing usually involves more:
-          a survey contingency addendum if the sale depends on inspection results, a
+          Those four are the backbone. But a clean closing usually involves more: a
+          survey contingency addendum if the sale depends on inspection results, a
           deposit receipt establishing the funds are held and under what conditions
           they are returned, an as-is acknowledgment, and state-specific tax or
           registration forms.
@@ -143,7 +143,7 @@ export default function Page() {
         <p>
           Deals rarely fall apart because someone missed the bill of sale. They fall
           apart because nobody wrote down what happens if the survey turns up a soft
-          transom — and then two people who were friendly in June are arguing about a
+          transom, and then two people who were friendly in June are arguing about a
           deposit in July.
         </p>
 
@@ -176,9 +176,9 @@ export default function Page() {
           </h3>
           <p style={{ marginBottom: 26 }}>
             BoatClosers walks a private buyer and seller through the entire
-            transaction — deposit-backed offers, secure escrow, and the full document
-            set generated and ready to sign. No broker, no commission. Flat $249, paid
-            only when you are ready to sign.
+            transaction: deposit-backed offers, secure escrow, and 56 professional
+            documents generated and ready to sign. No broker, no commission. Flat
+            $249, paid only when you are ready to sign.
           </p>
           <Link
             href="/"
