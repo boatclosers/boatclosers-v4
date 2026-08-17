@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://boatclosers.com'),
+  metadataBase: new URL('https://www.boatclosers.com'),
   title: {
     default: 'BoatClosers — Buy or Sell a Boat Without a Broker',
     template: '%s · BoatClosers',
@@ -26,11 +26,11 @@ export const metadata: Metadata = {
   creator: 'BoatClosers',
   applicationName: 'BoatClosers',
   alternates: {
-    canonical: 'https://boatclosers.com',
+    canonical: 'https://www.boatclosers.com',
   },
   openGraph: {
     type: 'website',
-    url: 'https://boatclosers.com',
+    url: 'https://www.boatclosers.com',
     siteName: 'BoatClosers',
     title: 'Buy or Sell a Boat Without a Broker — BoatClosers',
     description:
