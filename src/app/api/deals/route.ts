@@ -284,11 +284,22 @@ async function notifyOnDealChange(previous: any, updated: any) {
         // System notes are written into the thread too; those are covered by their
         // own emails and would otherwise double up.
         const noteText = String(latest?.text || '')
-        const isSystemNote = /^(\u2713|\u2717|\u270D|\u{1F4B3}|\u{1F4CB}|\u26A0|\u{1F512})/u.test(noteText)
-          || /^Counter:/.test(noteText)
-          || /^Asking price is/.test(noteText)
-          || /^Offer:/.test(noteText)
-          || /^Reopened the offer/.test(noteText)
+        // No /u flag and no \u{...} escapes: the project targets ES5, where both
+        // are a compile error. Emoji above U+FFFF are surrogate pairs in ES5, so
+        // the four-figure escapes below are their leading halves — which is all a
+        // prefix check needs.
+        const SYSTEM_PREFIXES = [
+          '\u2713',        // check
+          '\u2717',        // cross
+          '\u270D',        // writing hand
+          '\u26A0',        // warning
+          '\uD83D',        // leading half of card, clipboard, lock
+          'Counter:',
+          'Asking price is',
+          'Offer:',
+          'Reopened the offer',
+        ]
+        const isSystemNote = SYSTEM_PREFIXES.some(pre => noteText.indexOf(pre) === 0)
         if (toEmail && !quiet && !isSystemNote && noteText) {
           const preview = noteText.slice(0, 180).replace(/[<>]/g, '')
           await sendEmail({
