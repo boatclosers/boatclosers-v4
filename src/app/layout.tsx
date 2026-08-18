@@ -1,4 +1,7 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
+
+const GA_ID = 'G-TSE5VMCK7N'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.boatclosers.com'),
@@ -66,7 +69,23 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Google Analytics 4. Loaded with afterInteractive so it never blocks
+            first paint — the deal flow renders before analytics touches the page. */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="ga4-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_ID}');
+          `}
+        </Script>
+      </body>
     </html>
   )
 }
