@@ -456,6 +456,7 @@ function LegalFooter({ C, authedFetch, signedIn }) {
             <button style={link} onClick={()=>setOpenKey("disclaimer")}>Disclaimer</button>
             <button style={link} onClick={()=>setOpenKey("terms")}>Terms of Service</button>
             <button style={link} onClick={()=>setOpenKey("privacy")}>Privacy Policy</button>
+                        <a href="/guides" style={{ ...link, textDecoration:"underline" }}>Guides</a>
             {signedIn
               ? <button style={link} onClick={()=>{ setHelpOpen(true); setHelpState(""); }}>Contact support</button>
               : <span style={{ fontSize:11.5, color:"rgba(255,255,255,0.75)" }}>support@boatclosers.com</span>}
