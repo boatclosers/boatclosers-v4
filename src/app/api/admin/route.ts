@@ -17,9 +17,16 @@ function admin() {
 // bypass — the page renders nothing until this route hands back data. Compared
 // with timingSafeEqual so the response time can't be used to guess it.
 //
-// READ-ONLY on purpose. This route cannot modify a deal. A dashboard that can
-// edit live deals is a dashboard that can break one at 11pm; seeing everything
-// is most of the value, and actions can be added deliberately later.
+// MOSTLY READ. The listing half cannot modify anything. A small set of named
+// control actions (adminAddNote, adminResetRole, adminResetDeposit,
+// adminReopenDeal, adminClearJoin, adminResendInvite, adminDeleteDeal) can, but
+// each is single-purpose and writes what it did into negotiate.adminLog. There
+// is deliberately no free-form field editor — a dashboard that can edit any
+// field on a live deal is a dashboard that can break one at 11pm.
+//
+// A deal with status 'finalized' is reported as 'Closed' and drops out of the
+// live counts, so finished business archives itself instead of cluttering the
+// working view.
 
 function passwordOk(given: string) {
   const expected = process.env.ADMIN_PASSWORD || ''
@@ -60,7 +67,8 @@ function assess(d: any) {
 
   let state = 'unknown', waitingOn = '—', urgency = 0, note = ''
 
-  if (neg.canceled)              { state = 'Cancelled';            waitingOn = '—'; urgency = 0; note = 'Deal was cancelled.' }
+  if (d.status === 'finalized')  { state = 'Closed';               waitingOn = '—'; urgency = 0; note = 'Deal closed and finalized. Archived.' }
+  else if (neg.canceled)         { state = 'Cancelled';            waitingOn = '—'; urgency = 0; note = 'Deal was cancelled.' }
   else if (neg.depositEnded)     { state = 'Ended — no deposit';   waitingOn = '—'; urgency = 1; note = 'Deposit never funded; deal closed.' }
   else if (dd.outcome === 'reject') { state = 'Vessel rejected';   waitingOn = '—'; urgency = 1; note = 'Buyer rejected the vessel.' }
   else if (!joined)              { state = 'Awaiting join';        waitingOn = 'Invited party'; urgency = 2; note = 'Invite sent, other party has not created an account yet.' }
@@ -97,6 +105,8 @@ function assess(d: any) {
     createdDays: days(d.created_at),
     idleDays: days(d.updated_at),
     depositDeadline: neg.depositDeadline || null,
+    closedAt: d.finalized_at || null,
+    closedDays: d.finalized_at ? days(d.finalized_at) : null,
   }
 }
 
@@ -157,58 +167,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // ── Create a SANDBOX test transaction ────────────────────────────────────
-    // So the owner can prove the funded-flip without curl or the command line.
-    // Hard-stops if the base URL isn't sandbox — this must never run against live.
-    if (body.action === 'escrowCreateTest') {
-      const base = process.env.ESCROW_API_BASE || 'https://api.escrow-sandbox.com'
-      const email = process.env.ESCROW_API_EMAIL || ''
-      const key = process.env.ESCROW_API_KEY || ''
-      if (!base.includes('sandbox')) {
-        return NextResponse.json({ escrow: { ok: false, message: 'Refusing to create a test transaction against a LIVE environment. This is sandbox-only.' } })
-      }
-      if (!email || !key) {
-        return NextResponse.json({ escrow: { ok: false, configured: false, message: 'Escrow.com keys are not set on the server yet.' } })
-      }
-      try {
-        const auth = 'Basic ' + Buffer.from(`${email}:${key}`).toString('base64')
-        const payload = {
-          parties: [
-            { role: 'buyer', customer: 'me' },
-            { role: 'seller', customer: 'seller@test.escrow.com' },
-          ],
-          currency: 'usd',
-          description: 'BoatClosers sandbox test — safe to ignore',
-          items: [{
-            title: 'Test boat deposit',
-            description: 'Sandbox deposit test',
-            type: 'general_merchandise',
-            inspection_period: 259200,
-            quantity: 1,
-            schedule: [{ amount: 500, payer_customer: 'me', beneficiary_customer: 'seller@test.escrow.com' }],
-          }],
-        }
-        const r = await fetch(`${base}/2017-09-01/transaction`, {
-          method: 'POST',
-          headers: { Authorization: auth, 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify(payload),
-          cache: 'no-store',
-        })
-        const j = await r.json().catch(() => null)
-        if (!r.ok) {
-          return NextResponse.json({ escrow: { ok: false, message: `Escrow.com refused to create the test transaction (${r.status}).`, detail: JSON.stringify(j).slice(0, 400) } })
-        }
-        const newId = j?.id ? String(j.id) : ''
-        return NextResponse.json({ escrow: {
-          ok: true, created: true, transactionId: newId,
-          message: newId
-            ? `✓ Created sandbox transaction #${newId}. Put that number in the box above and click Check — it should say NOT funded. Then fund it on escrow-sandbox.com and check again.`
-            : 'Escrow.com accepted the request but returned no transaction ID.',
-        } })
-      } catch (e: any) {
-        return NextResponse.json({ escrow: { ok: false, message: 'Could not reach Escrow.com: ' + (e?.message || 'unknown') } })
-      }
-    }
     // ── CONTROL ACTIONS ───────────────────────────────────────────────────────
     // Deliberate, single-purpose actions — never a free-form field editor. Each
     // requires the admin password (already checked above), targets one deal by id,
@@ -266,6 +224,8 @@ export async function POST(req: Request) {
         // Undo a finalize / cancel so the deal can move again.
         delete neg.dealFinalized; delete neg.canceled; delete neg.depositEnded
         negPatch = { ...neg }
+        patch.status = 'active'
+        patch.finalized_at = null
         done = 'Deal reopened'
       }
       else if (body.action === 'adminClearJoin') {
@@ -303,7 +263,7 @@ export async function POST(req: Request) {
     // this page hijack a pending invite.
     const { data, error } = await sb
       .from('deals')
-      .select('id, created_at, updated_at, vessel, parties, negotiate, dd_data, initiator_id, other_party_id, initiator_role, invite_role, invite_email, invite_status, max_step')
+      .select('id, created_at, updated_at, finalized_at, status, vessel, parties, negotiate, dd_data, initiator_id, other_party_id, initiator_role, invite_role, invite_email, invite_status, max_step')
       .order('updated_at', { ascending: false })
       .limit(500)
 
@@ -312,7 +272,9 @@ export async function POST(req: Request) {
     }
 
     const rows = (data || []).map(assess)
-    const live = rows.filter(r => !['Cancelled', 'Ended — no deposit', 'Vessel rejected'].includes(r.state))
+    const DONE = ['Closed', 'Cancelled', 'Ended — no deposit', 'Vessel rejected']
+    const live = rows.filter(r => !DONE.includes(r.state))
+    const closed = rows.filter(r => r.state === 'Closed')
 
     return NextResponse.json({
       ok: true,
@@ -324,6 +286,8 @@ export async function POST(req: Request) {
         revenue: rows.filter(r => r.paid).length * 249,
         needsAttention: rows.filter(r => r.urgency >= 4).length,
         stale: live.filter(r => (r.idleDays ?? 0) >= 7).length,
+        closed: closed.length,
+        closedRevenue: closed.filter(r => r.paid).length * 249,
       },
       deals: rows,
     })
