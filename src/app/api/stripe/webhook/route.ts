@@ -110,28 +110,50 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true, note: 'deal not found' }, { status: 200 })
     }
 
-    const neg = deal.negotiate || {}
+    const neg: any = deal.negotiate || {}
+    const offers: any[] = Array.isArray(neg.offers) ? neg.offers : []
 
-    // Already locked/paid by the redirect path — nothing to do. This is the common,
-    // healthy case, and returning 200 keeps Stripe happy.
-    if (neg.dealLocked || neg.paid) {
+    // The app releases Due Diligence, Documents and Closing off an offer whose
+    // status is 'accepted'. Marking paid/dealLocked alone is NOT enough — a deal
+    // can otherwise take the money and stay visibly stuck on "Pay $249".
+    const alreadyAccepted = offers.some((o: any) => o && o.status === 'accepted')
+    if ((neg.dealLocked || neg.paid) && alreadyAccepted) {
+      // Fully recorded by the redirect path — nothing to do. Common, healthy case.
       return NextResponse.json({ received: true, note: 'already recorded' }, { status: 200 })
     }
 
-    // Mirror the redirect path's outcome. For a split plan, mark just this half and
-    // only lock when both halves are in; for a full payment, lock outright.
-    const plan = neg.payPlan || 'full'
-    let updated: any = { ...neg }
+    // Same agreed-offer resolution the redirect path uses, so both converge.
+    const agreed =
+      offers.find((o: any) => o && (o.status === 'agreed' || o.status === 'accepted')) ||
+      offers.find((o: any) => o && o.paBuyerSig && o.paSellerSig) ||
+      [...offers].reverse().find((o: any) => o && o.status !== 'rejected' && o.status !== 'countered' && o.status !== 'expired')
 
-    if (plan === 'split') {
-      if (who === 'other') updated.paidOther = true
-      else updated.paidInitiator = true
-      const bothIn = updated.paidInitiator && updated.paidOther
-      if (bothIn) { updated.paid = true; updated.dealLocked = true }
-    } else {
-      updated.paid = true
-      updated.dealLocked = true
+    const plan = neg.payPlan || agreed?.feePayer || 'full'
+    const paidInitiator = who === 'initiator' ? true : !!neg.paidInitiator
+    const paidOther = who === 'other' ? true : !!neg.paidOther
+    const complete = plan === 'split' ? (paidInitiator && paidOther) : plan === 'other' ? paidOther : paidInitiator
+    const today = new Date().toISOString().split('T')[0]
+
+    let updated: any = { ...neg, paidInitiator, paidOther, payPlan: plan }
+
+    if (complete) {
+      const lockedOffers = agreed
+        ? offers.map((o: any) => o && o.id === agreed.id ? { ...o, status: 'accepted', paDate: o.paDate || today } : o)
+        : offers
+      updated = {
+        ...updated,
+        offers: lockedOffers,
+        paid: true,
+        dealLocked: true,
+        dealStatus: 'locked',
+        ...(agreed ? {
+          agreedPrice: agreed.amount, escrowPct: agreed.escrowPct, escrowPath: agreed.escrowPath,
+          deposit: agreed.deposit, selectedContingencies: agreed.contingencies || neg.selectedContingencies || [],
+          dueDiligenceDays: agreed.ddDays || neg.dueDiligenceDays,
+        } : {}),
+      }
     }
+
     updated.paidVia = 'stripe_webhook'
     updated.paidAt = updated.paidAt || Date.now()
 
@@ -142,7 +164,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true, note: 'update failed', detail: upErr.message }, { status: 200 })
     }
 
-    return NextResponse.json({ received: true, locked: true, dealId }, { status: 200 })
+    return NextResponse.json({ received: true, locked: !!complete, accepted: !!agreed, dealId }, { status: 200 })
   } catch (e: any) {
     // Return 200 to avoid Stripe disabling the endpoint over a transient error;
     // the redirect path still covers the customer.
