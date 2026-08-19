@@ -5620,11 +5620,12 @@ function Landing({ onStart, onLegal }) {
             Private Boat Transactions · Done Right
           </div>
           <h1 style={{ fontSize:isMobile?32:46, fontWeight:800, lineHeight:1.12, marginBottom:20, fontFamily:"'Georgia',serif" }}>
-            Buy or Sell a Boat<br/>
-            <span style={{ color:C.brass2 }}>With Total Confidence</span>
+                        Make the Offer.<br/>
+            Negotiate the Deal.<br/>
+            <span style={{ color:C.brass2 }}>Close the Boat.</span>
           </h1>
           <p style={{ fontSize:17, color:"rgba(255,255,255,0.74)", lineHeight:1.75, marginBottom:34, fontFamily:"sans-serif", fontWeight:300 }}>
-            Professional-grade tools once reserved for yacht brokers — now in the hands of any private buyer or seller. <strong style={{ color:"#fff", fontWeight:600 }}>No broker, no commission — just $249.</strong>
+            Handle the offer, paperwork, signatures, escrow, and closing in one place — the way a broker would, without one. <strong style={{ color:"#fff", fontWeight:600 }}>No commission — just $249.</strong>
           </p>
           <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
             <button style={{...S.btnBrass, fontSize:15, padding:"13px 32px"}} onClick={()=>onStart("buyer")}>Start as Buyer</button>
