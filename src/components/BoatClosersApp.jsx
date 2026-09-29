@@ -6286,7 +6286,7 @@ export default function BoatClosers() {
         })
       });
       const d = await res.json();
-      if (d?.deal?.id) { setDealId(d.deal.id); return d.deal.id; }
+            if (d?.deal?.id) { setDealId(d.deal.id); if (typeof window !== "undefined" && window.gtag) window.gtag('event', 'deal_started', { deal_id: d.deal.id }); return d.deal.id; }
     } catch (e) {}
     return null;
   };
