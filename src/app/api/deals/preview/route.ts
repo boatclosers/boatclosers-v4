@@ -52,7 +52,8 @@ export async function GET(req: Request) {
         .maybeSingle()
       fullName = String(prof?.full_name || '').trim()
     }
-    const inviterFirstName = fullName.split(/\s+/)[0] || ''
+    const rawFirst = fullName.split(/\s+/)[0] || ''
+    const inviterFirstName = rawFirst ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1) : ''
 
     const clean = (v: any) => String(v ?? '').trim()
     const boatTitle = [clean(vessel.year), clean(vessel.make), clean(vessel.model)]
