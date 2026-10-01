@@ -2,6 +2,10 @@
 
 import { useState } from 'react'
 
+const navy = '#0f1b2d'
+const gold = '#c9962e'
+const cream = '#f5f1e8'
+
 type Status = 'idle' | 'sending' | 'done' | 'error'
 
 export default function ExpressSignup() {
@@ -33,18 +37,31 @@ export default function ExpressSignup() {
 
   if (status === 'done') {
     return (
-      <p role="status" className="rounded-lg bg-white/10 px-5 py-4 text-white">
+      <div
+        role="status"
+        style={{
+          border: `1px solid ${gold}`,
+          borderRadius: 6,
+          background: 'rgba(201,150,46,0.1)',
+          padding: '20px 24px',
+          fontSize: 17,
+          lineHeight: 1.6,
+        }}
+      >
         You are on the list. We will email you the day BC Express opens.
-      </p>
+      </div>
     )
   }
 
   return (
     <div>
-      <label htmlFor="express-email" className="block font-medium text-white">
+      <label
+        htmlFor="express-email"
+        style={{ display: 'block', fontSize: 16, fontWeight: 700, marginBottom: 10 }}
+      >
         Get notified when BC Express opens
       </label>
-      <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, maxWidth: 560 }}>
         <input
           id="express-email"
           type="email"
@@ -55,7 +72,15 @@ export default function ExpressSignup() {
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleJoin()
           }}
-          className="w-full rounded-lg border border-white/20 bg-white px-4 py-3 text-[#1B2430] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227]"
+          style={{
+            flex: '1 1 260px',
+            padding: '14px 16px',
+            fontSize: 16,
+            borderRadius: 4,
+            border: '1px solid rgba(201,150,46,0.5)',
+            background: cream,
+            color: navy,
+          }}
         />
         <input
           type="text"
@@ -64,19 +89,29 @@ export default function ExpressSignup() {
           aria-hidden="true"
           value={website}
           onChange={(e) => setWebsite(e.target.value)}
-          className="hidden"
+          style={{ display: 'none' }}
         />
         <button
           type="button"
           onClick={handleJoin}
           disabled={status === 'sending'}
-          className="whitespace-nowrap rounded-lg bg-[#C9A227] px-6 py-3 font-semibold text-[#0E2A47] hover:bg-[#d8b33a] disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          style={{
+            background: gold,
+            color: navy,
+            padding: '14px 32px',
+            borderRadius: 4,
+            border: 'none',
+            fontWeight: 700,
+            fontSize: 16,
+            cursor: status === 'sending' ? 'default' : 'pointer',
+            opacity: status === 'sending' ? 0.6 : 1,
+          }}
         >
-          {status === 'sending' ? 'Joining...' : 'Join the list'}
+          {status === 'sending' ? 'Joining...' : 'Join the List'}
         </button>
       </div>
       {status === 'error' && (
-        <p role="alert" className="mt-3 text-sm text-[#F3D27A]">
+        <p role="alert" style={{ color: gold, fontSize: 15, marginTop: 12 }}>
           {errorMsg}
         </p>
       )}
