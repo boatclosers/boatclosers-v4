@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { decodeHin } from '@/lib/hin'
+import LienCheck from '@/components/LienCheck'
 import { useBuilder, BuilderDetails, builderName, RecallsSection, VesselSection } from '@/components/HinBuilder'
 
 const navy = '#0f1b2d'
@@ -293,7 +294,7 @@ export default function ExpressDeal({ token }: { token: string }) {
           </div>
         ))}
         <p style={{ margin: '4px 0 0', fontSize: 14, color: muted, lineHeight: 1.6 }}>
-          Your HIN check is ready below. The walk-around checklist and seller questions are coming next.
+          Your HIN check and lien check are ready below. The walk-around checklist and seller questions are coming next.
         </p>
       </div>
 
@@ -304,6 +305,10 @@ export default function ExpressDeal({ token }: { token: string }) {
           onSaved={(items) => setDeal({ ...deal, items })}
         />
       )}
+
+      <div style={boxStyle}>
+        <LienCheck sellerName={deal.seller_name} inExpress />
+      </div>
 
       {!paid && (
         <div style={{ ...boxStyle, border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.07)' }}>
