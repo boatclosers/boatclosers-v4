@@ -5,7 +5,7 @@ import { sendEmail, emailLayout } from '@/lib/sendEmail'
 
 // BC Express: create a new one-party buyer deal (no account needed).
 // The buyer's email gets a private link back into the deal. Payment happens
-// next, through /api/express/deal (action "pay"), so there is one checkout path.
+// later, through /api/express/deal (action "pay"), right before the paperwork.
 // Express deals live in their own table, never in public.deals, so the $249
 // flow and its Stripe routes never see them.
 
@@ -98,12 +98,12 @@ export async function POST(req: Request) {
     subject: 'Your BC Express purchase link',
     html: emailLayout(`
       <p style="font-size:15px;color:#08152e;">Hi ${escapeHtml(buyerName.split(' ')[0])},</p>
-      <p style="font-size:15px;color:#08152e;line-height:1.6;">Here is your private link to your BC Express purchase:</p>
+      <p style="font-size:15px;color:#08152e;line-height:1.6;">Here is your private link to your BC Express purchase. Your HIN check and walk-around checklist are free:</p>
       <ul style="font-size:15px;color:#08152e;line-height:1.6;">${list}</ul>
       <p style="text-align:center;margin:28px 0;">
         <a href="${link}" style="background:#c9962e;color:#0f1b2d;padding:14px 28px;border-radius:4px;font-weight:700;text-decoration:none;display:inline-block;">Open my purchase</a>
       </p>
-      <p style="font-size:13px;color:#64748b;line-height:1.6;">Keep this email. Anyone with this link can open your purchase, so don't forward it. If you haven't finished checkout yet, you can do it from the link.</p>
+      <p style="font-size:13px;color:#64748b;line-height:1.6;">Keep this email. Anyone with this link can open your purchase, so don't forward it.</p>
     `),
   })
 

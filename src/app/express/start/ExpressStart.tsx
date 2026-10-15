@@ -149,19 +149,8 @@ export default function ExpressStart() {
       })
       const s = await start.json()
       if (!start.ok || !s.token) throw new Error(s.error || 'Could not start your deal.')
-
-      const pay = await fetch('/api/express/deal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: s.token, action: 'pay' }),
-      })
-      const p = await pay.json()
-      if (pay.ok && p.url) {
-        window.location.href = p.url
-        return
-      }
-      // Deal exists but checkout didn't open: send them to their deal page,
-      // which has its own "Finish payment" button.
+      // Free to start: go straight to the buyer's purchase page. Payment comes
+      // later, right before the paperwork.
       window.location.href = `/express/deal/${s.token}`
     } catch (e: any) {
       setError(e?.message || 'Something went wrong. Please try again.')
@@ -298,11 +287,13 @@ export default function ExpressStart() {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span style={{ fontFamily: 'Georgia, serif', fontSize: 20 }}>BC Express</span>
-          <span style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: gold, fontWeight: 700 }}>$29.99</span>
+          <span style={{ fontFamily: 'Georgia, serif', fontSize: 20 }}>Free to start</span>
+          <span style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: gold, fontWeight: 700 }}>$0</span>
         </div>
         <div style={{ fontSize: 14, lineHeight: 1.6, color: muted }}>
-          Covers this sale: {summary}. One price, no matter what&apos;s included. Florida purchases only for now.
+          Your HIN check, walk-around checklist, and seller questions for this sale ({summary}) are free. When
+          you&apos;re ready for the paperwork, unlock it for $29.99, one price no matter what&apos;s included.
+          Florida purchases only for now.
         </div>
       </div>
 
@@ -328,7 +319,7 @@ export default function ExpressStart() {
           opacity: sending ? 0.6 : 1,
         }}
       >
-        {sending ? 'Opening secure checkout...' : 'Continue to payment · $29.99'}
+        {sending ? 'Setting up your purchase...' : 'Start free'}
       </button>
     </div>
   )

@@ -15,8 +15,6 @@ const ID_LABEL: Record<string, [string, string]> = {
   motor: ['serial', 'Serial'],
 }
 
-const STAGES = ['Before you pay', 'At the handoff', "After it's yours"]
-
 function money(cents: number) {
   return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 }
@@ -94,27 +92,81 @@ export default function ExpressDeal({ token }: { token: string }) {
 
   const paid = deal.status === 'paid'
   const items = Object.entries(deal.items || {}) as [string, any][]
+  const firstName = String(deal.buyer_name).split(' ')[0]
+
+  const steps = [
+    { title: 'Before you pay', note: 'HIN check, walk-around checklist, seller questions', tag: 'FREE', open: true },
+    { title: 'At the handoff', note: 'Bill of sale, title signing guide, red-flag checks', tag: paid ? 'UNLOCKED' : '$29.99', open: paid },
+    { title: "After it's yours", note: 'Title application, what to bring, document vault', tag: paid ? 'UNLOCKED' : 'INCLUDED', open: paid },
+  ]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ color: gold, fontWeight: 700, fontSize: 14 }}>{paid ? 'Paid · You’re all set' : 'Almost there'}</div>
+        <div style={{ color: gold, fontWeight: 700, fontSize: 14 }}>
+          {paid ? 'Paperwork unlocked' : 'Free to start'}
+        </div>
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(28px, 6vw, 34px)', lineHeight: 1.2, margin: 0 }}>
-          {paid
-            ? `Welcome aboard, ${String(deal.buyer_name).split(' ')[0]}`
-            : 'Finish checkout to unlock your toolkit'}
+          {paid ? `You're all set, ${firstName}` : `Welcome aboard, ${firstName}`}
         </h1>
         <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: muted }}>
-          {paid
-            ? justPaid
-              ? 'Payment received. We also emailed you a private link, so you can come back to this purchase from any device.'
-              : 'Use the link in your email to come back here any time, from any device.'
-            : 'Your purchase is saved. Pay the one-time $29.99 fee to unlock your checklists and paperwork.'}
+          {paid && justPaid
+            ? 'Payment received. Your paperwork steps are unlocked.'
+            : 'We emailed you a private link, so you can come back to this purchase from any device.'}
+        </p>
+      </div>
+
+      <div style={boxStyle}>
+        <div style={eyebrow}>YOUR STEPS</div>
+        {steps.map((s, i) => (
+          <div
+            key={s.title}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '10px 0',
+              borderBottom: i < steps.length - 1 ? '1px solid rgba(245,241,232,0.08)' : 'none',
+            }}
+          >
+            <span
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                border: `2px solid ${s.open ? gold : 'rgba(245,241,232,0.3)'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: 14,
+                flexShrink: 0,
+              }}
+            >
+              {i + 1}
+            </span>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, opacity: s.open ? 1 : 0.7 }}>
+              <span style={{ fontSize: 16, fontWeight: 600 }}>{s.title}</span>
+              <span style={{ fontSize: 13, color: muted, lineHeight: 1.4 }}>{s.note}</span>
+            </div>
+            <span style={{ fontSize: 11, letterSpacing: 1, fontWeight: 700, color: s.open ? gold : muted }}>{s.tag}</span>
+          </div>
+        ))}
+        <p style={{ margin: '4px 0 0', fontSize: 14, color: muted, lineHeight: 1.6 }}>
+          Step 1 opens here next. We&apos;ll email you the moment it&apos;s ready.
         </p>
       </div>
 
       {!paid && (
-        <>
+        <div style={{ ...boxStyle, border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.07)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontFamily: 'Georgia, serif', fontSize: 20 }}>Ready for the paperwork?</span>
+            <span style={{ fontFamily: 'Georgia, serif', fontSize: 24, color: gold, fontWeight: 700 }}>$29.99</span>
+          </div>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: muted }}>
+            Unlock steps 2 and 3 when you&apos;ve checked the boat and you&apos;re ready to buy. One price for
+            everything in this sale.
+          </p>
           {error && (
             <p role="alert" style={{ margin: 0, color: gold }}>
               {error}
@@ -128,17 +180,17 @@ export default function ExpressDeal({ token }: { token: string }) {
               background: gold,
               color: navy,
               fontWeight: 700,
-              fontSize: 17,
-              padding: '16px 20px',
+              fontSize: 16,
+              padding: '14px 20px',
               borderRadius: 6,
               border: 'none',
               cursor: paying ? 'default' : 'pointer',
               opacity: paying ? 0.6 : 1,
             }}
           >
-            {paying ? 'Opening secure checkout...' : 'Finish payment · $29.99'}
+            {paying ? 'Opening secure checkout...' : 'Unlock paperwork · $29.99'}
           </button>
-        </>
+        </div>
       )}
 
       <div style={boxStyle}>
@@ -166,36 +218,6 @@ export default function ExpressDeal({ token }: { token: string }) {
           <span style={{ color: muted }}>Seller</span>
           <span style={{ fontWeight: 600 }}>{deal.seller_name}</span>
         </div>
-      </div>
-
-      <div style={boxStyle}>
-        <div style={eyebrow}>YOUR STEPS</div>
-        {STAGES.map((s, i) => (
-          <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 40 }}>
-            <span
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 15,
-                border: `2px solid ${paid && i === 0 ? gold : 'rgba(245,241,232,0.3)'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: 14,
-                flexShrink: 0,
-              }}
-            >
-              {i + 1}
-            </span>
-            <span style={{ fontSize: 16, opacity: paid && i === 0 ? 1 : 0.6 }}>{s}</span>
-          </div>
-        ))}
-        {paid && (
-          <p style={{ margin: '4px 0 0', fontSize: 14, color: muted, lineHeight: 1.6 }}>
-            Step 1 opens here next. We&apos;ll email you the moment it&apos;s ready.
-          </p>
-        )}
       </div>
     </div>
   )

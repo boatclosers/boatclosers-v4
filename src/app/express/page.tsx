@@ -3,51 +3,83 @@ import Link from 'next/link'
 import ExpressSignup from './ExpressSignup'
 
 export const metadata: Metadata = {
-  title: 'BC Express: Buy a Boat From a Private Seller for $29.99',
+  title: 'BC Express: Buy a Boat From a Private Seller the Right Way',
   description:
-    'BC Express is a $29.99 buyer toolkit for small private boat purchases: walk-around checklist, HIN check, title signing guide, bill of sale, and safe payment tips. Coming soon.',
+    'Free HIN check, walk-around checklist, and seller questions for private boat, trailer, and motor purchases. Unlock a bill of sale filled in for your deal and a title signing guide for $29.99.',
   alternates: {
     canonical: 'https://www.boatclosers.com/express',
   },
   openGraph: {
     type: 'website',
     url: 'https://www.boatclosers.com/express',
-    title: 'BC Express by BoatClosers: coming soon',
+    title: 'BC Express by BoatClosers',
     description:
-      'Everything a buyer needs to close a small private boat purchase safely, for $29.99. The seller never has to sign up.',
+      'Buying a boat from a private seller? Check it free, then close it right for $29.99. The seller never has to sign up.',
   },
 }
 
 const navy = '#0f1b2d'
 const gold = '#c9962e'
 const cream = '#f5f1e8'
+const muted = '#bdb6a8'
+const line = 'rgba(201,150,46,0.35)'
 
-const stages = [
+const h2 = {
+  fontFamily: 'Georgia, serif',
+  fontSize: 'clamp(26px, 5vw, 32px)',
+  lineHeight: 1.25,
+  margin: '0 0 18px',
+}
+
+const steps = [
   {
     title: 'Before you pay',
+    price: 'Free',
     items: [
-      'What to look for when buying a used boat',
-      'Walk-around checklist for hull, engine, and trailer',
       'HIN check to match the boat to its paperwork',
-      'Safe payment tips and common scams to avoid',
+      'Walk-around checklist for hull, engine, trailer, and motor',
+      'Questions to ask the seller before you go look',
+      'How to pay safely, and the scams to watch for',
     ],
   },
   {
     title: 'At the handoff',
+    price: '$29.99 unlock',
     items: [
-      'Bill of sale with proper as-is wording',
-      'Trailer bill of sale',
-      'Title signing guide so nothing gets rejected',
-      'Notice of sale reminder for the seller',
+      'Bill of sale filled in for your deal, with proper as-is wording',
+      'Trailer bill of sale when a trailer is included',
+      'Title signing guide, so nothing gets rejected',
+      'Red-flag checks: two sellers on the title, a lien, an out-of-state boat',
     ],
   },
   {
-    title: 'After it is yours',
+    title: "After it's yours",
+    price: 'Included',
     items: [
-      'Pre-filled title application',
-      'Document vault for every paper from the deal',
-      'New Owner Checklist for registration and first trips',
+      'Pre-filled Florida title application',
+      'What to bring to the tax collector, for your exact deal',
+      'Title deadline reminders by email',
+      'Every paper from the deal saved in one place',
     ],
+  },
+]
+
+const faqs = [
+  {
+    q: 'Does the seller have to sign up?',
+    a: 'No. You handle everything. The seller just signs the papers at the handoff.',
+  },
+  {
+    q: 'What does it cost?',
+    a: 'Starting is free, including the HIN check and walk-around checklist. When you are ready for the paperwork, it is $29.99, one price whether you are buying a boat, a trailer, a motor, or all three.',
+  },
+  {
+    q: 'Is this only for Florida?',
+    a: 'For now, yes. Florida titling rules are built in, so your paperwork matches what the tax collector expects.',
+  },
+  {
+    q: 'What if my deal needs more?',
+    a: 'If you need offers and counteroffers, escrow, or both parties working together, full BoatClosers handles that, and you can move up to it without paying twice.',
   },
 ]
 
@@ -66,143 +98,147 @@ export default function Page() {
         }}
       >
         <Link href="/" style={{ textDecoration: 'none' }}>
-          <div
-            style={{
-              color: gold,
-              fontFamily: 'Georgia, serif',
-              fontSize: 26,
-              letterSpacing: 2,
-              fontWeight: 700,
-            }}
-          >
+          <div style={{ color: gold, fontFamily: 'Georgia, serif', fontSize: 26, letterSpacing: 2, fontWeight: 700 }}>
             BOATCLOSERS
           </div>
-          <div style={{ color: cream, fontSize: 10, letterSpacing: 3, opacity: 0.75 }}>
-            PRIVATE VESSEL TRANSACTIONS
-          </div>
+          <div style={{ color: cream, fontSize: 10, letterSpacing: 3, opacity: 0.75 }}>EXPRESS · BUYER TOOLKIT</div>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <Link
-            href="/guides"
-            style={{ color: cream, textDecoration: 'none', fontSize: 15, opacity: 0.85 }}
-          >
-            Guides
-          </Link>
-          <Link
-            href="/"
-            style={{
-              background: gold,
-              color: navy,
-              padding: '12px 26px',
-              borderRadius: 4,
-              fontWeight: 700,
-              textDecoration: 'none',
-              fontSize: 15,
-            }}
-          >
-            Get Started
-          </Link>
-        </div>
+        <Link href="/guides" style={{ color: cream, textDecoration: 'none', fontSize: 15, opacity: 0.85 }}>
+          Guides
+        </Link>
       </header>
 
       <main style={{ maxWidth: 820, margin: '0 auto', padding: '64px 24px 80px' }}>
         <div style={{ color: gold, fontWeight: 700, fontSize: 15, marginBottom: 14 }}>
-          BC Express, coming soon
+          BC Express · For private boat, trailer &amp; motor purchases
         </div>
-        <h1
-          style={{
-            fontFamily: 'Georgia, serif',
-            fontSize: 'clamp(32px, 6vw, 44px)',
-            lineHeight: 1.15,
-            margin: '0 0 16px',
-          }}
-        >
-          Buying a boat from a private seller? Close it right for $29.99.
+        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 6vw, 46px)', lineHeight: 1.15, margin: '0 0 18px' }}>
+          Buying a boat from a private seller? Check it free. Close it right for $29.99.
         </h1>
-        <p style={{ fontSize: 20, opacity: 0.85, lineHeight: 1.7, marginBottom: 36 }}>
-          A step-by-step buyer toolkit for smaller private sales. Check the boat, sign the
-          right papers, pay safely, and walk away with a clean title. The seller never has
-          to create an account.
+        <p style={{ fontSize: 20, opacity: 0.88, lineHeight: 1.7, margin: '0 0 36px' }}>
+          A step-by-step buyer toolkit that walks you from the first look to a clean title. Check the boat,
+          sign the right papers, pay safely, and walk into the tax collector&apos;s office with everything they
+          need. The seller never has to create an account.
         </p>
 
-        <ExpressSignup />
-
-        <h2
+        <a
+          href="#notify"
           style={{
-            fontFamily: 'Georgia, serif',
-            fontSize: 30,
-            lineHeight: 1.25,
-            margin: '72px 0 28px',
+            display: 'inline-block',
+            background: gold,
+            color: navy,
+            padding: '15px 34px',
+            borderRadius: 4,
+            fontWeight: 700,
+            fontSize: 16,
+            textDecoration: 'none',
           }}
         >
-          What you get, in the order you need it
-        </h2>
+          Get notified when it opens
+        </a>
 
-        {stages.map((stage, i) => (
-          <div
-            key={stage.title}
-            style={{
-              border: '1px solid rgba(201,150,46,0.35)',
-              borderRadius: 6,
-              padding: '28px 30px',
-              marginBottom: 20,
-              background: 'rgba(201,150,46,0.05)',
-            }}
-          >
-            <h3
+        <section style={{ marginTop: 80 }}>
+          <h2 style={h2}>Where private boat sales go wrong</h2>
+          <p style={{ fontSize: 17, lineHeight: 1.75, opacity: 0.9, margin: 0 }}>
+            Most private sales happen in a driveway with a handshake and a handwritten bill of sale. Then the
+            buyer gets to the tax collector and finds out the title was signed in the wrong spot, the HIN
+            doesn&apos;t match, or there&apos;s a lien nobody mentioned. By then the seller has the money. BC
+            Express catches those problems before you pay, not after.
+          </p>
+        </section>
+
+        <section style={{ marginTop: 72 }}>
+          <h2 style={h2}>What you get, in the order you need it</h2>
+          {steps.map((s, i) => (
+            <div
+              key={s.title}
               style={{
-                fontFamily: 'Georgia, serif',
-                color: gold,
-                fontSize: 25,
-                lineHeight: 1.25,
-                margin: '0 0 14px',
+                border: `1px solid ${line}`,
+                borderRadius: 6,
+                padding: '26px 28px',
+                marginBottom: 16,
+                background: 'rgba(201,150,46,0.05)',
               }}
             >
-              {i + 1}. {stage.title}
-            </h3>
-            <ul style={{ margin: 0, paddingLeft: 22 }}>
-              {stage.items.map((item) => (
-                <li key={item} style={{ fontSize: 17, lineHeight: 1.8, opacity: 0.9 }}>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 12,
+                }}
+              >
+                <h3 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 24, lineHeight: 1.25, margin: 0 }}>
+                  {i + 1}. {s.title}
+                </h3>
+                <span style={{ fontSize: 13, letterSpacing: 1, fontWeight: 700, color: i === 0 ? gold : muted }}>
+                  {s.price.toUpperCase()}
+                </span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 22 }}>
+                {s.items.map((item) => (
+                  <li key={item} style={{ fontSize: 17, lineHeight: 1.8, opacity: 0.9 }}>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
 
-        <div
+        <section style={{ marginTop: 72 }}>
+          <h2 style={h2}>One price, whatever you&apos;re buying</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+            <div style={{ border: `1px solid ${line}`, borderRadius: 6, padding: 26 }}>
+              <div style={{ fontFamily: 'Georgia, serif', fontSize: 20 }}>Check it</div>
+              <div style={{ fontFamily: 'Georgia, serif', fontSize: 36, color: gold, fontWeight: 700, margin: '8px 0' }}>
+                Free
+              </div>
+              <div style={{ fontSize: 15, lineHeight: 1.6, color: muted }}>
+                HIN check, walk-around checklist, seller questions, safe payment tips.
+              </div>
+            </div>
+            <div style={{ border: `1px solid ${gold}`, borderRadius: 6, padding: 26, background: 'rgba(201,150,46,0.08)' }}>
+              <div style={{ fontFamily: 'Georgia, serif', fontSize: 20 }}>Close it</div>
+              <div style={{ fontFamily: 'Georgia, serif', fontSize: 36, color: gold, fontWeight: 700, margin: '8px 0' }}>
+                $29.99
+              </div>
+              <div style={{ fontSize: 15, lineHeight: 1.6, color: muted }}>
+                All the paperwork for your boat, trailer, motor, or all three, plus everything you need to title
+                it.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section style={{ marginTop: 72 }}>
+          <h2 style={h2}>Questions</h2>
+          {faqs.map((f) => (
+            <div key={f.q} style={{ padding: '18px 0', borderBottom: '1px solid rgba(245,241,232,0.12)' }}>
+              <h3 style={{ fontSize: 18, margin: '0 0 8px' }}>{f.q}</h3>
+              <p style={{ fontSize: 16, lineHeight: 1.7, color: muted, margin: 0 }}>{f.a}</p>
+            </div>
+          ))}
+        </section>
+
+        <section
+          id="notify"
           style={{
-            marginTop: 48,
+            marginTop: 72,
             padding: 36,
             border: `1px solid ${gold}`,
             borderRadius: 6,
             background: 'rgba(201,150,46,0.07)',
           }}
         >
-          <h3 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 24, marginTop: 0 }}>
-            Express or full BoatClosers?
-          </h3>
-          <p style={{ marginBottom: 26, fontSize: 17, lineHeight: 1.7 }}>
-            Express is for simpler private purchases where you and the seller have already
-            agreed on a price. If you need negotiation, offers and counteroffers, escrow, or
-            both parties working in one deal room, full BoatClosers is the better fit. You
-            will be able to upgrade from Express to the full platform without paying twice.
+          <h2 style={{ ...h2, color: gold, fontSize: 26 }}>Opening soon in Florida</h2>
+          <p style={{ fontSize: 17, lineHeight: 1.7, margin: '0 0 24px' }}>
+            Leave your email and we&apos;ll send you a link the day BC Express opens.
           </p>
-          <Link
-            href="/"
-            style={{
-              display: 'inline-block',
-              background: gold,
-              color: navy,
-              padding: '14px 32px',
-              borderRadius: 4,
-              fontWeight: 700,
-              textDecoration: 'none',
-            }}
-          >
-            See Full BoatClosers
-          </Link>
-        </div>
+          <ExpressSignup />
+        </section>
       </main>
 
       <footer
