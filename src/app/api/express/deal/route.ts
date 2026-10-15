@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 // BC Express deal access, by the private token in the buyer's link.
 //   GET  ?token=...                    -> the deal (confirms payment with Stripe if needed)
 //   POST { token, action: 'pay' }      -> a Stripe checkout URL for the $29.99 fee
+//   POST { token, action: 'ids', ids } -> save the HIN / VIN / motor serial
 // The fee is a server constant. Only express_deals is ever touched here.
 
 const FEE_CENTS = 2999 // $29.99
@@ -73,6 +74,24 @@ export async function POST(req: Request) {
 
   let deal = await loadDeal(token)
   if (!deal) return NextResponse.json({ error: 'Link not valid.' }, { status: 404 })
+
+  if (body?.action === 'ids') {
+    // Save identification numbers the buyer adds or corrects. Free, any time.
+    const ID_FIELD: Record<string, string> = { boat: 'hin', trailer: 'vin', motor: 'serial' }
+    const items = { ...(deal.items || {}) }
+    for (const [key, field] of Object.entries(ID_FIELD)) {
+      const v = body?.ids?.[key]
+      if (items[key] && typeof v === 'string') {
+        items[key] = { ...items[key], [field]: v.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 20) }
+      }
+    }
+    const { error } = await supabaseAdmin
+      .from('express_deals')
+      .update({ items, updated_at: new Date().toISOString() })
+      .eq('id', deal.id)
+    if (error) return NextResponse.json({ error: 'Could not save.' }, { status: 500 })
+    return NextResponse.json({ items })
+  }
 
   if (body?.action !== 'pay') return NextResponse.json({ error: 'Unknown action.' }, { status: 400 })
 
