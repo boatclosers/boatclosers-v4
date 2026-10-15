@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { makeMatches, type Builder } from '@/lib/hin'
+import { makeMatches, type Builder, type Recall, type VesselRecord } from '@/lib/hin'
 
 const gold = '#c9962e'
 const cream = '#f5f1e8'
@@ -109,6 +109,163 @@ export function BuilderDetails({
           brands are built under a parent company&apos;s name, so ask the seller to explain before you go further.
         </div>
       )}
+    </div>
+  )
+}
+
+
+// ---------- Shared fetch hook ----------
+
+function useJson<T>(url: string | null) {
+  const [data, setData] = useState<T | null>(null)
+  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  useEffect(() => {
+    setData(null)
+    if (!url) return setState('idle')
+    let alive = true
+    setState('loading')
+    fetch(url)
+      .then(async (r) => {
+        if (!r.ok) throw new Error()
+        return r.json()
+      })
+      .then((d) => {
+        if (alive) {
+          setData(d)
+          setState('done')
+        }
+      })
+      .catch(() => alive && setState('error'))
+    return () => {
+      alive = false
+    }
+  }, [url])
+  return { data, state }
+}
+
+const sectionTitle = { fontSize: 11, letterSpacing: 2, color: gold, fontWeight: 700, marginBottom: 6 }
+const rowStyle = { padding: '8px 0', borderBottom: '1px solid rgba(245,241,232,0.1)', lineHeight: 1.5 }
+
+function monthYear(d: string): string {
+  const m = /^(\d{4})-(\d{2})/.exec(d)
+  if (!m) return d
+  return new Date(Number(m[1]), Number(m[2]) - 1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+}
+
+// ---------- Recalls ----------
+
+export function RecallsSection({ mic, builderLabel }: { mic: string | null; builderLabel?: string }) {
+  const { data, state } = useJson<{ recalls: Recall[] }>(mic ? `/api/hin/recalls?mic=${mic}` : null)
+  const [all, setAll] = useState(false)
+  if (!mic || state === 'idle') return null
+
+  return (
+    <div>
+      <div style={sectionTitle}>SAFETY RECALLS</div>
+      {state === 'loading' && <div style={{ color: muted }}>Checking the Coast Guard recall database...</div>}
+      {state === 'error' && <div style={{ color: muted }}>The Coast Guard recall database didn&apos;t respond. Try again in a minute.</div>}
+      {state === 'done' && data && data.recalls.length === 0 && (
+        <div style={{ color: cream }}>✓ No safety recalls on file for {builderLabel || 'this builder'}.</div>
+      )}
+      {state === 'done' && data && data.recalls.length > 0 && (
+        <div>
+          <div style={{ color: gold, marginBottom: 4 }}>
+            {data.recalls.length} recall{data.recalls.length === 1 ? '' : 's'} on file for {builderLabel || 'this builder'}.
+            Check whether any match this boat&apos;s model.
+          </div>
+          {(all ? data.recalls : data.recalls.slice(0, 5)).map((r) => (
+            <div key={r.id} style={rowStyle}>
+              <a
+                href={`https://uscgboating.org/content/recalls-details.php?id=${r.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: cream }}
+              >
+                {r.model || 'Model not listed'}
+              </a>
+              <span style={{ color: muted }}> · opened {r.date ? monthYear(r.date) : 'date unknown'}</span>
+            </div>
+          ))}
+          {data.recalls.length > 5 && (
+            <button
+              type="button"
+              onClick={() => setAll(!all)}
+              style={{ marginTop: 8, background: 'none', border: 'none', color: gold, cursor: 'pointer', padding: 0, fontSize: 15 }}
+            >
+              {all ? 'Show fewer' : `Show all ${data.recalls.length}`}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------- Coast Guard vessel records ----------
+
+const SERIOUS = /incident|casualty|pollution|investigat|violation|enforcement|search|rescue|marine event/i
+
+export function VesselSection({ hin }: { hin: string | null }) {
+  const valid = hin && /^[A-Z0-9]{12}$/.test(hin)
+  const { data, state } = useJson<{ vessels: VesselRecord[] }>(valid ? `/api/hin/vessel?hin=${hin}` : null)
+  if (!valid || state === 'idle') return null
+
+  return (
+    <div>
+      <div style={sectionTitle}>COAST GUARD RECORDS</div>
+      {state === 'loading' && (
+        <div style={{ color: muted }}>Searching Coast Guard vessel records. This one can take up to 30 seconds...</div>
+      )}
+      {state === 'error' && (
+        <div style={{ color: muted }}>The Coast Guard vessel database didn&apos;t respond. It goes down often, so try again later.</div>
+      )}
+      {state === 'done' && data && data.vessels.length === 0 && (
+        <div style={{ color: muted, lineHeight: 1.6 }}>
+          No Coast Guard record for this HIN. That&apos;s normal for most state-registered boats: this database mainly
+          covers federally documented vessels. Check the Florida title for ownership and liens.
+        </div>
+      )}
+      {state === 'done' &&
+        data &&
+        data.vessels.map((v) => {
+          const flagged = v.cases.filter((c) => SERIOUS.test(c.type))
+          return (
+            <div key={v.number || v.name} style={{ ...rowStyle, borderBottom: 'none', marginBottom: 6 }}>
+              <div style={{ fontSize: 16, color: cream }}>
+                <b>{v.name || 'Unnamed vessel'}</b>
+                {v.status ? ` · ${v.status}` : ''}
+              </div>
+              <div style={{ color: muted }}>
+                {v.numberType}: {v.number}
+                {v.service ? ` · ${v.service}` : ''}
+                {v.built ? ` · built ${v.built}` : ''}
+              </div>
+              {v.numberType === 'Coast Guard official number' && (
+                <div style={{ color: gold }}>
+                  Federally documented. Title transfers through the Coast Guard&apos;s Vessel Documentation Center, not
+                  the state, and recorded mortgages show on its abstract of title.
+                </div>
+              )}
+              {v.cases.length > 0 ? (
+                <div style={{ marginTop: 6 }}>
+                  <div style={{ color: flagged.length ? gold : muted }}>
+                    {v.cases.length} Coast Guard case{v.cases.length === 1 ? '' : 's'} on file
+                    {flagged.length ? `, ${flagged.length} incident-related` : ''}:
+                  </div>
+                  {v.cases.slice(0, 8).map((c, i) => (
+                    <div key={i} style={{ color: SERIOUS.test(c.type) ? gold : cream, fontSize: 14, paddingLeft: 10 }}>
+                      {monthYear(c.date)} · {c.type}
+                      {c.result ? ` (${c.result})` : ''}
+                      {c.port ? ` · ${c.port}` : ''}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ color: muted }}>No Coast Guard boardings, inspections, or incident cases on file.</div>
+              )}
+            </div>
+          )
+        })}
     </div>
   )
 }

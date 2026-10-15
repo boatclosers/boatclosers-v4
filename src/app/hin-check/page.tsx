@@ -3,9 +3,9 @@ import Link from 'next/link'
 import HinChecker from './HinChecker'
 
 export const metadata: Metadata = {
-  title: 'Free Boat HIN Check: Decode a Hull Identification Number',
+  title: 'Free Boat HIN Check: Builder, Year, Recalls & Coast Guard Records',
   description:
-    'Free HIN decoder for boat buyers. Check that a Hull Identification Number is valid, see the builder code, build date, and model year, and learn what to verify before you pay.',
+    'Free HIN lookup for boat buyers. See who built the boat and when, whether the builder is still in business, safety recalls on file, and Coast Guard documentation and boarding records.',
   alternates: {
     canonical: 'https://www.boatclosers.com/hin-check',
   },
@@ -141,8 +141,9 @@ export default function Page() {
           Free Boat HIN Check
         </h1>
         <p style={{ fontSize: 20, opacity: 0.85, lineHeight: 1.7, marginBottom: 36 }}>
-          Enter the 12-character Hull Identification Number to check that it is valid and see the
-          builder code, build date, and model year. Do this before you hand over any money.
+          Enter the 12-character Hull Identification Number to see who built the boat and when, whether the
+          builder is still in business, safety recalls on file, and any Coast Guard documentation and boarding
+          records. Free, straight from Coast Guard data. Do this before you hand over any money.
         </p>
 
         <HinChecker />

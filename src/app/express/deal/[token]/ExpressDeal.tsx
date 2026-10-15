@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { decodeHin } from '@/lib/hin'
-import { useBuilder, BuilderDetails, builderName } from '@/components/HinBuilder'
+import { useBuilder, BuilderDetails, builderName, RecallsSection, VesselSection } from '@/components/HinBuilder'
 
 const navy = '#0f1b2d'
 const card = '#18283f'
@@ -141,6 +141,13 @@ function HinCard({ token, boat, onSaved }: { token: string; boat: any; onSaved: 
               done={done}
               typedMake={boat.description}
             />
+          )}
+
+          {r.mic && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18, margin: '14px 0' }}>
+              <RecallsSection mic={r.mic} builderLabel={builder ? builderName(builder) : undefined} />
+              <VesselSection hin={r.hin} />
+            </div>
           )}
           {r.productionMonth && (
             <div>

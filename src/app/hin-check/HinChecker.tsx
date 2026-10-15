@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { decodeHin, type HinResult } from '@/lib/hin'
-import { useBuilder, BuilderDetails, builderName } from '@/components/HinBuilder'
+import { useBuilder, BuilderDetails, builderName, RecallsSection, VesselSection } from '@/components/HinBuilder'
 
 const navy = '#0f1b2d'
 const gold = '#c9962e'
@@ -161,6 +161,13 @@ export default function HinChecker() {
                   done={done}
                   typedMake={listing || undefined}
                 />
+              </div>
+            )}
+
+            {result.mic && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18, margin: '14px 0' }}>
+                <RecallsSection mic={result.mic} builderLabel={builder ? builderName(builder) : undefined} />
+                <VesselSection hin={result.hin} />
               </div>
             )}
 

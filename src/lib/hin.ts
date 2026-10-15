@@ -174,3 +174,18 @@ export function makeMatches(description: string, b: Builder): boolean {
   const names = [b.company, b.dba || '', ...b.pastNames]
   return names.some((n) => words(n).some((w) => typed.has(w)))
 }
+
+// A USCG boating safety recall for a builder.
+export type Recall = { id: string; model: string; year: string; date: string }
+
+// A vessel record from the USCG PSIX system, found by HIN.
+export type VesselRecord = {
+  name: string
+  number: string
+  numberType: string
+  service: string
+  status: string
+  built: string
+  country: string
+  cases: { date: string; type: string; result: string; port: string }[]
+}
