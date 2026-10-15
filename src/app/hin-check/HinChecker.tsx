@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { decodeHin, type HinResult } from '@/lib/hin'
+import { useBuilder, BuilderDetails, builderName } from '@/components/HinBuilder'
 
 const navy = '#0f1b2d'
 const gold = '#c9962e'
@@ -41,14 +42,20 @@ export default function HinChecker() {
   const [hin, setHin] = useState('')
   const [year, setYear] = useState('')
   const [result, setResult] = useState<HinResult | null>(null)
+  const [listing, setListing] = useState('')
+  const { builder, loading, done } = useBuilder(result?.mic ?? null)
 
   function handleCheck() {
-    const y = parseInt(year, 10)
-    setResult(decodeHin(hin, y >= 1900 && y <= 2100 ? y : undefined))
+    // The listing field takes "2015 Carolina Skiff" or just "2015".
+    const m = /\b(19|20)\d{2}\b/.exec(year)
+    setListing(year.trim())
+    setResult(decodeHin(hin, m ? Number(m[0]) : undefined))
   }
 
   const headline =
-    result?.status === 'valid'
+    result?.status === 'valid' && builder
+      ? `${result.modelYear} ${builderName(builder)}`
+      : result?.status === 'valid'
       ? 'The format checks out'
       : result?.status === 'older'
         ? 'Older HIN format'
@@ -79,18 +86,17 @@ export default function HinChecker() {
             style={{ ...inputStyle, fontFamily: 'ui-monospace, Menlo, monospace', letterSpacing: 1 }}
           />
         </div>
-        <div style={{ flex: '1 1 140px' }}>
+        <div style={{ flex: '1 1 220px' }}>
           <label
             htmlFor="year"
             style={{ display: 'block', fontWeight: 700, fontSize: 15, marginBottom: 8 }}
           >
-            Year on the listing <span style={{ fontWeight: 400, color: muted }}>(optional)</span>
+            Year &amp; make on the listing <span style={{ fontWeight: 400, color: muted }}>(optional)</span>
           </label>
           <input
             id="year"
             type="text"
-            inputMode="numeric"
-            placeholder="e.g. 2015"
+            placeholder="e.g. 2015 Boston Whaler"
             value={year}
             onChange={(e) => setYear(e.target.value)}
             onKeyDown={(e) => {
@@ -146,6 +152,18 @@ export default function HinChecker() {
               </div>
             )}
 
+            {result.mic && (
+              <div style={{ margin: '4px 0 14px' }}>
+                <BuilderDetails
+                  mic={result.mic}
+                  builder={builder}
+                  loading={loading}
+                  done={done}
+                  typedMake={listing || undefined}
+                />
+              </div>
+            )}
+
             {result.problems.length > 0 && (
               <ul style={{ margin: '0 0 12px', paddingLeft: 20, lineHeight: 1.6 }}>
                 {result.problems.map((p) => (
@@ -165,7 +183,7 @@ export default function HinChecker() {
                       rel="noopener noreferrer"
                       style={{ color: gold }}
                     >
-                      {result.mic} · look up builder
+                      {result.mic} · Coast Guard record
                     </a>
                   }
                 />

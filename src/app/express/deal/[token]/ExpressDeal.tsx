@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { decodeHin } from '@/lib/hin'
+import { useBuilder, BuilderDetails, builderName } from '@/components/HinBuilder'
 
 const navy = '#0f1b2d'
 const card = '#18283f'
@@ -41,6 +42,7 @@ function HinCard({ token, boat, onSaved }: { token: string; boat: any; onSaved: 
   const expectedYear = yearMatch ? Number(yearMatch[0]) : undefined
   const saved = boat.hin || ''
   const r = saved ? decodeHin(saved, expectedYear) : null
+  const { builder, loading, done } = useBuilder(r?.mic ?? null)
 
   async function save() {
     setSaving(true)
@@ -62,7 +64,9 @@ function HinCard({ token, boat, onSaved }: { token: string; boat: any; onSaved: 
 
   const headline = !r
     ? 'Add the HIN to check it'
-    : r.status === 'valid'
+    : r.status === 'valid' && builder
+      ? `${r.modelYear} ${builderName(builder)}`
+      : r.status === 'valid'
       ? 'The HIN format checks out'
       : r.status === 'older'
         ? 'Older HIN format'
@@ -130,17 +134,13 @@ function HinCard({ token, boat, onSaved }: { token: string; boat: any; onSaved: 
             </div>
           ))}
           {r.mic && (
-            <div>
-              Builder code <b style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{r.mic}</b> ·{' '}
-              <a
-                href="https://uscgboating.org/content/manufacturers-identification.php"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: gold }}
-              >
-                look up builder
-              </a>
-            </div>
+            <BuilderDetails
+              mic={r.mic}
+              builder={builder}
+              loading={loading}
+              done={done}
+              typedMake={boat.description}
+            />
           )}
           {r.productionMonth && (
             <div>

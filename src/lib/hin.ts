@@ -148,3 +148,29 @@ export function decodeHin(input: string, expectedYear?: number): HinResult {
   result.status = result.problems.length ? 'problem' : 'valid'
   return result
 }
+
+// Boat builder from the USCG Manufacturer Identification Code database
+// (looked up on the server by src/lib/micLookup.ts).
+export type Builder = {
+  mic: string
+  company: string
+  dba: string | null
+  pastNames: string[]
+  city: string | null
+  state: string | null
+  inBusiness: string | null
+  outOfBusiness: string | null
+  types: string[]
+}
+
+// Loose check: does the make the buyer typed appear to match this builder?
+// Brands are often built under a corporate or parent name, so a "no" is a
+// prompt to ask the seller, not proof of a problem.
+const STOP = new Set(['INC', 'LLC', 'CORP', 'CORPORATION', 'CO', 'COMPANY', 'LTD', 'THE', 'OF', 'AND', 'BOATS', 'BOAT', 'MARINE', 'YACHTS', 'YACHT', 'INDUSTRIES', 'INTERNATIONAL', 'INTL', 'MFG', 'MANUFACTURING', 'GROUP', 'USA', 'AMERICA', 'BOATWORKS', 'WORKS', 'CRAFT'])
+export function makeMatches(description: string, b: Builder): boolean {
+  const words = (s: string) =>
+    s.toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w))
+  const typed = new Set(words(description))
+  const names = [b.company, b.dba || '', ...b.pastNames]
+  return names.some((n) => words(n).some((w) => typed.has(w)))
+}
