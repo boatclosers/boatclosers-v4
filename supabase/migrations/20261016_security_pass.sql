@@ -1,24 +1,6 @@
--- Security pass (Oct 16 2026). Needs to be run once in Supabase (SQL editor).
--- The app never writes to the database from the browser; every write goes through
--- server routes with the service role. These policies let any signed-in user
--- (including one-tap guest accounts) change deals, offers, documents and profiles
--- directly with the public key, skipping the server's rules. Keep only reads.
-drop policy if exists "Deal parties can update deal" on public.deals;
-drop policy if exists "Initiator can delete deal" on public.deals;
-drop policy if exists "Initiator can insert deal" on public.deals;
-drop policy if exists "Deal parties can insert documents" on public.documents;
-drop policy if exists "Deal parties can update documents" on public.documents;
-drop policy if exists "Deal parties can insert messages" on public.messages;
-drop policy if exists "Users can update own notifications" on public.notifications;
-drop policy if exists "Deal parties can insert offers" on public.offers;
-drop policy if exists "Deal parties can update offers" on public.offers;
-drop policy if exists "Users can insert own profile" on public.profiles;
-drop policy if exists "Users can update own profile" on public.profiles;
-
--- Storage: these let ANY signed-in user read, upload or delete ANY deal's files.
-drop policy if exists "Authenticated users can upload deal documents" on storage.objects;
-drop policy if exists "Deal parties can delete their documents" on storage.objects;
-drop policy if exists "Deal parties can view their documents" on storage.objects;
+-- Security pass (Oct 16 2026). APPLIED to production.
+-- The app never touches the database from the browser; every write goes through
+-- server routes with the service role (which these changes don't affect).
 
 -- Server-only helper functions: not callable through the public API.
 revoke execute on function public.check_rate_limit(text, integer, integer) from public, anon, authenticated;
@@ -30,3 +12,13 @@ grant execute on function public.notify_admin_new_deal() to service_role;
 revoke all on public.comm_optouts, public.comm_prefs, public.sms_log, public.express_deals,
   public.express_waitlist, public.hin_builders, public.uscg_cache, public.rate_limits
   from anon, authenticated;
+
+-- Browser roles may still READ their own rows (RLS policies), but never write.
+-- (The old write policies remain defined but are inert without these grants.)
+revoke insert, update, delete, truncate on public.deals, public.documents, public.messages,
+  public.notifications, public.offers, public.profiles from anon, authenticated;
+
+-- Storage: these let ANY signed-in user read, upload or delete ANY deal's files.
+alter policy "Authenticated users can upload deal documents" on storage.objects with check (false);
+alter policy "Deal parties can delete their documents" on storage.objects using (false);
+alter policy "Deal parties can view their documents" on storage.objects using (false);
