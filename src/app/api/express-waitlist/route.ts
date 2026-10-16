@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// Always read live data: never let Next.js cache database or upstream fetches here.
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 export async function POST(request: Request) {
   let body: { email?: string; website?: string }
   try {

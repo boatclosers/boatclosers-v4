@@ -2,6 +2,10 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { buildDocument, docsFor, type DocKey } from '@/lib/express/documents'
 import { handoffProblems, type Handoff } from '@/lib/express/content'
 
+// Always read live data: never let Next.js cache database or upstream fetches here.
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 // GET /api/express/document?token=...&doc=vessel-bill-of-sale
 // Builds the PDF from the buyer's deal. Paid deals with complete sale details only.
 

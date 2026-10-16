@@ -4,6 +4,10 @@ import { sendEmail, emailLayout } from '@/lib/sendEmail'
 import { handoffProblems, type Handoff } from '@/lib/express/content'
 import { buildDocument, docsFor, DOC_TITLES, type DocKey } from '@/lib/express/documents'
 
+// Always read live data: never let Next.js cache database or upstream fetches here.
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 // BC Express deal access, by the private token in the buyer's link.
 //   GET  ?token=...                    -> the deal (confirms payment with Stripe if needed)
 //   POST { token, action: 'pay' }      -> a Stripe checkout URL for the $29.99 fee

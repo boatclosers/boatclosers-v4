@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { lookupVessel } from '@/lib/uscgData'
 
+// Always read live data: never let Next.js cache database or upstream fetches here.
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 // The Coast Guard PSIX service is slow and often retries; give it room.
 export const maxDuration = 45
 

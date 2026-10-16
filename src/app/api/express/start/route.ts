@@ -3,6 +3,10 @@ import crypto from 'crypto'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendEmail, emailLayout } from '@/lib/sendEmail'
 
+// Always read live data: never let Next.js cache database or upstream fetches here.
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 // BC Express: create a new one-party buyer deal (no account needed).
 // The buyer's email gets a private link back into the deal. Payment happens
 // later, through /api/express/deal (action "pay"), right before the paperwork.
