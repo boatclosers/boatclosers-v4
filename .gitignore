@@ -1,0 +1,6 @@
+# Local build and install output (Vercel installs and builds on its own)
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+package-lock.json
