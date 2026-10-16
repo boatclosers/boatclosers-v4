@@ -11,6 +11,7 @@ const guides = [
   'documents-needed-private-boat-sale',
   'boat-deposit-and-escrow',
   'boat-bill-of-sale',
+  'buy-used-boat-private-seller-florida',
 ]
 
 export default function sitemap(): MetadataRoute.Sitemap {

@@ -65,6 +65,12 @@ const guides = [
       'What a deposit actually commits, when it should be refundable, and why a seller holding the money is the fastest route to a dispute.',
   },
   {
+    slug: 'buy-used-boat-private-seller-florida',
+    title: 'How to Buy a Used Boat From a Private Seller in Florida',
+    blurb:
+      'HIN and lien checks, the inspection, paying safely, the bill of sale that doubles as temporary registration, and titling within 30 days.',
+  },
+  {
     slug: 'boat-bill-of-sale',
     title: 'Boat Bill of Sale: What It Must Include to Hold Up',
     blurb:
@@ -80,7 +86,9 @@ export default function Page() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '24px 32px',
+          flexWrap: 'wrap',
+          gap: 16,
+          padding: '24px 20px',
           borderBottom: `2px dashed ${gold}`,
         }}
       >

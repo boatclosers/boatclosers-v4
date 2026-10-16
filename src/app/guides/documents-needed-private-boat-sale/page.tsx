@@ -29,7 +29,9 @@ export default function Page() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '24px 32px',
+          flexWrap: 'wrap',
+          gap: 16,
+          padding: '24px 20px',
           borderBottom: `2px dashed ${gold}`,
         }}
       >
