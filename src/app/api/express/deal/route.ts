@@ -14,6 +14,7 @@ export const fetchCache = 'force-no-store'
 //   POST { token, action: 'pay' }      -> a Stripe checkout URL for the $29.99 fee
 //   POST { token, action: 'ids', ids } -> save the HIN / VIN / motor serial
 //   POST { token, action: 'checks', checks } -> save checklist progress (free)
+//   POST { token, action: 'answers', answers } -> save the seller's answers (free)
 //   POST { token, action: 'handoff', handoff } -> save sale details (paid only)
 //   POST { token, action: 'email-seller' } -> email the seller their copies (paid only)
 // The fee is a server constant. Only express_deals is ever touched here.
@@ -178,6 +179,23 @@ export async function POST(req: Request) {
     }
     if (Object.keys(checks).length > 200) return NextResponse.json({ error: 'Too many items.' }, { status: 400 })
     const progress = { ...(deal.progress || {}), checks }
+    const { error } = await supabaseAdmin
+      .from('express_deals')
+      .update({ progress, updated_at: new Date().toISOString() })
+      .eq('id', deal.id)
+    if (error) return NextResponse.json({ error: 'Could not save.' }, { status: 500 })
+    return NextResponse.json({ progress })
+  }
+
+  if (body?.action === 'answers') {
+    // The seller's answers to the buyer's questions: { [questionId]: text }. Free.
+    const incoming = body?.answers && typeof body.answers === 'object' ? body.answers : {}
+    const answers: Record<string, string> = { ...(deal.progress?.answers || {}) }
+    for (const [k, v] of Object.entries(incoming)) {
+      if (/^q-[a-z0-9-]{1,30}$/.test(k) && typeof v === 'string') answers[k] = v.slice(0, 1000)
+    }
+    if (Object.keys(answers).length > 30) return NextResponse.json({ error: 'Too many answers.' }, { status: 400 })
+    const progress = { ...(deal.progress || {}), answers }
     const { error } = await supabaseAdmin
       .from('express_deals')
       .update({ progress, updated_at: new Date().toISOString() })

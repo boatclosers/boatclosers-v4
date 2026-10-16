@@ -121,6 +121,114 @@ export function forItems(list: CheckItem[], has: Record<ItemKey, boolean>) {
   return list.filter((i) => !i.only || has[i.only])
 }
 
+// ---------- Seller questions: send in writing, note the answers ----------
+
+export function SellerQuestions({
+  deal,
+  items,
+  checks,
+  answers,
+  onToggle,
+  onAnswer,
+}: {
+  deal: any
+  items: CheckItem[]
+  checks: Record<string, boolean>
+  answers: Record<string, string>
+  onToggle: (id: string, v: boolean) => void
+  onAnswer: (id: string, text: string) => void
+}) {
+  const [open, setOpen] = useState<Record<string, boolean>>({})
+  const what = Object.values(deal.items || {})
+    .map((i: any) => `${i.description}${i.hin ? ` (HIN ${i.hin})` : i.vin ? ` (VIN ${i.vin})` : ''}`)
+    .join(', ')
+  const sellerFirst = String(deal.seller_name || '').split(' ')[0]
+  const buyerFirst = String(deal.buyer_name || '').split(' ')[0]
+  const message =
+    `Hi ${sellerFirst},\n\nI'm interested in your ${what}. Before I come take a look, could you answer these questions? ` +
+    `In writing is great, so we both have a record.\n\n` +
+    items.map((q, i) => `${i + 1}. ${q.label}`).join('\n') +
+    `\n\nThanks,\n${buyerFirst}`
+  const sellerEmail = deal.progress?.handoff?.sellerEmail || ''
+  const subject = `Questions about your ${Object.values(deal.items || {}).map((i: any) => i.description)[0] || 'boat'}`
+  const mailto = `mailto:${encodeURIComponent(sellerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`
+  const sms = `sms:?&body=${encodeURIComponent(message)}`
+  const count = items.filter((i) => checks[i.id] || (answers[i.id] || '').trim()).length
+
+  return (
+    <div style={boxStyle}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+        <div style={eyebrow}>QUESTIONS FOR THE SELLER</div>
+        <div style={{ fontSize: 13, color: muted }}>
+          {count} of {items.length} answered
+        </div>
+      </div>
+      <h2 style={h2}>Ask these before you go look</h2>
+      <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
+        Send them in writing. A written answer is a record if something turns out not to be true, and sellers tend to be
+        more careful with buyers who ask this way.
+      </p>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <a href={mailto} style={{ ...goldButton, flex: '1 1 160px' }}>
+          Email the questions
+        </a>
+        <a href={sms} style={{ ...outlineButton, flex: '1 1 160px' }}>
+          Text the questions
+        </a>
+      </div>
+      <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.5 }}>
+        Opens your own email or texts with the questions written in. Note the seller’s answers below; they save with your
+        purchase. Ask “why are you selling?” again in person too.
+      </p>
+      <div>
+        {items.map((q, i) => {
+          const a = answers[q.id] || ''
+          const show = open[q.id] || !!a
+          return (
+            <div key={q.id} style={{ padding: '11px 0', borderTop: i ? `1px solid ${line}` : 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={!!checks[q.id]}
+                  onChange={(e) => onToggle(q.id, e.target.checked)}
+                  style={{ width: 20, height: 20, marginTop: 2, accentColor: gold, flexShrink: 0 }}
+                />
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <span style={{ fontSize: 16, fontWeight: 600, color: cream }}>{q.label}</span>
+                  {q.detail && <span style={{ fontSize: 14, lineHeight: 1.55, color: muted }}>{q.detail}</span>}
+                </span>
+              </label>
+              {show ? (
+                <div style={{ paddingLeft: 32 }}>
+                  <label htmlFor={`ans-${q.id}`} style={{ position: 'absolute', left: -9999 }}>
+                    Seller’s answer
+                  </label>
+                  <textarea
+                    id={`ans-${q.id}`}
+                    rows={2}
+                    value={a}
+                    placeholder="What the seller said"
+                    onChange={(e) => onAnswer(q.id, e.target.value)}
+                    style={{ ...inputStyle, fontFamily: 'inherit', fontSize: 15, resize: 'vertical' }}
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setOpen({ ...open, [q.id]: true })}
+                  style={{ marginLeft: 32, alignSelf: 'flex-start', background: 'none', border: 'none', color: gold, fontSize: 14, cursor: 'pointer', padding: 0 }}
+                >
+                  + Note the seller’s answer
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ---------- Form bits ----------
 
 const inputStyle = {

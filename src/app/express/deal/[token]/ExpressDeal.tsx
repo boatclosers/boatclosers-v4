@@ -5,7 +5,7 @@ import { decodeHin } from '@/lib/hin'
 import LienCheck from '@/components/LienCheck'
 import { useBuilder, BuilderDetails, builderName, RecallsSection, VesselSection } from '@/components/HinBuilder'
 import { WALK_AROUND, SELLER_QUESTIONS, PAYMENT_TIPS, type ItemKey } from '@/lib/express/content'
-import { navy, gold, cream, muted, line, boxStyle, eyebrow, money, Checklist, forItems, HandoffStep, AfterStep } from './parts'
+import { navy, gold, cream, muted, line, boxStyle, eyebrow, money, Checklist, forItems, HandoffStep, AfterStep, SellerQuestions } from './parts'
 
 const ID_LABEL: Record<string, [string, string]> = {
   boat: ['hin', 'HIN'],
@@ -160,6 +160,8 @@ export default function ExpressDeal({ token }: { token: string }) {
   const [saveError, setSaveError] = useState(false)
   const pending = useRef<Record<string, boolean>>({})
   const timer = useRef<any>(null)
+  const pendingAnswers = useRef<Record<string, string>>({})
+  const answerTimer = useRef<any>(null)
 
   useEffect(() => {
     const back = new URLSearchParams(window.location.search).get('paid') === '1'
@@ -203,6 +205,27 @@ export default function ExpressDeal({ token }: { token: string }) {
         setSaveError(true)
       }
     }, 600)
+  }
+
+  // Seller's answers save a moment after the buyer stops typing.
+  function answer(id: string, text: string) {
+    setDeal((d: any) => ({ ...d, progress: { ...(d.progress || {}), answers: { ...(d.progress?.answers || {}), [id]: text } } }))
+    pendingAnswers.current[id] = text
+    clearTimeout(answerTimer.current)
+    answerTimer.current = setTimeout(async () => {
+      const answers = pendingAnswers.current
+      pendingAnswers.current = {}
+      try {
+        const res = await fetch('/api/express/deal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, action: 'answers', answers }),
+        })
+        setSaveError(!res.ok)
+      } catch {
+        setSaveError(true)
+      }
+    }, 900)
   }
 
   async function handlePay() {
@@ -359,7 +382,7 @@ export default function ExpressDeal({ token }: { token: string }) {
 
       {saveError && (
         <p role="alert" style={{ margin: 0, color: gold, fontSize: 14 }}>
-          Your last checkmark didn&apos;t save. Check your connection; it will save with your next one.
+          Your last change didn&apos;t save. Check your connection; it will save with your next one.
         </p>
       )}
 
@@ -369,12 +392,13 @@ export default function ExpressDeal({ token }: { token: string }) {
           <div style={boxStyle}>
             <LienCheck sellerName={deal.seller_name} inExpress saved={checks} onToggle={toggle} />
           </div>
-          <Checklist
-            label="QUESTIONS FOR THE SELLER"
-            title="Ask these before you go look"
+          <SellerQuestions
+            deal={deal}
             items={forItems(SELLER_QUESTIONS, has)}
             checks={checks}
+            answers={deal.progress?.answers || {}}
             onToggle={toggle}
+            onAnswer={answer}
           />
           <Checklist
             label="WALK-AROUND CHECKLIST"
