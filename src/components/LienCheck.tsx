@@ -35,12 +35,25 @@ function ext(href: string, label: string) {
 export default function LienCheck({
   sellerName,
   inExpress = false,
+  saved,
+  onToggle,
 }: {
   sellerName?: string
   inExpress?: boolean
+  // Optional saved progress (keys are prefixed "l-") and a save callback.
+  saved?: Record<string, boolean>
+  onToggle?: (id: string, value: boolean) => void
 }) {
   const [title, setTitle] = useState<TitleType>('unsure')
-  const [done, setDone] = useState<Record<string, boolean>>({})
+  const [localDone, setLocalDone] = useState<Record<string, boolean>>({})
+  const done: Record<string, boolean> = saved
+    ? Object.fromEntries(Object.entries(saved).filter(([k]) => k.startsWith('l-')).map(([k, v]) => [k.slice(2), v]))
+    : localDone
+  const setDone = (next: Record<string, boolean>) => {
+    if (onToggle) {
+      for (const [k, v] of Object.entries(next)) if (!!done[k] !== v) onToggle(`l-${k}`, v)
+    } else setLocalDone(next)
+  }
 
   const steps: { id: string; title: string; body: React.ReactNode }[] = [
     {

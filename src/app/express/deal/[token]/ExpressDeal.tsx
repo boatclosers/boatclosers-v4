@@ -1,38 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { decodeHin } from '@/lib/hin'
 import LienCheck from '@/components/LienCheck'
 import { useBuilder, BuilderDetails, builderName, RecallsSection, VesselSection } from '@/components/HinBuilder'
-
-const navy = '#0f1b2d'
-const card = '#18283f'
-const gold = '#c9962e'
-const cream = '#f5f1e8'
-const muted = '#bdb6a8'
-const line = 'rgba(201,150,46,0.35)'
+import { WALK_AROUND, SELLER_QUESTIONS, PAYMENT_TIPS, type ItemKey } from '@/lib/express/content'
+import { navy, gold, cream, muted, line, boxStyle, eyebrow, money, Checklist, forItems, HandoffStep, AfterStep } from './parts'
 
 const ID_LABEL: Record<string, [string, string]> = {
   boat: ['hin', 'HIN'],
   trailer: ['vin', 'VIN'],
   motor: ['serial', 'Serial'],
 }
-
-function money(cents: number) {
-  return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-}
-
-const boxStyle = {
-  background: card,
-  border: `1px solid ${line}`,
-  borderRadius: 8,
-  padding: '18px 18px',
-  display: 'flex',
-  flexDirection: 'column' as const,
-  gap: 10,
-}
-
-const eyebrow = { fontSize: 11, letterSpacing: 2, color: gold, fontWeight: 700 }
 
 // Step 1 tool: decode the boat's HIN and compare it with the year the buyer entered.
 function HinCard({ token, boat, onSaved }: { token: string; boat: any; onSaved: (items: any) => void }) {
@@ -177,9 +156,14 @@ export default function ExpressDeal({ token }: { token: string }) {
   const [error, setError] = useState('')
   const [paying, setPaying] = useState(false)
   const [justPaid, setJustPaid] = useState(false)
+  const [step, setStep] = useState<1 | 2 | 3 | null>(null)
+  const [saveError, setSaveError] = useState(false)
+  const pending = useRef<Record<string, boolean>>({})
+  const timer = useRef<any>(null)
 
   useEffect(() => {
-    setJustPaid(new URLSearchParams(window.location.search).get('paid') === '1')
+    const back = new URLSearchParams(window.location.search).get('paid') === '1'
+    setJustPaid(back)
     let tries = 0
     async function load() {
       try {
@@ -187,17 +171,39 @@ export default function ExpressDeal({ token }: { token: string }) {
         const d = await res.json()
         if (!res.ok) throw new Error(d.error || 'Link not valid.')
         setDeal(d.deal)
+        setStep((s) => s ?? (d.deal.status === 'paid' ? (d.deal.progress?.handoff?.saleDate ? 3 : 2) : 1))
         // Coming back from Stripe: payment can take a moment to show as paid.
-        if (d.deal.status === 'unpaid' && new URLSearchParams(window.location.search).get('paid') === '1' && tries < 4) {
+        if (d.deal.status === 'unpaid' && back && tries < 4) {
           tries++
           setTimeout(load, 2000)
-        }
+        } else if (d.deal.status === 'paid' && back) setStep(2)
       } catch (e: any) {
         setError(e?.message || 'Could not load your purchase.')
       }
     }
     load()
   }, [token])
+
+  // Checklist ticks save in small batches so tapping quickly doesn't flood the server.
+  function toggle(id: string, v: boolean) {
+    setDeal((d: any) => ({ ...d, progress: { ...(d.progress || {}), checks: { ...(d.progress?.checks || {}), [id]: v } } }))
+    pending.current[id] = v
+    clearTimeout(timer.current)
+    timer.current = setTimeout(async () => {
+      const checks = pending.current
+      pending.current = {}
+      try {
+        const res = await fetch('/api/express/deal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, action: 'checks', checks }),
+        })
+        setSaveError(!res.ok)
+      } catch {
+        setSaveError(true)
+      }
+    }, 600)
+  }
 
   async function handlePay() {
     setPaying(true)
@@ -229,122 +235,191 @@ export default function ExpressDeal({ token }: { token: string }) {
     )
   }
 
-  if (!deal) return <p style={{ color: muted }}>Loading your purchase...</p>
+  if (!deal || !step) return <p style={{ color: muted }}>Loading your purchase...</p>
 
   const paid = deal.status === 'paid'
   const items = Object.entries(deal.items || {}) as [string, any][]
   const firstName = String(deal.buyer_name).split(' ')[0]
+  const has: Record<ItemKey, boolean> = { boat: !!deal.items?.boat, trailer: !!deal.items?.trailer, motor: !!deal.items?.motor }
+  const checks: Record<string, boolean> = deal.progress?.checks || {}
 
   const steps = [
-    { title: 'Before you pay', note: 'HIN check, walk-around checklist, seller questions', tag: 'FREE', open: true },
-    { title: 'At the handoff', note: 'Bill of sale, title signing guide, red-flag checks', tag: paid ? 'UNLOCKED' : '$29.99', open: paid },
-    { title: "After it's yours", note: 'Title application, what to bring, document vault', tag: paid ? 'UNLOCKED' : 'INCLUDED', open: paid },
+    { n: 1 as const, title: 'Before you pay', note: 'HIN check, lien check, walk-around, seller questions', tag: 'FREE' },
+    { n: 2 as const, title: 'At the handoff', note: 'Bill of sale, title signing guide, seller’s copy', tag: paid ? 'UNLOCKED' : '$29.99' },
+    { n: 3 as const, title: "After it's yours", note: 'Title worksheet, what to bring, deadline, documents', tag: paid ? 'UNLOCKED' : 'INCLUDED' },
   ]
+
+  const paywall = (
+    <div style={{ ...boxStyle, border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.07)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+        <span style={{ fontFamily: 'Georgia, serif', fontSize: 20 }}>Ready for the paperwork?</span>
+        <span style={{ fontFamily: 'Georgia, serif', fontSize: 24, color: gold, fontWeight: 700 }}>$29.99</span>
+      </div>
+      <ul style={{ margin: 0, paddingLeft: 20, color: cream, fontSize: 15, lineHeight: 1.7 }}>
+        {has.boat && <li>Florida vessel bill of sale that doubles as your 30-day temporary registration</li>}
+        {has.trailer && <li>Trailer bill of sale</li>}
+        {has.motor && !has.boat && <li>Outboard motor bill of sale</li>}
+        <li>Payment receipt, signed by the seller</li>
+        <li>Title signing guide built for how your boat is titled</li>
+        <li>Title worksheet with every value for the state form, plus what to bring</li>
+        <li>The seller’s copy, emailed with their notice-of-sale reminder</li>
+      </ul>
+      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: muted }}>One price for everything in this sale.</p>
+      {error && (
+        <p role="alert" style={{ margin: 0, color: gold }}>
+          {error}
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={handlePay}
+        disabled={paying}
+        style={{
+          background: gold,
+          color: navy,
+          fontWeight: 700,
+          fontSize: 16,
+          padding: '14px 20px',
+          borderRadius: 6,
+          border: 'none',
+          cursor: paying ? 'default' : 'pointer',
+          opacity: paying ? 0.6 : 1,
+        }}
+      >
+        {paying ? 'Opening secure checkout...' : 'Unlock paperwork · $29.99'}
+      </button>
+    </div>
+  )
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ color: gold, fontWeight: 700, fontSize: 14 }}>
-          {paid ? 'Paperwork unlocked' : 'Free to start'}
-        </div>
+        <div style={{ color: gold, fontWeight: 700, fontSize: 14 }}>{paid ? 'Paperwork unlocked' : 'Free to start'}</div>
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(28px, 6vw, 34px)', lineHeight: 1.2, margin: 0 }}>
           {paid ? `You're all set, ${firstName}` : `Welcome aboard, ${firstName}`}
         </h1>
         <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: muted }}>
           {paid && justPaid
-            ? 'Payment received. Your paperwork steps are unlocked.'
-            : 'We emailed you a private link, so you can come back to this purchase from any device.'}
+            ? 'Payment received. Fill in the sale details below and your papers are ready.'
+            : 'Your progress saves as you go. Your private link brings you back from any device.'}
         </p>
       </div>
 
-      <div style={boxStyle}>
-        <div style={eyebrow}>YOUR STEPS</div>
-        {steps.map((s, i) => (
-          <div
-            key={s.title}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '10px 0',
-              borderBottom: i < steps.length - 1 ? '1px solid rgba(245,241,232,0.08)' : 'none',
-            }}
-          >
-            <span
+      <nav aria-label="Purchase steps" style={{ ...boxStyle, gap: 0, padding: '6px 10px' }}>
+        {steps.map((s, i) => {
+          const on = step === s.n
+          return (
+            <button
+              key={s.n}
+              type="button"
+              aria-current={on ? 'step' : undefined}
+              onClick={() => setStep(s.n)}
               style={{
-                width: 30,
-                height: 30,
-                borderRadius: 15,
-                border: `2px solid ${s.open ? gold : 'rgba(245,241,232,0.3)'}`,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: 14,
-                flexShrink: 0,
+                gap: 12,
+                padding: '12px 8px',
+                background: on ? 'rgba(201,150,46,0.12)' : 'transparent',
+                border: 'none',
+                borderTop: i ? '1px solid rgba(245,241,232,0.08)' : 'none',
+                borderRadius: 6,
+                color: cream,
+                cursor: 'pointer',
+                textAlign: 'left',
               }}
             >
-              {i + 1}
-            </span>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, opacity: s.open ? 1 : 0.7 }}>
-              <span style={{ fontSize: 16, fontWeight: 600 }}>{s.title}</span>
-              <span style={{ fontSize: 13, color: muted, lineHeight: 1.4 }}>{s.note}</span>
-            </div>
-            <span style={{ fontSize: 11, letterSpacing: 1, fontWeight: 700, color: s.open ? gold : muted }}>{s.tag}</span>
-          </div>
-        ))}
-        <p style={{ margin: '4px 0 0', fontSize: 14, color: muted, lineHeight: 1.6 }}>
-          Your HIN check and lien check are ready below. The walk-around checklist and seller questions are coming next.
+              <span
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
+                  border: `2px solid ${on ? gold : 'rgba(245,241,232,0.3)'}`,
+                  background: on ? gold : 'transparent',
+                  color: on ? navy : cream,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  flexShrink: 0,
+                }}
+              >
+                {s.n}
+              </span>
+              <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 16, fontWeight: 600 }}>{s.title}</span>
+                <span style={{ fontSize: 13, color: muted, lineHeight: 1.4 }}>{s.note}</span>
+              </span>
+              <span style={{ fontSize: 11, letterSpacing: 1, fontWeight: 700, color: s.tag === '$29.99' ? gold : muted }}>{s.tag}</span>
+            </button>
+          )
+        })}
+      </nav>
+
+      {saveError && (
+        <p role="alert" style={{ margin: 0, color: gold, fontSize: 14 }}>
+          Your last checkmark didn&apos;t save. Check your connection; it will save with your next one.
         </p>
-      </div>
-
-      {deal.items?.boat && (
-        <HinCard
-          token={token}
-          boat={deal.items.boat}
-          onSaved={(items) => setDeal({ ...deal, items })}
-        />
       )}
 
-      <div style={boxStyle}>
-        <LienCheck sellerName={deal.seller_name} inExpress />
-      </div>
-
-      {!paid && (
-        <div style={{ ...boxStyle, border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.07)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ fontFamily: 'Georgia, serif', fontSize: 20 }}>Ready for the paperwork?</span>
-            <span style={{ fontFamily: 'Georgia, serif', fontSize: 24, color: gold, fontWeight: 700 }}>$29.99</span>
+      {step === 1 && (
+        <>
+          {has.boat && <HinCard token={token} boat={deal.items.boat} onSaved={(items) => setDeal({ ...deal, items })} />}
+          <div style={boxStyle}>
+            <LienCheck sellerName={deal.seller_name} inExpress saved={checks} onToggle={toggle} />
           </div>
-          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: muted }}>
-            Unlock steps 2 and 3 when you&apos;ve checked the boat and you&apos;re ready to buy. One price for
-            everything in this sale.
-          </p>
-          {error && (
-            <p role="alert" style={{ margin: 0, color: gold }}>
-              {error}
-            </p>
+          <Checklist
+            label="QUESTIONS FOR THE SELLER"
+            title="Ask these before you go look"
+            items={forItems(SELLER_QUESTIONS, has)}
+            checks={checks}
+            onToggle={toggle}
+          />
+          <Checklist
+            label="WALK-AROUND CHECKLIST"
+            title="Check these in person"
+            items={forItems(WALK_AROUND, has)}
+            checks={checks}
+            onToggle={toggle}
+          />
+          <div style={boxStyle}>
+            <div style={eyebrow}>PAYING SAFELY</div>
+            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: cream, margin: 0 }}>How not to get scammed</h2>
+            <ul style={{ margin: 0, paddingLeft: 20, color: cream, fontSize: 15, lineHeight: 1.65, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {PAYMENT_TIPS.map((t) => (
+                <li key={t}>{t}</li>
+              ))}
+            </ul>
+          </div>
+          {paid ? (
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              style={{ background: gold, color: navy, fontWeight: 700, fontSize: 16, padding: '14px 20px', borderRadius: 6, border: 'none', cursor: 'pointer' }}
+            >
+              Go to the handoff
+            </button>
+          ) : (
+            paywall
           )}
-          <button
-            type="button"
-            onClick={handlePay}
-            disabled={paying}
-            style={{
-              background: gold,
-              color: navy,
-              fontWeight: 700,
-              fontSize: 16,
-              padding: '14px 20px',
-              borderRadius: 6,
-              border: 'none',
-              cursor: paying ? 'default' : 'pointer',
-              opacity: paying ? 0.6 : 1,
-            }}
-          >
-            {paying ? 'Opening secure checkout...' : 'Unlock paperwork · $29.99'}
-          </button>
-        </div>
+        </>
       )}
+
+      {step === 2 &&
+        (paid ? (
+          <HandoffStep
+            token={token}
+            deal={deal}
+            has={has}
+            checks={checks}
+            onToggle={toggle}
+            onSaved={(progress) => setDeal({ ...deal, progress })}
+          />
+        ) : (
+          paywall
+        ))}
+
+      {step === 3 && (paid ? <AfterStep token={token} deal={deal} has={has} checks={checks} onToggle={toggle} /> : paywall)}
 
       <div style={boxStyle}>
         <div style={eyebrow}>YOUR PURCHASE</div>
