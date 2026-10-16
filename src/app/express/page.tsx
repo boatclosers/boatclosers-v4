@@ -348,6 +348,9 @@ export default function Page() {
         }}
       >
         © {new Date().getFullYear()} BoatClosers · Private Vessel Transactions
+        <div style={{ marginTop: 8 }}>
+          <Link href="/privacy" style={{ color: cream }}>Privacy</Link> · <Link href="/sms-terms" style={{ color: cream }}>Text message terms</Link>
+        </div>
       </footer>
     </div>
   )

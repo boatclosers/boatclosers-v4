@@ -242,7 +242,13 @@ export function ContactPrefs({ token, contact, onSaved }: { token: string; conta
         </>
       )}
       <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.5 }}>
-        {msg || 'Reply STOP to any text, or use the unsubscribe link in any email, to stop.'}
+        {msg || (
+          <>
+            By choosing Text you agree to get texts from BoatClosers about this purchase, like deadline reminders. Msg frequency
+            varies. Msg &amp; data rates may apply. Reply STOP to stop, HELP for help.{' '}
+            <a href="/sms-terms" style={{ color: gold }}>Terms</a> · <a href="/privacy" style={{ color: gold }}>Privacy</a>
+          </>
+        )}
       </p>
     </div>
   )

@@ -460,6 +460,7 @@ function LegalFooter({ C, authedFetch, signedIn }) {
             <button style={link} onClick={()=>setOpenKey("disclaimer")}>Disclaimer</button>
             <button style={link} onClick={()=>setOpenKey("terms")}>Terms of Service</button>
             <button style={link} onClick={()=>setOpenKey("privacy")}>Privacy Policy</button>
+            <a href="/sms-terms" style={{ ...link, textDecoration:"underline" }}>Text Message Terms</a>
                         <a href="/guides" style={{ ...link, textDecoration:"underline" }}>Guides</a>
             {signedIn
               ? <button style={link} onClick={()=>{ setHelpOpen(true); setHelpState(""); }}>Contact support</button>
@@ -1177,7 +1178,7 @@ function MyContactPrefs({ authToken, defaultPhone }) {
         )}
       </div>
       <div style={{ fontSize:11, color:C.slate, lineHeight:1.5 }}>
-        {msg || "Offers, signatures, and deadlines. Reply STOP to any text, or use the unsubscribe link in any email, to stop."}
+        {msg || <>By choosing Text you agree to get deal texts from BoatClosers about offers, signatures, and deadlines. Msg frequency varies. Msg &amp; data rates may apply. Reply STOP to stop, HELP for help. <a href="/sms-terms" style={{ color:C.teal }}>Terms</a> · <a href="/privacy" style={{ color:C.teal }}>Privacy</a></>}
       </div>
     </div>
   );
@@ -6049,6 +6050,7 @@ const LEGAL = {
       ["Information we collect", ["Account information you give us: your name, email, and password. Deal information you enter: vessel details, the parties' contact information, prices, offers, messages, and dates. Files you upload, such as survey reports or deposit proof."]],
       ["How we use your information", ["To provide and operate the service: create and route your documents, let both parties collaborate on the same deal, send transactional emails (invites, offer and signature notifications), and provide support."]],
       ["How we share your information", ["With the other party to your deal — sharing a deal between a buyer and seller is the whole point of the platform. With service providers that run the platform on our behalf (for example, our hosting and database provider, our email-delivery provider, and, when enabled, our payment processor), under their own terms. And if required by law. We do not sell your personal information."]],
+      ["Text messages and phone numbers", ["If you give us a mobile number and choose to get texts, we use it only to send messages about the sale it is connected to: invitations, offers, documents, and deadline reminders. A party to your sale may also ask us to send you a message about that sale.", "We do not sell, rent, or share mobile phone numbers or text message opt-in data and consent with third parties or affiliates for marketing or promotional purposes. Text message opt-in data and consent are shared only with the text message provider that delivers our messages (Twilio).", "Reply STOP to any text to stop, or HELP for help. Message frequency varies. Message and data rates may apply. See our Text Message Terms at boatclosers.com/sms-terms."]],
       ["Where your data is stored and security", ["Your data is stored with our hosting and database provider. We use reasonable technical and organizational safeguards to protect it, but no method of storage or transmission is perfectly secure."]],
       ["Data retention and your choices", ["We keep deal data to provide the service and maintain records. You can request access to, correction of, or deletion of your account data by emailing us — though some records may be retained where the law requires it."]],
       ["Children", ["BoatClosers is for adults 18 and older and is not directed to children. We do not knowingly collect information from anyone under 18."]],
