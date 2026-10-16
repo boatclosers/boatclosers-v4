@@ -1,11 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import ExpressSignup from './ExpressSignup'
 
 export const metadata: Metadata = {
   title: 'BC Express: Buy a Boat From a Private Seller the Right Way',
   description:
-    'Free HIN check, walk-around checklist, and seller questions for private boat, trailer, and motor purchases. Unlock a bill of sale filled in for your deal and a title signing guide for $29.99.',
+    'Buying a boat, trailer, or motor from a private seller in Florida? Free HIN check, lien check, and walk-around checklist. Then a Florida bill of sale filled in for your deal, a title signing guide, and your title worksheet for $29.99.',
   alternates: {
     canonical: 'https://www.boatclosers.com/express',
   },
@@ -112,7 +111,7 @@ export default function Page() {
 
       <main style={{ maxWidth: 820, margin: '0 auto', padding: '64px 24px 80px' }}>
         <div style={{ color: gold, fontWeight: 700, fontSize: 15, marginBottom: 14 }}>
-          BC Express · For private boat, trailer &amp; motor purchases
+          BC Express · Private boat, trailer &amp; motor purchases in Florida
         </div>
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 6vw, 46px)', lineHeight: 1.15, margin: '0 0 18px' }}>
           Buying a boat from a private seller? Check it free. Close it right for $29.99.
@@ -124,7 +123,7 @@ export default function Page() {
         </p>
 
         <a
-          href="#notify"
+          href="/express/start"
           style={{
             display: 'inline-block',
             background: gold,
@@ -136,8 +135,9 @@ export default function Page() {
             textDecoration: 'none',
           }}
         >
-          Get notified when it opens
+          Start free
         </a>
+        <div style={{ fontSize: 14, color: muted, marginTop: 12 }}>No account needed. Pay $29.99 only when you&apos;re ready for the paperwork.</div>
 
         <section style={{ marginTop: 80 }}>
           <h2 style={h2}>Where private boat sales go wrong</h2>
@@ -226,7 +226,6 @@ export default function Page() {
         </section>
 
         <section
-          id="notify"
           style={{
             marginTop: 72,
             padding: 36,
@@ -235,11 +234,16 @@ export default function Page() {
             background: 'rgba(201,150,46,0.07)',
           }}
         >
-          <h2 style={{ ...h2, color: gold, fontSize: 26 }}>Opening soon in Florida</h2>
+          <h2 style={{ ...h2, color: gold, fontSize: 26 }}>Buying in Florida? Start now.</h2>
           <p style={{ fontSize: 17, lineHeight: 1.7, margin: '0 0 24px' }}>
-            Leave your email and we&apos;ll send you a link the day BC Express opens.
+            Check the boat for free today. Unlock the paperwork when you&apos;re ready to buy.
           </p>
-          <ExpressSignup />
+          <a
+            href="/express/start"
+            style={{ display: 'inline-block', background: gold, color: navy, padding: '14px 32px', borderRadius: 4, fontWeight: 700, textDecoration: 'none' }}
+          >
+            Start free
+          </a>
         </section>
       </main>
 

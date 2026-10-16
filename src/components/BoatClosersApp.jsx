@@ -5632,6 +5632,9 @@ function Landing({ onStart, onLegal }) {
             <button style={{ ...S.btnOutline, color:"rgba(255,255,255,0.85)", borderColor:"rgba(255,255,255,0.3)", fontSize:15, padding:"13px 32px", borderRadius:5 }} onClick={()=>onStart("seller")}>Start as Seller</button>
           </div>
           <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginTop:16, fontFamily:"sans-serif" }}>Free to start · Pay $249 only when you're ready to sign</div>
+          <div style={{ fontSize:13.5, color:"rgba(255,255,255,0.75)", marginTop:18, fontFamily:"sans-serif" }}>
+            Smaller deal, price already agreed? <a href="/express" style={{ color:C.brass2, fontWeight:600 }}>Try BC Express for $29.99</a>
+          </div>
         </div>
       </header>
 
