@@ -259,6 +259,7 @@ export default function ExpressDeal({ token }: { token: string }) {
         {has.boat && <li>Florida vessel bill of sale that doubles as your 30-day temporary registration</li>}
         {has.trailer && <li>Trailer bill of sale</li>}
         {has.motor && !has.boat && <li>Outboard motor bill of sale</li>}
+        {(has.boat || has.trailer) && <li>Florida’s official form HSMV 82050, filled in, with the seller’s notice of sale</li>}
         <li>Payment receipt, signed by the seller</li>
         <li>Title signing guide built for how your boat is titled</li>
         <li>Title worksheet with every value for the state form, plus what to bring</li>

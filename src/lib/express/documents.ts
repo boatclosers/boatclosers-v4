@@ -4,13 +4,24 @@
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
 import { type Handoff, whatToBring, salesTaxEstimate, addDays, type ItemKey } from '@/lib/express/content'
+import { buildHsmv82050 } from '@/lib/express/hsmv82050'
 
-export type DocKey = 'vessel-bill-of-sale' | 'motor-bill-of-sale' | 'trailer-bill-of-sale' | 'payment-receipt' | 'closing-summary' | 'title-worksheet'
+export type DocKey =
+  | 'vessel-bill-of-sale'
+  | 'motor-bill-of-sale'
+  | 'trailer-bill-of-sale'
+  | 'hsmv-82050-boat'
+  | 'hsmv-82050-trailer'
+  | 'payment-receipt'
+  | 'closing-summary'
+  | 'title-worksheet'
 
 export const DOC_TITLES: Record<DocKey, string> = {
   'vessel-bill-of-sale': 'Vessel Bill of Sale',
   'motor-bill-of-sale': 'Outboard Motor Bill of Sale',
   'trailer-bill-of-sale': 'Trailer Bill of Sale',
+  'hsmv-82050-boat': 'Florida form HSMV 82050 (boat)',
+  'hsmv-82050-trailer': 'Florida form HSMV 82050 (trailer)',
   'payment-receipt': 'Payment Receipt',
   'closing-summary': 'Closing Summary',
   'title-worksheet': 'Title & Registration Worksheet',
@@ -21,6 +32,8 @@ export function docsFor(items: Record<string, any>): DocKey[] {
   if (items.boat) out.push('vessel-bill-of-sale')
   if (items.motor && !items.boat) out.push('motor-bill-of-sale')
   if (items.trailer) out.push('trailer-bill-of-sale')
+  if (items.boat) out.push('hsmv-82050-boat')
+  if (items.trailer) out.push('hsmv-82050-trailer')
   out.push('payment-receipt', 'closing-summary', 'title-worksheet')
   return out
 }
@@ -470,6 +483,10 @@ export async function buildDocument(key: DocKey, d: Deal): Promise<Uint8Array> {
       return motorBillOfSale(d, h)
     case 'trailer-bill-of-sale':
       return trailerBillOfSale(d, h)
+    case 'hsmv-82050-boat':
+      return buildHsmv82050(d, 'boat')
+    case 'hsmv-82050-trailer':
+      return buildHsmv82050(d, 'trailer')
     case 'payment-receipt':
       return paymentReceipt(d, h)
     case 'closing-summary':

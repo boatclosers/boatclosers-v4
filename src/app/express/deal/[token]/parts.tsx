@@ -331,6 +331,8 @@ export function HandoffStep({
     has.boat && ['vessel-bill-of-sale', 'Vessel bill of sale', 'Both of you sign. Keep it aboard: it’s your temporary registration for 30 days.'],
     has.motor && !has.boat && ['motor-bill-of-sale', 'Motor bill of sale', 'Both of you sign.'],
     has.trailer && ['trailer-bill-of-sale', 'Trailer bill of sale', 'Both of you sign. The trailer is titled separately.'],
+    has.boat && ['hsmv-82050-boat', 'Florida form HSMV 82050, boat', 'The state’s own bill of sale, filled in. Page 1 is yours. Page 2 is the seller’s notice of sale to sign and file.'],
+    has.trailer && ['hsmv-82050-trailer', 'Florida form HSMV 82050, trailer', 'Same state form for the trailer. Page 2 is the seller’s notice of sale.'],
     ['payment-receipt', 'Payment receipt', 'The seller signs this when you pay.'],
   ].filter(Boolean) as [string, string, string][]
 
@@ -476,8 +478,8 @@ export function HandoffStep({
           <div style={eyebrow}>THE SELLER’S COPY</div>
           <h2 style={h2}>Send the seller their papers</h2>
           <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
-            We email them their copies with a reminder to file a notice of sale, so the boat is out of their name. They
-            don’t need an account.
+            We email them their copies plus their notice of sale on the state form, already filled in, so all they do is
+            sign and file it. They don’t need an account.
           </p>
           {saved.sellerEmail ? (
             <button type="button" onClick={emailSeller} disabled={emailing || sentCount >= 3} style={{ ...goldButton, opacity: emailing || sentCount >= 3 ? 0.6 : 1 }}>
@@ -594,6 +596,8 @@ export function AfterStep({
           has.boat && ['vessel-bill-of-sale', 'Vessel bill of sale'],
           has.motor && !has.boat && ['motor-bill-of-sale', 'Motor bill of sale'],
           has.trailer && ['trailer-bill-of-sale', 'Trailer bill of sale'],
+          has.boat && ['hsmv-82050-boat', 'Florida form HSMV 82050, boat'],
+          has.trailer && ['hsmv-82050-trailer', 'Florida form HSMV 82050, trailer'],
           ['payment-receipt', 'Payment receipt'],
           ['closing-summary', 'Closing summary'],
           ['title-worksheet', 'Title & registration worksheet'],

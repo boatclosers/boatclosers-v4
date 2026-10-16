@@ -121,6 +121,7 @@ export function titleSigningGuide(h: Handoff): CheckItem[] {
   }
   out.push(
     { id: 't-bos', label: 'Both of you sign the bill of sale, and you each keep a copy' },
+    { id: 't-82050', label: 'Both of you sign Florida form HSMV 82050', detail: 'Page 1 is your copy of the state’s bill of sale. The seller keeps page 2, the notice of sale, and files it within 30 days.' },
     { id: 't-receipt', label: 'Seller signs the payment receipt when you pay' },
     { id: 't-keys', label: 'You get all keys, manuals, and service records' },
   )

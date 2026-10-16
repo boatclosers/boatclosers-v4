@@ -48,6 +48,7 @@ const steps = [
     items: [
       'Bill of sale filled in for your deal, with proper as-is wording',
       'Trailer bill of sale when a trailer is included',
+      'Florida’s official form HSMV 82050, filled in, plus the seller’s notice of sale',
       'Title signing guide, so nothing gets rejected',
       'Red-flag checks: two sellers on the title, a lien, an out-of-state boat',
     ],

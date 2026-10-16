@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendEmail, emailLayout } from '@/lib/sendEmail'
 import { handoffProblems, type Handoff } from '@/lib/express/content'
 import { buildDocument, docsFor, DOC_TITLES, type DocKey } from '@/lib/express/documents'
+import { buildHsmv82050 } from '@/lib/express/hsmv82050'
 
 // Always read live data: never let Next.js cache database or upstream fetches here.
 export const dynamic = 'force-dynamic'
@@ -213,6 +214,17 @@ export async function POST(req: Request) {
         content: Buffer.from(await buildDocument(k, deal)).toString('base64'),
       }))
     )
+    // The seller's notice of sale on the official state form, already filled in.
+    for (const item of ['boat', 'trailer'] as const) {
+      if (!deal.items?.[item]) continue
+      try {
+        const bytes = await buildHsmv82050(deal, item, ['notice'])
+        attachments.push({ filename: `notice-of-sale-hsmv-82050-${item}.pdf`, content: Buffer.from(bytes).toString('base64') })
+      } catch (e) {
+        console.error('HSMV 82050 fill failed:', e)
+      }
+    }
+    const hasNotice = attachments.some((a) => a.filename.startsWith('notice-of-sale'))
     const what = Object.values(deal.items || {}).map((i: any) => esc(i.description)).join(', ')
     const r = await sendEmail({
       to: h.sellerEmail,
@@ -221,7 +233,7 @@ export async function POST(req: Request) {
       html: emailLayout(`
         <p style="font-size:15px;color:#08152e;">Hello ${esc(String(deal.seller_name).split(' ')[0])},</p>
         <p style="font-size:15px;color:#08152e;line-height:1.6;">${esc(deal.buyer_name)} sent you your copies of the paperwork for the sale of: ${what}. They're attached.</p>
-        <p style="font-size:15px;color:#08152e;line-height:1.6;"><b>One thing left for you:</b> within 30 days, complete the notice of sale on the back of the Florida title or on form HSMV 82050 and file it with any county tax collector. That takes the boat out of your name.</p>
+        <p style="font-size:15px;color:#08152e;line-height:1.6;"><b>One thing left for you:</b> ${hasNotice ? 'your notice of sale (Florida form HSMV 82050) is attached, already filled in. Sign it and' : 'complete the notice of sale on the back of the Florida title or on form HSMV 82050, then'} file it with any county tax collector within 30 days. That takes the boat out of your name.</p>
         <p style="font-size:13px;color:#64748b;line-height:1.6;">You don't need an account or anything else from BoatClosers. Reply to this email to reach the buyer.</p>
       `),
       attachments,
