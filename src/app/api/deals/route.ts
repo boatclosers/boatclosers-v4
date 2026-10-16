@@ -3,6 +3,10 @@ import { createClient } from '@supabase/supabase-js'
 import { sendEmail, emailLayout } from '@/lib/sendEmail'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 
+// Always run live: never let Next.js cache this route or its Stripe/database fetches.
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 const SUPABASE_URL = 'https://xoihnmkgncuocxiknvgs.supabase.co'
 
 function admin() {
@@ -1262,7 +1266,9 @@ export async function POST(req: Request) {
       if (!mergedPayload.negotiate.depositEnded && existingNeg.depositEnded) mergedPayload.negotiate.depositEnded = existingNeg.depositEnded
       if (!mergedPayload.negotiate.vesselAcceptance && existingNeg.vesselAcceptance) mergedPayload.negotiate.vesselAcceptance = existingNeg.vesselAcceptance
       if (!mergedPayload.negotiate.vesselRejection && existingNeg.vesselRejection) mergedPayload.negotiate.vesselRejection = existingNeg.vesselRejection
-      mergedPayload.negotiate.uploads = { ...(existingNeg.uploads || {}), ...(mergedPayload.negotiate.uploads || {}) }
+      // Uploads are written by the server's upload route only; a browser save can add
+      // nothing and change nothing here (the stored file key and path are server-made).
+      mergedPayload.negotiate.uploads = { ...(existingNeg.uploads || {}) }
       if (!mergedPayload.negotiate.addendum && existingNeg.addendum) mergedPayload.negotiate.addendum = existingNeg.addendum
       if (mergedPayload.negotiate.addendum && existingNeg.addendum && existingNeg.addendum.status && !mergedPayload.negotiate.addendum.status) {
         mergedPayload.negotiate.addendum.status = existingNeg.addendum.status

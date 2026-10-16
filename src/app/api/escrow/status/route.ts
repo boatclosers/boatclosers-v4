@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server'
+import { callerId } from '@/lib/dealAuth'
+
+export const dynamic = 'force-dynamic'
 
 // ── Escrow.com transaction status check ──────────────────────────────────────
 //
@@ -52,6 +55,8 @@ function readFundingState(tx: any): { funded: boolean; state: string; detail: st
 
 export async function POST(req: Request) {
   try {
+    // Transaction IDs are sequential numbers, so never answer anonymous callers.
+    if (!(await callerId(req))) return NextResponse.json({ ok: false, error: 'Please sign in.' }, { status: 401 })
     if (!EMAIL || !KEY) {
       // Not configured yet — say so plainly rather than pretending to check.
       return NextResponse.json(

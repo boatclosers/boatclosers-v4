@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { callerId } from '@/lib/dealAuth';
+
+export const dynamic = 'force-dynamic';
 
 const SUPABASE_URL = 'https://xoihnmkgncuocxiknvgs.supabase.co';
 
@@ -10,7 +13,10 @@ function admin() {
 }
 
 export async function POST(req) {
-  const { token, userId } = await req.json();
+  const { token } = await req.json();
+  // Who is claiming comes from their sign-in, never from the request body.
+  const userId = await callerId(req);
+  if (!userId) return NextResponse.json({ error: 'Please sign in again, then open the invite.' }, { status: 401 });
 
   if (!token || !userId) {
     return NextResponse.json({ error: 'Missing token or userId' }, { status: 400 });

@@ -33,6 +33,15 @@ const C = {
 const fmt = (n) => n ? new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n)) : "";
 const today = () => new Date().toISOString().split("T")[0];
 
+// The signed-in session token, for API calls that must prove who is calling.
+const authHeaders = () => {
+  try {
+    const t = JSON.parse(localStorage.getItem("bc_session") || "{}").token;
+    return t ? { Authorization: "Bearer " + t } : {};
+  } catch (e) { return {}; }
+};
+
+
 // Buyers entering a boat at or under this price see a note that BC Express
 // ($29.99, buyer-only) may fit a simple, already-agreed deal better.
 const EXPRESS_SUGGEST_MAX = 25000;
@@ -1259,7 +1268,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
     try {
       const res = await fetch("/api/deals/invite", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(authToken ? { Authorization: "Bearer " + authToken } : authHeaders()) },
         body: JSON.stringify({
           dealId: id,
           inviteEmail: email || `link-share-${otherSide}@boatclosers.com`,
@@ -1625,6 +1634,14 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
 // STEP 2 — NEGOTIATE + TERMS (combined)
 // ─────────────────────────────────────────────────────────────────────────────
 function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiator, dealId, stripeReturn, onRefresh, refreshing, authedFetch, onNext, onBack }) {
+  // A paid BC Express purchase with this email takes $29.99 off the fee.
+  const [expressCredit, setExpressCredit] = useState(0);
+  useEffect(() => {
+    if (!amInitiator) return;
+    (authedFetch || fetch)("/api/stripe/credit").then(r => r.ok ? r.json() : null).then(j => setExpressCredit(Number(j?.creditCents) || 0)).catch(() => {});
+  }, [amInitiator]); // eslint-disable-line
+  const feeLabel = expressCredit ? "$" + ((24900 - expressCredit) / 100).toFixed(2) : "$249";
+
   const [newMsg, setNewMsg] = useState("");
   const [offerAmt, setOfferAmt] = useState(data.currentOffer || "");
   // The vessel is the single source of truth for the asking price — it is set on
@@ -1778,7 +1795,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     try {
       const res = await fetch("/api/deals/conflict", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           dealId: dealId,
           topic: conflictTopic,
@@ -2235,10 +2252,11 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           ) : amInitiator ? (
             <>
               <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
-                The Purchase Agreement is fully signed. Pay the one-time <b>$249</b> to make the deal binding and unlock Due Diligence, Documents, and Closing for both parties.
+                The Purchase Agreement is fully signed. Pay the one-time <b>{feeLabel}</b> to make the deal binding and unlock Due Diligence, Documents, and Closing for both parties.
+                {expressCredit ? <> Your <b>$29.99 BC Express</b> purchase is credited.</> : null}
               </div>
               <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
-                <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("initiator",249)}>💳 Pay $249 &amp; unlock the deal →</button>
+                <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("initiator",249)}>💳 Pay {feeLabel} &amp; unlock the deal →</button>
                 <button style={{ ...S.btnOutline, fontSize:13, padding:"13px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
               </div>
               <div style={{ background:"#eef4fb", borderLeft:"3px solid #08152e", borderRadius:6, padding:"10px 13px", marginTop:14, fontSize:12, fontFamily:"sans-serif", color:"#334155", lineHeight:1.6 }}>
@@ -2490,7 +2508,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               </div>
             ) : amInitiator ? (
               <button style={{ ...S.btnBrass, fontSize:14, padding:"11px 20px" }} onClick={()=>openCheckout("initiator", 249)}>
-                Pay $249 &amp; make binding →
+                Pay {feeLabel} &amp; make binding →
               </button>
             ) : (
               <div style={{ fontSize:12, fontFamily:"sans-serif", color:"#166534", textAlign:"right", fontWeight:700 }}>
@@ -3988,7 +4006,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
     setEscLoading(true);
     try {
       const r = await fetch("/api/deals/escrow-status", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", ...(authToken ? { Authorization: "Bearer " + authToken } : authHeaders()) },
         body: JSON.stringify({ dealId }),
       });
       const j = await r.json();
@@ -6832,7 +6850,7 @@ export default function BoatClosers() {
         try {
           const acceptRes = await fetch("/api/deals/invite/accept", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + authData.token },
             body: JSON.stringify({ token: pendingToken, userId: authData.userId })
           });
           const acceptData = await acceptRes.json();
@@ -7256,7 +7274,7 @@ export default function BoatClosers() {
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} offers={negotiate?.offers} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user} ensureSaved={ensureDealSaved} authToken={tokenRef.current?.token}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} stripeReturn={stripeReturn} authedFetch={authedFetch} onRefresh={()=>window.location.reload()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} authToken={tokenRef.current?.token} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
-      {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
+      {step===4 && (dealPaid ? <DocumentsStepV2 authToken={tokenRef.current?.token} data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
       </div>
       {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} setNegotiate={setNegotiateAndSave} ddData={ddData} docsData={docsData} setDocsData={setDocsDataAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator}  onBack={()=>setStep(4)}
                     onOpenDoc={(id)=>{ setDocsDataAndSave(d => ({ ...d, openDocId: id })); setStep(4); }}

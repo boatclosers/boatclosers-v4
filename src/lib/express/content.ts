@@ -54,6 +54,21 @@ export type InspectionProgress = {
   hours?: string
   notes?: string
 }
+// Handoff photos: suggested shots, filtered by what's being bought.
+export type Photo = { id: string; label: string; at: number }
+export const PHOTO_SHOTS: { label: string; only?: ItemKey }[] = [
+  { label: 'HIN plate on the transom', only: 'boat' },
+  { label: 'Hull and bottom', only: 'boat' },
+  { label: 'Transom and motor mount', only: 'boat' },
+  { label: 'Engine hours gauge', only: 'boat' },
+  { label: 'Motor serial plate', only: 'motor' },
+  { label: 'Trailer VIN', only: 'trailer' },
+  { label: 'Trailer tires', only: 'trailer' },
+  { label: 'Signed title (front and back)' },
+  { label: 'Any problem you found' },
+]
+export const MAX_PHOTOS = 15
+
 export type InspectionPreview = { count: number; redFlags: number; sections: string[]; sample: string[] }
 
 export const SELLER_QUESTIONS: CheckItem[] = [

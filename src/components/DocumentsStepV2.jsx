@@ -367,7 +367,7 @@ function DocPaper({ doc, html, editable, checkState, toggleCheck, savedFields, o
   return <div className="bc-doc" ref={ref} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
-export default function DocumentsStepV2({ data, setData, vessel, parties, terms, negotiate, myRole, amInitiator, dealId, onNext, onBack }) {
+export default function DocumentsStepV2({ data, setData, vessel, parties, terms, negotiate, myRole, amInitiator, dealId, onNext, onBack, authToken }) {
   // Single payment happens at the PA-lock step in Negotiate. Once an offer is
   // accepted (PA locked), the deal is paid — Documents shows NO second paywall.
   const paLocked = !!((negotiate?.offers || []).find(o => o.status === "accepted")) || !!(negotiate && (negotiate.paid || negotiate.dealLocked)) || !!data.paid;
@@ -1138,7 +1138,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       }
       const res = await fetch("/api/deals/send-doc", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(authToken ? { Authorization: "Bearer " + authToken } : {}) },
         body: JSON.stringify({ dealId, to, docName: docName || "Document", note: sendNote[docId] || "", fromName: parties?.[myRole]?.name || "", attachment })
       });
       const j = await res.json().catch(() => ({}));
@@ -1173,7 +1173,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       setUploading(s => ({ ...s, [docId]: true }));
       try {
         const b64 = String(dataURL).split(",")[1] || "";
-        const res = await fetch("/api/deals/upload-doc", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dealId, docId, filename: file.name, contentType: file.type, base64: b64 }) });
+        const res = await fetch("/api/deals/upload-doc", { method: "POST", headers: { "Content-Type": "application/json", ...(authToken ? { Authorization: "Bearer " + authToken } : {}) }, body: JSON.stringify({ dealId, docId, filename: file.name, contentType: file.type, base64: b64 }) });
         const j = await res.json().catch(() => ({}));
         if (!res.ok || !j.success) throw new Error(j.error || "Could not store the file.");
       } catch (err) {

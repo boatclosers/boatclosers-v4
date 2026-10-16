@@ -3,6 +3,9 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendEmail, emailLayout } from '@/lib/sendEmail';
 import crypto from 'crypto';
 import { setPrefs, sendSms, normalizePhone, cleanChannels } from '@/lib/comm';
+import { callerId } from '@/lib/dealAuth';
+
+export const dynamic = 'force-dynamic';
 
 // Makes a short, readable invite code like "BOAT-7F3K2M" (no confusing 0/O/1/I/L).
 function makeShortCode() {
@@ -14,7 +17,10 @@ function makeShortCode() {
 }
 
 export async function POST(req: Request) {
-  const { dealId, inviteEmail, userId, invitePhone, channels: rawChannels } = await req.json();
+  const { dealId, inviteEmail, invitePhone, channels: rawChannels } = await req.json();
+  // The caller's identity comes from their sign-in, not the request body.
+  const userId = await callerId(req);
+  if (!userId) return NextResponse.json({ error: 'Please sign in again, then send the invite.' }, { status: 401 });
   // How the initiator wants the invite delivered: email, text, or both.
   const channels = cleanChannels(rawChannels);
   const phone = normalizePhone(invitePhone);

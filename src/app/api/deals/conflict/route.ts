@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendEmail, emailLayout } from '@/lib/sendEmail';
+import { partyOf } from '@/lib/dealAuth';
+
+export const dynamic = 'force-dynamic';
 
 // The SELLER cannot edit the buyer's offer terms, but can flag a conflict on
 // schedule/dates/deposit terms by emailing the buyer a structured request to
@@ -11,6 +14,9 @@ export async function POST(req: Request) {
     const { dealId, topic, message, fromName } = body;
     if (!dealId || !topic || !message) {
       return NextResponse.json({ error: 'Missing dealId, topic, or message.' }, { status: 400 });
+    }
+    if (!(await partyOf(req, dealId))) {
+      return NextResponse.json({ error: 'Please sign in again, then send.' }, { status: 401 });
     }
 
     const { data: deal, error } = await supabaseAdmin

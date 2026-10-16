@@ -7,7 +7,8 @@ import { type Handoff, whatToBring, salesTaxEstimate, addDays, type ItemKey } fr
 import { buildHsmv82050 } from '@/lib/express/hsmv82050'
 import { buildHsmv82040vs } from '@/lib/express/hsmv82040vs'
 import { inspectionFor, INSPECTION_SECTIONS } from '@/lib/express/inspection'
-import type { InspectionProgress } from '@/lib/express/content'
+import type { InspectionProgress, Photo } from '@/lib/express/content'
+import { photoBytes } from '@/lib/express/photos'
 
 export type DocKey =
   | 'vessel-bill-of-sale'
@@ -20,6 +21,7 @@ export type DocKey =
   | 'title-worksheet'
   | 'hsmv-82040-vs'
   | 'condition-report'
+  | 'closing-packet'
 
 export const DOC_TITLES: Record<DocKey, string> = {
   'vessel-bill-of-sale': 'Vessel Bill of Sale',
@@ -32,6 +34,7 @@ export const DOC_TITLES: Record<DocKey, string> = {
   'title-worksheet': 'Title & Registration Worksheet',
   'hsmv-82040-vs': 'Florida title application, HSMV 82040 VS (pre-filled)',
   'condition-report': 'Condition Report (your inspection)',
+  'closing-packet': 'Closing Packet (every paper, in order)',
 }
 
 // Papers the seller can open from their own link.
@@ -46,6 +49,7 @@ export function docsFor(items: Record<string, any>, h: Handoff = {}): DocKey[] {
   if (items.trailer) out.push('hsmv-82050-trailer')
   out.push('payment-receipt', 'closing-summary', 'title-worksheet')
   if (items.boat && h.titledHow !== 'documented') out.push('hsmv-82040-vs')
+  out.push('closing-packet')
   return out
 }
 
@@ -258,13 +262,14 @@ class Writer {
 }
 
 type Deal = {
+  id?: string
   buyer_name: string
   buyer_email: string
   seller_name: string
   items: Record<string, any>
   price_cents: number
   paid_at?: string
-  progress?: { handoff?: Handoff; inspection?: InspectionProgress }
+  progress?: { handoff?: Handoff; inspection?: InspectionProgress; photos?: Photo[] }
 }
 
 const FOOTER = 'Prepared with BC Express by BoatClosers (boatclosers.com). BoatClosers is not a party to this sale and does not give legal advice.'
@@ -424,7 +429,7 @@ async function closingSummary(d: Deal, h: Handoff) {
   const tax = salesTaxEstimate(d.price_cents)
   w.field('Estimated FL sales tax', `about ${money(Math.round(tax.state * 100))} (6%), plus county surtax of up to ${money(Math.round(tax.surtaxMax * 100))}`)
   w.heading('Papers from this sale')
-  for (const k of docsFor(d.items, h).filter((k) => k !== 'closing-summary')) w.bullet(DOC_TITLES[k])
+  for (const k of docsFor(d.items, h).filter((k) => k !== 'closing-summary' && k !== 'closing-packet')) w.bullet(DOC_TITLES[k])
   if (h.titledHow === 'florida') w.bullet('Original Florida certificate of title, signed by Seller')
   if (h.titledHow === 'documented') w.bullet('Coast Guard bill of sale (CG-1340) and Certificate of Documentation')
   if (h.lien === 'released') w.bullet('Original lien release')
@@ -530,11 +535,68 @@ async function conditionReport(d: Deal) {
     w.heading('Other notes')
     w.text(ins.notes)
   }
+  const photos = d.progress?.photos || []
+  if (photos.length && d.id) {
+    w.heading(`Photos (${photos.length})`)
+    for (const p of photos) {
+      try {
+        const bytes = await photoBytes(d.id, p.id)
+        if (!bytes) continue
+        const img = await w.pdf.embedJpg(bytes)
+        const maxW = w.W - w.M * 2
+        const scale = Math.min(maxW / img.width, 300 / img.height, 1)
+        const iw = img.width * scale
+        const ih = img.height * scale
+        w.need(ih + 30)
+        w.text(`${p.label} · ${new Date(p.at).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`, { size: 9, color: GREY })
+        w.page.drawImage(img, { x: w.M, y: w.y - ih, width: iw, height: ih })
+        w.y -= ih + 14
+      } catch (e) {
+        console.error('condition report photo skipped', e)
+      }
+    }
+  }
   w.text(
     'This report records what the buyer saw. It is not a marine survey or a mechanical inspection, and it does not change the as-is terms of the sale. For a larger purchase, hire an accredited marine surveyor (SAMS or NAMS) and a marine mechanic.',
     { size: 8, color: GREY, gap: 8 }
   )
   return w.finish(FOOTER)
+}
+
+// Every paper for the sale in one file, in the order you use them: the summary on
+// top, then what gets signed at the handoff, then what goes to the tax collector,
+// then the inspection record.
+const PACKET_ORDER: DocKey[] = [
+  'closing-summary',
+  'vessel-bill-of-sale',
+  'motor-bill-of-sale',
+  'trailer-bill-of-sale',
+  'hsmv-82050-boat',
+  'hsmv-82050-trailer',
+  'payment-receipt',
+  'hsmv-82040-vs',
+  'title-worksheet',
+  'condition-report',
+]
+
+async function closingPacket(d: Deal) {
+  const h = d.progress?.handoff || {}
+  const keys = PACKET_ORDER.filter((k) => docsFor(d.items, h).includes(k))
+  const out = await PDFDocument.create()
+  out.setTitle('BC Express Closing Packet')
+  out.setProducer('BC Express by BoatClosers')
+  for (const k of keys) {
+    try {
+      const bytes = k === 'hsmv-82040-vs' ? await buildHsmv82040vs(d, { flatten: true }) : await buildDocument(k, d)
+      const src = await PDFDocument.load(bytes)
+      const pages = await out.copyPages(src, src.getPageIndices())
+      pages.forEach((p) => out.addPage(p))
+    } catch (e) {
+      // One state form being unreachable shouldn't block the rest of the packet.
+      console.error('closing packet: skipped', k, e)
+    }
+  }
+  return out.save()
 }
 
 export async function buildDocument(key: DocKey, d: Deal): Promise<Uint8Array> {
@@ -560,5 +622,7 @@ export async function buildDocument(key: DocKey, d: Deal): Promise<Uint8Array> {
       return buildHsmv82040vs(d)
     case 'condition-report':
       return conditionReport(d)
+    case 'closing-packet':
+      return closingPacket(d)
   }
 }

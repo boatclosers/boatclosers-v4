@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendEmail, emailLayout } from '@/lib/sendEmail';
+import { partyOf } from '@/lib/dealAuth';
+
+export const dynamic = 'force-dynamic';
 
 // Sends a single closing document to a recipient by email, with an optional note
 // and a deep-link back into the deal's Documents step so they can review, fill,
@@ -11,6 +14,13 @@ export async function POST(req: Request) {
     const { dealId, to, docName, note, fromName, attachment } = await req.json();
     if (!dealId || !to) {
       return NextResponse.json({ error: 'Missing dealId or recipient email.' }, { status: 400 });
+    }
+    // Only a signed-in party to this deal can send its documents from our address.
+    if (!(await partyOf(req, dealId))) {
+      return NextResponse.json({ error: 'Please sign in again, then send.' }, { status: 401 });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(to))) {
+      return NextResponse.json({ error: 'Enter a valid email address.' }, { status: 400 });
     }
 
     const { data: deal, error } = await supabaseAdmin

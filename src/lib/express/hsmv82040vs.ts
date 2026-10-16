@@ -82,7 +82,7 @@ const PROPULSION_BOX: Record<string, string[]> = {
 }
 const FUEL_BOX: Record<string, string> = { Gas: 'Gas', Diesel: 'Diesel', Electric: 'Electric' }
 
-export async function buildHsmv82040vs(deal: Deal): Promise<Uint8Array> {
+export async function buildHsmv82040vs(deal: Deal, opts: { flatten?: boolean } = {}): Promise<Uint8Array> {
   const h: Handoff = deal.progress?.handoff || {}
   const boat = deal.items.boat || {}
   const desc: string = boat.description || ''
@@ -135,6 +135,8 @@ export async function buildHsmv82040vs(deal: Deal): Promise<Uint8Array> {
 
   const helv = await pdf.embedFont(StandardFonts.Helvetica)
   form.updateFieldAppearances(helv)
+  // In the merged closing packet the form can't stay fillable, so print it as is.
+  if (opts.flatten) form.flatten()
 
   const page = pdf.getPage(0)
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold)

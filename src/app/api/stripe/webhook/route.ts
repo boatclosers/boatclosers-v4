@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
+import { claimExpressCredit } from '@/lib/expressCredit'
 
 // ── Stripe webhook: server-side payment confirmation ─────────────────────────
 //
@@ -89,6 +90,7 @@ export async function POST(req: Request) {
 
     const dealId = session?.metadata?.dealId || ''
     const who = session?.metadata?.who || 'initiator'
+    if (dealId) await claimExpressCredit(session?.metadata?.expressCreditId, dealId)
     if (!dealId) {
       return NextResponse.json({ received: true, note: 'no dealId in metadata' }, { status: 200 })
     }

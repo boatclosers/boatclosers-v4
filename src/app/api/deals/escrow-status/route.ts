@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { partyOf } from '@/lib/dealAuth'
 
 // ── Per-deal Escrow.com status ───────────────────────────────────────────────
 //
@@ -51,6 +52,9 @@ export async function POST(req: Request) {
     const dealId = String(body?.dealId || '').trim()
     if (!dealId) {
       return NextResponse.json({ ok: false, error: 'Missing dealId.' }, { status: 400 })
+    }
+    if (!(await partyOf(req, dealId))) {
+      return NextResponse.json({ ok: false, error: 'Please sign in again.' }, { status: 401 })
     }
 
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {

@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   if (!/^[a-f0-9]{48}$/.test(token) && !/^[a-f0-9]{48}$/.test(stoken)) return new Response('Link not valid.', { status: 404 })
   if (stoken && !SELLER_DOCS.includes(doc)) return new Response('Not available from this link.', { status: 403 })
 
-  const q = supabaseAdmin.from('express_deals').select('buyer_name,buyer_email,seller_name,items,price_cents,status,paid_at,progress')
+  const q = supabaseAdmin.from('express_deals').select('id,buyer_name,buyer_email,seller_name,items,price_cents,status,paid_at,progress')
   const { data: deal } = await (stoken ? q.eq('progress->>sellerToken', stoken) : q.eq('access_token', token)).maybeSingle()
   if (!deal) return new Response('Link not valid.', { status: 404 })
   if (deal.status !== 'paid') return new Response('Unlock the paperwork first.', { status: 402 })

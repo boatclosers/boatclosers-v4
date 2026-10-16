@@ -21,6 +21,9 @@ import {
   type InspectionProgress,
   type InspectionPreview,
   type InspectStatus,
+  type Photo,
+  PHOTO_SHOTS,
+  MAX_PHOTOS,
 } from '@/lib/express/content'
 
 export const navy = '#0f1b2d'
@@ -301,6 +304,7 @@ export function FullSuggest({ deal, checks, onToggle }: { deal: any; checks: Rec
           </ul>
           <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.6 }}>
             Full BoatClosers is $249, paid once both of you agree and sign. The seller joins the deal, and it handles negotiation, deposits, contingencies, and closing.
+            {deal.status === 'paid' ? ` Start it with ${deal.buyer_email} and the $29.99 you paid here comes off the $249.` : ' If you pay for Express first, that $29.99 comes off the $249 later.'}
           </p>
           <a href="/" style={{ ...goldButton, alignSelf: 'flex-start' }}>
             See full BoatClosers
@@ -309,6 +313,147 @@ export function FullSuggest({ deal, checks, onToggle }: { deal: any; checks: Rec
       )}
       {!hits.length && !lienOpen && !big && (
         <p style={{ margin: 0, color: muted, fontSize: 13 }}>None of these? Express is the right tool. Keep going.</p>
+      )}
+    </div>
+  )
+}
+
+// ---------- Handoff photos ----------
+
+// Shrink a phone photo to at most 1600px on the long side, as a JPEG data URL.
+async function resizePhoto(file: File): Promise<string> {
+  const url = URL.createObjectURL(file)
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image()
+      i.onload = () => resolve(i)
+      i.onerror = () => reject(new Error('That file isn’t a photo we can read.'))
+      i.src = url
+    })
+    const scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(img.naturalWidth * scale)
+    canvas.height = Math.round(img.naturalHeight * scale)
+    canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL('image/jpeg', 0.8)
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
+export function PhotosCard({ token, photos, has, onSaved }: { token: string; photos: Photo[]; has: Record<ItemKey, boolean>; onSaved: (progress: any) => void }) {
+  const shots = PHOTO_SHOTS.filter((s) => !s.only || has[s.only])
+  const [label, setLabel] = useState(shots[0]?.label || 'Photo')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [open, setOpen] = useState<string | null>(null)
+
+  async function add(files: FileList | null) {
+    if (!files?.length) return
+    setBusy(true)
+    setMsg('')
+    try {
+      for (const f of Array.from(files).slice(0, MAX_PHOTOS - photos.length)) {
+        const image = await resizePhoto(f)
+        const res = await fetch('/api/express/photo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, label, image }),
+        })
+        const d = await res.json()
+        if (!res.ok) throw new Error(d.error || 'Could not save the photo.')
+        onSaved(d.progress)
+        photos = d.progress.photos
+      }
+    } catch (e: any) {
+      setMsg(e?.message || 'Could not save the photo.')
+    }
+    setBusy(false)
+  }
+
+  async function remove(id: string) {
+    const res = await fetch('/api/express/photo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, action: 'delete', id }),
+    })
+    const d = await res.json().catch(() => ({}))
+    if (res.ok) onSaved(d.progress)
+    setOpen(null)
+  }
+
+  const src = (id: string) => `/api/express/photo?token=${token}&id=${id}`
+  return (
+    <div style={boxStyle}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+        <div style={eyebrow}>PHOTOS</div>
+        <div style={{ fontSize: 13, color: muted }}>
+          {photos.length} of {MAX_PHOTOS}
+        </div>
+      </div>
+      <h2 style={h2}>Take photos as you go</h2>
+      <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
+        A dated record of the boat’s condition and the papers at the handoff. They go into your condition report. Don’t
+        photograph anyone’s driver’s license.
+      </p>
+      <label htmlFor="ph-label" style={{ fontSize: 14, fontWeight: 600, color: cream }}>
+        What’s in the photo
+      </label>
+      <select id="ph-label" value={label} onChange={(e) => setLabel(e.target.value)} style={inputStyle}>
+        {shots.map((s) => (
+          <option key={s.label} value={s.label}>
+            {s.label}
+          </option>
+        ))}
+      </select>
+      <label style={{ ...goldButton, opacity: busy || photos.length >= MAX_PHOTOS ? 0.6 : 1, cursor: busy ? 'default' : 'pointer' }}>
+        {busy ? 'Saving...' : 'Take or add a photo'}
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          disabled={busy || photos.length >= MAX_PHOTOS}
+          onChange={(e) => {
+            add(e.target.files)
+            e.target.value = ''
+          }}
+          style={{ display: 'none' }}
+        />
+      </label>
+      {msg && <p style={{ margin: 0, color: gold, fontSize: 14 }}>{msg}</p>}
+      {photos.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 8 }}>
+          {photos.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setOpen(p.id)}
+              style={{ padding: 0, border: `1px solid ${line}`, borderRadius: 6, overflow: 'hidden', background: navy, cursor: 'pointer', textAlign: 'left' }}
+            >
+              <img src={src(p.id)} alt={p.label} loading="lazy" style={{ width: '100%', height: 84, objectFit: 'cover', display: 'block' }} />
+              <span style={{ display: 'block', fontSize: 11, color: muted, padding: '4px 6px', lineHeight: 1.3 }}>{p.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {open && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setOpen(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#080e1a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16, gap: 12 }}
+        >
+          <img src={src(open)} alt="" style={{ maxWidth: '100%', maxHeight: '75vh', borderRadius: 6 }} />
+          <div style={{ display: 'flex', gap: 10 }} onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => remove(open)} style={outlineButton}>
+              Delete photo
+            </button>
+            <button type="button" onClick={() => setOpen(null)} style={goldButton}>
+              Close
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -351,7 +496,13 @@ export function InspectionStep({
   inspection,
   onChange,
   onNext,
+  photos,
+  has,
+  onPhotos,
 }: {
+  photos: Photo[]
+  has: Record<ItemKey, boolean>
+  onPhotos: (progress: any) => void
   token: string
   list: InspectItem[]
   inspection: InspectionProgress
@@ -466,6 +617,8 @@ export function InspectionStep({
             })}
         </div>
       ))}
+
+      <PhotosCard token={token} photos={photos} has={has} onSaved={onPhotos} />
 
       <div style={boxStyle}>
         <div style={eyebrow}>YOUR NOTES</div>
@@ -982,6 +1135,13 @@ export function HandoffStep({
         <div style={boxStyle}>
           <div style={eyebrow}>YOUR PAPERS</div>
           <h2 style={h2}>Print these, or open them on your phone, for the handoff</h2>
+          <DocRow
+            token={token}
+            doc="closing-packet"
+            name="Everything in one file"
+            note="Every paper below plus your title application, worksheet, and condition report, in the order you’ll use them. Easiest to print."
+            primary
+          />
           {docs.map(([key, name, note]) => (
             <DocRow key={key} token={token} doc={key} name={name} note={note} />
           ))}
@@ -1152,6 +1312,7 @@ export function AfterStep({
           ['title-worksheet', 'Title & registration worksheet'],
           has.boat && h.titledHow !== 'documented' && ['hsmv-82040-vs', 'Title application, HSMV 82040 VS'],
           ['condition-report', 'Condition report'],
+          ['closing-packet', 'Closing packet (everything in one file)'],
         ]
           .filter(Boolean)
           .map((d) => {

@@ -326,6 +326,7 @@ export default function ExpressDeal({ token }: { token: string }) {
         <li>Title signing guide built for how your boat is titled</li>
         {has.boat && <li>Florida title application (HSMV 82040 VS), pre-filled</li>}
         <li>What to bring to the tax collector, and email reminders before your 30-day deadline</li>
+        <li>Handoff photos and one closing packet with every paper, ready to print</li>
         <li>The seller’s copy, emailed with their notice-of-sale reminder</li>
       </ul>
       <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: muted }}>One price for everything in this sale. View or download every paper any time.</p>
@@ -474,6 +475,9 @@ export default function ExpressDeal({ token }: { token: string }) {
             list={inspList}
             inspection={deal.progress?.inspection || { items: {} }}
             onChange={inspect}
+            photos={deal.progress?.photos || []}
+            has={has}
+            onPhotos={(progress) => setDeal((d: any) => ({ ...d, progress: { ...(d.progress || {}), photos: progress.photos } }))}
             onNext={() => {
               setStep(3)
               window.scrollTo(0, 0)

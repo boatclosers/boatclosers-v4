@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { findExpressCredit, EXPRESS_CREDIT_CENTS } from '@/lib/expressCredit'
+
+export const dynamic = 'force-dynamic'
 
 // Creates a Stripe Checkout Session for the BoatClosers deal fee and returns the
 // hosted-checkout URL. Card details never touch our app — Stripe collects them on
@@ -20,14 +23,14 @@ function admin() {
   })
 }
 
-async function getUserId(req: Request): Promise<string | null> {
+async function getUser(req: Request): Promise<{ id: string; email?: string } | null> {
   const header = req.headers.get('authorization') || ''
   const token = header.startsWith('Bearer ') ? header.slice(7) : ''
   if (!token) return null
   try {
     const { data, error } = await admin().auth.getUser(token)
     if (error || !data?.user) return null
-    return data.user.id
+    return { id: data.user.id, email: data.user.email || undefined }
   } catch {
     return null
   }
@@ -39,7 +42,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Payments are not configured yet.' }, { status: 500 })
   }
 
-  const userId = await getUserId(req)
+  const me = await getUser(req)
+  const userId = me?.id
   if (!userId) {
     return NextResponse.json({ error: 'Please sign in again.' }, { status: 401 })
   }
@@ -75,8 +79,11 @@ export async function POST(req: Request) {
 
     // The fee is ours to set. A split is only honoured when the deal itself says so.
     const split = neg.payPlan === 'split'
-    const amount = split ? FEE_HALF_CENTS : FEE_FULL_CENTS
-    const isHalf = amount < FEE_FULL_CENTS
+    const baseAmount = split ? FEE_HALF_CENTS : FEE_FULL_CENTS
+    const isHalf = baseAmount < FEE_FULL_CENTS
+    // Paid for BC Express with this email? That $29.99 comes off, once.
+    const creditId = await findExpressCredit(me?.email)
+    const amount = creditId ? Math.max(baseAmount - EXPRESS_CREDIT_CENTS, 50) : baseAmount
     const payerRole = who === 'other' ? 'other' : 'initiator'
 
     const base = (appUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://boatclosers.com').replace(/\/$/, '')
@@ -85,7 +92,9 @@ export async function POST(req: Request) {
     params.append('mode', 'payment')
     params.append('line_items[0][price_data][currency]', 'usd')
     params.append('line_items[0][price_data][product_data][name]', isHalf ? 'BoatClosers deal fee (your half)' : 'BoatClosers deal fee')
-    params.append('line_items[0][price_data][product_data][description]', 'One-time fee to lock your boat deal and unlock documents & closing.')
+    params.append('line_items[0][price_data][product_data][description]', creditId
+      ? 'One-time fee to lock your boat deal and unlock documents & closing. Includes your $29.99 BC Express credit.'
+      : 'One-time fee to lock your boat deal and unlock documents & closing.')
     params.append('line_items[0][price_data][unit_amount]', String(amount))
     params.append('line_items[0][quantity]', '1')
     params.append('success_url', `${base}/?stripe=success&session_id={CHECKOUT_SESSION_ID}`)
@@ -93,6 +102,7 @@ export async function POST(req: Request) {
     params.append('metadata[dealId]', String(dealId))
     params.append('metadata[who]', payerRole)
     params.append('metadata[userId]', userId)
+    if (creditId) params.append('metadata[expressCreditId]', creditId)
 
     const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',

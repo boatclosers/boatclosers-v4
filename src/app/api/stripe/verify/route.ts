@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { claimExpressCredit } from '@/lib/expressCredit'
+
+// Always run live: never let Next.js cache this route or its Stripe/database fetches.
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 const SUPABASE_URL = 'https://xoihnmkgncuocxiknvgs.supabase.co'
 function admin() {
@@ -37,6 +42,7 @@ export async function GET(req: Request) {
     paid = data.payment_status === 'paid'
     dealId = data?.metadata?.dealId || null
     who = data?.metadata?.who || 'initiator'
+    if (paid && dealId) await claimExpressCredit(data?.metadata?.expressCreditId, dealId)
   } catch (e: any) {
     return NextResponse.json({ paid: false, dbg: 'stripe-fetch-threw: ' + (e?.message || String(e)) })
   }

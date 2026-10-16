@@ -48,6 +48,7 @@ const steps = [
       'Guided inspection of the hull, engine, systems, sea trial, motor, and trailer',
       'Mark each item Looks good or Problem, with notes, right from your phone',
       'Red-flag items that mean walk away, called out',
+      'Dated photos of the boat and the signed title, saved with your purchase',
       'A condition report PDF to renegotiate the price or ask for repairs',
     ],
   },
@@ -69,7 +70,7 @@ const steps = [
       'Florida title application (HSMV 82040 VS), pre-filled for you',
       'What to bring to the tax collector, for your exact deal',
       'Email reminders before your 30-day title deadline',
-      'Every paper from the deal saved in one place',
+      'Every paper saved in one place, plus one closing packet to print',
     ],
   },
 ]
@@ -112,7 +113,7 @@ const faqs = [
   },
   {
     q: 'What if my deal needs more?',
-    a: 'Express is built for a simple sale: the price is agreed, nothing is held in escrow, and the title is clear. If you need to negotiate, put down a deposit, make the sale depend on a survey or sea trial, finance through a lender, or have both of you sign a purchase agreement, full BoatClosers ($249) handles all of that.',
+    a: 'Express is built for a simple sale: the price is agreed, nothing is held in escrow, and the title is clear. If you need to negotiate, put down a deposit, make the sale depend on a survey or sea trial, finance through a lender, or have both of you sign a purchase agreement, full BoatClosers ($249) handles all of that. If you already paid for Express, start it with the same email and your $29.99 comes off the $249.',
   },
 ]
 

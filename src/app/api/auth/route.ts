@@ -3,6 +3,10 @@ import { createClient } from '@supabase/supabase-js'
 import { sendEmail, emailLayout } from '@/lib/sendEmail'
 import crypto from 'crypto'
 
+// Always run live: never let Next.js cache this route or its Stripe/database fetches.
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 const SUPABASE_URL = 'https://xoihnmkgncuocxiknvgs.supabase.co'
 
 function admin() {

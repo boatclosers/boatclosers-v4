@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/express-reminders",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/offer-expiry",
+      "schedule": "15 * * * *"
     }
   ]
 }
