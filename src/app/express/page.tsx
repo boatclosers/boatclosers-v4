@@ -4,7 +4,7 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'BC Express: Buy a Boat From a Private Seller the Right Way',
   description:
-    'Buying a boat, trailer, or motor from a private seller in Florida? Free HIN check, lien check, and walk-around checklist. Then a Florida bill of sale filled in for your deal, a title signing guide, and your title worksheet for $29.99.',
+    'Buying a boat, trailer, or motor from a private seller in Florida? Free HIN check, lien check, and seller questions. Then a guided inspection with a condition report, a Florida bill of sale and state forms filled in for your deal, and a pre-filled title application, all for $29.99.',
   alternates: {
     canonical: 'https://www.boatclosers.com/express',
   },
@@ -36,14 +36,24 @@ const steps = [
     price: 'Free',
     items: [
       'HIN check to match the boat to its paperwork',
-      'Walk-around checklist for hull, engine, trailer, and motor',
+      'Lien check: how to find out if a lender still has a claim',
       'Questions to ask the seller before you go look',
       'How to pay safely, and the scams to watch for',
     ],
   },
   {
-    title: 'At the handoff',
+    title: 'Inspect it',
     price: '$29.99 unlock',
+    items: [
+      'Guided inspection of the hull, engine, systems, sea trial, motor, and trailer',
+      'Mark each item Looks good or Problem, with notes, right from your phone',
+      'Red-flag items that mean walk away, called out',
+      'A condition report PDF to renegotiate the price or ask for repairs',
+    ],
+  },
+  {
+    title: 'At the handoff',
+    price: 'Included',
     items: [
       'Bill of sale filled in for your deal, with proper as-is wording',
       'Trailer bill of sale when a trailer is included',
@@ -56,11 +66,34 @@ const steps = [
     title: "After it's yours",
     price: 'Included',
     items: [
-      'Pre-filled Florida title application',
+      'Florida title application (HSMV 82040 VS), pre-filled for you',
       'What to bring to the tax collector, for your exact deal',
-      'Title deadline reminders by email',
+      'Email reminders before your 30-day title deadline',
       'Every paper from the deal saved in one place',
     ],
+  },
+]
+
+const audiences = [
+  {
+    title: 'First-time buyers',
+    text: 'Never bought a boat from a private seller? Every step comes in the order you need it, so you don’t miss a signature on the title, a lien, or the 30-day title deadline.',
+  },
+  {
+    title: 'Cautious buyers',
+    text: 'Before you drive out, the free HIN check shows the builder, Coast Guard records, and recalls, and the lien check shows whether a lender still has a claim. All free.',
+  },
+  {
+    title: 'Sellers who want it done right',
+    text: 'A wary seller sees a proper Florida bill of sale, a signed payment receipt, and their notice of sale already filled in, so the boat comes out of their name. They never sign up.',
+  },
+  {
+    title: 'Deals with people you know',
+    text: 'Buying from a neighbor or a friend? Do the paperwork properly anyway. A clean title transfer protects both of you if something comes up later.',
+  },
+  {
+    title: 'Trailers and motors too',
+    text: 'Buying just a trailer or an outboard, or all three together? One price covers it, with the right bill of sale for each.',
   },
 ]
 
@@ -71,7 +104,7 @@ const faqs = [
   },
   {
     q: 'What does it cost?',
-    a: 'Starting is free, including the HIN check and walk-around checklist. When you are ready for the paperwork, it is $29.99, one price whether you are buying a boat, a trailer, a motor, or all three.',
+    a: 'Starting is free, including the HIN check, lien check, and seller questions. The guided inspection, condition report, and all the paperwork are $29.99, one price whether you are buying a boat, a trailer, a motor, or all three.',
   },
   {
     q: 'Is this only for Florida?',
@@ -79,7 +112,7 @@ const faqs = [
   },
   {
     q: 'What if my deal needs more?',
-    a: 'If you need offers and counteroffers, escrow, or both parties working together, full BoatClosers handles that, and you can move up to it without paying twice.',
+    a: 'Express is built for a simple sale: the price is agreed, nothing is held in escrow, and the title is clear. If you need to negotiate, put down a deposit, make the sale depend on a survey or sea trial, finance through a lender, or have both of you sign a purchase agreement, full BoatClosers ($249) handles all of that.',
   },
 ]
 
@@ -137,7 +170,7 @@ export default function Page() {
         >
           Start free
         </a>
-        <div style={{ fontSize: 14, color: muted, marginTop: 12 }}>No account needed. Pay $29.99 only when you&apos;re ready for the paperwork.</div>
+        <div style={{ fontSize: 14, color: muted, marginTop: 12 }}>No account needed. Pay $29.99 only when you&apos;re ready to inspect and buy.</div>
 
         <section style={{ marginTop: 80 }}>
           <h2 style={h2}>Where private boat sales go wrong</h2>
@@ -147,6 +180,36 @@ export default function Page() {
             doesn&apos;t match, or there&apos;s a lien nobody mentioned. By then the seller has the money. BC
             Express catches those problems before you pay, not after.
           </p>
+        </section>
+
+        <section style={{ marginTop: 72 }}>
+          <h2 style={h2}>Who it&apos;s for</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+            {audiences.map((a) => (
+              <div key={a.title} style={{ border: `1px solid ${line}`, borderRadius: 6, padding: '22px 24px' }}>
+                <h3 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 20, lineHeight: 1.3, margin: '0 0 10px' }}>{a.title}</h3>
+                <p style={{ fontSize: 16, lineHeight: 1.65, opacity: 0.9, margin: 0 }}>{a.text}</p>
+              </div>
+            ))}
+          </div>
+          <div
+            style={{
+              marginTop: 16,
+              border: `1px solid ${gold}`,
+              borderRadius: 6,
+              padding: '20px 24px',
+              background: 'rgba(201,150,46,0.07)',
+              fontSize: 16,
+              lineHeight: 1.65,
+            }}
+          >
+            <b style={{ color: gold }}>Need escrow or a due diligence period?</b> If you want a deposit held by a neutral party, time
+            for a survey or sea trial before you&apos;re committed, or financing, use{' '}
+            <Link href="/" style={{ color: gold, fontWeight: 700 }}>
+              full BoatClosers for $249
+            </Link>
+            . It brings the seller in, puts your terms in a signed purchase agreement, and runs the deal through closing.
+          </div>
         </section>
 
         <section style={{ marginTop: 72 }}>
@@ -175,7 +238,7 @@ export default function Page() {
                 <h3 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 24, lineHeight: 1.25, margin: 0 }}>
                   {i + 1}. {s.title}
                 </h3>
-                <span style={{ fontSize: 13, letterSpacing: 1, fontWeight: 700, color: i === 0 ? gold : muted }}>
+                <span style={{ fontSize: 13, letterSpacing: 1, fontWeight: 700, color: i < 2 ? gold : muted }}>
                   {s.price.toUpperCase()}
                 </span>
               </div>
@@ -199,7 +262,7 @@ export default function Page() {
                 Free
               </div>
               <div style={{ fontSize: 15, lineHeight: 1.6, color: muted }}>
-                HIN check, walk-around checklist, seller questions, safe payment tips.
+                HIN check, lien check, seller questions, safe payment tips.
               </div>
             </div>
             <div style={{ border: `1px solid ${gold}`, borderRadius: 6, padding: 26, background: 'rgba(201,150,46,0.08)' }}>
@@ -208,9 +271,37 @@ export default function Page() {
                 $29.99
               </div>
               <div style={{ fontSize: 15, lineHeight: 1.6, color: muted }}>
-                All the paperwork for your boat, trailer, motor, or all three, plus everything you need to title
-                it.
+                Guided inspection and condition report, then all the paperwork for your boat, trailer, motor, or
+                all three, plus everything you need to title it.
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section style={{ marginTop: 72 }}>
+          <h2 style={h2}>Is Express right for your deal?</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+            <div style={{ border: `1px solid ${line}`, borderRadius: 6, padding: 26 }}>
+              <div style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: gold, marginBottom: 10 }}>Express fits when</div>
+              <ul style={{ margin: 0, paddingLeft: 20, fontSize: 16, lineHeight: 1.75, opacity: 0.9 }}>
+                <li>You and the seller already agree on the price</li>
+                <li>You pay in full at the handoff, with no deposit to hold</li>
+                <li>The title is clear, or the lien release is in hand</li>
+                <li>You&apos;re buying in Florida</li>
+              </ul>
+            </div>
+            <div style={{ border: `1px solid ${line}`, borderRadius: 6, padding: 26 }}>
+              <div style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: gold, marginBottom: 10 }}>Use full BoatClosers when</div>
+              <ul style={{ margin: 0, paddingLeft: 20, fontSize: 16, lineHeight: 1.75, opacity: 0.9 }}>
+                <li>You still need to negotiate offers and counteroffers</li>
+                <li>You want a deposit held in escrow by a neutral party</li>
+                <li>You need a due diligence period: survey, sea trial, or financing before you&apos;re committed</li>
+                <li>There&apos;s an unpaid loan the sale has to clear</li>
+                <li>You both want a signed purchase agreement</li>
+              </ul>
+              <Link href="/" style={{ display: 'inline-block', marginTop: 14, color: gold, fontWeight: 700 }}>
+                See full BoatClosers, $249
+              </Link>
             </div>
           </div>
         </section>
@@ -236,7 +327,7 @@ export default function Page() {
         >
           <h2 style={{ ...h2, color: gold, fontSize: 26 }}>Buying in Florida? Start now.</h2>
           <p style={{ fontSize: 17, lineHeight: 1.7, margin: '0 0 24px' }}>
-            Check the boat for free today. Unlock the paperwork when you&apos;re ready to buy.
+            Check the boat for free today. Unlock the inspection and paperwork when you&apos;re serious about buying.
           </p>
           <a
             href="/express/start"

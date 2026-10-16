@@ -291,7 +291,7 @@ export default function ExpressStart() {
           <span style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: gold, fontWeight: 700 }}>$0</span>
         </div>
         <div style={{ fontSize: 14, lineHeight: 1.6, color: muted }}>
-          Your HIN check, walk-around checklist, and seller questions for this sale ({summary}) are free. When
+          Your HIN check, lien check, and seller questions for this sale ({summary}) are free. When
           you&apos;re ready for the paperwork, unlock it for $29.99, one price no matter what&apos;s included.
           Florida purchases only for now.
         </div>

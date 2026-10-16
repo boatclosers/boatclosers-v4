@@ -4,6 +4,7 @@ import { sendEmail, emailLayout } from '@/lib/sendEmail'
 import { handoffProblems, type Handoff } from '@/lib/express/content'
 import { buildDocument, docsFor, DOC_TITLES, type DocKey } from '@/lib/express/documents'
 import { buildHsmv82050 } from '@/lib/express/hsmv82050'
+import { inspectionFor, inspectionPreview, cleanInspection } from '@/lib/express/inspection'
 
 // Always read live data: never let Next.js cache database or upstream fetches here.
 export const dynamic = 'force-dynamic'
@@ -15,6 +16,7 @@ export const fetchCache = 'force-no-store'
 //   POST { token, action: 'ids', ids } -> save the HIN / VIN / motor serial
 //   POST { token, action: 'checks', checks } -> save checklist progress (free)
 //   POST { token, action: 'answers', answers } -> save the seller's answers (free)
+//   POST { token, action: 'inspection', inspection } -> save the walk-around inspection (paid only)
 //   POST { token, action: 'handoff', handoff } -> save sale details (paid only)
 //   POST { token, action: 'email-seller' } -> email the seller their copies (paid only)
 // The fee is a server constant. Only express_deals is ever touched here.
@@ -112,7 +114,7 @@ async function confirmPayment(deal: any) {
           subject: 'Your BC Express paperwork is unlocked',
           html: emailLayout(`
             <p style="font-size:15px;color:#08152e;">Hi ${esc(String(deal.buyer_name).split(' ')[0])},</p>
-            <p style="font-size:15px;color:#08152e;line-height:1.6;">Payment received. Your bill of sale, title signing guide, and title worksheet are ready. Add the sale details and your papers are filled in for you.</p>
+            <p style="font-size:15px;color:#08152e;line-height:1.6;">Payment received. Your guided inspection is unlocked: take it with you when you see the boat, and it builds a condition report as you go. When you're ready to buy, add the sale details and your bill of sale, state forms, and title application are filled in for you.</p>
             <p style="text-align:center;margin:28px 0;"><a href="${SITE}/express/deal/${deal.access_token}" style="background:#c9962e;color:#0f1b2d;padding:14px 28px;border-radius:4px;font-weight:700;text-decoration:none;display:inline-block;">Open my purchase</a></p>
           `),
         })
@@ -136,7 +138,10 @@ export async function GET(req: Request) {
   let deal = await loadDeal(token)
   if (!deal) return NextResponse.json({ error: 'Link not valid.' }, { status: 404 })
   deal = await confirmPayment(deal)
-  return NextResponse.json({ deal: publicView(deal) })
+  // The full inspection is part of what the buyer pays for; unpaid deals get a preview.
+  const has = hasItems(deal)
+  const inspection = deal.status === 'paid' ? { list: inspectionFor(has) } : { preview: inspectionPreview(has) }
+  return NextResponse.json({ deal: publicView(deal), inspection })
 }
 
 export async function POST(req: Request) {
@@ -196,6 +201,19 @@ export async function POST(req: Request) {
     }
     if (Object.keys(answers).length > 30) return NextResponse.json({ error: 'Too many answers.' }, { status: 400 })
     const progress = { ...(deal.progress || {}), answers }
+    const { error } = await supabaseAdmin
+      .from('express_deals')
+      .update({ progress, updated_at: new Date().toISOString() })
+      .eq('id', deal.id)
+    if (error) return NextResponse.json({ error: 'Could not save.' }, { status: 500 })
+    return NextResponse.json({ progress })
+  }
+
+  if (body?.action === 'inspection') {
+    deal = await confirmPayment(deal)
+    if (deal.status !== 'paid') return NextResponse.json({ error: 'Unlock the inspection first.' }, { status: 402 })
+    const inspection = cleanInspection(deal.progress?.inspection, body?.inspection)
+    const progress = { ...(deal.progress || {}), inspection }
     const { error } = await supabaseAdmin
       .from('express_deals')
       .update({ progress, updated_at: new Date().toISOString() })

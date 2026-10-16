@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { decodeHin } from '@/lib/hin'
 import LienCheck from '@/components/LienCheck'
 import { useBuilder, BuilderDetails, builderName, RecallsSection, VesselSection } from '@/components/HinBuilder'
-import { WALK_AROUND, SELLER_QUESTIONS, PAYMENT_TIPS, type ItemKey } from '@/lib/express/content'
-import { navy, gold, cream, muted, line, boxStyle, eyebrow, money, Checklist, forItems, HandoffStep, AfterStep, SellerQuestions } from './parts'
+import { SELLER_QUESTIONS, PAYMENT_TIPS, type ItemKey, type InspectItem, type InspectionProgress, type InspectionPreview } from '@/lib/express/content'
+import { navy, gold, cream, muted, line, boxStyle, eyebrow, money, forItems, HandoffStep, AfterStep, SellerQuestions, FullSuggest, InspectionLocked, InspectionStep } from './parts'
 
 const ID_LABEL: Record<string, [string, string]> = {
   boat: ['hin', 'HIN'],
@@ -156,7 +156,11 @@ export default function ExpressDeal({ token }: { token: string }) {
   const [error, setError] = useState('')
   const [paying, setPaying] = useState(false)
   const [justPaid, setJustPaid] = useState(false)
-  const [step, setStep] = useState<1 | 2 | 3 | null>(null)
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | null>(null)
+  const [inspList, setInspList] = useState<InspectItem[] | null>(null)
+  const [inspPreview, setInspPreview] = useState<InspectionPreview | null>(null)
+  const pendingInsp = useRef<any>({})
+  const inspTimer = useRef<any>(null)
   const [saveError, setSaveError] = useState(false)
   const pending = useRef<Record<string, boolean>>({})
   const timer = useRef<any>(null)
@@ -173,7 +177,10 @@ export default function ExpressDeal({ token }: { token: string }) {
         const d = await res.json()
         if (!res.ok) throw new Error(d.error || 'Link not valid.')
         setDeal(d.deal)
-        setStep((s) => s ?? (d.deal.status === 'paid' ? (d.deal.progress?.handoff?.saleDate ? 3 : 2) : 1))
+        setInspList(d.inspection?.list || null)
+        setInspPreview(d.inspection?.preview || null)
+        const p = d.deal.progress || {}
+        setStep((s) => s ?? (d.deal.status === 'paid' ? (p.handoff?.saleDate ? 4 : Object.keys(p.inspection?.items || {}).length ? 3 : 2) : 1))
         // Coming back from Stripe: payment can take a moment to show as paid.
         if (d.deal.status === 'unpaid' && back && tries < 4) {
           tries++
@@ -205,6 +212,32 @@ export default function ExpressDeal({ token }: { token: string }) {
         setSaveError(true)
       }
     }, 600)
+  }
+
+  // Inspection marks and notes save a moment after the buyer stops tapping or typing.
+  function inspect(patch: { items?: InspectionProgress['items']; hours?: string; notes?: string }) {
+    setDeal((d: any) => {
+      const cur: InspectionProgress = d.progress?.inspection || { items: {} }
+      const next = { ...cur, ...patch, items: { ...(cur.items || {}), ...(patch.items || {}) } }
+      return { ...d, progress: { ...(d.progress || {}), inspection: next } }
+    })
+    const q = pendingInsp.current
+    pendingInsp.current = { ...q, ...patch, items: { ...(q.items || {}), ...(patch.items || {}) } }
+    clearTimeout(inspTimer.current)
+    inspTimer.current = setTimeout(async () => {
+      const inspection = pendingInsp.current
+      pendingInsp.current = {}
+      try {
+        const res = await fetch('/api/express/deal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, action: 'inspection', inspection }),
+        })
+        setSaveError(!res.ok)
+      } catch {
+        setSaveError(true)
+      }
+    }, 800)
   }
 
   // Seller's answers save a moment after the buyer stops typing.
@@ -267,28 +300,33 @@ export default function ExpressDeal({ token }: { token: string }) {
   const checks: Record<string, boolean> = deal.progress?.checks || {}
 
   const steps = [
-    { n: 1 as const, title: 'Before you pay', note: 'HIN check, lien check, walk-around, seller questions', tag: 'FREE' },
-    { n: 2 as const, title: 'At the handoff', note: 'Bill of sale, title signing guide, seller’s copy', tag: paid ? 'UNLOCKED' : '$29.99' },
-    { n: 3 as const, title: "After it's yours", note: 'Title worksheet, what to bring, deadline, documents', tag: paid ? 'UNLOCKED' : 'INCLUDED' },
+    { n: 1 as const, title: 'Check it out', note: 'HIN check, lien check, seller questions, is Express right?', tag: 'FREE' },
+    { n: 2 as const, title: 'Inspect it', note: 'Guided inspection and condition report', tag: paid ? 'UNLOCKED' : '$29.99' },
+    { n: 3 as const, title: 'At the handoff', note: 'Bill of sale, state forms, title signing guide, seller’s copy', tag: paid ? 'UNLOCKED' : 'INCLUDED' },
+    { n: 4 as const, title: "After it's yours", note: 'Title application, what to bring, deadline reminders', tag: paid ? 'UNLOCKED' : 'INCLUDED' },
   ]
 
   const paywall = (
     <div style={{ ...boxStyle, border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.07)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
-        <span style={{ fontFamily: 'Georgia, serif', fontSize: 20 }}>Ready for the paperwork?</span>
+        <span style={{ fontFamily: 'Georgia, serif', fontSize: 20 }}>Serious about this one?</span>
         <span style={{ fontFamily: 'Georgia, serif', fontSize: 24, color: gold, fontWeight: 700 }}>$29.99</span>
       </div>
       <ul style={{ margin: 0, paddingLeft: 20, color: cream, fontSize: 15, lineHeight: 1.7 }}>
+        <li>
+          <b>Guided {inspPreview ? `${inspPreview.count}-point ` : ''}inspection</b> on your phone, with a condition report to negotiate with
+        </li>
         {has.boat && <li>Florida vessel bill of sale that doubles as your 30-day temporary registration</li>}
         {has.trailer && <li>Trailer bill of sale</li>}
         {has.motor && !has.boat && <li>Outboard motor bill of sale</li>}
         {(has.boat || has.trailer) && <li>Florida’s official form HSMV 82050, filled in, with the seller’s notice of sale</li>}
         <li>Payment receipt, signed by the seller</li>
         <li>Title signing guide built for how your boat is titled</li>
-        <li>Title worksheet with every value for the state form, plus what to bring</li>
+        {has.boat && <li>Florida title application (HSMV 82040 VS), pre-filled</li>}
+        <li>What to bring to the tax collector, and email reminders before your 30-day deadline</li>
         <li>The seller’s copy, emailed with their notice-of-sale reminder</li>
       </ul>
-      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: muted }}>One price for everything in this sale.</p>
+      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: muted }}>One price for everything in this sale. View or download every paper any time.</p>
       {error && (
         <p role="alert" style={{ margin: 0, color: gold }}>
           {error}
@@ -310,7 +348,7 @@ export default function ExpressDeal({ token }: { token: string }) {
           opacity: paying ? 0.6 : 1,
         }}
       >
-        {paying ? 'Opening secure checkout...' : 'Unlock paperwork · $29.99'}
+        {paying ? 'Opening secure checkout...' : 'Unlock inspection and paperwork · $29.99'}
       </button>
     </div>
   )
@@ -400,13 +438,8 @@ export default function ExpressDeal({ token }: { token: string }) {
             onToggle={toggle}
             onAnswer={answer}
           />
-          <Checklist
-            label="WALK-AROUND CHECKLIST"
-            title="Check these in person"
-            items={forItems(WALK_AROUND, has)}
-            checks={checks}
-            onToggle={toggle}
-          />
+          <FullSuggest deal={deal} checks={checks} onToggle={toggle} />
+          {!paid && <InspectionLocked preview={inspPreview} />}
           <div style={boxStyle}>
             <div style={eyebrow}>PAYING SAFELY</div>
             <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: cream, margin: 0 }}>How not to get scammed</h2>
@@ -422,7 +455,7 @@ export default function ExpressDeal({ token }: { token: string }) {
               onClick={() => setStep(2)}
               style={{ background: gold, color: navy, fontWeight: 700, fontSize: 16, padding: '14px 20px', borderRadius: 6, border: 'none', cursor: 'pointer' }}
             >
-              Go to the handoff
+              Start the inspection
             </button>
           ) : (
             paywall
@@ -431,6 +464,25 @@ export default function ExpressDeal({ token }: { token: string }) {
       )}
 
       {step === 2 &&
+        (paid && inspList ? (
+          <InspectionStep
+            token={token}
+            list={inspList}
+            inspection={deal.progress?.inspection || { items: {} }}
+            onChange={inspect}
+            onNext={() => {
+              setStep(3)
+              window.scrollTo(0, 0)
+            }}
+          />
+        ) : (
+          <>
+            <InspectionLocked preview={inspPreview} />
+            {paywall}
+          </>
+        ))}
+
+      {step === 3 &&
         (paid ? (
           <HandoffStep
             token={token}
@@ -444,7 +496,7 @@ export default function ExpressDeal({ token }: { token: string }) {
           paywall
         ))}
 
-      {step === 3 && (paid ? <AfterStep token={token} deal={deal} has={has} checks={checks} onToggle={toggle} /> : paywall)}
+      {step === 4 && (paid ? <AfterStep token={token} deal={deal} has={has} checks={checks} onToggle={toggle} /> : paywall)}
 
       <div style={boxStyle}>
         <div style={eyebrow}>YOUR PURCHASE</div>

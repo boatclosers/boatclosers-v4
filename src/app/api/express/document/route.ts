@@ -25,10 +25,13 @@ export async function GET(req: Request) {
 
   const h: Handoff = (deal.progress as any)?.handoff || {}
   const has = { boat: !!(deal.items as any)?.boat, trailer: !!(deal.items as any)?.trailer, motor: !!(deal.items as any)?.motor }
-  if (h.lien === 'open') return new Response('A lien on the title has to be released before the sale.', { status: 409 })
-  const problems = handoffProblems(h, has)
-  if (problems.length) return new Response(problems[0], { status: 409 })
-  if (!docsFor(deal.items as any).includes(doc)) return new Response('Not a document for this purchase.', { status: 404 })
+  if (!docsFor(deal.items as any, h).includes(doc)) return new Response('Not a document for this purchase.', { status: 404 })
+  // The condition report comes from the inspection, before the sale details exist.
+  if (doc !== 'condition-report') {
+    if (h.lien === 'open') return new Response('A lien on the title has to be released before the sale.', { status: 409 })
+    const problems = handoffProblems(h, has)
+    if (problems.length) return new Response(problems[0], { status: 409 })
+  }
 
   const bytes = await buildDocument(doc, deal as any)
   const download = url.searchParams.get('download') === '1'

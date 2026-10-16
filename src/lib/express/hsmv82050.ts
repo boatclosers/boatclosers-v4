@@ -10,25 +10,27 @@ import type { Handoff } from '@/lib/express/content'
 
 const FORM_URL = 'https://www.flhsmv.gov/pdf/forms/82050.pdf'
 const CACHE_KEY = 'form:hsmv-82050'
-let memo: Uint8Array | null = null
+const memo: Record<string, Uint8Array> = {}
 
-async function formBytes(): Promise<Uint8Array> {
-  if (memo) return memo
-  const { data: row } = await supabaseAdmin.from('uscg_cache').select('data,fetched_at').eq('key', CACHE_KEY).maybeSingle()
+// Official FLHSMV fillable PDFs, cached for 30 days in public.uscg_cache so a
+// slow or down state site doesn't stop a buyer's papers.
+export async function officialForm(url: string, key: string): Promise<Uint8Array> {
+  if (memo[key]) return memo[key]
+  const { data: row } = await supabaseAdmin.from('uscg_cache').select('data,fetched_at').eq('key', key).maybeSingle()
   const fresh = row && (Date.now() - new Date(row.fetched_at).getTime()) / 86400000 < 30
   if (row && fresh && (row.data as any)?.b64) {
-    memo = Uint8Array.from(Buffer.from((row.data as any).b64, 'base64'))
-    return memo
+    memo[key] = Uint8Array.from(Buffer.from((row.data as any).b64, 'base64'))
+    return memo[key]
   }
   try {
-    const res = await fetch(FORM_URL, { cache: 'no-store', signal: AbortSignal.timeout(10000) })
+    const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(10000) })
     if (!res.ok) throw new Error(`FLHSMV ${res.status}`)
     const bytes = new Uint8Array(await res.arrayBuffer())
     await PDFDocument.load(bytes) // make sure it's a real PDF before caching it
     await supabaseAdmin
       .from('uscg_cache')
-      .upsert({ key: CACHE_KEY, data: { b64: Buffer.from(bytes).toString('base64') }, fetched_at: new Date().toISOString() })
-    memo = bytes
+      .upsert({ key, data: { b64: Buffer.from(bytes).toString('base64') }, fetched_at: new Date().toISOString() })
+    memo[key] = bytes
     return bytes
   } catch (e) {
     if ((row?.data as any)?.b64) return Uint8Array.from(Buffer.from((row!.data as any).b64, 'base64'))
@@ -36,7 +38,9 @@ async function formBytes(): Promise<Uint8Array> {
   }
 }
 
-function safe(s: unknown): string {
+const formBytes = () => officialForm(FORM_URL, CACHE_KEY)
+
+export function safe(s: unknown): string {
   return String(s ?? '')
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')

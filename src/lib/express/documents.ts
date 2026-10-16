@@ -5,6 +5,9 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
 import { type Handoff, whatToBring, salesTaxEstimate, addDays, type ItemKey } from '@/lib/express/content'
 import { buildHsmv82050 } from '@/lib/express/hsmv82050'
+import { buildHsmv82040vs } from '@/lib/express/hsmv82040vs'
+import { inspectionFor, INSPECTION_SECTIONS } from '@/lib/express/inspection'
+import type { InspectionProgress } from '@/lib/express/content'
 
 export type DocKey =
   | 'vessel-bill-of-sale'
@@ -15,6 +18,8 @@ export type DocKey =
   | 'payment-receipt'
   | 'closing-summary'
   | 'title-worksheet'
+  | 'hsmv-82040-vs'
+  | 'condition-report'
 
 export const DOC_TITLES: Record<DocKey, string> = {
   'vessel-bill-of-sale': 'Vessel Bill of Sale',
@@ -25,16 +30,19 @@ export const DOC_TITLES: Record<DocKey, string> = {
   'payment-receipt': 'Payment Receipt',
   'closing-summary': 'Closing Summary',
   'title-worksheet': 'Title & Registration Worksheet',
+  'hsmv-82040-vs': 'Florida title application, HSMV 82040 VS (pre-filled)',
+  'condition-report': 'Condition Report (your inspection)',
 }
 
-export function docsFor(items: Record<string, any>): DocKey[] {
-  const out: DocKey[] = []
+export function docsFor(items: Record<string, any>, h: Handoff = {}): DocKey[] {
+  const out: DocKey[] = ['condition-report']
   if (items.boat) out.push('vessel-bill-of-sale')
   if (items.motor && !items.boat) out.push('motor-bill-of-sale')
   if (items.trailer) out.push('trailer-bill-of-sale')
   if (items.boat) out.push('hsmv-82050-boat')
   if (items.trailer) out.push('hsmv-82050-trailer')
   out.push('payment-receipt', 'closing-summary', 'title-worksheet')
+  if (items.boat && h.titledHow !== 'documented') out.push('hsmv-82040-vs')
   return out
 }
 
@@ -253,7 +261,7 @@ type Deal = {
   items: Record<string, any>
   price_cents: number
   paid_at?: string
-  progress?: { handoff?: Handoff }
+  progress?: { handoff?: Handoff; inspection?: InspectionProgress }
 }
 
 const FOOTER = 'Prepared with BC Express by BoatClosers (boatclosers.com). BoatClosers is not a party to this sale and does not give legal advice.'
@@ -413,7 +421,7 @@ async function closingSummary(d: Deal, h: Handoff) {
   const tax = salesTaxEstimate(d.price_cents)
   w.field('Estimated FL sales tax', `about ${money(Math.round(tax.state * 100))} (6%), plus county surtax of up to ${money(Math.round(tax.surtaxMax * 100))}`)
   w.heading('Papers from this sale')
-  for (const k of docsFor(d.items).filter((k) => k !== 'closing-summary')) w.bullet(DOC_TITLES[k])
+  for (const k of docsFor(d.items, h).filter((k) => k !== 'closing-summary')) w.bullet(DOC_TITLES[k])
   if (h.titledHow === 'florida') w.bullet('Original Florida certificate of title, signed by Seller')
   if (h.titledHow === 'documented') w.bullet('Coast Guard bill of sale (CG-1340) and Certificate of Documentation')
   if (h.lien === 'released') w.bullet('Original lien release')
@@ -427,7 +435,7 @@ async function closingSummary(d: Deal, h: Handoff) {
 async function titleWorksheet(d: Deal, h: Handoff) {
   const w = await Writer.create(
     'Title & Registration Worksheet',
-    'Copy these values onto form HSMV 82040 VS (Application for Certificate of Vessel Title). Bring this sheet with you.'
+    'Your title application (HSMV 82040 VS) is pre-filled with these values. Use this sheet to double-check it, and bring it with you.'
   )
   const boat = d.items.boat
   if (boat && h.titledHow !== 'documented') {
@@ -474,6 +482,58 @@ async function titleWorksheet(d: Deal, h: Handoff) {
   return w.finish(FOOTER)
 }
 
+const STATUS_LABEL = { ok: 'Looks good', issue: 'PROBLEM', skip: 'Not checked' } as const
+
+async function conditionReport(d: Deal) {
+  const ins: InspectionProgress = d.progress?.inspection || { items: {} }
+  const list = inspectionFor(has(d))
+  const done = list.filter((i) => ins.items[i.id]?.s)
+  const problems = list.filter((i) => ins.items[i.id]?.s === 'issue')
+  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' })
+  const w = await Writer.create('Condition Report', `Buyer's walk-around inspection, recorded ${today}`)
+  w.heading('What was inspected')
+  for (const l of itemLines(d)) w.bullet(l)
+  w.field('Seller', d.seller_name)
+  w.field('Buyer and inspector', d.buyer_name)
+  w.field('Asking / agreed price', money(d.price_cents))
+  if (ins.hours) w.field('Engine hours seen', ins.hours)
+  w.field('Items checked', `${done.length} of ${list.length}`)
+
+  w.heading(problems.length ? `Problems found (${problems.length})` : 'Problems found')
+  if (!problems.length) w.text('None recorded.', { color: GREY })
+  for (const i of problems) {
+    w.bullet(`${i.section}: ${i.label}${i.redFlag ? '  [RED FLAG]' : ''}`, '!')
+    if (ins.items[i.id]?.note) w.text(`Note: ${ins.items[i.id].note}`, { indent: 14, color: GREY })
+  }
+  if (problems.length) {
+    w.text(
+      'Before you pay: use these findings to ask the seller to fix them, lower the price, or both. Get any agreed repair or price change in writing. Your bill of sale is filled in with the final price you enter.',
+      { size: 9, gap: 6 }
+    )
+  }
+
+  for (const section of INSPECTION_SECTIONS) {
+    const rows = list.filter((i) => i.section === section)
+    if (!rows.length) continue
+    w.heading(section)
+    for (const i of rows) {
+      const r = ins.items[i.id]
+      const tag = r?.s ? STATUS_LABEL[r.s] : 'Not checked'
+      w.bullet(`${tag}: ${i.label}`, r?.s === 'ok' ? '+' : r?.s === 'issue' ? '!' : '-')
+      if (r?.note && r.s !== 'issue') w.text(`Note: ${r.note}`, { indent: 14, color: GREY })
+    }
+  }
+  if (ins.notes) {
+    w.heading('Other notes')
+    w.text(ins.notes)
+  }
+  w.text(
+    'This report records what the buyer saw. It is not a marine survey or a mechanical inspection, and it does not change the as-is terms of the sale. For a larger purchase, hire an accredited marine surveyor (SAMS or NAMS) and a marine mechanic.',
+    { size: 8, color: GREY, gap: 8 }
+  )
+  return w.finish(FOOTER)
+}
+
 export async function buildDocument(key: DocKey, d: Deal): Promise<Uint8Array> {
   const h = d.progress?.handoff || {}
   switch (key) {
@@ -493,5 +553,9 @@ export async function buildDocument(key: DocKey, d: Deal): Promise<Uint8Array> {
       return closingSummary(d, h)
     case 'title-worksheet':
       return titleWorksheet(d, h)
+    case 'hsmv-82040-vs':
+      return buildHsmv82040vs(d)
+    case 'condition-report':
+      return conditionReport(d)
   }
 }

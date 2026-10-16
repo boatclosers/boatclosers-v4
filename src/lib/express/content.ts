@@ -44,29 +44,16 @@ export const TITLED_OPTIONS: { key: TitledHow; label: string; hint: string }[] =
 
 // ---------- Step 1: before you pay ----------
 
-export const WALK_AROUND: CheckItem[] = [
-  { id: 'w-hin', only: 'boat', label: 'HIN on the transom matches the title exactly', detail: 'Every character. A sanded, riveted-over, or stick-on HIN is a reason to walk away.' },
-  { id: 'w-hull', only: 'boat', label: 'Hull and deck: no cracks, soft spots, or fresh patches', detail: 'Press on the deck and around the transom. Soft or spongy spots can mean water in the core.' },
-  { id: 'w-bottom', only: 'boat', label: 'Bottom: no blisters, gouges, or impact damage', detail: 'Easiest to see with the boat on the trailer. Look along the keel and chines.' },
-  { id: 'w-transom', only: 'boat', label: 'Transom is solid where the motor mounts', detail: 'Push and pull on the lower unit. The transom shouldn’t flex, crack, or move.' },
-  { id: 'w-bilge', only: 'boat', label: 'Bilge is dry and the pump works', detail: 'Oil, fuel, or standing water in the bilge is a warning sign. Flip the pump switch.' },
-  { id: 'w-electric', only: 'boat', label: 'Lights, horn, gauges, and electronics work' },
-  { id: 'w-steering', only: 'boat', label: 'Steering turns smoothly from lock to lock' },
-  { id: 'w-safety', only: 'boat', label: 'Required safety gear is aboard', detail: 'Life jackets for everyone, a throwable device, a fire extinguisher, and signals as required for the boat’s size.' },
-  { id: 'w-trial', only: 'boat', label: 'Run it on the water if at all possible', detail: 'Start cold, idle, then run at full throttle. Watch for smoke, stalling, vibration, or overheating.' },
-  { id: 'w-serial', only: 'motor', label: 'Motor serial plate is present and matches what you were told', detail: 'It’s on the transom bracket. A missing or damaged plate is a red flag for a stolen motor.' },
-  { id: 'w-cold', only: 'motor', label: 'Motor starts cold and idles smoothly', detail: 'Ask the seller not to run it before you arrive.' },
-  { id: 'w-telltale', only: 'motor', label: 'Strong water stream from the telltale', detail: 'A weak stream can mean a worn water pump impeller or blocked passages.' },
-  { id: 'w-gearcase', only: 'motor', label: 'Lower unit oil looks clean, not milky', detail: 'Milky oil means water got into the gearcase, often a costly repair.' },
-  { id: 'w-compression', only: 'motor', label: 'Ask for a compression test or the hours and service records', detail: 'Uneven compression across cylinders points to internal wear.' },
-  { id: 'w-prop', only: 'motor', label: 'Prop has no big dings and the shaft isn’t bent' },
-  { id: 'w-tvin', only: 'trailer', label: 'Trailer VIN matches its title or registration', detail: 'Usually stamped on the tongue or a plate on the frame.' },
-  { id: 'w-tires', only: 'trailer', label: 'Tires have tread, no cracks, and aren’t too old', detail: 'The 4-digit date code on the sidewall shows week and year. Over 6 years old is due for replacement.' },
-  { id: 'w-bearings', only: 'trailer', label: 'Wheel bearings aren’t loose or grinding', detail: 'Lift each wheel and rock it. It shouldn’t wobble.' },
-  { id: 'w-tlights', only: 'trailer', label: 'Lights and brakes work when hooked up' },
-  { id: 'w-frame', only: 'trailer', label: 'Frame and axle are free of heavy rust or bends' },
-  { id: 'w-winch', only: 'trailer', label: 'Winch, strap, bunks or rollers, and safety chains are in good shape' },
-]
+// The walk-around inspection list itself is server-only (lib/express/inspection.ts)
+// and sent only to paid deals. These types are shared with the page.
+export type InspectStatus = 'ok' | 'issue' | 'skip'
+export type InspectItem = { id: string; section: string; label: string; detail?: string; only?: ItemKey; redFlag?: boolean }
+export type InspectionProgress = {
+  items: Record<string, { s?: InspectStatus; note?: string }>
+  hours?: string
+  notes?: string
+}
+export type InspectionPreview = { count: number; redFlags: number; sections: string[]; sample: string[] }
 
 export const SELLER_QUESTIONS: CheckItem[] = [
   { id: 'q-title', label: 'Is the title in your name, and do you have it in hand?', detail: 'If the name on the title isn’t the person selling, stop until that’s explained.' },

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import DocViewer, { docUrl } from './DocViewer'
 import {
   type CheckItem,
   type Handoff,
@@ -16,6 +17,10 @@ import {
   salesTaxEstimate,
   addDays,
   NEW_OWNER,
+  type InspectItem,
+  type InspectionProgress,
+  type InspectionPreview,
+  type InspectStatus,
 } from '@/lib/express/content'
 
 export const navy = '#0f1b2d'
@@ -119,6 +124,294 @@ export function Checklist({
 
 export function forItems(list: CheckItem[], has: Record<ItemKey, boolean>) {
   return list.filter((i) => !i.only || has[i.only])
+}
+
+// ---------- A paper: view it here, or download it ----------
+
+export function DocRow({ token, doc, name, note, primary }: { token: string; doc: string; name: string; note?: string; primary?: boolean }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: `1px solid ${line}`, flexWrap: 'wrap' }}>
+      <div style={{ flex: '1 1 200px' }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: cream }}>{name}</div>
+        {note && <div style={{ fontSize: 13, color: muted, lineHeight: 1.5 }}>{note}</div>}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="button" onClick={() => setOpen(true)} style={{ ...(primary ? goldButton : outlineButton), padding: '10px 16px' }}>
+          View
+        </button>
+        <a href={docUrl(token, doc, true)} style={{ ...outlineButton, padding: '10px 16px' }}>
+          Download
+        </a>
+      </div>
+      {open && <DocViewer token={token} doc={doc} title={name} onClose={() => setOpen(false)} />}
+    </div>
+  )
+}
+
+// ---------- Full BoatClosers: when Express isn't the right tool ----------
+
+const FULL_REASONS = [
+  { id: 'f-negotiate', label: 'We still need to agree on the price', why: 'Full BoatClosers runs offers and counteroffers in one place, with every round on record.' },
+  { id: 'f-deposit', label: 'I’m putting down a deposit before the boat is mine', why: 'A deposit needs written terms for when you get it back. Full BoatClosers writes those terms and has a neutral third party hold the money.' },
+  { id: 'f-survey', label: 'The sale should depend on a survey or sea trial', why: 'Full BoatClosers adds contingencies to a signed purchase agreement, so you can walk away or renegotiate if the survey finds problems.' },
+  { id: 'f-finance', label: 'I’m financing through a lender', why: 'Most lenders want a signed purchase agreement and a closing they can pay into. Express doesn’t create either.' },
+  { id: 'f-agreement', label: 'We both want a signed purchase agreement', why: 'Express is buyer-only. Full BoatClosers brings the seller in, and both of you sign the agreement and the closing papers.' },
+]
+
+export function FullSuggest({ deal, checks, onToggle }: { deal: any; checks: Record<string, boolean>; onToggle: (id: string, v: boolean) => void }) {
+  const hits = FULL_REASONS.filter((r) => checks[r.id])
+  const big = deal.price_cents > 2500000
+  const lienOpen = deal.progress?.handoff?.lien === 'open'
+  return (
+    <div style={{ ...boxStyle, ...(hits.length || lienOpen ? { border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.08)' } : {}) }}>
+      <div style={eyebrow}>IS EXPRESS RIGHT FOR THIS DEAL?</div>
+      <h2 style={h2}>Express is for a simple sale. Does yours need any of these?</h2>
+      <div>
+        {FULL_REASONS.map((r, i) => (
+          <label key={r.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '9px 0', borderTop: i ? `1px solid ${line}` : 'none', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={!!checks[r.id]}
+              onChange={(e) => onToggle(r.id, e.target.checked)}
+              style={{ width: 20, height: 20, marginTop: 2, accentColor: gold, flexShrink: 0 }}
+            />
+            <span style={{ fontSize: 15, color: cream, lineHeight: 1.5 }}>{r.label}</span>
+          </label>
+        ))}
+      </div>
+      {big && !hits.length && (
+        <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
+          At {money(deal.price_cents)}, think about a deposit held by a neutral party and a professional survey before you pay in full. If you want either, full BoatClosers is built for it.
+        </p>
+      )}
+      {(hits.length > 0 || lienOpen) && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: gold }}>Full BoatClosers is the better fit</div>
+          <ul style={{ margin: 0, paddingLeft: 20, color: cream, fontSize: 14, lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {lienOpen && <li>There’s an open lien. Full BoatClosers can hold the money with a neutral party until the lender releases it.</li>}
+            {hits.map((r) => (
+              <li key={r.id}>{r.why}</li>
+            ))}
+          </ul>
+          <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.6 }}>
+            Full BoatClosers is $249, paid once both of you agree and sign. The seller joins the deal, and it handles negotiation, deposits, contingencies, and closing.
+          </p>
+          <a href="/" style={{ ...goldButton, alignSelf: 'flex-start' }}>
+            See full BoatClosers
+          </a>
+        </div>
+      )}
+      {!hits.length && !lienOpen && !big && (
+        <p style={{ margin: 0, color: muted, fontSize: 13 }}>None of these? Express is the right tool. Keep going.</p>
+      )}
+    </div>
+  )
+}
+
+// ---------- Step 2: the paid inspection ----------
+
+const STATUS_OPTS: { key: InspectStatus; label: string }[] = [
+  { key: 'ok', label: 'Looks good' },
+  { key: 'issue', label: 'Problem' },
+  { key: 'skip', label: 'Skip' },
+]
+
+export function InspectionLocked({ preview }: { preview: InspectionPreview | null }) {
+  if (!preview) return null
+  return (
+    <div style={{ ...boxStyle, position: 'relative' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+        <div style={eyebrow}>GUIDED INSPECTION</div>
+        <div style={{ fontSize: 11, letterSpacing: 1, fontWeight: 700, color: gold }}>🔒 $29.99</div>
+      </div>
+      <h2 style={h2}>A {preview.count}-point inspection to take with you</h2>
+      <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
+        {preview.sections.join(' · ')}. Mark each item Looks good or Problem on your phone, add notes, and get a condition report to
+        negotiate with. {preview.redFlags} red-flag checks tell you when to walk away.
+      </p>
+      <ul style={{ margin: 0, paddingLeft: 20, color: cream, fontSize: 15, lineHeight: 1.7 }}>
+        {preview.sample.map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+        <li style={{ color: muted, listStyle: 'none', marginLeft: -20 }}>+ {preview.count - preview.sample.length} more, unlocked with the paperwork</li>
+      </ul>
+    </div>
+  )
+}
+
+export function InspectionStep({
+  token,
+  list,
+  inspection,
+  onChange,
+  onNext,
+}: {
+  token: string
+  list: InspectItem[]
+  inspection: InspectionProgress
+  onChange: (patch: { items?: InspectionProgress['items']; hours?: string; notes?: string }) => void
+  onNext: () => void
+}) {
+  const [openNote, setOpenNote] = useState<Record<string, boolean>>({})
+  const items = inspection.items || {}
+  const sections = Array.from(new Set(list.map((i) => i.section)))
+  const done = list.filter((i) => items[i.id]?.s).length
+  const problems = list.filter((i) => items[i.id]?.s === 'issue')
+  const redHits = problems.filter((i) => i.redFlag)
+
+  function setStatus(id: string, s: InspectStatus) {
+    const cur = items[id] || {}
+    const next = cur.s === s ? { ...cur, s: undefined } : { ...cur, s }
+    onChange({ items: { [id]: next } })
+    if (s === 'issue' && cur.s !== 'issue') setOpenNote((o) => ({ ...o, [id]: true }))
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={boxStyle}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+          <div style={eyebrow}>GUIDED INSPECTION</div>
+          <div style={{ fontSize: 13, color: muted }}>
+            {done} of {list.length} checked
+          </div>
+        </div>
+        <h2 style={h2}>Inspect it before you hand over a dollar</h2>
+        <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
+          Open this on your phone at the boat. Bring a flashlight, a rag, and someone to help on the sea trial. Items marked 🚩 are
+          red flags: a problem there is a reason to walk away. Everything saves as you go.
+        </p>
+        <div style={{ height: 6, background: 'rgba(245,241,232,0.1)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ width: `${list.length ? (done / list.length) * 100 : 0}%`, height: '100%', background: gold }} />
+        </div>
+      </div>
+
+      {sections.map((section) => (
+        <div key={section} style={boxStyle}>
+          <div style={eyebrow}>{section.toUpperCase()}</div>
+          {list
+            .filter((i) => i.section === section)
+            .map((it, idx) => {
+              const r = items[it.id] || {}
+              const noteOpen = openNote[it.id] || !!r.note
+              return (
+                <div key={it.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 0', borderTop: idx ? `1px solid ${line}` : 'none' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span style={{ fontSize: 16, fontWeight: 600, color: cream }}>
+                      {it.redFlag && <span aria-label="Red flag">🚩 </span>}
+                      {it.label}
+                    </span>
+                    {it.detail && <span style={{ fontSize: 14, lineHeight: 1.55, color: muted }}>{it.detail}</span>}
+                  </div>
+                  <div role="radiogroup" aria-label={it.label} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {STATUS_OPTS.map((o) => {
+                      const on = r.s === o.key
+                      const bad = o.key === 'issue'
+                      return (
+                        <button
+                          key={o.key}
+                          type="button"
+                          role="radio"
+                          aria-checked={on}
+                          onClick={() => setStatus(it.id, o.key)}
+                          style={{
+                            padding: '8px 14px',
+                            borderRadius: 18,
+                            fontSize: 14,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            border: `1px solid ${on ? (bad ? '#e07a5f' : gold) : 'rgba(245,241,232,0.3)'}`,
+                            background: on ? (bad ? 'rgba(224,122,95,0.2)' : 'rgba(201,150,46,0.2)') : 'transparent',
+                            color: on && bad ? '#f2b8a6' : cream,
+                          }}
+                        >
+                          {on && o.key === 'ok' ? '✓ ' : ''}
+                          {o.label}
+                        </button>
+                      )
+                    })}
+                    {!noteOpen && (
+                      <button
+                        type="button"
+                        onClick={() => setOpenNote((o) => ({ ...o, [it.id]: true }))}
+                        style={{ padding: '8px 10px', fontSize: 13, background: 'transparent', border: 'none', color: muted, cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Add a note
+                      </button>
+                    )}
+                  </div>
+                  {noteOpen && (
+                    <textarea
+                      aria-label={`Note: ${it.label}`}
+                      placeholder={r.s === 'issue' ? 'What did you find? e.g. soft spot left of the console, about the size of a hand' : 'Note'}
+                      value={r.note || ''}
+                      maxLength={400}
+                      onChange={(e) => onChange({ items: { [it.id]: { ...r, note: e.target.value } } })}
+                      rows={2}
+                      style={inputStyle}
+                    />
+                  )}
+                  {r.s === 'issue' && it.redFlag && (
+                    <p style={{ margin: 0, color: '#f2b8a6', fontSize: 14, lineHeight: 1.5 }}>
+                      Red flag. Don’t pay until this is explained, fixed, or you’ve decided to walk away.
+                    </p>
+                  )}
+                </div>
+              )
+            })}
+        </div>
+      ))}
+
+      <div style={boxStyle}>
+        <div style={eyebrow}>YOUR NOTES</div>
+        <Field id="i-hours" label="Engine hours you saw" hint="optional" placeholder="412" value={inspection.hours || ''} onChange={(v) => onChange({ hours: v.replace(/[^0-9.,]/g, '') })} />
+        <Field
+          id="i-notes"
+          label="Anything else"
+          hint="optional"
+          placeholder="Seller agreed to replace the trailer tires before pickup"
+          textarea
+          value={inspection.notes || ''}
+          onChange={(v) => onChange({ notes: v })}
+        />
+      </div>
+
+      <div style={{ ...boxStyle, ...(problems.length ? { border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.08)' } : {}) }}>
+        <div style={eyebrow}>CONDITION REPORT</div>
+        <h2 style={h2}>
+          {problems.length
+            ? `${problems.length} problem${problems.length > 1 ? 's' : ''} found${redHits.length ? `, ${redHits.length} red flag${redHits.length > 1 ? 's' : ''}` : ''}`
+            : done
+              ? 'No problems marked so far'
+              : 'Your report builds as you inspect'}
+        </h2>
+        {problems.length > 0 && (
+          <>
+            <ul style={{ margin: 0, paddingLeft: 20, color: cream, fontSize: 15, lineHeight: 1.6 }}>
+              {problems.map((i) => (
+                <li key={i.id}>
+                  {i.label}
+                  {items[i.id]?.note ? <span style={{ color: muted }}> · {items[i.id].note}</span> : null}
+                </li>
+              ))}
+            </ul>
+            <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
+              Show the seller the report and ask them to fix these, lower the price, or both. Get any agreement in writing. If the price
+              changes, ask for the new price on the bill of sale and the title.
+            </p>
+          </>
+        )}
+        <DocRow token={token} doc="condition-report" name="Condition report" note="Every item, your notes, and the problems up top. Share it with a mechanic or the seller." primary />
+        <p style={{ margin: 0, color: muted, fontSize: 12, lineHeight: 1.5 }}>
+          This records what you saw. It isn’t a marine survey. For a bigger purchase, hire an accredited surveyor and a marine mechanic.
+        </p>
+      </div>
+
+      <button type="button" onClick={onNext} style={goldButton}>
+        Go to the handoff
+      </button>
+    </div>
+  )
 }
 
 // ---------- Seller questions: send in writing, note the answers ----------
@@ -367,7 +660,7 @@ const LIEN_OPTIONS = [
   { key: 'open' as const, label: 'A lienholder is listed, and there’s no release yet' },
 ]
 
-// ---------- Step 2: at the handoff ----------
+// ---------- Step 3: at the handoff ----------
 
 export function HandoffStep({
   token,
@@ -543,15 +836,7 @@ export function HandoffStep({
           <div style={eyebrow}>YOUR PAPERS</div>
           <h2 style={h2}>Print these, or open them on your phone, for the handoff</h2>
           {docs.map(([key, name, note]) => (
-            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${line}`, flexWrap: 'wrap' }}>
-              <div style={{ flex: '1 1 200px' }}>
-                <div style={{ fontSize: 16, fontWeight: 600, color: cream }}>{name}</div>
-                <div style={{ fontSize: 13, color: muted, lineHeight: 1.5 }}>{note}</div>
-              </div>
-              <a href={`/api/express/document?token=${token}&doc=${key}`} target="_blank" rel="noopener noreferrer" style={outlineButton}>
-                Open PDF
-              </a>
-            </div>
+            <DocRow key={key} token={token} doc={key} name={name} note={note} />
           ))}
           {saved.titledHow === 'other-no-title' && (
             <p style={{ margin: 0, color: gold, fontSize: 14, lineHeight: 1.6 }}>
@@ -606,7 +891,7 @@ export function HandoffStep({
   )
 }
 
-// ---------- Step 3: after it's yours ----------
+// ---------- Step 4: after it's yours ----------
 
 export function AfterStep({
   token,
@@ -631,7 +916,7 @@ export function AfterStep({
     return (
       <div style={boxStyle}>
         <div style={eyebrow}>AFTER IT’S YOURS</div>
-        <h2 style={h2}>Fill in the sale details in step 2 first</h2>
+        <h2 style={h2}>Fill in the sale details in step 3 first</h2>
         <p style={{ margin: 0, color: muted, lineHeight: 1.6 }}>Your title worksheet, deadline, and checklist are built from them.</p>
       </div>
     )
@@ -667,10 +952,16 @@ export function AfterStep({
             </li>
           ))}
         </ul>
-        <a href={`/api/express/document?token=${token}&doc=title-worksheet`} target="_blank" rel="noopener noreferrer" style={goldButton}>
-          Open my title worksheet
-        </a>
-        <p style={{ margin: 0, color: muted, fontSize: 13 }}>Every value to copy onto the title application, plus this list to check off.</p>
+        {has.boat && h.titledHow !== 'documented' && (
+          <DocRow
+            token={token}
+            doc="hsmv-82040-vs"
+            name="Title application, HSMV 82040 VS"
+            note="Florida’s official form, pre-filled with your sale. Add your driver license number, date of birth, vessel type, and county, then sign. You can type into it or print it."
+            primary
+          />
+        )}
+        <DocRow token={token} doc="title-worksheet" name="Title worksheet" note="Every value from your sale, plus this list to check off at the counter." />
       </div>
 
       <div style={boxStyle}>
@@ -709,20 +1000,13 @@ export function AfterStep({
           ['payment-receipt', 'Payment receipt'],
           ['closing-summary', 'Closing summary'],
           ['title-worksheet', 'Title & registration worksheet'],
+          has.boat && h.titledHow !== 'documented' && ['hsmv-82040-vs', 'Title application, HSMV 82040 VS'],
+          ['condition-report', 'Condition report'],
         ]
           .filter(Boolean)
           .map((d) => {
             const [key, name] = d as [string, string]
-            return (
-              <a
-                key={key}
-                href={`/api/express/document?token=${token}&doc=${key}&download=1`}
-                style={{ color: cream, padding: '10px 0', borderTop: `1px solid ${line}`, display: 'flex', justifyContent: 'space-between', textDecoration: 'none' }}
-              >
-                <span>{name}</span>
-                <span style={{ color: gold, fontWeight: 600 }}>Download</span>
-              </a>
-            )
+            return <DocRow key={key} token={token} doc={key} name={name} />
           })}
         <p style={{ margin: 0, color: muted, fontSize: 13 }}>Keep these with your boat records. Your private link brings you back here from any device.</p>
       </div>

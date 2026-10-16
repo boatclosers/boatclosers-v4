@@ -33,6 +33,10 @@ const C = {
 const fmt = (n) => n ? new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n)) : "";
 const today = () => new Date().toISOString().split("T")[0];
 
+// Buyers entering a boat at or under this price see a note that BC Express
+// ($29.99, buyer-only) may fit a simple, already-agreed deal better.
+const EXPRESS_SUGGEST_MAX = 25000;
+
 // Dates arrive from HTML date inputs as YYYY-MM-DD, which is unreadable on a
 // contract. Documents get longhand — "August 10, 2026" — which cannot be misread
 // the way 08/10 versus 10/08 can. Anything that is not a plain date is passed
@@ -972,6 +976,17 @@ function StepVessel({ data, setData, userRole, onNext }) {
           />
         </div>
       </div>
+      {userRole==="buyer" && Number(data.askingPrice) > 0 && Number(data.askingPrice) <= EXPRESS_SUGGEST_MAX && (
+        <div style={{ background:C.sand, border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 16px", marginBottom:18 }}>
+          <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>Simple deal? BC Express may be all you need</div>
+          <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+            If you and the seller already agree on the price, there's no deposit to hold, and the title is clear, <b>BC Express ($29.99)</b> covers it:
+            a Florida bill of sale and state forms filled in for you, a guided inspection, and help titling the boat. The seller doesn't sign up.
+            Stay here if you want to negotiate, put down a deposit, make the sale depend on a survey or sea trial, or have you both sign a purchase agreement.{" "}
+            <a href="/express" style={{ color:C.teal, fontWeight:700 }}>See BC Express</a>
+          </div>
+        </div>
+      )}
       <div style={S.card}>
         <h3 style={S.h3}>Identification</h3>
         <Grid2>
