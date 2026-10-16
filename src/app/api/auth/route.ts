@@ -106,6 +106,7 @@ export async function POST(req: Request) {
       let emailResult: any
       try {
         emailResult = await sendEmail({
+          essential: true,
           to: user.email,
           subject: `Your BoatClosers reset code: ${plainCode}`,
           html: emailLayout(`

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendEmail, emailLayout } from '@/lib/sendEmail';
 import crypto from 'crypto';
+import { setPrefs, sendSms, normalizePhone, cleanChannels } from '@/lib/comm';
 
 // Makes a short, readable invite code like "BOAT-7F3K2M" (no confusing 0/O/1/I/L).
 function makeShortCode() {
@@ -13,7 +14,11 @@ function makeShortCode() {
 }
 
 export async function POST(req: Request) {
-  const { dealId, inviteEmail, userId } = await req.json();
+  const { dealId, inviteEmail, userId, invitePhone, channels: rawChannels } = await req.json();
+  // How the initiator wants the invite delivered: email, text, or both.
+  const channels = cleanChannels(rawChannels);
+  const phone = normalizePhone(invitePhone);
+  const placeholder = /^link-share-/.test(String(inviteEmail || ''));
 
   if (!dealId || !inviteEmail || !userId) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -74,7 +79,23 @@ export async function POST(req: Request) {
   // rather than an invitation to do paperwork. Nothing else about the flow changes.
   const viewingRequest = !!deal?.parties?.viewingRequested;
 
-  const emailResult = await sendEmail({
+  const smsText = viewingRequest
+    ? `BoatClosers: ${inviterLabel} would like to see the ${boat}. Open the request to message them: ${shortUrl}`
+    : `BoatClosers: ${inviterLabel} invited you to handle the ${boat} sale, as the ${derivedInviteRole}. Open your deal: ${shortUrl}`;
+
+  if (!placeholder) {
+    // Their choice of how to hear from us, set by the initiator for this invite.
+    // A choice the invitee later makes for themselves always wins.
+    await setPrefs(inviteEmail, phone, channels.includes('sms') && phone ? channels : ['email'], 'initiator');
+  } else if (phone && channels.includes('sms')) {
+    // Text only, no email address: send the invite straight to the phone.
+    const r = await sendSms({ to: phone, body: smsText, context: boat });
+    return NextResponse.json({ success: true, inviteUrl, shortUrl, token, shortCode, emailSent: false, textSent: r.success, textError: r.success ? undefined : r.error });
+  }
+
+  const emailResult: any = placeholder ? { success: false } : await sendEmail({
+    smsText,
+    context: boat,
     to: inviteEmail,
     subject: viewingRequest
       ? `${inviterLabel} would like to see the ${boat}`
@@ -119,9 +140,9 @@ export async function POST(req: Request) {
     `)
   });
 
-  if (!emailResult.success) {
+  if (!placeholder && !emailResult.success) {
     console.error('Invite email failed to send:', emailResult.error);
   }
 
-  return NextResponse.json({ success: true, inviteUrl, shortUrl, token, shortCode, emailSent: emailResult.success });
+  return NextResponse.json({ success: true, inviteUrl, shortUrl, token, shortCode, emailSent: emailResult.success, textSent: !!emailResult.sentSms, textError: emailResult.smsError });
 }

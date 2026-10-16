@@ -30,11 +30,13 @@ function loadPdfJs(): Promise<any> {
   return loading
 }
 
-export function docUrl(token: string, doc: string, download = false) {
-  return `/api/express/document?token=${token}&doc=${doc}${download ? '&download=1' : ''}`
+export type TokenParam = 'token' | 'stoken'
+
+export function docUrl(token: string, doc: string, download = false, param: TokenParam = 'token') {
+  return `/api/express/document?${param}=${token}&doc=${doc}${download ? '&download=1' : ''}`
 }
 
-export default function DocViewer({ token, doc, title, onClose }: { token: string; doc: string; title: string; onClose: () => void }) {
+export default function DocViewer({ token, doc, title, onClose, param = 'token' }: { token: string; doc: string; title: string; onClose: () => void; param?: TokenParam }) {
   const pagesRef = useRef<HTMLDivElement>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [msg, setMsg] = useState('')
@@ -49,7 +51,7 @@ export default function DocViewer({ token, doc, title, onClose }: { token: strin
     window.addEventListener('keydown', onKey)
     ;(async () => {
       try {
-        const res = await fetch(docUrl(token, doc), { cache: 'no-store' })
+        const res = await fetch(docUrl(token, doc, false, param), { cache: 'no-store' })
         if (!res.ok) {
           setMsg(await res.text())
           setStatus('error')
@@ -94,7 +96,7 @@ export default function DocViewer({ token, doc, title, onClose }: { token: strin
       document.body.style.overflow = prev
       window.removeEventListener('keydown', onKey)
     }
-  }, [token, doc, title])
+  }, [token, doc, title, param])
 
   const btn = {
     background: '#c9962e',
@@ -117,7 +119,7 @@ export default function DocViewer({ token, doc, title, onClose }: { token: strin
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid rgba(201,150,46,0.35)' }}>
         <div style={{ flex: 1, color: '#f5f1e8', fontWeight: 600, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
-        <a href={docUrl(token, doc, true)} style={btn}>
+        <a href={docUrl(token, doc, true, param)} style={btn}>
           Download
         </a>
         <button type="button" onClick={onClose} style={{ ...btn, background: 'transparent', color: '#f5f1e8', border: '1px solid #c9962e' }}>

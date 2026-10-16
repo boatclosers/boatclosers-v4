@@ -5,7 +5,7 @@ import { decodeHin } from '@/lib/hin'
 import LienCheck from '@/components/LienCheck'
 import { useBuilder, BuilderDetails, builderName, RecallsSection, VesselSection } from '@/components/HinBuilder'
 import { SELLER_QUESTIONS, PAYMENT_TIPS, type ItemKey, type InspectItem, type InspectionProgress, type InspectionPreview } from '@/lib/express/content'
-import { navy, gold, cream, muted, line, boxStyle, eyebrow, money, forItems, HandoffStep, AfterStep, SellerQuestions, FullSuggest, InspectionLocked, InspectionStep } from './parts'
+import { navy, gold, cream, muted, line, boxStyle, eyebrow, money, forItems, HandoffStep, AfterStep, SellerQuestions, FullSuggest, InspectionLocked, InspectionStep, ContactPrefs } from './parts'
 
 const ID_LABEL: Record<string, [string, string]> = {
   boat: ['hin', 'HIN'],
@@ -159,6 +159,7 @@ export default function ExpressDeal({ token }: { token: string }) {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | null>(null)
   const [inspList, setInspList] = useState<InspectItem[] | null>(null)
   const [inspPreview, setInspPreview] = useState<InspectionPreview | null>(null)
+  const [contact, setContact] = useState<any>(null)
   const pendingInsp = useRef<any>({})
   const inspTimer = useRef<any>(null)
   const [saveError, setSaveError] = useState(false)
@@ -179,6 +180,7 @@ export default function ExpressDeal({ token }: { token: string }) {
         setDeal(d.deal)
         setInspList(d.inspection?.list || null)
         setInspPreview(d.inspection?.preview || null)
+        setContact(d.contact || null)
         const p = d.deal.progress || {}
         setStep((s) => s ?? (d.deal.status === 'paid' ? (p.handoff?.saleDate ? 4 : Object.keys(p.inspection?.items || {}).length ? 3 : 2) : 1))
         // Coming back from Stripe: payment can take a moment to show as paid.
@@ -431,6 +433,8 @@ export default function ExpressDeal({ token }: { token: string }) {
             <LienCheck sellerName={deal.seller_name} inExpress saved={checks} onToggle={toggle} />
           </div>
           <SellerQuestions
+            token={token}
+            onSent={(progress) => setDeal((d: any) => ({ ...d, progress }))}
             deal={deal}
             items={forItems(SELLER_QUESTIONS, has)}
             checks={checks}
@@ -497,6 +501,8 @@ export default function ExpressDeal({ token }: { token: string }) {
         ))}
 
       {step === 4 && (paid ? <AfterStep token={token} deal={deal} has={has} checks={checks} onToggle={toggle} /> : paywall)}
+
+      {contact && <ContactPrefs token={token} contact={contact} onSaved={setContact} />}
 
       <div style={boxStyle}>
         <div style={eyebrow}>YOUR PURCHASE</div>

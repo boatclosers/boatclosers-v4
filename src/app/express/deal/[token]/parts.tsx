@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import DocViewer, { docUrl } from './DocViewer'
+import DocViewer, { docUrl, type TokenParam } from './DocViewer'
 import {
   type CheckItem,
   type Handoff,
@@ -128,7 +128,7 @@ export function forItems(list: CheckItem[], has: Record<ItemKey, boolean>) {
 
 // ---------- A paper: view it here, or download it ----------
 
-export function DocRow({ token, doc, name, note, primary }: { token: string; doc: string; name: string; note?: string; primary?: boolean }) {
+export function DocRow({ token, doc, name, note, primary, param = 'token' }: { token: string; doc: string; name: string; note?: string; primary?: boolean; param?: TokenParam }) {
   const [open, setOpen] = useState(false)
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: `1px solid ${line}`, flexWrap: 'wrap' }}>
@@ -140,11 +140,110 @@ export function DocRow({ token, doc, name, note, primary }: { token: string; doc
         <button type="button" onClick={() => setOpen(true)} style={{ ...(primary ? goldButton : outlineButton), padding: '10px 16px' }}>
           View
         </button>
-        <a href={docUrl(token, doc, true)} style={{ ...outlineButton, padding: '10px 16px' }}>
+        <a href={docUrl(token, doc, true, param)} style={{ ...outlineButton, padding: '10px 16px' }}>
           Download
         </a>
       </div>
-      {open && <DocViewer token={token} doc={doc} title={name} onClose={() => setOpen(false)} />}
+      {open && <DocViewer token={token} doc={doc} title={name} param={param} onClose={() => setOpen(false)} />}
+    </div>
+  )
+}
+
+// ---------- Email / text / both ----------
+
+export type ChannelChoice = 'email' | 'sms' | 'both'
+export const toChannels = (c: ChannelChoice) => (c === 'both' ? ['email', 'sms'] : c === 'sms' ? ['sms'] : ['email'])
+
+export function ChannelPicker({ value, onChange, label }: { value: ChannelChoice; onChange: (c: ChannelChoice) => void; label: string }) {
+  return (
+    <div role="radiogroup" aria-label={label} style={{ display: 'flex', gap: 8 }}>
+      {(
+        [
+          ['email', 'Email'],
+          ['sms', 'Text'],
+          ['both', 'Both'],
+        ] as [ChannelChoice, string][]
+      ).map(([k, l]) => {
+        const on = value === k
+        return (
+          <button
+            key={k}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => onChange(k)}
+            style={{
+              flex: 1,
+              padding: '9px 10px',
+              borderRadius: 18,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              border: `1px solid ${on ? gold : 'rgba(245,241,232,0.3)'}`,
+              background: on ? 'rgba(201,150,46,0.2)' : 'transparent',
+              color: cream,
+            }}
+          >
+            {l}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// The buyer's own choice of how reminders reach them.
+export function ContactPrefs({ token, contact, onSaved }: { token: string; contact: any; onSaved: (c: any) => void }) {
+  const init: ChannelChoice = contact?.channels?.includes('sms') ? (contact.channels.includes('email') ? 'both' : 'sms') : 'email'
+  const [choice, setChoice] = useState<ChannelChoice>(init)
+  const [phone, setPhone] = useState<string>(contact?.phone || '')
+  const [msg, setMsg] = useState('')
+  const [saving, setSaving] = useState(false)
+  async function save(c: ChannelChoice = choice) {
+    setMsg('')
+    if (c !== 'email' && phone.replace(/\D/g, '').length < 10) {
+      setMsg('Add your mobile number, then save.')
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/express/deal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, action: 'prefs', channels: toChannels(c), phone }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Could not save.')
+      onSaved(d.contact)
+      setMsg(c !== 'email' && !d.contact?.smsReady ? 'Saved. Texts start soon; until then we’ll email you.' : 'Saved.')
+    } catch (e: any) {
+      setMsg(e?.message || 'Could not save.')
+    }
+    setSaving(false)
+  }
+  return (
+    <div style={boxStyle}>
+      <div style={eyebrow}>HOW WE REACH YOU</div>
+      <h2 style={h2}>Reminders and updates by</h2>
+      <ChannelPicker
+        label="Send my reminders by"
+        value={choice}
+        onChange={(c) => {
+          setChoice(c)
+          if (c === 'email') save(c)
+        }}
+      />
+      {choice !== 'email' && (
+        <>
+          <Field id="cp-phone" label="Your mobile number" type="tel" value={phone} onChange={setPhone} />
+          <button type="button" onClick={() => save()} disabled={saving} style={{ ...goldButton, opacity: saving ? 0.6 : 1 }}>
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </>
+      )}
+      <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.5 }}>
+        {msg || 'Reply STOP to any text, or use the unsubscribe link in any email, to stop.'}
+      </p>
     </div>
   )
 }
@@ -417,13 +516,17 @@ export function InspectionStep({
 // ---------- Seller questions: send in writing, note the answers ----------
 
 export function SellerQuestions({
+  token,
   deal,
   items,
   checks,
   answers,
   onToggle,
   onAnswer,
+  onSent,
 }: {
+  token: string
+  onSent: (progress: any) => void
   deal: any
   items: CheckItem[]
   checks: Record<string, boolean>
@@ -432,6 +535,34 @@ export function SellerQuestions({
   onAnswer: (id: string, text: string) => void
 }) {
   const [open, setOpen] = useState<Record<string, boolean>>({})
+  const contacts = deal.progress?.contacts || {}
+  const [via, setVia] = useState<ChannelChoice>(contacts.sellerPhone && !contacts.sellerEmail ? 'sms' : 'email')
+  const [sEmail, setSEmail] = useState<string>(contacts.sellerEmail || deal.progress?.handoff?.sellerEmail || '')
+  const [sPhone, setSPhone] = useState<string>(contacts.sellerPhone || '')
+  const [sending, setSending] = useState(false)
+  const [sendMsg, setSendMsg] = useState('')
+  const askedCount = Array.isArray(deal.progress?.asked) ? deal.progress.asked.length : 0
+  async function send() {
+    setSending(true)
+    setSendMsg('')
+    try {
+      const res = await fetch('/api/express/deal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, action: 'ask-seller', channels: toChannels(via), email: via !== 'sms' ? sEmail : '', phone: via !== 'email' ? sPhone : '' }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Could not send.')
+      onSent(d.progress)
+      const parts = [d.emailSent && 'emailed', d.textSent && 'texted'].filter(Boolean).join(' and ')
+      setSendMsg(
+        `Sent${parts ? `: ${parts}` : ''}. ${d.textSent ? 'Text replies come to your email. ' : ''}${d.emailSent ? 'Email replies go straight to you.' : ''}${d.textError ? ` ${d.textError}` : ''}`
+      )
+    } catch (e: any) {
+      setSendMsg(e?.message || 'Could not send.')
+    }
+    setSending(false)
+  }
   const what = Object.values(deal.items || {})
     .map((i: any) => `${i.description}${i.hin ? ` (HIN ${i.hin})` : i.vin ? ` (VIN ${i.vin})` : ''}`)
     .join(', ')
@@ -461,17 +592,17 @@ export function SellerQuestions({
         Send them in writing. A written answer is a record if something turns out not to be true, and sellers tend to be
         more careful with buyers who ask this way.
       </p>
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <a href={mailto} style={{ ...goldButton, flex: '1 1 160px' }}>
-          Email the questions
-        </a>
-        <a href={sms} style={{ ...outlineButton, flex: '1 1 160px' }}>
-          Text the questions
-        </a>
-      </div>
+      <ChannelPicker label="Send the questions by" value={via} onChange={setVia} />
+      {via !== 'sms' && <Field id="sq-email" label="Seller’s email" type="email" value={sEmail} onChange={setSEmail} />}
+      {via !== 'email' && <Field id="sq-phone" label="Seller’s mobile number" type="tel" value={sPhone} onChange={setSPhone} />}
+      <button type="button" onClick={send} disabled={sending || askedCount >= 3} style={{ ...goldButton, opacity: sending || askedCount >= 3 ? 0.6 : 1 }}>
+        {sending ? 'Sending...' : askedCount ? 'Send the questions again' : 'Send the questions'}
+      </button>
+      {sendMsg && <p style={{ margin: 0, color: gold, fontSize: 14, lineHeight: 1.5 }}>{sendMsg}</p>}
       <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.5 }}>
-        Opens your own email or texts with the questions written in. Note the seller’s answers below; they save with your
-        purchase. Ask “why are you selling?” again in person too.
+        We send it from BoatClosers with your name on it. Answers come back to you, and the seller can opt out any time. Prefer
+        your own? <a href={mailto} style={{ color: gold }}>Use my email</a> or <a href={sms} style={{ color: gold }}>my texts</a>. Note the
+        answers below; they save with your purchase.
       </p>
       <div>
         {items.map((q, i) => {
@@ -683,6 +814,7 @@ export function HandoffStep({
   const [msg, setMsg] = useState('')
   const [emailing, setEmailing] = useState(false)
   const [emailMsg, setEmailMsg] = useState('')
+  const [via, setVia] = useState<ChannelChoice>(saved.sellerPhone ? (saved.sellerEmail ? 'both' : 'sms') : 'email')
   const set = (patch: Partial<Handoff>) => setH({ ...h, ...patch })
 
   const savedProblems = handoffProblems(saved, has)
@@ -716,12 +848,13 @@ export function HandoffStep({
       const res = await fetch('/api/express/deal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action: 'email-seller' }),
+        body: JSON.stringify({ token, action: 'email-seller', channels: toChannels(via), phone: saved.sellerPhone }),
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error || 'Could not send.')
       onSaved(d.progress)
-      setEmailMsg(`Sent to ${saved.sellerEmail}.`)
+      const to = [via !== 'sms' && saved.sellerEmail, d.textSent && saved.sellerPhone].filter(Boolean).join(' and ')
+      setEmailMsg(`Sent to ${to}.${d.textError ? ` ${d.textError}` : ''}`)
     } catch (e: any) {
       setEmailMsg(e?.message || 'Could not send.')
     }
@@ -758,6 +891,14 @@ export function HandoffStep({
           type="email"
           value={h.sellerEmail || ''}
           onChange={(v) => set({ sellerEmail: v })}
+        />
+        <Field
+          id="h-sphone"
+          label="Seller’s mobile number"
+          hint="optional, to text them their copy"
+          type="tel"
+          value={h.sellerPhone || ''}
+          onChange={(v) => set({ sellerPhone: v })}
         />
         <Select id="h-pay" label="How you’re paying" value={h.paymentMethod || ''} options={PAYMENT_METHODS} onChange={(v) => set({ paymentMethod: v })} />
         <Field
@@ -871,19 +1012,22 @@ export function HandoffStep({
           <div style={eyebrow}>THE SELLER’S COPY</div>
           <h2 style={h2}>Send the seller their papers</h2>
           <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
-            We email them their copies plus their notice of sale on the state form, already filled in, so all they do is
-            sign and file it. They don’t need an account.
+            We send them their copies plus their notice of sale on the state form, already filled in, so all they do is sign
+            and file it. A text carries a private link to view and download them. They don’t need an account.
           </p>
-          {saved.sellerEmail ? (
-            <button type="button" onClick={emailSeller} disabled={emailing || sentCount >= 3} style={{ ...goldButton, opacity: emailing || sentCount >= 3 ? 0.6 : 1 }}>
-              {emailing ? 'Sending...' : sentCount ? `Email ${saved.sellerEmail} again` : `Email the seller at ${saved.sellerEmail}`}
-            </button>
+          <ChannelPicker label="Send the seller’s copy by" value={via} onChange={setVia} />
+          {(via !== 'sms' && !saved.sellerEmail) || (via !== 'email' && !saved.sellerPhone) ? (
+            <p style={{ margin: 0, color: cream, fontSize: 14 }}>
+              Add the seller’s {via !== 'sms' && !saved.sellerEmail ? 'email' : 'mobile number'} in the sale details above, then save.
+            </p>
           ) : (
-            <p style={{ margin: 0, color: cream, fontSize: 14 }}>Add the seller’s email in the sale details above to send their copy.</p>
+            <button type="button" onClick={emailSeller} disabled={emailing || sentCount >= 3} style={{ ...goldButton, opacity: emailing || sentCount >= 3 ? 0.6 : 1 }}>
+              {emailing ? 'Sending...' : `${sentCount ? 'Send again' : 'Send the seller their papers'}`}
+            </button>
           )}
           {emailMsg && <p style={{ margin: 0, color: gold, fontSize: 14 }}>{emailMsg}</p>}
-          <a href={`sms:?&body=${smsBody}`} style={outlineButton}>
-            Text the seller the notice-of-sale reminder
+          <a href={`sms:?&body=${smsBody}`} style={{ color: muted, fontSize: 13 }}>
+            Or text the reminder from your own phone
           </a>
         </div>
       )}

@@ -74,6 +74,8 @@ export async function GET(req: Request) {
 
     const r = await sendEmail({
       to: deal.buyer_email,
+      context: what,
+      smsText: `BoatClosers: ${left} day${left === 1 ? '' : 's'} left to title and register ${what}. Due ${dueText} at any Florida tax collector. Your filled-in forms and what to bring: ${link}`,
       subject:
         step === 'd28'
           ? `${left} day${left === 1 ? '' : 's'} left to title your ${has.boat ? 'boat' : 'purchase'}`

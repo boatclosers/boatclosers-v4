@@ -1123,7 +1123,67 @@ function StepVessel({ data, setData, userRole, onNext }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 1 — PARTIES (role-aware)
 // ─────────────────────────────────────────────────────────────────────────────
-function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, onNext, onBack, dealId, user, ensureSaved }) {
+// How the signed-in person wants deal updates: email, text, or both. Saved per
+// person (not per deal) by /api/comm/prefs, and honored by every notification.
+function MyContactPrefs({ authToken, defaultPhone }) {
+  const [state, setState] = useState(null);
+  const [channel, setChannel] = useState("email");
+  const [phone, setPhone] = useState("");
+  const [msg, setMsg] = useState("");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (!authToken) return;
+    fetch("/api/comm/prefs", { headers: { Authorization: "Bearer " + authToken } })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        if (!j) return;
+        setState(j);
+        const ch = j.channels || ["email"];
+        setChannel(ch.includes("email") && ch.includes("sms") ? "both" : ch.includes("sms") ? "sms" : "email");
+        setPhone(j.phone || defaultPhone || "");
+      })
+      .catch(() => {});
+  }, [authToken]); // eslint-disable-line
+  if (!authToken || !state) return null;
+  const save = async (next) => {
+    setChannel(next);
+    setMsg("");
+    if (next !== "email" && phone.replace(/\D/g, "").length < 10) { setMsg("Add your mobile number, then pick again."); return; }
+    setSaving(true);
+    try {
+      const r = await fetch("/api/comm/prefs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + authToken },
+        body: JSON.stringify({ channels: next === "both" ? ["email", "sms"] : next === "sms" ? ["sms"] : ["email"], phone }),
+      });
+      const j = await r.json();
+      setMsg(r.ok ? (next !== "email" && !state.smsReady ? "Saved. Texts start soon; until then you'll get emails." : "Saved.") : (j.error || "Could not save."));
+    } catch { setMsg("Could not save."); }
+    setSaving(false);
+  };
+  return (
+    <div style={{ background:"#fff", border:`1px solid ${C.mist}`, borderRadius:8, padding:"12px 15px", marginBottom:16, fontFamily:"sans-serif" }}>
+      <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:6 }}>How should we send you deal updates?</div>
+      <div role="radiogroup" aria-label="Send my updates by" style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
+        {[["email","Email"],["sms","Text"],["both","Both"]].map(([k,l]) => (
+          <button key={k} type="button" role="radio" aria-checked={channel===k} disabled={saving} onClick={()=>save(k)}
+            style={{ background: channel===k ? C.navy : "#fff", color: channel===k ? "#fff" : C.navy, border:`1px solid ${C.navy}`, borderRadius:5, padding:"6px 14px", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+            {l}
+          </button>
+        ))}
+        {channel !== "email" && (
+          <input type="tel" autoComplete="tel" value={phone} onChange={e=>setPhone(e.target.value)} onBlur={()=>save(channel)} placeholder="Your mobile number"
+            style={{ ...S.input, width:"auto", flex:"1 1 160px", padding:"6px 10px", fontSize:12.5 }} />
+        )}
+      </div>
+      <div style={{ fontSize:11, color:C.slate, lineHeight:1.5 }}>
+        {msg || "Offers, signatures, and deadlines. Reply STOP to any text, or use the unsubscribe link in any email, to stop."}
+      </div>
+    </div>
+  );
+}
+
+function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, onNext, onBack, dealId, user, ensureSaved, authToken }) {
   // Citizenship is only asked where it changes anything: a Coast Guard documented
   // vessel may only be owned by a US citizen.
   // The explicit answer wins; a typed documentation number still counts, so deals
@@ -1139,6 +1199,9 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
   // (system auto-emails the link, no link shown); "link" = no email, show a
   // copyable link the initiator sends themselves.
   const [inviteMode, setInviteMode] = useState(null);
+  // How the invite goes out: "email", "sms", or "both". The other party can change it later.
+  const [inviteChannel, setInviteChannel] = useState("email");
+  const [inviteResult, setInviteResult] = useState(null);
 
   const otherSide = userRole === "buyer" ? "seller" : "buyer";
   const mySide = userRole === "seller" ? "seller" : "buyer";
@@ -1167,8 +1230,15 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
   // also emails the join link automatically. On the link path we show the url.
   const runInvite = async (showLinkAfter) => {
     const email = data?.[otherSide]?.email;
-    if (showLinkAfter === false && !email) {
-      setInviteError("Enter the other party's email above first.");
+    const phone = data?.[otherSide]?.phone;
+    const wantsEmail = inviteChannel !== "sms";
+    const wantsText = inviteChannel !== "email";
+    if (showLinkAfter === false && wantsEmail && !isValidEmail(email)) {
+      setInviteError(`Enter the ${otherSide}'s email first.`);
+      return;
+    }
+    if (showLinkAfter === false && wantsText && (phone || "").replace(/\D/g, "").length < 10) {
+      setInviteError(`Enter the ${otherSide}'s mobile number first.`);
       return;
     }
     if (!user?.userId) {
@@ -1192,6 +1262,8 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
         body: JSON.stringify({
           dealId: id,
           inviteEmail: email || `link-share-${otherSide}@boatclosers.com`,
+          invitePhone: showLinkAfter === false && wantsText ? phone : undefined,
+          channels: showLinkAfter === false ? (inviteChannel === "both" ? ["email", "sms"] : inviteChannel === "sms" ? ["sms"] : ["email"]) : ["email"],
           inviteRole: otherSide,
           userId: user.userId
         })
@@ -1205,6 +1277,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
       if (showLinkAfter) {
         setInviteLink(result.shortUrl || result.inviteUrl);
       } else {
+        setInviteResult(result);
         setInviteSent(true);
       }
     } catch (e) {
@@ -1237,6 +1310,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
           {userRole==="seller" ? "You are the Seller on this deal." : "You are the Buyer on this deal."} Your side is highlighted. The deal initiator controls vessel details and deal terms.
         </p>
       </div>
+      <MyContactPrefs authToken={authToken} defaultPhone={data?.[mySide]?.phone} />
       {userRole==="seller" && (
         <div style={{ background:"#eef4fb", border:`1px solid ${C.navy}`, borderRadius:8, padding:"12px 16px", marginBottom:18, display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
           <div style={{ flex:1, minWidth:200 }}>
@@ -1327,11 +1401,11 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
           {inviteMode === null && !inviteSent && !inviteLink && (
             <div>
               <div style={{ fontSize:12, fontFamily:"sans-serif", color:"#fff", fontWeight:600, marginBottom:8 }}>
-                Do you have the other party's email address?
+                How do you want to send the invite?
               </div>
               <div style={{ display:"flex", gap:10 }}>
                 <button onClick={()=>{ setInviteMode("email"); setInviteError(""); }} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer" }}>
-                  Yes — email them
+                  Email or text them
                 </button>
                 <button onClick={()=>{ setInviteMode("link"); setInviteError(""); }} style={{ background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer" }}>
                   No — give me a link to share
@@ -1344,18 +1418,43 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
           {inviteMode === "email" && !inviteSent && (
             <div>
               <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.8)", marginBottom:8 }}>
-                Enter the {otherSide}'s email and we'll send them the join link directly — you don't need to copy anything.
+                We'll send the {otherSide} the join link directly. You choose how; they can change it or opt out any time.
               </div>
-              <input
-                style={{ ...S.input, marginBottom:10 }}
-                type="email"
-                value={(data?.[otherSide]?.email) || ""}
-                onChange={e=>set(otherSide, "email", e.target.value)}
-                placeholder={`${otherSide==="seller"?"Seller":"Buyer"}'s email address`}
-              />
+              <div role="radiogroup" aria-label="Send the invite by" style={{ display:"flex", gap:6, marginBottom:10 }}>
+                {[["email","Email"],["sms","Text"],["both","Both"]].map(([k,l]) => (
+                  <button key={k} type="button" role="radio" aria-checked={inviteChannel===k} onClick={()=>{ setInviteChannel(k); setInviteError(""); }}
+                    style={{ flex:1, background: inviteChannel===k ? C.brass : "rgba(255,255,255,0.12)", color: inviteChannel===k ? C.navy : "#fff", border:"1px solid rgba(255,255,255,0.3)", borderRadius:5, padding:"7px 10px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer" }}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+              {inviteChannel !== "sms" && (
+                <input
+                  style={{ ...S.input, marginBottom:10 }}
+                  type="email"
+                  value={(data?.[otherSide]?.email) || ""}
+                  onChange={e=>set(otherSide, "email", e.target.value)}
+                  placeholder={`${otherSide==="seller"?"Seller":"Buyer"}'s email address`}
+                />
+              )}
+              {inviteChannel !== "email" && (
+                <>
+                  <input
+                    style={{ ...S.input, marginBottom:6 }}
+                    type="tel"
+                    autoComplete="off"
+                    value={(data?.[otherSide]?.phone) || ""}
+                    onChange={e=>set(otherSide, "phone", e.target.value)}
+                    placeholder={`${otherSide==="seller"?"Seller":"Buyer"}'s mobile number`}
+                  />
+                  <div style={{ fontSize:10.5, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", marginBottom:10, lineHeight:1.5 }}>
+                    Only text someone who expects to hear from you about this boat. They can reply STOP at any time.
+                  </div>
+                </>
+              )}
               <div style={{ display:"flex", gap:10 }}>
                 <button onClick={()=>runInvite(false)} disabled={inviteLoading} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:inviteLoading?"default":"pointer", opacity:inviteLoading?0.6:1 }}>
-                  {inviteLoading ? "Sending..." : `Email the ${otherSide} their invite`}
+                  {inviteLoading ? "Sending..." : `${inviteChannel==="sms" ? "Text" : inviteChannel==="both" ? "Email and text" : "Email"} the ${otherSide} their invite`}
                 </button>
                 <button onClick={()=>{ setInviteMode(null); setInviteError(""); }} style={{ background:"transparent", color:"rgba(255,255,255,0.6)", border:"none", fontSize:11, fontFamily:"sans-serif", cursor:"pointer" }}>
                   Back
@@ -1367,7 +1466,12 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
           {/* EMAIL PATH success */}
           {inviteSent && (
             <div style={{ background:"rgba(34,197,94,0.15)", border:"1px solid rgba(34,197,94,0.4)", borderRadius:6, padding:"10px 12px", fontSize:12, fontFamily:"sans-serif", color:"#bbf7d0" }}>
-              ✓ Invite emailed to the {otherSide} at {data?.[otherSide]?.email}. They'll get a link to create their account and join this deal.
+              ✓ Invite {[inviteResult?.emailSent && `emailed to ${data?.[otherSide]?.email}`, inviteResult?.textSent && `texted to ${data?.[otherSide]?.phone}`].filter(Boolean).join(" and ") || "created"}. They'll get a link to create their account and join this deal.
+              {inviteChannel !== "email" && !inviteResult?.textSent && (
+                <div style={{ marginTop:6, color:"#fde68a" }}>
+                  The text didn't go out{inviteResult?.textError ? ` (${inviteResult.textError})` : ""}.{inviteResult?.emailSent ? " The email did." : " Use the shareable link instead."}
+                </div>
+              )}
             </div>
           )}
 
@@ -7147,7 +7251,7 @@ export default function BoatClosers() {
       )}
       <div style={dealFrozen && step <= 3 ? { pointerEvents:"none", opacity:0.6, userSelect:"text" } : undefined} aria-disabled={dealFrozen && step <= 3 ? "true" : undefined}>
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} userRole={myDealRole || user?.role || "seller"} onNext={()=>goToStep(1)}/>}
-      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} offers={negotiate?.offers} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user} ensureSaved={ensureDealSaved}/>}
+      {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} offers={negotiate?.offers} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user} ensureSaved={ensureDealSaved} authToken={tokenRef.current?.token}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} stripeReturn={stripeReturn} authedFetch={authedFetch} onRefresh={()=>window.location.reload()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} authToken={tokenRef.current?.token} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}

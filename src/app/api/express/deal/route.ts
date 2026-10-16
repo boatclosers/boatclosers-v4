@@ -5,6 +5,9 @@ import { handoffProblems, type Handoff } from '@/lib/express/content'
 import { buildDocument, docsFor, DOC_TITLES, type DocKey } from '@/lib/express/documents'
 import { buildHsmv82050 } from '@/lib/express/hsmv82050'
 import { inspectionFor, inspectionPreview, cleanInspection } from '@/lib/express/inspection'
+import { SELLER_QUESTIONS } from '@/lib/express/content'
+import { setPrefs, getPrefs, sendSms, normalizePhone, cleanChannels, smsConfigured, optIn, type Channel } from '@/lib/comm'
+import crypto from 'crypto'
 
 // Always read live data: never let Next.js cache database or upstream fetches here.
 export const dynamic = 'force-dynamic'
@@ -18,7 +21,9 @@ export const fetchCache = 'force-no-store'
 //   POST { token, action: 'answers', answers } -> save the seller's answers (free)
 //   POST { token, action: 'inspection', inspection } -> save the walk-around inspection (paid only)
 //   POST { token, action: 'handoff', handoff } -> save sale details (paid only)
-//   POST { token, action: 'email-seller' } -> email the seller their copies (paid only)
+//   POST { token, action: 'email-seller', channels, phone } -> send the seller their copies (paid only)
+//   POST { token, action: 'ask-seller', email, phone, channels } -> send the seller the questions (free, 3 max)
+//   POST { token, action: 'prefs', channels, phone } -> how the buyer wants reminders
 // The fee is a server constant. Only express_deals is ever touched here.
 
 const FEE_CENTS = 2999 // $29.99
@@ -46,6 +51,7 @@ function cleanHandoff(b: any): Handoff {
     buyerAddress: str(b?.buyerAddress, 200),
     sellerAddress: str(b?.sellerAddress, 200),
     sellerEmail: /^\S+@\S+\.\S+$/.test(b?.sellerEmail || '') ? str(b.sellerEmail, 254)?.toLowerCase() : undefined,
+    sellerPhone: normalizePhone(b?.sellerPhone) || undefined,
     paymentMethod: str(b?.paymentMethod, 40),
     inventory: str(b?.inventory, 600),
     titledHow: pick(b?.titledHow, ['florida', 'documented', 'other-title', 'other-no-title'] as const),
@@ -141,7 +147,9 @@ export async function GET(req: Request) {
   // The full inspection is part of what the buyer pays for; unpaid deals get a preview.
   const has = hasItems(deal)
   const inspection = deal.status === 'paid' ? { list: inspectionFor(has) } : { preview: inspectionPreview(has) }
-  return NextResponse.json({ deal: publicView(deal), inspection })
+  const p = await getPrefs(deal.buyer_email)
+  const contact = { channels: p?.channels || ['email'], phone: p?.phone || '', smsReady: smsConfigured() }
+  return NextResponse.json({ deal: publicView(deal), inspection, contact })
 }
 
 export async function POST(req: Request) {
@@ -209,6 +217,75 @@ export async function POST(req: Request) {
     return NextResponse.json({ progress })
   }
 
+  if (body?.action === 'prefs') {
+    const channels = cleanChannels(body?.channels)
+    const phone = normalizePhone(body?.phone)
+    if (channels.includes('sms') && !phone) return NextResponse.json({ error: 'Enter your mobile number for texts.' }, { status: 400 })
+    if (channels.includes('email')) await optIn(deal.buyer_email, 'email')
+    if (phone && channels.includes('sms')) await optIn(phone, 'sms')
+    const r = await setPrefs(deal.buyer_email, phone, channels, 'self')
+    if (!r.ok) return NextResponse.json({ error: 'Could not save.' }, { status: 500 })
+    return NextResponse.json({ contact: { channels, phone, smsReady: smsConfigured() } })
+  }
+
+  if (body?.action === 'ask-seller') {
+    // Send the seller questions for the buyer. Replies by email go straight to the
+    // buyer; replies by text are forwarded to the buyer by email.
+    const asked: string[] = Array.isArray(deal.progress?.asked) ? deal.progress.asked : []
+    if (asked.length >= 3) return NextResponse.json({ error: 'Sent 3 times already. Follow up with the seller directly.' }, { status: 429 })
+    const channels = cleanChannels(body?.channels)
+    const email = /^\S+@\S+\.\S+$/.test(body?.email || '') ? String(body.email).trim().toLowerCase().slice(0, 254) : ''
+    const phone = normalizePhone(body?.phone)
+    if (channels.includes('email') && !email) return NextResponse.json({ error: "Enter the seller's email." }, { status: 400 })
+    if (channels.includes('sms') && !phone) return NextResponse.json({ error: "Enter the seller's mobile number." }, { status: 400 })
+    if (email && email === String(deal.buyer_email).toLowerCase()) return NextResponse.json({ error: "That's your own email. Enter the seller's." }, { status: 400 })
+
+    const has = hasItems(deal)
+    const qs = SELLER_QUESTIONS.filter((q) => !q.only || has[q.only])
+    const first = Object.values(deal.items || {})[0] as any
+    const boat = first?.description || 'boat'
+    const buyerFirst = String(deal.buyer_name).split(' ')[0]
+    const sellerFirst = String(deal.seller_name).split(' ')[0]
+    const smsText =
+      `BoatClosers: Hi ${sellerFirst}, ${buyerFirst} is interested in your ${boat} and has a few questions before coming to see it. ` +
+      `Just reply to this text and we'll pass your answers to ${buyerFirst}.\n` +
+      qs.map((q, i) => `${i + 1}. ${q.label}`).join('\n')
+
+    let emailOk = false
+    let textOk = false
+    let textErr = ''
+    if (email) {
+      await setPrefs(email, phone, channels, 'initiator')
+      const r: any = await sendEmail({
+        to: email,
+        replyTo: deal.buyer_email,
+        subject: `${buyerFirst} has questions about your ${boat}`.slice(0, 150),
+        smsText,
+        smsForwardTo: deal.buyer_email,
+        context: boat,
+        html: emailLayout(`
+          <p style="font-size:15px;color:#08152e;">Hi ${esc(sellerFirst)},</p>
+          <p style="font-size:15px;color:#08152e;line-height:1.6;">${esc(deal.buyer_name)} is interested in your <b>${esc(boat)}</b> and would like to ask a few questions before coming to see it:</p>
+          <ol style="font-size:15px;color:#08152e;line-height:1.7;padding-left:22px;">${qs.map((q) => `<li>${esc(q.label)}</li>`).join('')}</ol>
+          <p style="font-size:15px;color:#08152e;line-height:1.6;"><b>Just reply to this email</b> and your answers go straight to ${esc(buyerFirst)}.</p>
+          <p style="font-size:13px;color:#64748b;line-height:1.6;">${esc(buyerFirst)} is using BC Express by BoatClosers to buy carefully and do the paperwork right. You don’t need an account.</p>
+        `),
+      })
+      emailOk = !!r.success && (channels.includes('email') || !r.sentSms)
+      textOk = !!r.sentSms
+      if (r.optedOut) return NextResponse.json({ error: 'The seller has opted out of BoatClosers messages. Contact them directly.' }, { status: 409 })
+      if (channels.includes('email') && !r.success) return NextResponse.json({ error: 'The message did not send. Try again in a minute.' }, { status: 502 })
+      if (channels.includes('sms') && !textOk) textErr = r.smsError || 'Texting isn’t set up yet, so we emailed them.'
+    } else if (phone) {
+      const r: any = await sendSms({ to: phone, body: smsText, forwardTo: deal.buyer_email, context: boat })
+      textOk = r.success
+      if (!r.success) return NextResponse.json({ error: r.optedOut ? 'The seller has opted out of texts.' : r.notConfigured ? 'Texting isn’t switched on yet. Send by email for now.' : r.error || 'The text did not send.' }, { status: r.optedOut ? 409 : 502 })
+    }
+    const progress = { ...(deal.progress || {}), asked: [...asked, new Date().toISOString()], contacts: { sellerEmail: email || undefined, sellerPhone: phone || undefined } }
+    await supabaseAdmin.from('express_deals').update({ progress, updated_at: new Date().toISOString() }).eq('id', deal.id)
+    return NextResponse.json({ progress, emailSent: emailOk && channels.includes('email'), textSent: textOk, textError: textErr || undefined })
+  }
+
   if (body?.action === 'inspection') {
     deal = await confirmPayment(deal)
     if (deal.status !== 'paid') return NextResponse.json({ error: 'Unlock the inspection first.' }, { status: 402 })
@@ -239,7 +316,13 @@ export async function POST(req: Request) {
     const ready = docsReady(deal)
     if (!ready.ok) return NextResponse.json({ error: ready.reason }, { status: 409 })
     const h: Handoff = deal.progress?.handoff || {}
-    if (!h.sellerEmail) return NextResponse.json({ error: "Add the seller's email first." }, { status: 400 })
+    const channels = cleanChannels(body?.channels || ['email'])
+    const sellerPhone = normalizePhone(body?.phone) || h.sellerPhone || ''
+    if (channels.includes('email') && !h.sellerEmail) return NextResponse.json({ error: "Add the seller's email first." }, { status: 400 })
+    if (channels.includes('sms') && !sellerPhone) return NextResponse.json({ error: "Add the seller's mobile number first." }, { status: 400 })
+    // A private link where the seller can view their papers, for texts (which can't carry attachments).
+    const sellerToken: string = deal.progress?.sellerToken || crypto.randomBytes(24).toString('hex')
+    const sellerLink = `${SITE}/express/seller/${sellerToken}`
     const sent: string[] = Array.isArray(deal.progress?.sellerEmailed) ? deal.progress.sellerEmailed : []
     if (sent.length >= 3) return NextResponse.json({ error: 'Already sent 3 times. Forward your own copy instead.' }, { status: 429 })
 
@@ -262,22 +345,36 @@ export async function POST(req: Request) {
     }
     const hasNotice = attachments.some((a) => a.filename.startsWith('notice-of-sale'))
     const what = Object.values(deal.items || {}).map((i: any) => esc(i.description)).join(', ')
-    const r = await sendEmail({
+    const smsText = `BoatClosers: ${deal.buyer_name} sent your copies of the paperwork for ${Object.values(deal.items || {}).map((i: any) => i.description).join(', ')}. View or download them here, then sign and file your notice of sale within 30 days: ${sellerLink}`
+    if (!h.sellerEmail) {
+      const t: any = await sendSms({ to: sellerPhone, body: smsText, forwardTo: deal.buyer_email, context: 'the sale paperwork' })
+      if (!t.success) return NextResponse.json({ error: t.optedOut ? 'The seller has opted out of texts.' : t.notConfigured ? 'Texting isn’t switched on yet. Add the seller’s email instead.' : t.error || 'The text did not send.' }, { status: 502 })
+      const progress = { ...(deal.progress || {}), sellerToken, sellerEmailed: [...sent, new Date().toISOString()] }
+      await supabaseAdmin.from('express_deals').update({ progress }).eq('id', deal.id)
+      return NextResponse.json({ progress, textSent: true })
+    }
+    await setPrefs(h.sellerEmail, sellerPhone, channels, 'initiator')
+    const r: any = await sendEmail({
       to: h.sellerEmail,
       replyTo: deal.buyer_email,
+      smsText,
+      smsForwardTo: deal.buyer_email,
+      context: 'the sale paperwork',
       subject: `Your copy of the bill of sale: ${Object.values(deal.items || {}).map((i: any) => i.description).join(', ')}`.slice(0, 150),
       html: emailLayout(`
         <p style="font-size:15px;color:#08152e;">Hello ${esc(String(deal.seller_name).split(' ')[0])},</p>
         <p style="font-size:15px;color:#08152e;line-height:1.6;">${esc(deal.buyer_name)} sent you your copies of the paperwork for the sale of: ${what}. They're attached.</p>
         <p style="font-size:15px;color:#08152e;line-height:1.6;"><b>One thing left for you:</b> ${hasNotice ? 'your notice of sale (Florida form HSMV 82050) is attached, already filled in. Sign it and' : 'complete the notice of sale on the back of the Florida title or on form HSMV 82050, then'} file it with any county tax collector within 30 days. That takes the boat out of your name.</p>
+        <p style="font-size:15px;color:#08152e;line-height:1.6;">You can also <a href="${sellerLink}" style="color:#b8863a;font-weight:700;">view or download your papers here</a> any time.</p>
         <p style="font-size:13px;color:#64748b;line-height:1.6;">You don't need an account or anything else from BoatClosers. Reply to this email to reach the buyer.</p>
       `),
       attachments,
     })
+    if (r.optedOut) return NextResponse.json({ error: 'The seller has opted out of BoatClosers messages. Give them their copies in person.' }, { status: 409 })
     if (!r.success) return NextResponse.json({ error: 'The email did not send. Try again in a minute.' }, { status: 502 })
-    const progress = { ...(deal.progress || {}), sellerEmailed: [...sent, new Date().toISOString()] }
+    const progress = { ...(deal.progress || {}), sellerToken, sellerEmailed: [...sent, new Date().toISOString()] }
     await supabaseAdmin.from('express_deals').update({ progress }).eq('id', deal.id)
-    return NextResponse.json({ progress })
+    return NextResponse.json({ progress, textSent: !!r.sentSms, textError: channels.includes('sms') && !r.sentSms ? r.smsError || 'Texting isn’t set up yet, so we emailed them.' : undefined })
   }
 
   if (body?.action !== 'pay') return NextResponse.json({ error: 'Unknown action.' }, { status: 400 })

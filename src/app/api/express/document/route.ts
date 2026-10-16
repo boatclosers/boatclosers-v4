@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { buildDocument, docsFor, type DocKey } from '@/lib/express/documents'
+import { buildDocument, docsFor, SELLER_DOCS, type DocKey } from '@/lib/express/documents'
 import { handoffProblems, type Handoff } from '@/lib/express/content'
 
 // Always read live data: never let Next.js cache database or upstream fetches here.
@@ -12,14 +12,15 @@ export const fetchCache = 'force-no-store'
 export async function GET(req: Request) {
   const url = new URL(req.url)
   const token = url.searchParams.get('token') || ''
+  const stoken = url.searchParams.get('stoken') || ''
   const doc = url.searchParams.get('doc') as DocKey
-  if (!/^[a-f0-9]{48}$/.test(token)) return new Response('Link not valid.', { status: 404 })
+  // The buyer opens papers with their private link; the seller, with the
+  // separate link they were sent, and only the papers that are theirs.
+  if (!/^[a-f0-9]{48}$/.test(token) && !/^[a-f0-9]{48}$/.test(stoken)) return new Response('Link not valid.', { status: 404 })
+  if (stoken && !SELLER_DOCS.includes(doc)) return new Response('Not available from this link.', { status: 403 })
 
-  const { data: deal } = await supabaseAdmin
-    .from('express_deals')
-    .select('buyer_name,buyer_email,seller_name,items,price_cents,status,paid_at,progress')
-    .eq('access_token', token)
-    .maybeSingle()
+  const q = supabaseAdmin.from('express_deals').select('buyer_name,buyer_email,seller_name,items,price_cents,status,paid_at,progress')
+  const { data: deal } = await (stoken ? q.eq('progress->>sellerToken', stoken) : q.eq('access_token', token)).maybeSingle()
   if (!deal) return new Response('Link not valid.', { status: 404 })
   if (deal.status !== 'paid') return new Response('Unlock the paperwork first.', { status: 402 })
 

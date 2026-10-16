@@ -34,6 +34,9 @@ export const DOC_TITLES: Record<DocKey, string> = {
   'condition-report': 'Condition Report (your inspection)',
 }
 
+// Papers the seller can open from their own link.
+export const SELLER_DOCS: DocKey[] = ['vessel-bill-of-sale', 'motor-bill-of-sale', 'trailer-bill-of-sale', 'hsmv-82050-boat', 'hsmv-82050-trailer', 'payment-receipt']
+
 export function docsFor(items: Record<string, any>, h: Handoff = {}): DocKey[] {
   const out: DocKey[] = ['condition-report']
   if (items.boat) out.push('vessel-bill-of-sale')

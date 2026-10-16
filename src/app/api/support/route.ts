@@ -99,6 +99,7 @@ export async function POST(req: Request) {
     // 1) Send the request to the owner — reply_to is the customer, so a Gmail
     //    "Reply" goes straight to them. Subject carries their email for search.
     const teamResult = await sendEmail({
+      essential: true,
       to: OWNER_INBOX,
       replyTo: email,
       subject: `🆘 Support: ${type} — from ${email}${dealId ? ` (Deal #${dealId})` : ''}`,
@@ -118,6 +119,7 @@ export async function POST(req: Request) {
 
     // 2) Confirmation to the customer who submitted it.
     await sendEmail({
+      essential: true,
       to: email,
       subject: 'We received your request — BoatClosers',
       html: emailLayout(`

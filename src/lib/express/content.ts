@@ -15,6 +15,7 @@ export type Handoff = {
   buyerAddress?: string
   sellerAddress?: string
   sellerEmail?: string
+  sellerPhone?: string
   paymentMethod?: string
   inventory?: string
   titledHow?: TitledHow
