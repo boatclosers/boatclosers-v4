@@ -11,13 +11,16 @@ type Preview = {
   lengthFt: string;
   askingPrice: number | null;
   alreadyJoined: boolean;
+  needsEmail?: boolean;
+  inviteeName?: string;
+  canReopen?: boolean;
 };
 
 export default function InviteClient() {
   const params = useParams();
   const token = Array.isArray(params.token) ? params.token[0] : params.token;
 
-  const [mode, setMode] = useState('signup'); // signup | signin
+  const [mode, setMode] = useState('quick'); // quick (no password) | signup | signin
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,13 +40,68 @@ export default function InviteClient() {
         if (cancelled) return;
         if (data && !data.error) {
           setPreview(data);
-          if (data.alreadyJoined) setMode('signin');
+          if (data.inviteeName) setFullName(data.inviteeName);
+          if (data.alreadyJoined && !data.canReopen) setMode('signin');
+        } else {
+          setMode('signup'); // couldn't load the deal preview: fall back to the full form
         }
         setPreviewLoading(false);
       })
-      .catch(() => { if (!cancelled) setPreviewLoading(false); });
+      .catch(() => { if (!cancelled) { setMode('signup'); setPreviewLoading(false); } });
     return () => { cancelled = true; };
   }, [token]);
+
+  const enterDeal = (data: any) => {
+    // Write the SAME session the main app reads, so it loads us straight in.
+    try {
+      localStorage.setItem('bc_session', JSON.stringify({
+        token: data.token,
+        refreshToken: data.refreshToken || null,
+        userId: data.user.id,
+        name: data.user.fullName,
+        email: data.user.email,
+        role: data.role,
+        dealId: data.dealId
+      }));
+    } catch (e) {}
+    // Full page load so the app boots fresh and opens this deal.
+    window.location.href = '/';
+  };
+
+  // One tap: no password. Only runs on a button click, never on page load, so
+  // link previews and email scanners can't claim the deal.
+  const quickOpen = async () => {
+    setError('');
+    const reopening = !!preview?.alreadyJoined;
+    if (!reopening && !fullName.trim()) { setError('Please enter your name.'); return; }
+    if (!reopening && preview?.needsEmail && !email.trim()) { setError('Please enter your email.'); return; }
+    setBusy(true);
+    try {
+      const res = await fetch('/api/deals/open', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, fullName, email })
+      });
+      const data = await res.json();
+      if (data?.needsSignIn) {
+        setMode('signin');
+        setError(data.reason === 'account'
+          ? 'You already have a BoatClosers account with this email. Sign in to open the deal.'
+          : 'Sign in to open this deal.');
+        setBusy(false);
+        return;
+      }
+      if (!res.ok || !data?.success) {
+        setError(data?.error || 'Something went wrong. Please try again.');
+        setBusy(false);
+        return;
+      }
+      enterDeal(data);
+    } catch (e) {
+      setError('Network problem. Please try again.');
+      setBusy(false);
+    }
+  };
 
   const submit = async () => {
     setError('');
@@ -62,20 +120,7 @@ export default function InviteClient() {
         setBusy(false);
         return;
       }
-      // Write the SAME session the main app reads, so it loads us straight in.
-      try {
-        localStorage.setItem('bc_session', JSON.stringify({
-          token: data.token,
-          userId: data.user.id,
-          name: data.user.fullName,
-          email: data.user.email,
-          role: data.role,
-          dealId: data.dealId
-        }));
-      } catch (e) {}
-      // Force a FULL page load (not client-side nav) so the app boots fresh,
-      // reads the new bc_session, and loads the deal this person just joined.
-      window.location.href = '/';
+      enterDeal(data);
     } catch (e) {
       setError('Network problem. Please try again.');
       setBusy(false);
@@ -137,7 +182,11 @@ export default function InviteClient() {
             </div>
 
             <p style={{ fontSize:13, color:'#64748b', textAlign:'center', marginBottom:18 }}>
-              {preview.alreadyJoined
+              {mode === 'quick'
+                ? (preview.alreadyJoined
+                    ? 'Welcome back. Tap below to reopen your deal.'
+                    : 'No password needed. Just tell us your name and open the deal.')
+                : preview.alreadyJoined
                 ? 'This deal already has a second party. If that is you, sign in to continue.'
                 : mode === 'signup'
                   ? 'Create your free account to open the deal. It takes about a minute.'
@@ -157,6 +206,36 @@ export default function InviteClient() {
           </>
         )}
 
+        {mode === 'quick' && (
+          <>
+            {!preview?.alreadyJoined && (
+              <>
+                <div style={label}>Your Full Name</div>
+                <input style={input} value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Your full name" autoComplete="name" />
+                {preview?.needsEmail && (
+                  <>
+                    <div style={label}>Your Email</div>
+                    <input style={input} type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" />
+                    <div style={{ fontSize:11, color:'#94a3b8', marginTop:-8, marginBottom:14 }}>So we can send you updates and the signed paperwork.</div>
+                  </>
+                )}
+              </>
+            )}
+            {error && (
+              <div style={{ background:'#fef2f2', border:'1px solid #fecaca', color:'#b91c1c', borderRadius:8, padding:'8px 12px', fontSize:13, marginBottom:14 }}>
+                {error}
+              </div>
+            )}
+            <button onClick={quickOpen} disabled={busy} style={{ width:'100%', background:'#b8863a', color:'#08152e', border:'none', borderRadius:8, padding:'14px', fontSize:16, fontWeight:700, cursor: busy?'default':'pointer', opacity: busy?0.6:1 }}>
+              {busy ? 'Opening deal…' : 'Open the Deal →'}
+            </button>
+            <div style={{ textAlign:'center', marginTop:16, fontSize:13, color:'#64748b' }}>
+              Have a BoatClosers account? <span onClick={()=>{setMode('signin');setError('');}} style={{ color:'#1e3a5f', fontWeight:600, cursor:'pointer' }}>Sign in</span>
+            </div>
+          </>
+        )}
+
+        {mode !== 'quick' && (<>
         {mode === 'signup' && (
           <>
             <div style={label}>Full Legal Name</div>
@@ -183,8 +262,9 @@ export default function InviteClient() {
         <div style={{ textAlign:'center', marginTop:16, fontSize:13, color:'#64748b' }}>
           {mode === 'signup'
             ? <span>Already have an account? <span onClick={()=>{setMode('signin');setError('');}} style={{ color:'#1e3a5f', fontWeight:600, cursor:'pointer' }}>Sign in</span></span>
-            : <span>Need an account? <span onClick={()=>{setMode('signup');setError('');}} style={{ color:'#1e3a5f', fontWeight:600, cursor:'pointer' }}>Create one</span></span>}
+            : <span>No account? <span onClick={()=>{setMode('quick');setError('');}} style={{ color:'#1e3a5f', fontWeight:600, cursor:'pointer' }}>Open without a password</span></span>}
         </div>
+        </>)}
       </div>
     </div>
   );

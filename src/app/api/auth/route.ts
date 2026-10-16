@@ -175,7 +175,7 @@ export async function POST(req: Request) {
 
       const { error: pwErr } = await sb.auth.admin.updateUserById(user.id, {
         password: String(newPassword),
-        app_metadata: { reset_code_hash: null, reset_expires_at: null, reset_attempts: null }
+        app_metadata: { reset_code_hash: null, reset_expires_at: null, reset_attempts: null, passwordless_guest: null }
       })
       if (pwErr) {
         return NextResponse.json({ error: 'Could not update your password: ' + pwErr.message }, { status: 400 })

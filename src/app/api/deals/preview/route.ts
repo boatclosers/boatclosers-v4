@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     const sb = admin()
     const { data: deal, error } = await sb
       .from('deals')
-      .select('initiator_id, initiator_role, invite_role, other_party_id, vessel, parties')
+      .select('initiator_id, initiator_role, invite_role, other_party_id, invite_email, vessel, parties')
       .eq('invite_token', token)
       .maybeSingle()
 
@@ -63,8 +63,22 @@ export async function GET(req: Request) {
     const priceNum = Number(String(vessel.askingPrice ?? '').replace(/[^0-9.]/g, ''))
     const askingPrice = Number.isFinite(priceNum) && priceNum > 0 ? priceNum : null
 
+    // One-tap open support: do we already know their email (sent to a real
+    // address), what name did the initiator enter for them, and — if they've
+    // already joined — can they reopen without a password (guest account)?
+    const needsEmail = !deal.invite_email || /^link-share-/i.test(String(deal.invite_email))
+    const inviteeName = clean(parties?.[inviteRole]?.name)
+    let canReopen = false
+    if (deal.other_party_id) {
+      const { data: got } = await sb.auth.admin.getUserById(deal.other_party_id)
+      canReopen = !!got?.user?.app_metadata?.passwordless_guest
+    }
+
     return NextResponse.json(
       {
+        needsEmail,
+        inviteeName,
+        canReopen,
         inviterFirstName,
         initiatorRole,
         inviteRole,

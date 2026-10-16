@@ -38,6 +38,7 @@ export async function POST(req: Request) {
     // 2. Create or sign in the joining user.
     let userId: string | null = null
     let accessToken: string | null = null
+    let refreshToken: string | null = null
     let resolvedName = fullName || ''
 
     const signIn = async () => {
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
       const session = await signIn()
       if (!session) return NextResponse.json({ error: 'Sign in failed. Check your email and password.' }, { status: 401 })
       userId = session.user.id
-      accessToken = session.session.access_token
+      accessToken = session.session.access_token; refreshToken = session.session.refresh_token
       resolvedName = session.user.user_metadata?.full_name || resolvedName
     } else {
       const { data: created, error: createErr } = await sb.auth.admin.createUser({
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
             }, { status: 409 })
           }
           userId = session.user.id
-          accessToken = session.session.access_token
+          accessToken = session.session.access_token; refreshToken = session.session.refresh_token
           resolvedName = session.user.user_metadata?.full_name || resolvedName
         } else {
           return NextResponse.json({ error: 'Could not create account: ' + createErr.message }, { status: 400 })
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
         const session = await signIn()
         if (!session) return NextResponse.json({ error: 'Account created but sign in failed. Please try signing in.' }, { status: 400 })
         userId = created.user.id
-        accessToken = session.session.access_token
+        accessToken = session.session.access_token; refreshToken = session.session.refresh_token
       }
     }
 
@@ -119,7 +120,8 @@ export async function POST(req: Request) {
       dealId: deal.id,
       role: deal.invite_role || 'seller',
       user: { id: userId, email, fullName: resolvedName, role: deal.invite_role || 'seller' },
-      token: accessToken
+      token: accessToken,
+      refreshToken
     })
   } catch (e: any) {
     return NextResponse.json({ error: 'SERVER ERROR: ' + (e?.message || 'unknown') }, { status: 500 })

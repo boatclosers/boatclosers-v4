@@ -120,8 +120,8 @@ export async function POST(req: Request) {
       </p>
       <p style="color:#475569; font-size:14px; line-height:1.6; margin:0 0 6px;"><strong>What happens when you click below:</strong></p>
       <ol style="color:#475569; font-size:14px; line-height:1.6; margin:0 0 16px; padding-left:20px;">
-        <li>You'll create a quick, free sign-in (just an email and password).</li>
-        <li>The deal is already set up &mdash; you'll confirm your details, nothing to re-type.</li>
+        <li>The deal opens right away. No account or password needed.</li>
+        <li>Everything is already set up &mdash; just confirm your name.</li>
         <li>You and the ${counterpartLabel} negotiate, sign, and close, all in one place.</li>
       </ol>
       <p style="text-align:center; margin: 26px 0;">
