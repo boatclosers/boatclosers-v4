@@ -74,7 +74,8 @@ const steps = [
 
 export default function Page() {
   return (
-    <div style={{ background: navy, minHeight: '100vh', color: cream }}>
+    <div style={{ background: navy, minHeight: '100vh', color: cream, fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" }}>
+      <style>{'body{margin:0;background:#0f1b2d}'}</style>
       <header
         style={{
           display: 'flex',

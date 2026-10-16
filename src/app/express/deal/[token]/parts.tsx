@@ -418,7 +418,7 @@ export function HandoffStep({
             <li>The seller pays off the loan first and gives you the signed lien release.</li>
             <li>You pay the lender directly, using a written payoff letter, and the release comes to you.</li>
             <li>
-              Use full BoatClosers, which handles payoffs through escrow so neither side is exposed.{' '}
+              Use full BoatClosers with escrow, so no money is released until the lien is cleared.{' '}
               <a href="/" style={{ color: gold }}>
                 See full BoatClosers
               </a>
