@@ -40,6 +40,8 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   const [data, setData] = useState<any>(null)
   const [filter, setFilter] = useState('live')
+  const [view, setView] = useState<'full' | 'express'>('full')
+  const [exFilter, setExFilter] = useState('paid')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
   const [escTx, setEscTx] = useState('1')
@@ -55,6 +57,7 @@ export default function AdminPage() {
       adminClearJoin: 'Detach the second party and reopen the invite slot?',
       adminResetRole: `Set the initiator role to ${extra.role}? (fixes an inverted buyer/seller)`,
       adminResendInvite: 'Re-arm the invite as pending?',
+      adminExpressDelete: 'Permanently DELETE this Express purchase? This cannot be undone.',
     }
     if (confirmText[action] && !window.confirm(confirmText[action])) return
     setActionBusy(action + dealId); setActionMsg(null)
@@ -218,6 +221,19 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+          {([['full', 'BoatClosers · $249'], ['express', `BC Express · $29.99 (${t.expressAll ?? 0})`]] as const).map(([k, l]) => (
+            <button key={k} onClick={() => { setView(k); setOpen(null) }}
+              style={{ padding: '10px 16px', fontSize: 13.5, fontWeight: 800, borderRadius: 8, cursor: 'pointer',
+                border: `2px solid ${view === k ? BRASS : MIST}`, background: view === k ? '#fff' : '#f8fafc', color: NAVY }}>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {view === 'express' && <ExpressPanel data={data} exFilter={exFilter} setExFilter={setExFilter} open={open} setOpen={setOpen} runAction={runAction} actionBusy={actionBusy} actionMsg={actionMsg} q={q} setQ={setQ} Stat={Stat} />}
+
+        {view === 'full' && <>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
           <Stat label="Needs attention" value={t.needsAttention ?? 0} tone={(t.needsAttention ?? 0) > 0 ? '#b45309' : undefined} />
           <Stat label="Live deals" value={t.live ?? 0} />
@@ -314,7 +330,100 @@ export default function AdminPage() {
           Loaded {data?.generatedAt ? new Date(data.generatedAt).toLocaleString() : '—'}.<br />
           Showing up to 500 deals, most recently active first.
         </div>
+        </>}
       </div>
     </div>
+  )
+}
+
+// ---------- BC Express purchases ----------
+
+function ExpressPanel({ data, exFilter, setExFilter, open, setOpen, runAction, actionBusy, actionMsg, q, setQ, Stat }: any) {
+  const ex: any[] = data?.express || []
+  const t = data?.totals || {}
+  const dueSoon = ex.filter(e => e.paid && typeof e.titleDaysLeft === 'number' && e.titleDaysLeft <= 9)
+  const list = ex.filter(e => {
+    if (exFilter === 'paid' && !e.paid) return false
+    if (exFilter === 'unpaid' && e.paid) return false
+    if (exFilter === 'due' && !dueSoon.includes(e)) return false
+    if (!q.trim()) return true
+    const hay = `${e.id} ${e.buyer.name} ${e.buyer.email} ${e.seller} ${e.items.join(' ')}`.toLowerCase()
+    return hay.includes(q.trim().toLowerCase())
+  })
+  const tone = (e: any) => (!e.paid ? '#64748b' : e.titleDaysLeft !== null && e.titleDaysLeft !== undefined && e.titleDaysLeft <= 2 ? '#b91c1c' : e.stage === 'Titled' ? '#0f6e56' : '#1d4ed8')
+  const Tab = ({ id, label, n }: any) => (
+    <button onClick={() => setExFilter(id)}
+      style={{ padding: '8px 14px', fontSize: 12.5, fontWeight: 700, borderRadius: 7, cursor: 'pointer',
+        border: `1px solid ${exFilter === id ? NAVY : MIST}`, background: exFilter === id ? NAVY : '#fff', color: exFilter === id ? '#fff' : SLATE }}>
+      {label}{typeof n === 'number' ? ` (${n})` : ''}
+    </button>
+  )
+  return (
+    <>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+        <Stat label="Paid purchases" value={t.expressPaid ?? 0} />
+        <Stat label="Express revenue" value={'$' + Number(t.expressRevenue || 0).toFixed(2)} tone="#0f6e56" />
+        <Stat label="Started, not paid" value={(t.expressAll ?? 0) - (t.expressPaid ?? 0)} />
+        <Stat label="Title due in 9 days" value={dueSoon.length} tone={dueSoon.length ? '#b45309' : undefined} />
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+        <Tab id="paid" label="Paid" n={ex.filter(e => e.paid).length} />
+        <Tab id="due" label="Title due soon" n={dueSoon.length} />
+        <Tab id="unpaid" label="Not paid" n={ex.filter(e => !e.paid).length} />
+        <Tab id="all" label="All" n={ex.length} />
+        <input value={q} onChange={(e: any) => setQ(e.target.value)} placeholder="Search buyer, email, boat"
+          style={{ flex: 1, minWidth: 200, padding: '8px 12px', fontSize: 13, borderRadius: 7, border: `1px solid ${MIST}` }} />
+      </div>
+      {list.length === 0 && (
+        <div style={{ background: '#fff', border: `1px solid ${MIST}`, borderRadius: 10, padding: '2rem', textAlign: 'center', color: SLATE, fontSize: 13.5 }}>
+          {exFilter === 'paid' ? 'No paid Express purchases yet.' : 'Nothing here.'}
+        </div>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {list.map(e => (
+          <div key={e.id} style={{ background: '#fff', border: `1px solid ${MIST}`, borderLeft: `4px solid ${tone(e)}`, borderRadius: 8, overflow: 'hidden' }}>
+            <div onClick={() => setOpen(open === e.id ? null : e.id)} style={{ padding: '12px 15px', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{e.items.map((i: string) => i.split(': ')[1]).join(' + ') || '—'}{e.price ? ` · ${money(e.price)}` : ''}</div>
+                <div style={{ fontSize: 12, color: SLATE, marginTop: 2 }}>{e.buyer.name} · {e.buyer.email}</div>
+              </div>
+              <div style={{ background: '#f8fafc', color: tone(e), borderRadius: 20, padding: '5px 12px', fontSize: 11.5, fontWeight: 800, whiteSpace: 'nowrap' }}>{e.stage}</div>
+              <div style={{ fontSize: 11.5, color: SLATE, minWidth: 128, textAlign: 'right' }}>
+                {e.titleDue && e.titleDaysLeft !== null
+                  ? <>title due <b style={{ color: e.titleDaysLeft <= 2 ? '#b91c1c' : NAVY }}>{e.titleDaysLeft < 0 ? `${-e.titleDaysLeft}d late` : `in ${e.titleDaysLeft}d`}</b></>
+                  : <>started {e.createdDays ?? '—'}d ago</>}
+              </div>
+            </div>
+            {open === e.id && (
+              <div style={{ borderTop: `1px solid ${MIST}`, background: '#f8fafc', padding: '13px 15px', fontSize: 12.5, lineHeight: 1.8, color: SLATE }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: '2px 20px' }}>
+                  <div><b>Buyer:</b> {e.buyer.name} · {e.buyer.email}</div>
+                  <div><b>Seller:</b> {e.seller || '—'}</div>
+                  <div><b>Buying:</b> {e.items.join(' · ')}</div>
+                  <div><b>Paid:</b> {e.paid ? (e.paidAt ? new Date(e.paidAt).toLocaleDateString() : 'yes') : 'no'}</div>
+                  <div><b>Inspection:</b> {e.inspected} items · {e.photos} photos</div>
+                  <div><b>Questions sent to seller:</b> {e.asked}</div>
+                  <div><b>Seller sent papers:</b> {e.sellerSent ? `${e.sellerSent}x` : 'no'}</div>
+                  <div><b>Sale date:</b> {e.saleDate || '—'}</div>
+                  <div><b>Title due:</b> {e.titleDue || '—'}</div>
+                  <div><b>Reminders sent:</b> {e.reminders.length ? e.reminders.join(', ') : 'none'}</div>
+                  <div><b>$29.99 credit used on $249:</b> {e.creditUsed ? 'yes' : 'no'}</div>
+                  <div><b>Quiet:</b> {e.idleDays ?? '—'}d</div>
+                </div>
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${MIST}`, display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                  <a href={`/express/deal/${e.token}`} target="_blank" rel="noopener noreferrer" style={{ ...ctlBtn, textDecoration: 'none' }}>Open buyer&apos;s page</a>
+                  <button style={ctlBtn} onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/express/deal/${e.token}`)}>Copy buyer&apos;s link</button>
+                  <button style={{ ...ctlBtn, color: '#b91c1c', borderColor: '#f5b5b5' }} disabled={!!actionBusy} onClick={() => runAction('adminExpressDelete', '', { expressId: e.id })}>Delete</button>
+                </div>
+                {actionMsg && <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: actionMsg.ok ? '#0f6e56' : '#b91c1c' }}>{actionMsg.text}</div>}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 14, fontSize: 11, color: SLATE, textAlign: 'center', lineHeight: 1.7 }}>
+        The buyer&apos;s link opens their purchase exactly as they see it. Anything you change there changes it for them.
+      </div>
+    </>
   )
 }

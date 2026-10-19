@@ -43,6 +43,51 @@ const days = (ts: any) => {
   return Math.floor((Date.now() - t) / 86400000)
 }
 
+// BC Express: where each purchase stands, and the buyer's title deadline.
+function assessExpress(e: any) {
+  const p = e?.progress || {}
+  const h = p.handoff || {}
+  const insp = Object.keys(p.inspection?.items || {}).length
+  const photos = Array.isArray(p.photos) ? p.photos.length : 0
+  const handoffDone = !!(h.saleDate && h.buyerAddress && h.sellerAddress && h.paymentMethod && h.titledHow && h.lien)
+  const titled = !!p.checks?.['n-title']
+  const sellerSent = Array.isArray(p.sellerEmailed) ? p.sellerEmailed.length : 0
+  let stage = 'Free tools only'
+  if (e.status === 'paid') {
+    stage = titled ? 'Titled' : sellerSent ? 'Seller sent papers' : handoffDone ? 'Papers ready' : insp ? 'Inspecting' : 'Paid, not started'
+  }
+  let titleDue: string | null = null
+  let titleDaysLeft: number | null = null
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(h.saleDate || '')
+  if (m) {
+    const due = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 30)
+    titleDue = due.toISOString().slice(0, 10)
+    titleDaysLeft = Math.ceil((due.getTime() - Date.now()) / 86400000)
+  }
+  return {
+    id: e.id,
+    token: e.access_token,
+    buyer: { name: e.buyer_name, email: e.buyer_email },
+    seller: e.seller_name,
+    items: Object.entries(e.items || {}).map(([k, v]: any) => `${k}: ${v?.description || ''}`),
+    price: Math.round((e.price_cents || 0) / 100),
+    paid: e.status === 'paid',
+    paidAt: e.paid_at,
+    stage,
+    inspected: insp,
+    photos,
+    asked: Array.isArray(p.asked) ? p.asked.length : 0,
+    sellerSent,
+    saleDate: h.saleDate || null,
+    titleDue,
+    titleDaysLeft: titled ? null : titleDaysLeft,
+    reminders: Array.isArray(p.reminders) ? p.reminders : [],
+    creditUsed: !!e.credit_used_deal_id,
+    createdDays: days(e.created_at),
+    idleDays: days(e.updated_at),
+  }
+}
+
 // Works out what a deal is actually waiting on. This is the whole point of the
 // dashboard: not "here are your deals" but "here is who owes what, and for how
 // long" — the question behind almost every support email.
@@ -180,6 +225,15 @@ export async function POST(req: Request) {
       const sb2 = admin()
       const dealId = String(body.dealId || '').trim()
 
+      // BC Express: delete a purchase (for tests and abandoned starts).
+      if (body.action === 'adminExpressDelete') {
+        const id = String(body.expressId || '')
+        if (!id) return NextResponse.json({ error: 'Missing expressId.' }, { status: 400 })
+        const { error } = await sb2.from('express_deals').delete().eq('id', id)
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+        return NextResponse.json({ ok: true, done: 'Express purchase deleted.' })
+      }
+
       // Delete a deal (test/spam cleanup). Hard delete — confirmed on the client.
       if (body.action === 'adminDeleteDeal') {
         if (!dealId) return NextResponse.json({ error: 'Missing dealId.' }, { status: 400 })
@@ -272,6 +326,14 @@ export async function POST(req: Request) {
     }
 
     const rows = (data || []).map(assess)
+
+    // BC Express purchases ($29.99, buyer only).
+    const { data: ex } = await sb
+      .from('express_deals')
+      .select('id, access_token, buyer_name, buyer_email, seller_name, items, price_cents, status, paid_at, progress, created_at, updated_at, credit_used_deal_id')
+      .order('updated_at', { ascending: false })
+      .limit(500)
+    const express = (ex || []).map(assessExpress)
     const DONE = ['Closed', 'Cancelled', 'Ended — no deposit', 'Vessel rejected']
     const live = rows.filter(r => !DONE.includes(r.state))
     const closed = rows.filter(r => r.state === 'Closed')
@@ -288,8 +350,12 @@ export async function POST(req: Request) {
         stale: live.filter(r => (r.idleDays ?? 0) >= 7).length,
         closed: closed.length,
         closedRevenue: closed.filter(r => r.paid).length * 249,
+        expressAll: express.length,
+        expressPaid: express.filter(e => e.paid).length,
+        expressRevenue: Math.round(express.filter(e => e.paid).length * 29.99 * 100) / 100,
       },
       deals: rows,
+      express,
     })
   } catch (e: any) {
     return NextResponse.json({ error: 'SERVER ERROR: ' + (e?.message || 'unknown') }, { status: 500 })
