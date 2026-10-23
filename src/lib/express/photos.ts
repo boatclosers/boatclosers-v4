@@ -1,4 +1,4 @@
-// Server-only: BC Express handoff photos, kept in a PRIVATE storage bucket and
+// Server-only: BoatClosers Express handoff photos, kept in a PRIVATE storage bucket and
 // served only through the buyer's private link.
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 

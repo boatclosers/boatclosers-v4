@@ -1,4 +1,4 @@
-// Server-only: the paid BC Express inspection. Kept out of the client bundle on
+// Server-only: the paid BoatClosers Express inspection. Kept out of the client bundle on
 // purpose: the deal API sends the full list only to paid deals, and a short
 // preview to unpaid ones.
 

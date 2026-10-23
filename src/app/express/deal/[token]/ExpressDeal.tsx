@@ -286,7 +286,7 @@ export default function ExpressDeal({ token }: { token: string }) {
       <div style={boxStyle}>
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 26, margin: 0 }}>This link isn&apos;t working</h1>
         <p style={{ margin: 0, color: muted, lineHeight: 1.6 }}>
-          Check that you opened the full link from your BC Express email. If it still won&apos;t open, email
+          Check that you opened the full link from your BoatClosers Express email. If it still won&apos;t open, email
           support@boatclosers.com.
         </p>
       </div>

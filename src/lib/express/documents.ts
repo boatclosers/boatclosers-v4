@@ -1,4 +1,4 @@
-// Server-only: BC Express PDF documents, built from the buyer's deal.
+// Server-only: BoatClosers Express PDF documents, built from the buyer's deal.
 // Wording here is legal paperwork. Keep it reviewed by a licensed Florida
 // broker before changing it.
 
@@ -95,12 +95,12 @@ class Writer {
     const w = new Writer()
     w.pdf = await PDFDocument.create()
     w.pdf.setTitle(title)
-    w.pdf.setProducer('BC Express by BoatClosers')
+    w.pdf.setProducer('BoatClosers Express')
     w.font = await w.pdf.embedFont(StandardFonts.Helvetica)
     w.bold = await w.pdf.embedFont(StandardFonts.HelveticaBold)
     w.newPage()
     w.page.drawText('BOATCLOSERS', { x: w.M, y: w.y, size: 10, font: w.bold, color: GOLD })
-    w.page.drawText('BC EXPRESS', { x: w.W - w.M - w.bold.widthOfTextAtSize('BC EXPRESS', 10), y: w.y, size: 10, font: w.bold, color: GOLD })
+    w.page.drawText('EXPRESS', { x: w.W - w.M - w.bold.widthOfTextAtSize('EXPRESS', 10), y: w.y, size: 10, font: w.bold, color: GOLD })
     w.y -= 26
     w.page.drawText(safe(title), { x: w.M, y: w.y, size: 19, font: w.bold, color: NAVY })
     w.y -= 16
@@ -272,7 +272,7 @@ type Deal = {
   progress?: { handoff?: Handoff; inspection?: InspectionProgress; photos?: Photo[] }
 }
 
-const FOOTER = 'Prepared with BC Express by BoatClosers (boatclosers.com). BoatClosers is not a party to this sale and does not give legal advice.'
+const FOOTER = 'Prepared with BoatClosers Express (boatclosers.com). BoatClosers is not a party to this sale and does not give legal advice.'
 
 function sellerList(d: Deal, h: Handoff): string[] {
   return h.twoSellers && h.secondSeller ? [d.seller_name, h.secondSeller] : [d.seller_name]
@@ -583,8 +583,8 @@ async function closingPacket(d: Deal) {
   const h = d.progress?.handoff || {}
   const keys = PACKET_ORDER.filter((k) => docsFor(d.items, h).includes(k))
   const out = await PDFDocument.create()
-  out.setTitle('BC Express Closing Packet')
-  out.setProducer('BC Express by BoatClosers')
+  out.setTitle('BoatClosers Express Closing Packet')
+  out.setProducer('BoatClosers Express')
   for (const k of keys) {
     try {
       const bytes = k === 'hsmv-82040-vs' ? await buildHsmv82040vs(d, { flatten: true }) : await buildDocument(k, d)

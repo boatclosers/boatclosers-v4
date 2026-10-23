@@ -149,7 +149,7 @@ export default function LienCheck({
         Marina, storage, and repair bills can become liens without being filed anywhere. Ask where the boat has been kept
         and serviced, and whether anything is owed.{' '}
         {inExpress
-          ? 'Your BC Express bill of sale includes the seller’s statement that the boat, trailer, and motor are free of all liens.'
+          ? 'Your BoatClosers Express bill of sale includes the seller’s statement that the boat, trailer, and motor are free of all liens.'
           : 'Make sure your bill of sale has the seller state in writing that the boat, trailer, and motor are free of all liens.'}
       </>
     ),

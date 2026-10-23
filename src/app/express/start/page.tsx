@@ -4,7 +4,7 @@ import ExpressStart from './ExpressStart'
 
 // Not linked from anywhere until launch. noindex keeps Google off it meanwhile.
 export const metadata: Metadata = {
-  title: 'Start your BC Express purchase',
+  title: 'Start your BoatClosers Express purchase',
   robots: { index: false, follow: false },
 }
 

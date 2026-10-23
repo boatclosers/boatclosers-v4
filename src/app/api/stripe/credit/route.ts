@@ -5,7 +5,7 @@ import { findExpressCredit, EXPRESS_CREDIT_CENTS } from '@/lib/expressCredit'
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-// GET -> { creditCents }: whether the signed-in person has an unused BC Express
+// GET -> { creditCents }: whether the signed-in person has an unused BoatClosers Express
 // credit, so the pay screen can show the lower price before checkout.
 export async function GET(req: Request) {
   const h = req.headers.get('authorization') || ''

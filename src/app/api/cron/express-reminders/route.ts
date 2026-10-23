@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendEmail, emailLayout } from '@/lib/sendEmail'
 import { handoffProblems, whatToBring, addDays, type Handoff } from '@/lib/express/content'
 
-// BC Express title deadline reminders.
+// BoatClosers Express title deadline reminders.
 //
 // Florida gives a buyer 30 days from the sale to title and register the boat,
 // and the bill of sale only works as temporary registration for those 30 days.

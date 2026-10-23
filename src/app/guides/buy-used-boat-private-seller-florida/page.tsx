@@ -190,7 +190,7 @@ export default function Page() {
           }}
         >
           <h3 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 24, marginTop: 0 }}>
-            Do all of this with BC Express
+            Do all of this with BoatClosers Express
           </h3>
           <p style={{ marginBottom: 26 }}>
             Start free with the HIN check, lien check, and seller questions. For $29.99 you

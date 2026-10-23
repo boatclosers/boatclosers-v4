@@ -5,7 +5,7 @@
 //   9     Month of production (A = Jan ... L = Dec)
 //   10    Last digit of the year of production
 //   11-12 Model year
-// Shared by the free /hin-check page and BC Express.
+// Shared by the free /hin-check page and BoatClosers Express.
 
 export type HinStatus = 'valid' | 'older' | 'problem'
 

@@ -13,7 +13,7 @@ import crypto from 'crypto'
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-// BC Express deal access, by the private token in the buyer's link.
+// BoatClosers Express deal access, by the private token in the buyer's link.
 //   GET  ?token=...                    -> the deal (confirms payment with Stripe if needed)
 //   POST { token, action: 'pay' }      -> a Stripe checkout URL for the $29.99 fee
 //   POST { token, action: 'ids', ids } -> save the HIN / VIN / motor serial
@@ -117,7 +117,7 @@ async function confirmPayment(deal: any) {
       if (flipped && flipped.length) {
         await sendEmail({
           to: deal.buyer_email,
-          subject: 'Your BC Express paperwork is unlocked',
+          subject: 'Your BoatClosers Express paperwork is unlocked',
           html: emailLayout(`
             <p style="font-size:15px;color:#08152e;">Hi ${esc(String(deal.buyer_name).split(' ')[0])},</p>
             <p style="font-size:15px;color:#08152e;line-height:1.6;">Payment received. Your guided inspection is unlocked: take it with you when you see the boat, and it builds a condition report as you go. When you're ready to buy, add the sale details and your bill of sale, state forms, and title application are filled in for you.</p>
@@ -268,7 +268,7 @@ export async function POST(req: Request) {
           <p style="font-size:15px;color:#08152e;line-height:1.6;">${esc(deal.buyer_name)} is interested in your <b>${esc(boat)}</b> and would like to ask a few questions before coming to see it:</p>
           <ol style="font-size:15px;color:#08152e;line-height:1.7;padding-left:22px;">${qs.map((q) => `<li>${esc(q.label)}</li>`).join('')}</ol>
           <p style="font-size:15px;color:#08152e;line-height:1.6;"><b>Just reply to this email</b> and your answers go straight to ${esc(buyerFirst)}.</p>
-          <p style="font-size:13px;color:#64748b;line-height:1.6;">${esc(buyerFirst)} is using BC Express by BoatClosers to buy carefully and do the paperwork right. You don’t need an account.</p>
+          <p style="font-size:13px;color:#64748b;line-height:1.6;">${esc(buyerFirst)} is using BoatClosers Express to buy carefully and do the paperwork right. You don’t need an account.</p>
         `),
       })
       emailOk = !!r.success && (channels.includes('email') || !r.sentSms)
@@ -391,7 +391,7 @@ export async function POST(req: Request) {
   params.append('mode', 'payment')
   params.append('customer_email', deal.buyer_email)
   params.append('line_items[0][price_data][currency]', 'usd')
-  params.append('line_items[0][price_data][product_data][name]', 'BC Express buyer toolkit')
+  params.append('line_items[0][price_data][product_data][name]', 'BoatClosers Express buyer toolkit')
   params.append('line_items[0][price_data][product_data][description]', names.slice(0, 300) || 'Private boat purchase')
   params.append('line_items[0][price_data][unit_amount]', String(FEE_CENTS))
   params.append('line_items[0][quantity]', '1')

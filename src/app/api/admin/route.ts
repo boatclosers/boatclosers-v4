@@ -43,7 +43,7 @@ const days = (ts: any) => {
   return Math.floor((Date.now() - t) / 86400000)
 }
 
-// BC Express: where each purchase stands, and the buyer's title deadline.
+// BoatClosers Express: where each purchase stands, and the buyer's title deadline.
 function assessExpress(e: any) {
   const p = e?.progress || {}
   const h = p.handoff || {}
@@ -225,7 +225,7 @@ export async function POST(req: Request) {
       const sb2 = admin()
       const dealId = String(body.dealId || '').trim()
 
-      // BC Express: delete a purchase (for tests and abandoned starts).
+      // BoatClosers Express: delete a purchase (for tests and abandoned starts).
       if (body.action === 'adminExpressDelete') {
         const id = String(body.expressId || '')
         if (!id) return NextResponse.json({ error: 'Missing expressId.' }, { status: 400 })
@@ -327,7 +327,7 @@ export async function POST(req: Request) {
 
     const rows = (data || []).map(assess)
 
-    // BC Express purchases ($29.99, buyer only).
+    // BoatClosers Express purchases ($29.99, buyer only).
     const { data: ex } = await sb
       .from('express_deals')
       .select('id, access_token, buyer_name, buyer_email, seller_name, items, price_cents, status, paid_at, progress, created_at, updated_at, credit_used_deal_id')

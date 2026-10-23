@@ -142,7 +142,7 @@ export async function buildHsmv82040vs(deal: Deal, opts: { flatten?: boolean } =
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold)
   const { height } = page.getSize()
   page.drawText(
-    'Pre-filled by BC Express. Check every entry, then add your driver license number, date of birth, vessel type, and county, and sign.',
+    'Pre-filled by BoatClosers Express. Check every entry, then add your driver license number, date of birth, vessel type, and county, and sign.',
     { x: 14, y: height - 10, size: 6.5, font: bold, color: rgb(0.62, 0.42, 0.05) }
   )
   pdf.setTitle('HSMV 82040 VS - Application for Certificate of Vessel Title')

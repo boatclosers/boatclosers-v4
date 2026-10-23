@@ -1,4 +1,4 @@
-// BC Express: shared content and types (client-safe).
+// BoatClosers Express: shared content and types (client-safe).
 // Everything a buyer reads in the toolkit lives here, so wording can be
 // reviewed and updated in one place.
 
@@ -108,7 +108,7 @@ export function titleSigningGuide(h: Handoff): CheckItem[] {
   }
   if (h.titledHow === 'documented') {
     out.push(
-      { id: 't-cg1340', label: 'Seller signs a Coast Guard bill of sale (form CG-1340)', detail: 'Documented boats transfer through the Coast Guard’s Vessel Documentation Center. Sign it in addition to your BC Express bill of sale.' },
+      { id: 't-cg1340', label: 'Seller signs a Coast Guard bill of sale (form CG-1340)', detail: 'Documented boats transfer through the Coast Guard’s Vessel Documentation Center. Sign it in addition to your BoatClosers Express bill of sale.' },
       { id: 't-cod', label: 'You get the original Certificate of Documentation' },
       { id: 't-satisfaction', label: 'Any recorded mortgage has a filed satisfaction', detail: 'Check the abstract of title. An open mortgage stays with the boat.' },
     )
@@ -164,7 +164,7 @@ export function whatToBring(h: Handoff, has: Record<ItemKey, boolean>): BringIte
       label: 'Your Certificate of Documentation (or proof the transfer was filed with the Coast Guard)',
       detail: 'Documented boats aren’t titled by Florida, but they still must be registered here.',
     })
-  if (has.boat || has.motor) out.push({ label: 'Your signed BC Express bill of sale' })
+  if (has.boat || has.motor) out.push({ label: 'Your signed BoatClosers Express bill of sale' })
   if (h.lien === 'released') out.push({ label: 'The original signed lien release' })
   out.push({ label: 'A photo ID for every buyer: driver’s license, state ID, or passport' })
   out.push({

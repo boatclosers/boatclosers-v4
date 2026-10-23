@@ -4,7 +4,7 @@ import ExpressDeal from './ExpressDeal'
 
 // Private page: reached only through the buyer's emailed link. Never indexed.
 export const metadata: Metadata = {
-  title: 'Your BC Express purchase',
+  title: 'Your BoatClosers Express purchase',
   robots: { index: false, follow: false },
 }
 

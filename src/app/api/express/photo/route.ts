@@ -7,7 +7,7 @@ import { ensurePhotoBucket, photoBytes, photoPath, PHOTO_BUCKET } from '@/lib/ex
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-// Handoff photos for a paid BC Express purchase.
+// Handoff photos for a paid BoatClosers Express purchase.
 //   GET  ?token&id                       -> the image (private link only)
 //   POST { token, label, image }          -> add a photo (JPEG data URL, resized in the browser)
 //   POST { token, action:'delete', id }   -> remove one

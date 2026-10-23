@@ -1,4 +1,4 @@
-// Server-only: a paid BC Express purchase is worth $29.99 off the $249 fee, once,
+// Server-only: a paid BoatClosers Express purchase is worth $29.99 off the $249 fee, once,
 // for the same email. The credit is chosen at checkout and claimed when Stripe
 // confirms payment, so an abandoned checkout never uses it up.
 import { supabaseAdmin } from '@/lib/supabaseAdmin'

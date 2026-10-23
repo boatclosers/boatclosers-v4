@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'BC Express: Buy a Boat From a Private Seller the Right Way',
+  title: 'BoatClosers Express: Buy a Boat From a Private Seller the Right Way',
   description:
     'Buying a boat, trailer, or motor from a private seller in Florida? Free HIN check, lien check, and seller questions. Then a guided inspection with a condition report, a Florida bill of sale and state forms filled in for your deal, and a pre-filled title application, all for $29.99.',
   alternates: {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     url: 'https://www.boatclosers.com/express',
-    title: 'BC Express by BoatClosers',
+    title: 'BoatClosers Express',
     description:
       'Buying a boat from a private seller? Check it free, then close it right for $29.99. The seller never has to sign up.',
   },
@@ -145,7 +145,7 @@ export default function Page() {
 
       <main style={{ maxWidth: 820, margin: '0 auto', padding: '64px 24px 80px' }}>
         <div style={{ color: gold, fontWeight: 700, fontSize: 15, marginBottom: 14 }}>
-          BC Express · Private boat, trailer &amp; motor purchases in Florida
+          BoatClosers Express · Private boat, trailer &amp; motor purchases in Florida
         </div>
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 6vw, 46px)', lineHeight: 1.15, margin: '0 0 18px' }}>
           Buying a boat from a private seller? Check it free. Close it right for $29.99.
