@@ -5666,65 +5666,9 @@ function AuthScreen({ onAuth, prefillEmail, notice, defaultMode, defaultRole, on
 // ─────────────────────────────────────────────────────────────────────────────
 function Landing({ onStart, onLegal }) {
   const [showDocFinder, setShowDocFinder] = useState(false);
-  // Pull the real library so counts never go stale.
   const groupOrder = [...new Set(DOCUMENTS.map(d=>d.group))];
-  const docGroups = groupOrder.map(g => ({ group:g, count: DOCUMENTS.filter(d=>d.group===g).length }));
   const DOC_COUNT = DOCUMENTS.length;
   const CAT_COUNT = groupOrder.length;
-
-  const GROUP_BLURB = {
-    "Closing Instruments": "The core contract, bill of sale, and settlement every sale needs.",
-    "Due-Diligence Outcomes": "Accept the boat, renegotiate after survey, or walk away.",
-    "Title & Government": "The documents to transfer ownership and registration to the buyer.",
-    "Financing & Insurance": "For financed buyers and lender/insurer requirements.",
-    "Authority & Signing": "Businesses, co-owners, trusts, and power of attorney.",
-    "Deal Structures": "Trade-ins, seller financing, trailers, and gift transfers.",
-    "Estate & Inheritance": "Sell or transfer a boat after the owner has passed.",
-    "Title Problems": "Lost titles, missing documentation, and registration issues.",
-    "Closing-Day": "The handoff: delivery, disclosures, and engine hours.",
-  };
-
-  const features = [
-    { icon:"📜", title:`${DOC_COUNT} Documents for Every Situation`, desc:"Purchase agreement to title transfer — plus estate sales, loans, lost titles, and documented vessels." },
-    { icon:"🎯", title:"Auto-Filled Documents", desc:"Enter your deal once — every document fills itself in with your vessel, parties, price, and dates. No retyping onto twenty forms." },
-    { icon:"🧭", title:"Guided Closing Checklist", desc:"A step-by-step checklist takes both sides from agreement to filed title transfer." },
-    { icon:"💬", title:"Deposit-Backed Offers", desc:"Real offers with earnest money attached — and the boat locked so it can't be sold out from under you." },
-    { icon:"✍️", title:"E-Sign — Notary-Aware", desc:"Sign routine documents electronically; notary-required affidavits are clearly flagged." },
-    { icon:"🤝", title:"Flat $249 — No Commission", desc:"One flat fee per deal. No broker commission, no subscription, no surprises." },
-  ];
-
-  const steps = [
-    ["Enter Vessel Details","Year, make, HIN, engines, registration — the foundation for every document."],
-    ["Add Both Parties","Buyer and seller details. Invite the other side by email to join free."],
-    ["Set Price & Terms","Make offers, choose contingencies, and set the due-diligence window and closing date — together."],
-    ["Complete Due Diligence","Survey, title and lien search, sea trial, and insurance — with a built-in renegotiation window."],
-    ["Pay & Sign","$249 unlocks all "+DOC_COUNT+" documents. Sign electronically; print-and-notarize where the law requires it."],
-    ["Close & File for Title","A final checklist walks both parties through payment, handoff, and the paperwork to file the title and registration transfer with your state or the Coast Guard."],
-  ];
-
-  const situations = [
-    { icon:"🛥️", title:"Selling to a private buyer", desc:"You found the buyer; we handle the agreement, title transfer, and closing." },
-    { icon:"🔍", title:"Buying a boat privately", desc:"Protect your payment through escrow and get the paperwork right before you commit." },
-    { icon:"🕊️", title:"You inherited a boat", desc:"Sell or transfer after the owner has passed, with estate-specific documents." },
-    { icon:"💵", title:"The boat still has a loan", desc:"Clear the seller's loan and liens so clean title passes at closing." },
-    { icon:"📄", title:"Lost or missing title", desc:"Affidavits and step-by-step paths to fix lost titles and registration gaps." },
-    { icon:"⚓", title:"Coast Guard documented vessel", desc:"Transfer federal documentation through the NVDC with the correct forms." },
-    { icon:"🤝", title:"Seller financing or a trade-in", desc:"Promissory notes, security agreements, and trade-in paperwork done right." },
-    { icon:"🏢", title:"Business, co-owner, or power of attorney", desc:"Authority documents ready when someone other than a sole owner signs." },
-  ];
-
-  const secure = [
-    { icon:"🎯", title:"Real offers, not noise", desc:"Offers come backed by an earnest-money deposit, so sellers can tell a committed buyer from a tire-kicker." },
-    { icon:"🔎", title:"Know what you're buying", desc:"Due diligence links you straight to the Coast Guard's free vessel search, the official Abstract of Title for liens, and independent history reports for accidents, storm damage, sinking, theft and salvage." },
-    { icon:"🔒", title:"Lock it so nobody walks", desc:"Once both sides agree, a signed purchase agreement and deposit lock the deal — no ghosting, no selling out from under you." },
-    { icon:"🏦", title:"Move money safely — even remotely", desc:"Deposits and balances can route through Escrow.com, a licensed escrow service, so neither party wires thousands to a stranger. Money releases only when the deal is done. Prefer an attorney's trust account, a broker's escrow, or paying the seller direct? You choose — the agreement records whichever you pick." },
-  ];
-
-  const dealroom = [
-    { icon:"🔄", title:"Negotiate the whole deal — not just price", desc:"Price, deposit, contingencies, and closing dates bundle into one clean offer. Counter back and forth with no limit until you both agree. It's the work a broker does — done by you, for free." },
-    { icon:"🚩", title:"Flag a conflict instead of walking away", desc:"Don't like a date or a term? Flag it and the other side adjusts, instead of the deal falling apart. Small disagreements that usually kill private sales actually get resolved." },
-    { icon:"⏱️", title:"Keep it moving — no ghosting", desc:"Put an expiration on your offer so it can't sit forever, and watch every counter and message update live for both sides. You always know exactly where the deal stands." },
-  ];
 
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 760 : false);
   useEffect(() => {
@@ -5732,156 +5676,211 @@ function Landing({ onStart, onLegal }) {
     window.addEventListener("resize", onR);
     return () => window.removeEventListener("resize", onR);
   }, []);
+  // Load the landing fonts once (Fraunces wordmark, Newsreader headlines, Inter body).
+  useEffect(() => {
+    if (typeof document === "undefined" || document.getElementById("bc-landing-fonts")) return;
+    const l = document.createElement("link");
+    l.id = "bc-landing-fonts"; l.rel = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600&display=swap";
+    document.head.appendChild(l);
+  }, []);
+
+  const F = { display:"'Fraunces',Georgia,serif", serif:"'Newsreader',Georgia,serif", sans:"'Inter',-apple-system,sans-serif" };
+  const X = { navyDeep:"#061020", navySky:"#0a1c3a", sandWarm:"#efe7d6", sandCool:"#f0ece2", paper:"#fffdf9", brassLt:"#e0c074", mist:"#ddd5c6", slate:"#44586d" };
   const cols = (n) => isMobile ? "1fr" : Array(n).fill("1fr").join(" ");
 
-  const Section = ({ children, style }) => <div style={{ maxWidth:880, margin:"0 auto", padding:isMobile?"3rem 1.25rem":"4.5rem 2rem", ...style }}>{children}</div>;
+  const eyebrow = (text, light) => (
+    <div style={{ display:"inline-flex", alignItems:"center", gap:10, fontFamily:F.sans, fontSize:11, letterSpacing:3, color: light?X.brassLt:C.brass, textTransform:"uppercase", fontWeight:500 }}>
+      <span style={{ width:20, height:1, background: light?"rgba(217,178,94,0.5)":"rgba(184,134,58,0.55)" }}/>
+      {text}
+      <span style={{ width:20, height:1, background: light?"rgba(217,178,94,0.5)":"rgba(184,134,58,0.55)" }}/>
+    </div>
+  );
+
+  const Ico = ({ children, stroke }) => (
+    <svg width="26" height="26" viewBox="0 0 24 24" style={{ fill:"none", stroke: stroke||C.brass, strokeWidth:1.4, strokeLinecap:"round", strokeLinejoin:"round" }}>{children}</svg>
+  );
+
+  const brassBtn = { background:C.brass, color:C.navy, border:"none", borderRadius:3, padding:"13px 30px", fontSize:15, fontWeight:600, fontFamily:F.sans, letterSpacing:0.3, cursor:"pointer", display:"inline-block" };
+  const outlineBtn = { background:"transparent", color:X.brassLt, border:"1px solid rgba(217,178,94,0.5)", borderRadius:3, padding:"13px 30px", fontSize:15, fontWeight:500, fontFamily:F.sans, letterSpacing:0.3, cursor:"pointer", display:"inline-block" };
+  const navyBtn = { ...brassBtn, background:C.navy, color:X.brassLt, border:`1px solid ${C.navy}` };
+  const lead = { fontFamily:F.sans, fontSize:14, color:X.slate, lineHeight:1.8 };
+  const card = { background:X.paper, border:`0.5px solid ${X.mist}`, borderRadius:10, padding:"1.5rem" };
+  const h2s = { fontFamily:F.serif, fontWeight:500, lineHeight:1.18, letterSpacing:0.2 };
+
+  const features = [
+    { t:"41 documents, auto-filled", d:"Purchase agreement to title transfer — plus estate, loans, lost titles, financing, and documented vessels. Enter your deal once; every form fills itself.", p:<><path d="M9 3h6l4 4v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M15 3v4h4"/><path d="M9 13h6M9 17h4"/></> },
+    { t:"Deposit-backed offers", d:"Real offers with earnest money attached — serious buyers only — and the boat locked once agreed so it can't be sold out from under you.", p:<><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></> },
+    { t:"Escrow, five ways", d:"Route the money safely — Escrow.com, an attorney, a licensed broker's trust account, direct, or custom. You choose; we never touch the funds.", p:<><path d="M4 10h16M4 10l2-5h12l2 5M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9"/><path d="M10 14h4"/></> },
+    { t:"Due diligence, guided", d:"Survey, sea trial, and the Coast Guard's free vessel search and Abstract of Title for liens — with a built-in window to renegotiate or walk away.", p:<><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></> },
+    { t:"E-sign, notary-aware", d:"Sign routine documents electronically. The ones that legally require a notary are clearly flagged, so nothing gets signed the wrong way.", p:<><path d="M3 21l3-1 11-11a2 2 0 0 0-3-3L3 17z"/><path d="M14 5l3 3"/></> },
+    { t:"Financing & lender docs", d:"Getting a loan? The paperwork a lender calls for — signed agreement, insurance binder, clean title — is built in, so you're not scrambling at closing.", p:<><path d="M4 7h14M4 12h14M4 17h9"/><path d="M16 16l2 2 3.5-3.5"/></> },
+  ];
+  const dealroom = [
+    { t:"Negotiate the whole deal", d:"Price, deposit, contingencies, and closing dates bundle into one clean offer. Counter back and forth with no limit until you both agree.", p:<><path d="M4 12a8 8 0 0 1 14-5M20 12a8 8 0 0 1-14 5"/><path d="M18 3v4h-4M6 21v-4h4"/></> },
+    { t:"Flag a conflict, don't walk", d:"Don't like a date or a term? Flag it and the other side adjusts — instead of the deal quietly dying over something small.", p:<><path d="M5 21V4a1 1 0 0 1 1-1h8l-1 4h6l-2 6H6"/></> },
+    { t:"Keep it moving — no ghosting", d:"Put an expiration on your offer so it can't sit forever, and watch every counter update live for both sides. You always know where the deal stands.", p:<><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></> },
+  ];
+  const secure = [
+    ["Real offers, not noise","Offers come backed by an earnest-money deposit, so a seller can tell a committed buyer from a tire-kicker."],
+    ["Know what you're buying","Due diligence links straight to the Coast Guard's free vessel search, the official Abstract of Title for liens, and independent history reports."],
+    ["Lock it so nobody walks","Once both sides agree, a signed purchase agreement and deposit lock the deal — no ghosting, no selling out from under you."],
+    ["Move money safely, even remotely","Funds route through escrow so neither party wires thousands to a stranger. Money releases only when the deal is done."],
+  ];
+  const trackSteps = [
+    ["1","Offer & Terms","Deposit-backed offer, accepted by both"],
+    ["2","Deal Locked","Agreement signed — boat off the market"],
+    ["3","Due Diligence","Survey, sea trial, title & lien check"],
+    ["4","Documents Signed","Every form auto-filled, signed, shared"],
+    ["5","Closed","Title transferred, deal is done"],
+  ];
+  const faqs = [
+    ["How do I sell a boat without a broker?","Enter your vessel and both parties, negotiate the price and terms, complete due diligence, then pay $249 to unlock and sign every document the sale needs. BoatClosers gives you the same professional paperwork and closing process a yacht broker uses — you simply run it yourself and keep the commission."],
+    ["What documents do I need to sell a boat privately?","At minimum a purchase agreement, bill of sale, and the title-transfer documents — plus a deposit receipt, as-is acknowledgment, and closing statement. Depending on the deal you may also need financing, insurance, estate, or lost-title documents. BoatClosers includes all "+DOC_COUNT+" and shows you exactly which ones your deal requires."],
+    ["How do I make an offer on a boat I found on Facebook Marketplace or Craigslist?","Start a deal in BoatClosers, enter the vessel, and send a structured offer with an earnest-money deposit attached. Unlike a comment or a text, a deposit-backed offer shows the seller you're serious and creates a recorded paper trail — and once accepted, a signed agreement locks the boat in so it can't be sold to someone else."],
+    ["How do I keep a seller from selling the boat to someone else after we agree?","This is one of the most common ways private deals fall apart. The fix is to secure it: the moment both sides agree, a signed purchase agreement plus an earnest-money deposit binds the deal. The seller can no longer walk to another buyer without consequence, and the buyer can't be left empty-handed after turning others away."],
+    ["Is it safe to buy a boat remotely from another state?","Yes, when the money is handled correctly. BoatClosers keeps the whole negotiation and signing remote, and routes funds through escrow — Escrow.com, a private attorney, or another verified path — so you never wire thousands to a stranger on faith. The funds release only when the deal is complete."],
+    ["Are these documents legally binding?","Our templates follow recognized maritime and state-transfer standards, but enforceability depends on how accurately you complete them and on your state's requirements. We flag the documents that must be notarized, and we strongly recommend a local maritime attorney review anything involving financing, estates, or title problems before signing."],
+    ["How does title transfer work for a Coast Guard documented vessel?","Documented vessels transfer through the National Vessel Documentation Center rather than the state. BoatClosers includes the USCG transfer and documentation forms and walks you through requesting the vessel's abstract of title from the Coast Guard."],
+    ["What if the seller still owes money on the boat?","The deal includes a payoff authorization and lien release so the seller's existing loan is cleared from the title at closing — letting clean title pass to the buyer. The buyer should confirm the lien is released before final payment."],
+    ["What if I inherited a boat I want to sell?","BoatClosers includes an estate and inheritance section with a plain-language guide plus affidavit of heirship, executor authorization, and small-estate forms. Estate rules vary by state, so the app points you to when a probate attorney is needed."],
+    ["Who pays the $249 fee?","Whoever starts the deal pays the flat fee and controls the vessel details and terms. The other party joins free to review, add their information, and sign."],
+    ["What escrow options do I have, and do you hold the money?","You choose from five: Escrow.com (a licensed third party, recommended), a licensed boat brokerage's trust account, a private attorney or title company, a direct wire to the seller, or your own custom arrangement. BoatClosers never holds, touches, or releases funds."],
+    ["The boat I want is listed with a broker. Can I still use BoatClosers?","Yes. You deal with the listing broker directly and BoatClosers handles your side of the paperwork — the offer, the agreement, the deposit, due diligence and closing. It is also worth knowing that a listing broker's commission normally assumes a second broker brings the buyer and takes a share of it. If nobody is doing that — because you are representing yourself — that is a reasonable thing to raise when you decide your number, and far easier to raise before terms are agreed than after. BoatClosers points it out at the right moment when you build your offer. What the broker does about it is entirely theirs to decide."],
+    ["Can I still use a broker or attorney if I want one?","Yes. BoatClosers is built so you don't need one, but nothing stops you from bringing one in — for example, letting a licensed brokerage's trust account hold the escrow deposit, or having an attorney review the agreement before you sign. You run the deal and bring in whatever help you're comfortable with."],
+    ["What if the deal falls through?","If the buyer formally rejects during due diligence, the earnest money is returned and the reason is recorded in a Rejection Notice. BoatClosers does not hold or release any funds."],
+  ];
 
   return (
-    <div style={{ fontFamily:"'Georgia','Times New Roman',serif", background:C.sand, color:C.text, minHeight:"100vh" }}>
+    <div style={{ fontFamily:F.serif, background:C.sand, color:C.text, minHeight:"100vh" }}>
       {/* Nav */}
-      <nav style={{ background:C.navy, padding:"0 2.5rem", display:"flex", alignItems:"center", justifyContent:"space-between", height:60, borderBottom:`1px solid rgba(184,134,58,0.3)`, position:"sticky", top:0, zIndex:100 }}>
-        <div>
-          <div style={S.logo}>BOATCLOSERS</div>
-          <div style={{ fontSize:8, color:"rgba(255,255,255,0.35)", letterSpacing:3, fontFamily:"sans-serif", textTransform:"uppercase" }}>Private Vessel Transactions</div>
-        </div>
-        <div style={{ display:"flex", gap:10 }}>
-          <button style={{ ...S.btnOutline, color:"rgba(255,255,255,0.7)", borderColor:"rgba(255,255,255,0.2)", fontSize:12, padding:"7px 16px" }} onClick={onStart}>Sign In</button>
-          <button style={{ ...S.btnBrass, fontSize:12, padding:"7px 18px" }} onClick={onStart}>Get Started</button>
-        </div>
+      <nav style={{ background:X.navyDeep, height:56, display:"flex", alignItems:"center", justifyContent:"flex-end", gap:8, padding:"0 1.25rem", position:"sticky", top:0, zIndex:100, borderBottom:"1px solid rgba(184,134,58,0.22)" }}>
+        <button style={{ ...outlineBtn, padding:"7px 15px", fontSize:12 }} onClick={onStart}>Sign In</button>
+        <button style={{ ...brassBtn, padding:"7px 16px", fontSize:12 }} onClick={onStart}>Get Started</button>
       </nav>
 
       {/* Hero */}
-      <header style={{ background:`linear-gradient(160deg, ${C.navy} 0%, ${C.navy2} 55%, #0e3a52 100%)`, color:"#fff", padding:isMobile?"3.5rem 1.25rem 3rem":"6rem 2rem 4.5rem", textAlign:"center", position:"relative", overflow:"hidden" }}>
-        <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:`repeating-linear-gradient(90deg, ${C.brass} 0px, ${C.brass} 12px, transparent 12px, transparent 20px)`, opacity:0.4 }} />
-        <div style={{ maxWidth:720, margin:"0 auto" }}>
-          <div style={{ display:"inline-block", background:"rgba(184,134,58,0.15)", border:`1px solid rgba(184,134,58,0.4)`, borderRadius:20, padding:"5px 16px", fontSize:11, letterSpacing:2, color:C.brass2, fontFamily:"sans-serif", textTransform:"uppercase", marginBottom:24 }}>
-            Private Boat Transactions · Done Right
+      <header style={{ background:X.navyDeep, color:"#fff", textAlign:"center", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", top:0, left:0, right:0, height:"56%", background:`linear-gradient(180deg, ${X.navySky} 0%, ${X.navyDeep} 100%)` }} />
+        <div style={{ position:"absolute", left:0, right:0, top:"56%", height:1, background:"linear-gradient(90deg,transparent,rgba(184,134,58,0.5),transparent)" }} />
+        <div style={{ position:"relative", padding: isMobile?"2.5rem 1.25rem 3rem":"3rem 1.25rem 3.25rem", maxWidth:620, margin:"0 auto" }}>
+          <div style={{ marginBottom:14 }}>{eyebrow("Est. for private deals")}</div>
+          <div style={{ fontFamily:F.display, color:X.brassLt, fontSize:isMobile?34:38, letterSpacing:1, fontWeight:600, lineHeight:1 }}>Boatclosers</div>
+          <div style={{ fontFamily:F.sans, color:"rgba(255,255,255,0.66)", fontSize:11.5, marginTop:10, letterSpacing:1.5, textTransform:"uppercase" }}>Buying &amp; selling boats and yachts</div>
+          <h1 style={{ ...h2s, fontSize:isMobile?26:31, lineHeight:1.22, color:"#fff", marginTop:26 }}>Everything you need to close a boat deal — <span style={{ color:X.brassLt }}>in one place.</span></h1>
+          <p style={{ ...lead, color:"rgba(255,255,255,0.72)", marginTop:16 }}>Offers, escrow, contracts, due diligence, title paperwork, and the financing documents a lender asks for — handled in order and explained as you go, built from a working yacht broker's playbook. Enter the deal once; every document fills itself in.</p>
+          <div style={{ display:"inline-block", marginTop:18, color:X.brassLt, fontSize:12, fontFamily:F.sans, border:"0.5px solid rgba(184,134,58,0.45)", borderRadius:20, padding:"6px 16px", letterSpacing:0.5 }}>Flat $249 · no commission · no broker</div>
+          <div style={{ display:"flex", gap:10, justifyContent:"center", marginTop:22, flexWrap:"wrap" }}>
+            <button style={brassBtn} onClick={()=>onStart("buyer")}>Start as Buyer</button>
+            <button style={outlineBtn} onClick={()=>onStart("seller")}>Start as Seller</button>
           </div>
-          <h1 style={{ fontSize:isMobile?32:46, fontWeight:800, lineHeight:1.12, marginBottom:20, fontFamily:"'Georgia',serif" }}>
-                        Make the Offer.<br/>
-            Negotiate the Deal.<br/>
-            <span style={{ color:C.brass2 }}>Close the Boat.</span>
-          </h1>
-          <p style={{ fontSize:17, color:"rgba(255,255,255,0.74)", lineHeight:1.75, marginBottom:34, fontFamily:"sans-serif", fontWeight:300 }}>
-            Handle the offer, paperwork, signatures, escrow, and closing in one place — the way a broker would, without one. <strong style={{ color:"#fff", fontWeight:600 }}>No commission — just $249.</strong>
-          </p>
-          <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
-            <button style={{...S.btnBrass, fontSize:15, padding:"13px 32px"}} onClick={()=>onStart("buyer")}>Start as Buyer</button>
-            <button style={{ ...S.btnOutline, color:"rgba(255,255,255,0.85)", borderColor:"rgba(255,255,255,0.3)", fontSize:15, padding:"13px 32px", borderRadius:5 }} onClick={()=>onStart("seller")}>Start as Seller</button>
-          </div>
-          <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginTop:16, fontFamily:"sans-serif" }}>Free to start · Pay $249 only when you're ready to sign</div>
-          <div style={{ fontSize:13.5, color:"rgba(255,255,255,0.75)", marginTop:18, fontFamily:"sans-serif" }}>
-            Smaller deal, price already agreed? <a href="/express" style={{ color:C.brass2, fontWeight:600 }}>Try BoatClosers Express for $29.99</a>
-          </div>
+          <div style={{ fontFamily:F.sans, color:"rgba(255,255,255,0.4)", fontSize:11, marginTop:14 }}>Free to start · pay only when you're ready to sign</div>
+          <div style={{ fontFamily:F.sans, fontSize:13, color:"rgba(255,255,255,0.72)", marginTop:16 }}>Smaller deal, price already agreed? <a href="/express" style={{ color:X.brassLt, fontWeight:500 }}>Try BoatClosers Express for $29.99</a></div>
         </div>
       </header>
 
       {/* Trust bar */}
-      <div style={{ background:C.navy2, borderTop:`1px solid rgba(184,134,58,0.2)`, borderBottom:`1px solid rgba(184,134,58,0.2)`, padding:"1rem 2rem" }}>
-        <div style={{ maxWidth:880, margin:"0 auto", display:"flex", flexWrap:"wrap", justifyContent:"center", gap:"10px 28px", fontSize:12.5, fontFamily:"sans-serif", color:"rgba(255,255,255,0.7)" }}>
-          <span>⚓ Built for real private boat deals</span>
-          <span>📜 {DOC_COUNT} documents, {CAT_COUNT} categories</span>
-          <span>💵 Flat $249 — not 10% commission</span>
-          <span>🔒 We never touch your money</span>
+      <div style={{ background:C.navy2, borderBottom:"1px solid rgba(184,134,58,0.18)", padding:"0.9rem 1.25rem" }}>
+        <div style={{ maxWidth:880, margin:"0 auto", display:"flex", flexWrap:"wrap", justifyContent:"center", gap:"8px 24px", fontSize:11.5, fontFamily:F.sans, color:"rgba(255,255,255,0.68)", letterSpacing:0.3 }}>
+          <span>Built for real private boat deals</span>
+          <span>{DOC_COUNT} documents, {CAT_COUNT} categories</span>
+          <span>Flat $249 — not 10% commission</span>
+          <span>We never touch your money</span>
         </div>
       </div>
 
       {/* Problem / Solution */}
-      <Section style={{ textAlign:"center" }}>
-        <div style={{ fontSize:11, letterSpacing:3, color:C.brass, textTransform:"uppercase", fontFamily:"sans-serif", marginBottom:14 }}>The Problem</div>
-        <h2 style={{ fontSize:29, marginBottom:16 }}>A boat deal shouldn't cost you $15,000 in commission.</h2>
-        <p style={{ fontSize:15, fontFamily:"sans-serif", color:C.slate, lineHeight:1.85, maxWidth:660, margin:"0 auto 36px" }}>
-          On a $150,000 boat, a broker's 10% is around <strong style={{ color:C.navy }}>$15,000</strong> — for paperwork and coordination a motivated buyer and seller can handle themselves. And if your situation is anything but ordinary — an inherited boat, a loan still owed, a lost title — most people have nowhere to turn at all. The hard part was never the deal. It's the documents, the title paperwork, the escrow, and the fear of missing a step that costs you later.
-        </p>
-        <div style={{ fontSize:11, letterSpacing:3, color:C.brass, textTransform:"uppercase", fontFamily:"sans-serif", marginBottom:14 }}>The Solution</div>
-        <h2 style={{ fontSize:29, marginBottom:16 }}>Every document, every step — for a flat $249.</h2>
-        <p style={{ fontSize:15, fontFamily:"sans-serif", color:C.slate, lineHeight:1.85, maxWidth:660, margin:"0 auto" }}>
-          BoatClosers gives you the exact paperwork and closing process used in professional vessel sales — the purchase agreement, the title-transfer documents, escrow options, and a guided due-diligence and closing checklist. Every step reflects real private boat closings, including the messy ones most DIY templates ignore. You stay in control of your own deal — and you keep the commission.
-        </p>
-      </Section>
+      <div style={{ maxWidth:880, margin:"0 auto", padding:"3.75rem 1.25rem", textAlign:"center" }}>
+        {eyebrow("The problem")}
+        <h2 style={{ ...h2s, fontSize:27, color:C.navy, margin:"14px 0" }}>Buying or selling a boat on your own is harder than it should be.</h2>
+        <p style={{ ...lead, maxWidth:640, margin:"0 auto" }}>Whether you're protecting a big purchase, selling the boat yourself to keep the commission, or just trying to do it right — there's never been one place that handles the whole deal, start to finish. The offer, the escrow, the contracts, the title paperwork, the financing a lender wants, the steps you didn't know you needed. So people cobble it together from templates and guesswork, or hand it to a broker and pay 10% just to make it someone else's problem.</p>
+        <div style={{ height:1, background:X.mist, margin:"36px auto", maxWidth:120 }} />
+        {eyebrow("The solution")}
+        <h2 style={{ ...h2s, fontSize:27, color:C.navy, margin:"14px 0" }}>It's all here — in order, and done right.</h2>
+        <p style={{ ...lead, maxWidth:640, margin:"0 auto" }}>BoatClosers holds every piece of the deal in one place: the offer, the escrow, the contracts, the due diligence, the title paperwork, the close — and the financing documents a lender asks for, like the signed purchase agreement, proof of insurance, and a clean title. Each one is built from how real boat sales actually happen, the messy ones included. You handle your own deal, guided the whole way.</p>
+        <div style={{ background:C.navy, borderRadius:10, padding:"20px 22px", margin:"24px auto 0", maxWidth:620 }}>
+          <div style={{ fontFamily:F.sans, color:"#fff", fontSize:14, lineHeight:1.7 }}>And the commission a broker would have taken — <span style={{ color:X.brassLt, fontWeight:600 }}>$10,000 to $50,000 on most boats</span> — stays in your pocket. That's money you keep for handling the deal yourself.</div>
+        </div>
+      </div>
 
-      {/* Deal tracker preview */}
-      <div style={{ background:C.white, padding:"4.5rem 2rem", borderTop:`0.5px solid ${C.mist}`, borderBottom:`0.5px solid ${C.mist}` }}>
+      {/* Trust band */}
+      <div style={{ background:X.sandWarm, padding:"3rem 1.25rem", borderTop:`0.5px solid ${X.mist}`, borderBottom:`0.5px solid ${X.mist}` }}>
+        <div style={{ maxWidth:720, margin:"0 auto", textAlign:"center" }}>
+          {eyebrow("Built by someone who's closed these deals")}
+          <h2 style={{ ...h2s, fontSize:24, color:C.navy, margin:"14px 0" }}>Not a template site — a working broker's process, put in your hands</h2>
+          <p style={{ ...lead, maxWidth:620, margin:"0 auto 24px" }}>BoatClosers was built by a licensed Florida yacht broker and captain — from how real vessel transactions actually close, including the complicated ones. The documents follow recognized maritime and state-transfer standards, and the platform flags anything that needs a notary or an attorney. You get a professional's process; you stay in control of your own deal.</p>
+          <div style={{ display:"flex", justifyContent:"center", flexWrap:"wrap", gap:"10px 12px" }}>
+            {["Licensed FL yacht broker & captain","Maritime & state-transfer standards","We never hold or touch your money"].map(t=>(
+              <div key={t} style={{ fontFamily:F.sans, fontSize:12, color:C.navy, background:X.paper, border:`0.5px solid ${X.mist}`, borderRadius:20, padding:"8px 16px" }}>{t}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Deal tracker */}
+      <div style={{ background:X.paper, borderBottom:`0.5px solid ${X.mist}`, padding:"3.75rem 1.25rem" }}>
         <div style={{ maxWidth:880, margin:"0 auto" }}>
-          <div style={{ fontSize:11, letterSpacing:3, color:C.brass, textTransform:"uppercase", fontFamily:"sans-serif", marginBottom:14, textAlign:"center" }}>The Whole Deal, In One Place</div>
-          <h2 style={{ textAlign:"center", fontSize:28, marginBottom:8 }}>Watch Your Deal Move From Offer to Closed</h2>
-          <p style={{ textAlign:"center", fontSize:14, fontFamily:"sans-serif", color:C.slate, marginBottom:44, maxWidth:600, marginLeft:"auto", marginRight:"auto" }}>
-            Every deal follows one clear track. Both sides always know exactly where things stand and what happens next — that's what the flat $249 buys you.
-          </p>
-          <div style={{ display:"flex", flexDirection:isMobile?"column":"row", justifyContent:"space-between", gap:isMobile?16:0 }}>
-            {[
-              ["📝","Offer & Terms","Deposit-backed offer, accepted by both sides"],
-              ["🔒","Deal Locked","Purchase agreement signed — boat off the market"],
-              ["🔍","Due Diligence","Survey, sea trial, and title & lien check"],
-              ["✍️","Documents Signed","Every form auto-filled, signed, and shared"],
-              ["🏁","Closed","Title transferred and the deal is done"],
-            ].map(([ic,t,d],i,a)=>(
-              <div key={t} style={{ flex:1, textAlign:"center", position:"relative", padding:isMobile?"0":"0 4px" }}>
-                {!isMobile && i<a.length-1 && <div style={{ position:"absolute", top:23, left:"50%", width:"100%", height:2, background:C.mist, zIndex:0 }} />}
-                <div style={{ width:48, height:48, borderRadius:"50%", background:C.navy, color:C.brass2, display:"flex", alignItems:"center", justifyContent:"center", fontSize:21, margin:"0 auto", position:"relative", zIndex:1 }}>{ic}</div>
-                <div style={{ fontSize:13, fontWeight:700, color:C.navy, marginTop:11, fontFamily:"sans-serif" }}>{t}</div>
-                <div style={{ fontSize:11, color:C.slate, fontFamily:"sans-serif", lineHeight:1.5, marginTop:3, maxWidth:150, marginLeft:"auto", marginRight:"auto" }}>{d}</div>
+          <div style={{ textAlign:"center" }}>{eyebrow("The whole deal, in one place")}</div>
+          <h2 style={{ ...h2s, textAlign:"center", fontSize:25, color:C.navy, margin:"14px 0 8px" }}>Watch your deal move from offer to closed</h2>
+          <p style={{ ...lead, textAlign:"center", maxWidth:560, margin:"0 auto 42px" }}>Every deal follows one clear track. Both sides always know exactly where things stand and what happens next.</p>
+          <div style={{ display:"flex", flexDirection:isMobile?"column":"row", justifyContent:"space-between", gap:isMobile?22:0, position:"relative" }}>
+            {!isMobile && <div style={{ position:"absolute", top:23, left:"10%", right:"10%", height:1, background:X.mist, zIndex:0 }} />}
+            {trackSteps.map(([n,t,d],i)=>(
+              <div key={t} style={{ flex:1, textAlign:"center", position:"relative", zIndex:1 }}>
+                <div style={{ width:48, height:48, borderRadius:"50%", background: i===4?C.brass:C.navy, color: i===4?C.navy:X.brassLt, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto", fontFamily:F.serif, fontWeight: i===4?600:500, fontSize:18 }}>{n}</div>
+                <div style={{ fontFamily:F.sans, fontSize:12.5, fontWeight:600, color:C.navy, marginTop:11 }}>{t}</div>
+                <div style={{ fontFamily:F.sans, fontSize:11, color:X.slate, lineHeight:1.5, margin:"3px auto 0", maxWidth:140 }}>{d}</div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Features */}
-      <Section style={{ paddingTop:"1.5rem" }}>
-        <h2 style={{ textAlign:"center", fontSize:30, marginBottom:8 }}>Everything You Need to Close a Boat Sale</h2>
-        <p style={{ textAlign:"center", fontSize:14, fontFamily:"sans-serif", color:C.slate, marginBottom:40 }}>From the first offer to the final signature, every part of the deal is built in.</p>
-        <div style={{ display:"grid", gridTemplateColumns:cols(3), gap:24 }}>
+      {/* What's included */}
+      <div style={{ maxWidth:880, margin:"0 auto", padding:"3.75rem 1.25rem" }}>
+        <div style={{ textAlign:"center" }}>{eyebrow("What's in the one place")}</div>
+        <h2 style={{ ...h2s, textAlign:"center", fontSize:25, color:C.navy, margin:"14px 0 8px" }}>The whole deal, handled — not a folder of blank forms</h2>
+        <p style={{ ...lead, textAlign:"center", maxWidth:600, margin:"0 auto 38px" }}>Enter your deal once. Everything below fills itself in and stays organized by exactly when you need it.</p>
+        <div style={{ display:"grid", gridTemplateColumns:cols(2), gap:16 }}>
           {features.map(f=>(
-            <div key={f.title} style={{ background:C.white, borderRadius:8, padding:"1.5rem", border:`0.5px solid ${C.mist}` }}>
-              <div style={{ fontSize:26, marginBottom:10 }}>{f.icon}</div>
-              <h3 style={{ fontSize:15, fontWeight:700, color:C.navy, marginBottom:6 }}>{f.title}</h3>
-              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>{f.desc}</div>
+            <div key={f.t} style={card}>
+              <Ico>{f.p}</Ico>
+              <h3 style={{ fontFamily:F.sans, fontSize:15, color:C.navy, margin:"12px 0 7px", fontWeight:600 }}>{f.t}</h3>
+              <p style={{ fontFamily:F.sans, fontSize:12.5, color:X.slate, lineHeight:1.7 }}>{f.d}</p>
             </div>
           ))}
         </div>
-      </Section>
-
-      {/* Whatever your situation */}
-      <div style={{ background:C.sandDark, padding:"4.5rem 2rem" }}>
-        <div style={{ maxWidth:880, margin:"0 auto" }}>
-          <h2 style={{ textAlign:"center", fontSize:30, marginBottom:8 }}>Whatever Your Situation, There's a Path Through It</h2>
-          <p style={{ textAlign:"center", fontSize:14, fontFamily:"sans-serif", color:C.slate, marginBottom:40, maxWidth:640, marginLeft:"auto", marginRight:"auto" }}>
-            BoatClosers isn't only for skipping a broker. It's built for the full range of private vessel transfers — including the complicated ones almost nobody else helps with.
-          </p>
-          <div style={{ display:"grid", gridTemplateColumns:cols(2), gap:16 }}>
-            {situations.map(s=>(
-              <div key={s.title} style={{ display:"flex", gap:13, background:C.white, borderRadius:8, padding:"1.25rem 1.4rem", border:`0.5px solid ${C.mist}` }}>
-                <div style={{ fontSize:22, flexShrink:0, lineHeight:1.3 }}>{s.icon}</div>
-                <div>
-                  <h3 style={{ fontSize:14, fontWeight:700, color:C.navy, marginBottom:4 }}>{s.title}</h3>
-                  <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>{s.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p style={{ textAlign:"center", fontSize:13, fontFamily:"sans-serif", color:C.slate, marginTop:28 }}>
-            Don't see your exact situation? With {DOC_COUNT} documents across {CAT_COUNT} categories, the odds are it's covered — and the app shows you only what your deal needs.
-          </p>
-        </div>
       </div>
 
-      {/* The Deal Room — negotiation */}
-      <div style={{ background:"#fff", padding:"5rem 2rem" }}>
-        <div style={{ maxWidth:1000, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:44 }}>
-            <div style={{ fontSize:11, letterSpacing:3, color:C.brass2, textTransform:"uppercase", fontFamily:"sans-serif", marginBottom:14 }}>Where a Fair Deal Actually Happens</div>
-            <h2 style={{ fontSize:30, color:C.navy, marginBottom:16 }}>The Deal Room — Where Stuck Deals Get Unstuck</h2>
-            <p style={{ fontSize:15, fontFamily:"sans-serif", color:C.slate, lineHeight:1.8, maxWidth:680, margin:"0 auto" }}>
-              Most private boat sales don't fall apart over price — they fall apart over a missed text, a term nobody would budge on, or an offer with nothing behind it. The Deal Room gives both sides one place to negotiate the entire deal, back and forth, until it's fair — the job a broker would charge thousands for.
-            </p>
+      {/* Question segment (DocFinder) */}
+      <div style={{ background:X.sandWarm, padding:"3.5rem 1.25rem", textAlign:"center", borderTop:`0.5px solid ${X.mist}`, borderBottom:`0.5px solid ${X.mist}` }}>
+        <div style={{ maxWidth:560, margin:"0 auto", background:X.paper, border:`0.5px solid ${X.mist}`, borderTop:`2.5px solid ${C.navy}`, borderRadius:4, padding:"2.25rem 1.75rem" }}>
+          {eyebrow("Not sure where to start?")}
+          <h2 style={{ ...h2s, fontSize:24, color:C.navy, margin:"14px 0 10px" }}>Tell us about your deal — we'll show you exactly what it needs</h2>
+          <p style={{ ...lead, marginBottom:26 }}>Answer a few quick questions — who's selling, is there a loan, a lost title, an estate — and BoatClosers lays out the exact documents and steps for your situation. No guessing, no wading through forms you don't need.</p>
+          <button style={navyBtn} onClick={()=>setShowDocFinder(true)}>Answer a few questions →</button>
+        </div>
+      </div>
+      {showDocFinder && (
+        <div onClick={()=>setShowDocFinder(false)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:5000, padding:"3vh 1rem", overflowY:"auto" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:"#fff", borderRadius:12, maxWidth:600, width:"100%", padding:"1.6rem", border:`2px solid ${C.brass}` }}>
+            <DocFinder DOCUMENTS={DOCUMENTS} C={C} S={S} onClose={()=>setShowDocFinder(false)} onOpenDoc={()=>{ setShowDocFinder(false); onStart(); }} />
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:cols(3), gap:18 }}>
+        </div>
+      )}
+
+      {/* Deal Room */}
+      <div style={{ background:X.sandCool, padding:"3.75rem 1.25rem" }}>
+        <div style={{ maxWidth:880, margin:"0 auto" }}>
+          <div style={{ textAlign:"center" }}>{eyebrow("Where a fair deal actually happens")}</div>
+          <h2 style={{ ...h2s, textAlign:"center", fontSize:25, color:C.navy, margin:"14px 0" }}>The Deal Room — where stuck deals get unstuck</h2>
+          <p style={{ ...lead, textAlign:"center", maxWidth:650, margin:"0 auto 38px" }}>Most private boat sales don't fall apart over price — they fall apart over a missed text, a term nobody would budge on, or an offer with nothing behind it. The Deal Room gives both sides one place to negotiate the entire deal, back and forth, until it's fair.</p>
+          <div style={{ display:"grid", gridTemplateColumns:cols(3), gap:16 }}>
             {dealroom.map(d=>(
-              <div key={d.title} style={{ background:C.sand, border:`1px solid ${C.mist}`, borderRadius:9, padding:"1.6rem 1.4rem" }}>
-                <div style={{ fontSize:26, marginBottom:12 }}>{d.icon}</div>
-                <h3 style={{ fontSize:15, fontWeight:700, color:C.navy, marginBottom:8, fontFamily:"sans-serif" }}>{d.title}</h3>
-                <p style={{ fontSize:13.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>{d.desc}</p>
+              <div key={d.t} style={card}>
+                <Ico stroke={C.navy}>{d.p}</Ico>
+                <h3 style={{ fontFamily:F.sans, fontSize:14.5, color:C.navy, margin:"12px 0 7px", fontWeight:600 }}>{d.t}</h3>
+                <p style={{ fontFamily:F.sans, fontSize:12.5, color:X.slate, lineHeight:1.7 }}>{d.d}</p>
               </div>
             ))}
           </div>
@@ -5889,137 +5888,63 @@ function Landing({ onStart, onLegal }) {
       </div>
 
       {/* Secure the deal */}
-      <div style={{ background:`linear-gradient(160deg, ${C.navy} 0%, ${C.navy2} 100%)`, padding:"5rem 2rem" }}>
+      <div style={{ background:C.sand, padding:"3.75rem 1.25rem" }}>
         <div style={{ maxWidth:880, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:44 }}>
-            <div style={{ fontSize:11, letterSpacing:3, color:C.brass2, textTransform:"uppercase", fontFamily:"sans-serif", marginBottom:14 }}>The Part Everyone Gets Wrong</div>
-            <h2 style={{ fontSize:30, color:"#fff", marginBottom:16 }}>Secure the Deal — So Nobody Loses the Boat or the Money</h2>
-            <p style={{ fontSize:15, fontFamily:"sans-serif", color:"rgba(255,255,255,0.72)", lineHeight:1.8, maxWidth:660, margin:"0 auto" }}>
-              The riskiest part of a private boat sale isn't the price — it's the handshake that was never binding, the lowball offers with no commitment behind them, and the stranger you're about to wire money to. BoatClosers makes the commitment real, for both buyer and seller.
-            </p>
-          </div>
-          {/* Four cards, so two-by-two rather than one stranded on its own row. */}
-          <div style={{ display:"grid", gridTemplateColumns:cols(2), gap:18 }}>
-            {secure.map(s=>(
-              <div key={s.title} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid rgba(184,134,58,0.3)`, borderRadius:9, padding:"1.6rem 1.4rem" }}>
-                <div style={{ fontSize:26, marginBottom:12 }}>{s.icon}</div>
-                <h3 style={{ fontSize:15, fontWeight:700, color:"#fff", marginBottom:8 }}>{s.title}</h3>
-                <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.66)", lineHeight:1.7 }}>{s.desc}</div>
+          <div style={{ textAlign:"center" }}>{eyebrow("The part everyone gets wrong")}</div>
+          <h2 style={{ ...h2s, textAlign:"center", fontSize:25, color:C.navy, margin:"14px 0" }}>Secure the deal — so nobody loses the boat or the money</h2>
+          <p style={{ ...lead, textAlign:"center", maxWidth:650, margin:"0 auto 38px" }}>The riskiest part isn't the price — it's the handshake that was never binding, the lowball offers with nothing behind them, and the stranger you're about to wire money to. BoatClosers makes the commitment real, for both sides.</p>
+          <div style={{ display:"grid", gridTemplateColumns:cols(2), gap:16 }}>
+            {secure.map(([t,d])=>(
+              <div key={t} style={{ background:X.paper, border:`0.5px solid ${X.mist}`, borderLeft:`2.5px solid ${C.navy}`, borderRadius:3, padding:"1.5rem" }}>
+                <h3 style={{ fontFamily:F.sans, fontSize:14.5, color:C.navy, marginBottom:7, fontWeight:600 }}>{t}</h3>
+                <p style={{ fontFamily:F.sans, fontSize:12.5, color:X.slate, lineHeight:1.7 }}>{d}</p>
               </div>
             ))}
           </div>
-          <p style={{ textAlign:"center", fontSize:13, fontFamily:"sans-serif", color:"rgba(255,255,255,0.5)", marginTop:30 }}>
-            One binding offer, one deposit, one secure path for the funds — that's the difference between a deal that closes and a deal that falls apart.
-          </p>
-        </div>
-      </div>
-
-      {/* How it works */}
-      <Section>
-        <h2 style={{ textAlign:"center", fontSize:30, marginBottom:8 }}>How It Works</h2>
-        <p style={{ textAlign:"center", fontSize:14, fontFamily:"sans-serif", color:C.slate, marginBottom:40 }}>Six clear steps from first offer to a clean close.</p>
-        <div style={{ display:"grid", gridTemplateColumns:cols(2), gap:16 }}>
-          {steps.map(([title,desc],i)=>(
-            <div key={i} style={{ display:"flex", gap:14, background:C.white, borderRadius:7, padding:"1.25rem", border:`0.5px solid ${C.mist}` }}>
-              <div style={{ width:34, height:34, borderRadius:"50%", background:C.navy, color:C.brass2, fontWeight:800, fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontFamily:"sans-serif" }}>{i+1}</div>
-              <div>
-                <h3 style={{ fontSize:14, fontWeight:700, color:C.navy, marginBottom:4 }}>{title}</h3>
-                <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>{desc}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Document library */}
-      <div style={{ background:C.sandDark, padding:"4.5rem 2rem" }}>
-        <div style={{ maxWidth:880, margin:"0 auto" }}>
-          <h2 style={{ textAlign:"center", fontSize:30, marginBottom:8 }}>{DOC_COUNT} Professional Documents, {CAT_COUNT} Categories</h2>
-          <p style={{ textAlign:"center", fontSize:14, fontFamily:"sans-serif", color:C.slate, marginBottom:20, maxWidth:620, marginLeft:"auto", marginRight:"auto" }}>
-            Every document auto-fills with your deal data and is organized by exactly when you need it. Your deal only shows the categories that apply to it.
-          </p>
-          <div style={{ textAlign:"center", marginBottom:36 }}>
-            <button onClick={()=>setShowDocFinder(true)} style={{ background:C.navy, color:C.brass, border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 22px", fontSize:14, fontWeight:800, fontFamily:"sans-serif", cursor:"pointer" }}>
-              🧭 Not sure which you need? Answer a few questions →
-            </button>
-          </div>
-          {showDocFinder && (
-            <div onClick={()=>setShowDocFinder(false)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:5000, padding:"3vh 1rem", overflowY:"auto" }}>
-              <div onClick={e=>e.stopPropagation()} style={{ background:"#fff", borderRadius:12, maxWidth:600, width:"100%", padding:"1.6rem", border:`2px solid ${C.brass}` }}>
-                <DocFinder DOCUMENTS={DOCUMENTS} C={C} S={S} onClose={()=>setShowDocFinder(false)} onOpenDoc={()=>{ setShowDocFinder(false); onStart(); }} />
-              </div>
-            </div>
-          )}
-          <div style={{ display:"grid", gridTemplateColumns:cols(3), gap:16 }}>
-            {docGroups.map(({group,count})=>(
-              <div key={group} style={{ background:C.white, borderRadius:8, padding:"1.1rem 1.25rem", border:`0.5px solid ${C.mist}` }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:5 }}>
-                  <h3 style={{ fontSize:13.5, fontWeight:700, color:C.navy }}>{group}</h3>
-                  <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:C.brass }}>{count}</span>
-                </div>
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>{GROUP_BLURB[group]}</div>
-              </div>
-            ))}
-          </div>
+          <div style={{ textAlign:"center", marginTop:32 }}><button style={{ ...navyBtn, padding:"13px 32px", fontSize:14 }} onClick={onStart}>Start Your Deal — Free</button></div>
         </div>
       </div>
 
       {/* Pricing */}
-      <div style={{ background:C.navy, padding:"5rem 2rem" }}>
-        <div style={{ maxWidth:460, margin:"0 auto", textAlign:"center" }}>
-          <h2 style={{ fontSize:30, color:"#fff", marginBottom:8 }}>Simple, Honest Pricing</h2>
-          <p style={{ fontSize:14, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", marginBottom:36 }}>No commissions. No subscription. No surprises.</p>
-          <div style={{ background:"rgba(255,255,255,0.05)", border:`2px solid ${C.brass}`, borderRadius:12, padding:"2.5rem" }}>
-            <div style={{ fontSize:11, letterSpacing:3, color:C.brass, textTransform:"uppercase", fontFamily:"sans-serif", marginBottom:10 }}>Per Transaction</div>
-            <div style={{ fontSize:56, fontWeight:800, color:"#fff", fontFamily:"sans-serif", lineHeight:1 }}>$249</div>
-            <div style={{ fontSize:12, color:"rgba(255,255,255,0.45)", marginBottom:24, fontFamily:"sans-serif" }}>Flat fee · One vessel · One deal</div>
-            <div style={{ textAlign:"left", fontSize:13, fontFamily:"sans-serif", lineHeight:2.2, color:"rgba(255,255,255,0.75)" }}>
-              {[`All ${DOC_COUNT} professional documents, ${CAT_COUNT} categories`,"Smart selection — see only what your deal needs","Electronic signatures for both parties","Title-transfer & registration paperwork","Full negotiation, offers & contingencies","Five escrow options — Escrow.com, attorney, licensed broker, direct, or custom","Due-diligence & closing checklists","PDF download package — both parties","No commission, no subscription, ever"].map(f=>(
-                <div key={f}>✓ {f}</div>
+      <div style={{ background:C.navy, padding:"3.75rem 1.25rem" }}>
+        <div style={{ maxWidth:440, margin:"0 auto", textAlign:"center" }}>
+          <h2 style={{ ...h2s, fontSize:26, color:"#fff", marginBottom:8 }}>Simple, honest pricing</h2>
+          <p style={{ fontFamily:F.sans, fontSize:13.5, color:"rgba(255,255,255,0.55)", marginBottom:32 }}>No commissions. No subscription. No surprises.</p>
+          <div style={{ background:"rgba(255,255,255,0.04)", border:`1.5px solid ${C.brass}`, borderRadius:12, padding:"2.25rem" }}>
+            <div style={{ display:"inline-flex", alignItems:"center", gap:10, fontFamily:F.sans, fontSize:11, letterSpacing:3, color:X.brassLt, textTransform:"uppercase", fontWeight:500 }}>Per transaction</div>
+            <div style={{ fontFamily:F.sans, fontSize:56, fontWeight:600, color:"#fff", lineHeight:1, marginTop:12 }}>$249</div>
+            <div style={{ fontFamily:F.sans, fontSize:12, color:"rgba(255,255,255,0.45)", marginBottom:22 }}>Flat fee · one vessel · one deal</div>
+            <div style={{ textAlign:"left", fontFamily:F.sans, fontSize:13, lineHeight:2.15, color:"rgba(255,255,255,0.78)" }}>
+              {[`All ${DOC_COUNT} documents, ${CAT_COUNT} categories`,"See only what your deal needs","Electronic signatures for both parties","Full negotiation, offers & contingencies","Five escrow options","Due-diligence & closing checklists","Financing & lender paperwork","No commission, no subscription, ever"].map(f=>(
+                <div key={f} style={{ display:"flex", gap:9, alignItems:"baseline" }}><span style={{ color:C.brass }}>✓</span><span>{f}</span></div>
               ))}
             </div>
-            <button style={{...S.btnBrass, marginTop:24, fontSize:15, padding:"13px", width:"100%"}} onClick={onStart}>
-              Start Free — Pay When Ready
-            </button>
-            <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", marginTop:12, fontFamily:"sans-serif" }}>vs. broker commission: typically $10,000–$50,000+</div>
+            <button style={{ ...brassBtn, display:"block", width:"100%", marginTop:22, padding:13 }} onClick={onStart}>Start Free — Pay When Ready</button>
+            <div style={{ fontFamily:F.sans, fontSize:11, color:"rgba(255,255,255,0.3)", marginTop:12 }}>vs. broker commission: typically $10,000–$50,000+</div>
           </div>
         </div>
       </div>
 
       {/* FAQ */}
-      <Section style={{ maxWidth:720 }}>
-        <h2 style={{ textAlign:"center", fontSize:28, marginBottom:36 }}>Common Questions</h2>
-        {[
-          ["How do I sell a boat without a broker?","Enter your vessel and both parties, negotiate the price and terms, complete due diligence, then pay $249 to unlock and sign every document the sale needs. BoatClosers gives you the same professional paperwork and closing process a yacht broker uses — you simply run it yourself and keep the commission."],
-          ["What documents do I need to sell a boat privately?","At minimum a purchase agreement, bill of sale, and the title-transfer documents — plus a deposit receipt, as-is acknowledgment, and closing statement. Depending on the deal you may also need financing, insurance, estate, or lost-title documents. BoatClosers includes all "+DOC_COUNT+" and shows you exactly which ones your deal requires."],
-          ["How do I make an offer on a boat I found on Facebook Marketplace or Craigslist?","Start a deal in BoatClosers, enter the vessel, and send a structured offer with an earnest-money deposit attached. Unlike a comment or a text, a deposit-backed offer shows the seller you're serious and creates a recorded paper trail — and once accepted, a signed agreement locks the boat in so it can't be sold to someone else."],
-          ["How do I keep a seller from selling the boat to someone else after we agree?","This is one of the most common ways private deals fall apart. The fix is to secure it: the moment both sides agree, a signed purchase agreement plus an earnest-money deposit binds the deal. The seller can no longer walk to another buyer without consequence, and the buyer can't be left empty-handed after turning others away."],
-          ["Is it safe to buy a boat remotely from another state?","Yes, when the money is handled correctly. BoatClosers keeps the whole negotiation and signing remote, and routes funds through escrow — Escrow.com, a private attorney, or another verified path — so you never wire thousands to a stranger on faith. The funds release only when the deal is complete."],
-          ["Are these documents legally binding?","Our templates follow recognized maritime and state-transfer standards, but enforceability depends on how accurately you complete them and on your state's requirements. We flag the documents that must be notarized, and we strongly recommend a local maritime attorney review anything involving financing, estates, or title problems before signing."],
-          ["How does title transfer work for a Coast Guard documented vessel?","Documented vessels transfer through the National Vessel Documentation Center rather than the state. BoatClosers includes the USCG transfer and documentation forms and walks you through requesting the vessel's abstract of title from the Coast Guard."],
-          ["What if the seller still owes money on the boat?","The deal includes a payoff authorization and lien release so the seller's existing loan is cleared from the title at closing — letting clean title pass to the buyer. The buyer should confirm the lien is released before final payment."],
-          ["What if I inherited a boat I want to sell?","BoatClosers includes an estate and inheritance section with a plain-language guide plus affidavit of heirship, executor authorization, and small-estate forms. Estate rules vary by state, so the app points you to when a probate attorney is needed."],
-          ["Who pays the $249 fee?","Whoever starts the deal pays the flat fee and controls the vessel details and terms. The other party joins free to review, add their information, and sign."],
-          ["What escrow options do I have, and do you hold the money?","You choose from five: Escrow.com (a licensed third party, recommended), a licensed boat brokerage's trust account, a private attorney or title company, a direct wire to the seller, or your own custom arrangement. BoatClosers never holds, touches, or releases funds."],
-          ["The boat I want is listed with a broker. Can I still use BoatClosers?","Yes. You deal with the listing broker directly and BoatClosers handles your side of the paperwork \u2014 the offer, the agreement, the deposit, due diligence and closing. It is also worth knowing that a listing broker's commission normally assumes a second broker brings the buyer and takes a share of it. If nobody is doing that \u2014 because you are representing yourself \u2014 that is a reasonable thing to raise when you decide your number, and far easier to raise before terms are agreed than after. BoatClosers points it out at the right moment when you build your offer. What the broker does about it is entirely theirs to decide."],
-          ["A broker keeps calling about my boat. Should I talk to them?","Ask one question first: do you have a buyer, or do you want the listing? If they have a buyer, that is worth hearing out. They are working for that buyer, not for you, and how they are paid is between them and their buyer unless you agree otherwise. If they ask you to pay something, that is a separate conversation and it belongs in writing before you go any further \u2014 what the fee is, and what triggers it. If instead they want the listing, they are asking you to sign a commission agreement in exchange for running the sale. That can be a fair trade if you would rather hand it over, and you are free to take it. You just do not need one to sell through BoatClosers."],
-          ["Can I still use a broker or attorney if I want one?","Yes. BoatClosers is built so you don't need one, but nothing stops you from bringing one in — for example, letting a licensed brokerage's trust account hold the escrow deposit, or having an attorney review the agreement before you sign. You run the deal and bring in whatever help you're comfortable with."],
-          ["What if the deal falls through?","If the buyer formally rejects during due diligence, the earnest money is returned and the reason is recorded in a Rejection Notice. BoatClosers does not hold or release any funds."],
-        ].map(([q,a])=>(
-          <div key={q} style={{ borderBottom:`1px solid ${C.mist}`, padding:"16px 0" }}>
-            <h3 style={{ fontSize:15, fontWeight:700, color:C.navy, marginBottom:8 }}>{q}</h3>
-            <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>{a}</div>
+      <div style={{ maxWidth:720, margin:"0 auto", padding:"3.75rem 1.25rem" }}>
+        <h2 style={{ ...h2s, textAlign:"center", fontSize:25, color:C.navy, marginBottom:30 }}>Common questions</h2>
+        {faqs.map(([q,a])=>(
+          <div key={q} style={{ borderBottom:`0.5px solid ${X.mist}`, padding:"18px 0" }}>
+            <h3 style={{ fontFamily:F.sans, fontSize:14.5, fontWeight:600, color:C.navy, marginBottom:8 }}>{q}</h3>
+            <div style={{ fontFamily:F.sans, fontSize:13, color:X.slate, lineHeight:1.7 }}>{a}</div>
           </div>
         ))}
-      </Section>
-
-      {/* CTA */}
-      <div style={{ background:C.teal, padding:"4rem 2rem", textAlign:"center" }}>
-        <h2 style={{ fontSize:28, color:"#fff", marginBottom:10 }}>Ready to Close Your Boat Deal?</h2>
-        <p style={{ fontSize:14, fontFamily:"sans-serif", color:"rgba(255,255,255,0.8)", marginBottom:28 }}>Create your free account, enter your deal, and pay only when you're ready to sign. Keep the commission for yourself.</p>
-        <button style={{...S.btnBrass, fontSize:15, padding:"13px 36px"}} onClick={onStart}>Get Started — It's Free</button>
       </div>
 
+      {/* Final CTA */}
+      <div style={{ background:C.teal, padding:"3.75rem 1.25rem", textAlign:"center" }}>
+        <h2 style={{ ...h2s, fontSize:26, color:"#fff", marginBottom:10 }}>Ready to close your boat deal?</h2>
+        <p style={{ fontFamily:F.sans, fontSize:14, color:"rgba(255,255,255,0.85)", marginBottom:26 }}>Create your free account, enter your deal, and pay only when you're ready to sign. Keep the commission for yourself.</p>
+        <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
+          <button style={brassBtn} onClick={()=>onStart("buyer")}>Start as Buyer</button>
+          <button style={{ ...outlineBtn, borderColor:"rgba(255,255,255,0.4)", color:"#fff" }} onClick={()=>onStart("seller")}>Start as Seller</button>
+        </div>
+      </div>
     </div>
   );
 }
