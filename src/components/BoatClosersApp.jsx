@@ -5709,7 +5709,7 @@ function Landing({ onStart, onLegal }) {
   const h2s = { fontFamily:F.serif, fontWeight:500, lineHeight:1.18, letterSpacing:0.2 };
 
   const features = [
-    { t:"41 documents, auto-filled", d:"Purchase agreement to title transfer — plus estate, loans, lost titles, financing, and documented vessels. Enter your deal once; every form fills itself.", p:<><path d="M9 3h6l4 4v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M15 3v4h4"/><path d="M9 13h6M9 17h4"/></> },
+    { t:`${DOC_COUNT} documents, auto-filled`, d:"Purchase agreement to title transfer — plus estate, loans, lost titles, financing, and documented vessels. Enter your deal once; every form fills itself.", p:<><path d="M9 3h6l4 4v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M15 3v4h4"/><path d="M9 13h6M9 17h4"/></> },
     { t:"Deposit-backed offers", d:"Real offers with earnest money attached — serious buyers only — and the boat locked once agreed so it can't be sold out from under you.", p:<><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></> },
     { t:"Escrow, five ways", d:"Route the money safely — Escrow.com, an attorney, a licensed broker's trust account, direct, or custom. You choose; we never touch the funds.", p:<><path d="M4 10h16M4 10l2-5h12l2 5M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9"/><path d="M10 14h4"/></> },
     { t:"Due diligence, guided", d:"Survey, sea trial, and the Coast Guard's free vessel search and Abstract of Title for liens — with a built-in window to renegotiate or walk away.", p:<><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></> },
