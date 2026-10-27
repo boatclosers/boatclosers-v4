@@ -5716,16 +5716,16 @@ function ProductPreview({ F, X, isMobile, onStart }) {
   const slides = [
     {
       title:"Add the boat",
-      blurb:"The seller enters the vessel once. The HIN is checked against Coast Guard records on the spot.",
+      blurb:"The seller enters the vessel once. The Coast Guard and title records you need to check it are one tap away.",
       body: (
         <div>
           <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap:10 }}>
             {[["Year","2019"],["Make","Grady-White"],["Model","Freedom 285"],["Length","28 ft"],["Engines","Twin Yamaha F300"],["Hours","410"],["HIN","GDY•••••K819"],["Title","Florida · clear"],["Location","Stuart, FL"]].map(([k,v])=>field(k,v))}
           </div>
           <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:14 }}>
-            {pill(greenBg, green, "✓ HIN format valid")}
-            {pill(greenBg, green, "✓ Builder verified (USCG)")}
-            {pill(greenBg, green, "✓ No open recalls")}
+            {pill(C.tealLight, C.teal, "USCG vessel search ↗")}
+            {pill(C.tealLight, C.teal, "Abstract of title ↗")}
+            {pill(C.tealLight, C.teal, "Boat history report ↗")}
           </div>
           {note(<>Every document in the deal fills itself in from this page — the boat is typed in <b>once</b>.</>)}
         </div>
@@ -6014,9 +6014,15 @@ function Landing({ onStart, onLegal }) {
   return (
     <div style={{ fontFamily:F.serif, background:C.sand, color:C.text, minHeight:"100vh" }}>
       {/* Nav */}
-      <nav style={{ background:X.navyDeep, height:56, display:"flex", alignItems:"center", justifyContent:"flex-end", gap:8, padding:"0 1.25rem", position:"sticky", top:0, zIndex:100, borderBottom:"1px solid rgba(184,134,58,0.22)" }}>
-        <button style={{ ...outlineBtn, padding:"7px 15px", fontSize:12 }} onClick={onStart}>Sign In</button>
-        <button style={{ ...brassBtn, padding:"7px 16px", fontSize:12 }} onClick={onStart}>Get Started</button>
+      <nav style={{ background:X.navyDeep, height:56, display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, padding: isMobile ? "0 0.75rem" : "0 1.25rem", position:"sticky", top:0, zIndex:100, borderBottom:"1px solid rgba(184,134,58,0.22)" }}>
+        <div style={{ display:"flex", alignItems:"center", gap: isMobile ? 12 : 22 }}>
+          <a href="/buyers-guide" style={{ fontFamily:F.sans, fontSize: isMobile ? 12 : 13, color:"rgba(255,255,255,0.82)", textDecoration:"none", whiteSpace:"nowrap" }}>{isMobile ? "Buyer guide" : "Buyer's Guide"}</a>
+          <a href="/sellers-guide" style={{ fontFamily:F.sans, fontSize: isMobile ? 12 : 13, color:"rgba(255,255,255,0.82)", textDecoration:"none", whiteSpace:"nowrap" }}>{isMobile ? "Seller guide" : "Seller's Guide"}</a>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+        <button style={{ ...outlineBtn, padding: isMobile ? "7px 11px" : "7px 15px", fontSize:12 }} onClick={onStart}>Sign In</button>
+        <button style={{ ...brassBtn, padding: isMobile ? "7px 12px" : "7px 16px", fontSize:12 }} onClick={onStart}>{isMobile ? "Start" : "Get Started"}</button>
+        </div>
       </nav>
 
       {/* Hero */}
@@ -6320,6 +6326,22 @@ export default function BoatClosers() {
   const [myDealsLoading, setMyDealsLoading] = useState(false);
   const [authRole, setAuthRole] = useState(null);
   const [stripeReturn, setStripeReturn] = useState(null);
+  // Guide pages link to /?start=buyer|seller — open sign-up with that role
+  // picked, unless someone is already signed in (they go to their deals).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      const r = qs.get("start");
+      if (r !== "buyer" && r !== "seller") return;
+      qs.delete("start");
+      const rest = qs.toString();
+      window.history.replaceState(null, "", window.location.pathname + (rest ? `?${rest}` : "") + window.location.hash);
+      if (localStorage.getItem("bc_session")) return;
+      setAuthRole(r);
+      setScreen("auth");
+    } catch (e) {}
+  }, []);
   // If we just came back from Stripe Checkout, ask our server to confirm the
   // session was really paid, then hand the result to the deal room to lock the
   // deal. Clean the URL either way so a refresh doesn't re-trigger it.
