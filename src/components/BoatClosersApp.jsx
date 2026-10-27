@@ -5672,6 +5672,24 @@ function AuthScreen({ onAuth, prefillEmail, notice, defaultMode, defaultRole, on
 function ProductPreview({ F, X, isMobile, onStart }) {
   const [idx, setIdx] = useState(0);
   const touchX = useRef(null);
+  // Auto-advance: a slide every SLIDE_MS while the carousel is on screen.
+  // Hover pauses it; any tap, click or swipe stops it for good so it never
+  // moves while someone is reading.
+  const SLIDE_MS = 7000;
+  const boxRef = useRef(null);
+  const [auto, setAuto] = useState(() => {
+    try { return !window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return true; }
+  });
+  const [onScreen, setOnScreen] = useState(false);
+  const [hover, setHover] = useState(false);
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") { setOnScreen(true); return; }
+    const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting), { threshold: 0.45 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const running = auto && onScreen && !hover;
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.hash === "#preview") {
       setTimeout(() => document.getElementById("preview")?.scrollIntoView({ behavior:"smooth" }), 150);
@@ -5845,7 +5863,12 @@ function ProductPreview({ F, X, isMobile, onStart }) {
   ];
 
   const last = slides.length - 1;
-  const go = (n) => setIdx(Math.max(0, Math.min(last, n)));
+  const go = (n) => { setAuto(false); setIdx(Math.max(0, Math.min(last, n))); };
+  useEffect(() => {
+    if (!running) return;
+    const t = setTimeout(() => setIdx(i => (i >= last ? 0 : i + 1)), SLIDE_MS);
+    return () => clearTimeout(t);
+  }, [running, idx, last]);
   const s = slides[idx];
   const arrow = (dir) => {
     const disabled = dir < 0 ? idx === 0 : idx === last;
@@ -5877,6 +5900,9 @@ function ProductPreview({ F, X, isMobile, onStart }) {
 
         {/* Browser frame */}
         <div
+          ref={boxRef}
+          onPointerEnter={e=>{ if (e.pointerType === "mouse") setHover(true); }}
+          onPointerLeave={e=>{ if (e.pointerType === "mouse") setHover(false); }}
           onTouchStart={e=>{ touchX.current = e.touches[0].clientX; }}
           onTouchEnd={e=>{ if (touchX.current == null) return; const dx = e.changedTouches[0].clientX - touchX.current; touchX.current = null; if (Math.abs(dx) > 45) go(idx + (dx < 0 ? 1 : -1)); }}
           style={{ background:"#fff", borderRadius:12, overflow:"hidden", boxShadow:"0 24px 60px rgba(0,0,0,0.45)", border:"1px solid rgba(255,255,255,0.08)" }}>
@@ -5917,14 +5943,16 @@ function ProductPreview({ F, X, isMobile, onStart }) {
             </div>
           </div>
         </div>
-        <style>{"@keyframes bcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}"}</style>
+        <style>{"@keyframes bcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes bcFill{from{width:0}to{width:100%}}"}</style>
 
         {/* Controls under the frame */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:14, marginTop:18 }}>
           {isMobile && arrow(-1)}
           <div style={{ display:"flex", gap:7 }}>
             {slides.map((_,i)=>(
-              <button key={i} aria-label={`Go to step ${i+1}`} onClick={()=>go(i)} style={{ width: i===idx ? 22 : 8, height:8, borderRadius:4, border:"none", padding:0, cursor:"pointer", background: i===idx ? X.brassLt : "rgba(255,255,255,0.25)", transition:"all .2s" }} />
+              <button key={i} aria-label={`Go to step ${i+1}`} onClick={()=>go(i)} style={{ position:"relative", overflow:"hidden", width: i===idx ? 26 : 8, height:8, borderRadius:4, border:"none", padding:0, cursor:"pointer", background: i===idx ? (running ? "rgba(224,192,116,0.3)" : X.brassLt) : "rgba(255,255,255,0.25)", transition:"width .2s" }}>
+                {i===idx && running && <span key={idx} style={{ position:"absolute", left:0, top:0, bottom:0, background:X.brassLt, animation:`bcFill ${SLIDE_MS}ms linear forwards` }} />}
+              </button>
             ))}
           </div>
           {isMobile && arrow(1)}
