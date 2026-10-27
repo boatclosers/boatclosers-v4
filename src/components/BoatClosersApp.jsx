@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
 import VesselLookup from "./VesselLookup";
 import DocFinder from "./DocFinder";
+import HinInlineCheck from "./HinInlineCheck";
 import { FAQS } from "../lib/faqs";
 // ─────────────────────────────────────────────────────────────────────────────
 // BOATCLOSERS v4
@@ -1005,7 +1006,7 @@ function StepVessel({ data, setData, userRole, onNext }) {
           <Field label="Make / Manufacturer *"><input style={S.input} value={data.make} onChange={e=>set("make",capFirst(e.target.value))} placeholder="Boston Whaler" /></Field>
           <Field label="Model *"><input style={S.input} value={data.model} onChange={e=>set("model",capFirst(e.target.value))} placeholder="Outrage 280" /></Field>
           <Field label="Vessel Name (if any)"><input style={S.input} value={data.name} onChange={e=>set("name",capFirst(e.target.value))} placeholder="Sea Dreams" /></Field>
-          <Field label="Hull ID Number (HIN) — needed for documents"><input style={S.input} value={data.hin} onChange={e=>set("hin",e.target.value)} placeholder="BWCE1234A919" /></Field>
+          <Field label="Hull ID Number (HIN) — needed for documents"><input style={{ ...S.input, fontFamily:"ui-monospace, Menlo, monospace", letterSpacing:1 }} value={data.hin} onChange={e=>set("hin",e.target.value.toUpperCase())} placeholder="BWCE1234A919" autoCapitalize="characters" spellCheck={false} autoComplete="off" /><HinInlineCheck hin={data.hin} year={data.year} make={data.make} onFillYear={y=>set("year",y)} /></Field>
           <Field label="Hull Type">
             <select style={S.select} value={data.hullType} onChange={e=>set("hullType",e.target.value)}>
               <option value="">Select...</option>
@@ -5734,16 +5735,16 @@ function ProductPreview({ F, X, isMobile, onStart }) {
   const slides = [
     {
       title:"Add the boat",
-      blurb:"The seller enters the vessel once. The Coast Guard and title records you need to check it are one tap away.",
+      blurb:"The seller enters the vessel once. The HIN is checked with the Coast Guard as it's typed.",
       body: (
         <div>
           <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap:10 }}>
-            {[["Year","2019"],["Make","Grady-White"],["Model","Freedom 285"],["Length","28 ft"],["Engines","Twin Yamaha F300"],["Hours","410"],["HIN","GDY•••••K819"],["Title","Florida · clear"],["Location","Stuart, FL"]].map(([k,v])=>field(k,v))}
+            {[["Year","2019"],["Make","Grady-White"],["Model","Freedom 285"],["Length","28 ft"],["Engines","Twin Yamaha F300"],["Hours","410"],["HIN","NTL•••••K819"],["Title","Florida · clear"],["Location","Stuart, FL"]].map(([k,v])=>field(k,v))}
           </div>
           <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:14 }}>
-            {pill(C.tealLight, C.teal, "USCG vessel search ↗")}
-            {pill(C.tealLight, C.teal, "Abstract of title ↗")}
-            {pill(C.tealLight, C.teal, "Boat history report ↗")}
+            {pill(greenBg, green, "✓ Valid HIN · model year 2019")}
+            {pill(greenBg, green, "✓ Built by Grady-White · Greenville, NC")}
+            {pill(C.tealLight, C.teal, "Recalls & Coast Guard records ▾")}
           </div>
           {note(<>Every document in the deal fills itself in from this page — the boat is typed in <b>once</b>.</>)}
         </div>
@@ -5883,8 +5884,8 @@ function ProductPreview({ F, X, isMobile, onStart }) {
       <div style={{ maxWidth:880, margin:"0 auto" }}>
         <div style={{ textAlign:"center", padding:"0 0.5rem" }}>
           <div style={{ fontFamily:sans, fontSize:11, letterSpacing:3, color:X.brassLt, textTransform:"uppercase", fontWeight:500 }}>See the platform</div>
-          <h2 style={{ fontFamily:F.serif, fontWeight:500, fontSize: isMobile ? 24 : 28, color:"#fff", margin:"12px 0 8px", lineHeight:1.2 }}>Walk through a whole deal — no{" "}sign{"‑"}up</h2>
-          <p style={{ fontFamily:sans, fontSize:13.5, color:"rgba(255,255,255,0.65)", maxWidth:560, margin:"0 auto 24px", lineHeight:1.7 }}>Six steps, start to finish, in the deal room the buyer and seller share. {isMobile ? "Swipe" : "Click"} through a sample sale.</p>
+          <h2 style={{ fontFamily:F.serif, fontWeight:500, fontSize: isMobile ? 24 : 28, color:"#fff", margin:"12px 0 8px", lineHeight:1.2 }}>See how a boat sale works here — before you sign{" "}up</h2>
+          <p style={{ fontFamily:sans, fontSize:13.5, color:"rgba(255,255,255,0.65)", maxWidth:560, margin:"0 auto 24px", lineHeight:1.7 }}>Follow one sample sale from adding the boat to transferring the title, in the deal room the buyer and seller share. It moves on its own, or {isMobile ? "tap or swipe" : "click"} any step.</p>
         </div>
 
         {/* Slide caption */}

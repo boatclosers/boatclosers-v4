@@ -21,7 +21,7 @@ const steps: GuideStep[] = [
       'Before you drive out to see it, ask the seller for the hull identification number (HIN), a photo of the title or registration, and whether there is a loan on the boat. A seller who will not share the HIN is a seller to walk away from.',
       'Run the HIN to confirm the builder and model year match the ad and to look for open recalls. Then check for liens. If the boat is Coast Guard documented, request the abstract of title from the National Vessel Documentation Center, which shows recorded mortgages.',
     ],
-    inApp: 'The vessel step links you straight to the Coast Guard vessel search, the abstract of title for documented boats, and a boat history report.',
+    inApp: 'The HIN is checked as it is typed: format, model year, the registered builder and any Coast Guard recalls, plus links to the abstract of title and a boat history report.',
     links: [
       { href: '/hin-check', label: 'Free HIN check' },
       { href: '/lien-check', label: 'Free lien check' },
