@@ -121,6 +121,17 @@ export default function Page() {
             Guides
           </Link>
           <Link
+            href="/faq"
+            style={{
+              color: cream,
+              textDecoration: 'none',
+              fontSize: 15,
+              opacity: 0.85,
+            }}
+          >
+            FAQ
+          </Link>
+          <Link
             href="/"
             style={{
               background: gold,
@@ -157,6 +168,13 @@ export default function Page() {
         <p style={{ fontSize: 20, opacity: 0.85, lineHeight: 1.7, marginBottom: 52 }}>
           Straight answers on how a private boat transaction actually works, written
           for buyers and sellers handling the deal themselves.
+        </p>
+
+        <p style={{ fontSize: 17, opacity: 0.85, lineHeight: 1.7, margin: '-28px 0 40px' }}>
+          Looking for a quick answer instead?{' '}
+          <Link href="/faq" style={{ color: gold, fontWeight: 700 }}>
+            Browse the private boat sale FAQ →
+          </Link>
         </p>
 
         {guides.map((g) => (

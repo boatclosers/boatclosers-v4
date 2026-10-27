@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
 import VesselLookup from "./VesselLookup";
 import DocFinder from "./DocFinder";
+import { FAQS } from "../lib/faqs";
 // ─────────────────────────────────────────────────────────────────────────────
 // BOATCLOSERS v4
 // ─────────────────────────────────────────────────────────────────────────────
@@ -5666,141 +5667,192 @@ function AuthScreen({ onAuth, prefillEmail, notice, defaultMode, defaultRole, on
 // ─────────────────────────────────────────────────────────────────────────────
 // ── PRODUCT PREVIEW — a clickable sample deal on the landing page ───────────
 // Lets visitors see the actual deal room before signing up. All data is a
-// made-up sample; screens mirror the real steps (offers, escrow, due
-// diligence, documents, closing) so what people see is what they get.
+// made-up sample; one carousel slide per real deal step (Vessel → Closing)
+// so what people see is what they get.
 function ProductPreview({ F, X, isMobile, onStart }) {
-  const [tab, setTab] = useState("offers");
+  const [idx, setIdx] = useState(0);
+  const touchX = useRef(null);
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#preview") {
+      setTimeout(() => document.getElementById("preview")?.scrollIntoView({ behavior:"smooth" }), 150);
+    }
+  }, []);
   const sans = F.sans;
-  const tabs = [
-    ["offers","Offers"],["escrow","Escrow"],["dd", isMobile ? "Inspection" : "Due diligence"],["docs","Documents"],["closing","Closing"],
-  ];
-  const stepFor = { offers:2, escrow:2, dd:3, docs:4, closing:5 };
-  const cur = stepFor[tab];
-  const pill = (bg, fg, t) => <span style={{ display:"inline-block", background:bg, color:fg, fontSize:10.5, fontWeight:600, fontFamily:sans, borderRadius:20, padding:"3px 9px", whiteSpace:"nowrap" }}>{t}</span>;
   const green = "#2e7d4f", greenBg = "#e6f3ea", amberBg = "#fff4dd", amber = "#8a5a00";
-  const row = { display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, padding:"11px 0", borderBottom:`1px solid ${C.mist}` };
+  const pill = (bg, fg, t) => <span style={{ display:"inline-block", background:bg, color:fg, fontSize:10.5, fontWeight:600, fontFamily:sans, borderRadius:20, padding:"3px 9px", whiteSpace:"nowrap" }}>{t}</span>;
+  const row = { display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, padding:"10px 0", borderBottom:`1px solid ${C.mist}` };
   const label = { fontFamily:sans, fontSize:12.5, color:C.navy, fontWeight:600 };
   const sub = { fontFamily:sans, fontSize:11, color:C.slate, marginTop:2, lineHeight:1.45 };
+  const note = (children) => <div style={{ background:C.sand, borderRadius:8, padding:"10px 12px", fontFamily:sans, fontSize:11.5, color:C.navy, marginTop:12, lineHeight:1.5 }}>{children}</div>;
+  const field = (k, v) => (
+    <div key={k} style={{ minWidth:0 }}>
+      <div style={{ fontFamily:sans, fontSize:10, color:C.slate, textTransform:"uppercase", letterSpacing:0.6, marginBottom:3 }}>{k}</div>
+      <div style={{ fontFamily:sans, fontSize:13, color:C.navy, fontWeight:600, border:`1px solid ${C.mist}`, borderRadius:6, padding:"7px 9px", background:"#fff", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{v}</div>
+    </div>
+  );
 
-  const Offer = ({ who, side, amt, delta, note, status, time }) => {
+  const Offer = ({ who, side, amt, delta, text, status, time }) => {
     const buyer = side === "buyer";
     const accent = buyer ? C.navy : C.brass;
     return (
       <div style={{ display:"flex", justifyContent: buyer ? "flex-start" : "flex-end", marginBottom:9 }}>
-        <div style={{ width: isMobile ? "92%" : "78%", background: status==="accepted" ? greenBg : "#fff", border:`1px solid ${status==="accepted" ? green : C.mist}`, borderLeft:`4px solid ${accent}`, borderRadius:8, padding:"10px 12px", opacity: status==="countered" ? 0.6 : 1 }}>
+        <div style={{ width: isMobile ? "92%" : "78%", background: status==="accepted" ? greenBg : "#fff", border:`1px solid ${status==="accepted" ? green : C.mist}`, borderLeft:`4px solid ${accent}`, borderRadius:8, padding:"9px 12px", opacity: status==="countered" ? 0.6 : 1 }}>
           <div style={{ display:"flex", justifyContent:"space-between", gap:8 }}>
             <span style={{ fontFamily:sans, fontSize:10.5, fontWeight:700, color:accent, letterSpacing:0.5, textTransform:"uppercase" }}>{who}</span>
             <span style={{ fontFamily:sans, fontSize:10, color:C.slate }}>{time}</span>
           </div>
           <div style={{ display:"flex", alignItems:"baseline", gap:8, marginTop:2, flexWrap:"wrap" }}>
-            <span style={{ fontFamily:sans, fontSize:19, fontWeight:800, color:C.navy }}>{amt}</span>
+            <span style={{ fontFamily:sans, fontSize:18, fontWeight:800, color:C.navy }}>{amt}</span>
             {delta && <span style={{ fontFamily:sans, fontSize:11, fontWeight:700, color: delta[0]==="▲" ? green : "#b3261e" }}>{delta}</span>}
             {status==="accepted" && pill(green, "#fff", "✓ Accepted by both")}
             {status==="countered" && pill(C.sandDark, C.slate, "Countered")}
           </div>
-          <div style={sub}>{note}</div>
+          <div style={sub}>{text}</div>
         </div>
       </div>
     );
   };
 
-  const screens = {
-    offers: (
-      <div>
-        <div style={{ fontFamily:sans, fontSize:11, color:C.slate, marginBottom:10 }}>Every offer and counter, in one thread both sides see live.</div>
-        <Offer who="Buyer · Mark T." side="buyer" amt="$92,000" note="Deposit $9,200 (10%) · Escrow.com · Contingent on survey & sea trial" status="countered" time="Oct 18" />
-        <Offer who="Seller · Dana R." side="seller" amt="$99,500" delta="▲ $7,500" note="Same terms · closing by Nov 15" status="countered" time="Oct 19" />
-        <Offer who="Buyer · Mark T." side="buyer" amt="$96,000" delta="▼ $3,500" note="Deposit $9,600 (10%) · Escrow.com · Survey & sea trial · Close Nov 15" status="accepted" time="Oct 20" />
-        <div style={{ background:C.sand, borderRadius:8, padding:"10px 12px", fontFamily:sans, fontSize:11.5, color:C.navy, marginTop:4 }}>🔒 <b>Deal locked.</b> Purchase agreement signed by both — the boat is off the market.</div>
-      </div>
-    ),
-    escrow: (
-      <div>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:10, flexWrap:"wrap", marginBottom:14 }}>
-          <div>
-            <div style={{ fontFamily:sans, fontSize:11, color:C.slate }}>Earnest money held by</div>
-            <div style={{ fontFamily:sans, fontSize:16, fontWeight:700, color:C.navy }}>Escrow.com · $9,600</div>
+  const slides = [
+    {
+      title:"Add the boat",
+      blurb:"The seller enters the vessel once. The HIN is checked against Coast Guard records on the spot.",
+      body: (
+        <div>
+          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap:10 }}>
+            {[["Year","2019"],["Make","Grady-White"],["Model","Freedom 285"],["Length","28 ft"],["Engines","Twin Yamaha F300"],["Hours","410"],["HIN","GDY•••••K819"],["Title","Florida · clear"],["Location","Stuart, FL"]].map(([k,v])=>field(k,v))}
           </div>
-          {pill(greenBg, green, "Funded Oct 22")}
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:14 }}>
+            {pill(greenBg, green, "✓ HIN format valid")}
+            {pill(greenBg, green, "✓ Builder verified (USCG)")}
+            {pill(greenBg, green, "✓ No open recalls")}
+          </div>
+          {note(<>Every document in the deal fills itself in from this page — the boat is typed in <b>once</b>.</>)}
         </div>
-        <div style={{ display:"flex", alignItems:"flex-start", margin:"6px 0 16px" }}>
-          {["Agreement","Funded","In progress","Inspection","Closed"].map((s,i,a)=>(
-            <div key={s} style={{ display:"flex", alignItems:"flex-start", flex: i<a.length-1 ? 1 : 0 }}>
-              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", minWidth:44 }}>
-                <div style={{ width:22, height:22, borderRadius:"50%", background: i<2 ? green : i===2 ? C.brass : "transparent", border: i>2 ? `1.5px solid ${C.mist}` : "none", color:"#fff", fontSize:10, fontWeight:700, fontFamily:sans, display:"flex", alignItems:"center", justifyContent:"center" }}>{i<2 ? "✓" : i===2 ? "•" : ""}</div>
-                <div style={{ fontFamily:sans, fontSize:9.5, color: i===2 ? C.navy : C.slate, fontWeight: i===2 ? 700 : 400, marginTop:4, textAlign:"center" }}>{s}</div>
+      ),
+    },
+    {
+      title:"Bring in the other side",
+      blurb:"Send one link. The buyer joins the same deal room with their name — no password needed.",
+      body: (
+        <div>
+          {[["Seller","Dana R.","Started the deal · Stuart, FL", pill(C.tealLight, C.teal, "Deal owner")],["Buyer","Mark T.","Joined from invite link · Orlando, FL", pill(greenBg, green, "✓ Joined")]].map(([r,n,d,p])=>(
+            <div key={r} style={row}>
+              <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+                <div style={{ width:34, height:34, borderRadius:"50%", background: r==="Buyer" ? C.navy : C.brass, color:"#fff", fontFamily:sans, fontWeight:700, fontSize:13, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{n[0]}</div>
+                <div><div style={label}>{r} · {n}</div><div style={sub}>{d}</div></div>
               </div>
-              {i<a.length-1 && <div style={{ height:2, flex:1, background: i<2 ? green : C.mist, marginTop:10 }} />}
+              {p}
+            </div>
+          ))}
+          <div style={{ marginTop:14, fontFamily:sans, fontSize:10, color:C.slate, textTransform:"uppercase", letterSpacing:0.6, marginBottom:4 }}>Invite link</div>
+          <div style={{ display:"flex", gap:8 }}>
+            <div style={{ flex:1, minWidth:0, fontFamily:sans, fontSize:12.5, color:C.navy, border:`1px solid ${C.mist}`, borderRadius:6, padding:"8px 10px", background:"#fff", overflow:"hidden", whiteSpace:"nowrap", textOverflow:"ellipsis" }}>boatclosers.com/join/7Hq2…</div>
+            <span style={{ fontFamily:sans, fontSize:12, fontWeight:600, color:"#fff", background:C.navy, borderRadius:6, padding:"8px 12px", whiteSpace:"nowrap" }}>Copy link</span>
+          </div>
+          {note(<>Both sides get email or text updates every time something changes — nobody has to chase anybody.</>)}
+        </div>
+      ),
+    },
+    {
+      title:"Negotiate the deal",
+      blurb:"Price, deposit, escrow and contingencies go back and forth in one thread both sides see live.",
+      body: (
+        <div>
+          <Offer who="Buyer · Mark T." side="buyer" amt="$92,000" text="Deposit $9,200 (10%) · Escrow.com · Survey & sea trial" status="countered" time="Oct 18" />
+          <Offer who="Seller · Dana R." side="seller" amt="$99,500" delta="▲ $7,500" text="Same terms · closing by Nov 15" status="countered" time="Oct 19" />
+          <Offer who="Buyer · Mark T." side="buyer" amt="$96,000" delta="▼ $3,500" text="Deposit $9,600 (10%) · Escrow.com · Survey & sea trial · Close Nov 15" status="accepted" time="Oct 20" />
+          {note(<>🔒 <b>Deal locked.</b> Purchase agreement signed by both — the boat is off the market.</>)}
+        </div>
+      ),
+    },
+    {
+      title:"Inspect before you commit",
+      blurb:"The deposit sits with Escrow.com while the buyer runs the survey, sea trial and title search.",
+      body: (
+        <div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, flexWrap:"wrap", paddingBottom:8, borderBottom:`1px solid ${C.mist}` }}>
+            <div><div style={sub}>Deposit held by</div><div style={{ ...label, fontSize:14 }}>Escrow.com · $9,600</div></div>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>{pill(greenBg, green, "✓ Funded")}{pill(amberBg, amber, "6 of 10 days left")}</div>
+          </div>
+          {[
+            ["Abstract of title / lien search","No liens recorded", "done"],
+            ["Marine survey","Nov 4 · surveyor confirmed", "sched"],
+            ["Sea trial","Nov 4, after the survey", "sched"],
+            ["Insurance binder","Needed before closing", "todo"],
+          ].map(([t,d,s])=>(
+            <div key={t} style={row}>
+              <div><div style={label}>{t}</div><div style={sub}>{d}</div></div>
+              {s==="done" ? pill(greenBg, green, "✓ Clear") : s==="sched" ? pill(C.tealLight, C.teal, "Scheduled") : pill(C.sandDark, C.slate, "To do")}
+            </div>
+          ))}
+          <div style={{ display:"flex", gap:8, marginTop:12, flexWrap:"wrap" }}>
+            <span style={{ fontFamily:sans, fontSize:11.5, fontWeight:600, color:"#fff", background:green, borderRadius:5, padding:"7px 12px" }}>Accept vessel</span>
+            <span style={{ fontFamily:sans, fontSize:11.5, fontWeight:600, color:C.navy, border:`1px solid ${C.mist}`, borderRadius:5, padding:"7px 12px" }}>Renegotiate</span>
+            <span style={{ fontFamily:sans, fontSize:11.5, fontWeight:600, color:"#b3261e", border:`1px solid ${C.mist}`, borderRadius:5, padding:"7px 12px" }}>Reject & refund deposit</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title:"Sign the paperwork",
+      blurb:"Only the documents this deal needs, already filled in. Notary items are flagged so nothing is signed wrong.",
+      body: (
+        <div>
+          {[
+            ["Purchase & Sale Agreement","Signed by buyer and seller", pill(greenBg, green, "✓ Signed")],
+            ["Earnest Money Receipt","Signed Oct 22", pill(greenBg, green, "✓ Signed")],
+            ["Vessel Acceptance","Buyer signed Nov 5", pill(greenBg, green, "✓ Signed")],
+            ["Bill of Sale (FL s.328.46)","Auto-filled · ready to sign", pill(amberBg, amber, "Waiting on seller")],
+            ["FL Title Application HSMV 82040","Pre-filled with vessel & buyer", pill(amberBg, amber, "Waiting on buyer")],
+            ["Lien Release","Notary required — flagged", pill(C.tealLight, C.teal, "Notary")],
+          ].map(([t,d,p])=>(
+            <div key={t} style={row}>
+              <div style={{ display:"flex", gap:10, alignItems:"center", minWidth:0 }}>
+                <span style={{ fontSize:15 }}>📄</span>
+                <div style={{ minWidth:0 }}><div style={label}>{t}</div><div style={sub}>{d}</div></div>
+              </div>
+              {p}
             </div>
           ))}
         </div>
-        <div style={{ ...sub, background:C.sand, borderRadius:8, padding:"10px 12px", color:C.navy, fontSize:11.5 }}>Both sides confirm each step. BoatClosers tracks it — the money sits with Escrow.com, never with us.</div>
-      </div>
-    ),
-    dd: (
-      <div>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, marginBottom:6, flexWrap:"wrap" }}>
-          <div style={{ fontFamily:sans, fontSize:11, color:C.slate }}>Buyer's inspection window</div>
-          {pill(amberBg, amber, "6 of 10 days left")}
-        </div>
-        {[
-          ["HIN & Coast Guard record","Builder verified · no open recalls", "done"],
-          ["Abstract of title / lien search","No liens recorded", "done"],
-          ["Marine survey","Booked Nov 4 · surveyor confirmed", "sched"],
-          ["Sea trial","Nov 4, after the survey", "sched"],
-          ["Insurance binder","Needed before closing", "todo"],
-        ].map(([t,d,s])=>(
-          <div key={t} style={row}>
-            <div><div style={label}>{t}</div><div style={sub}>{d}</div></div>
-            {s==="done" ? pill(greenBg, green, "✓ Clear") : s==="sched" ? pill(C.tealLight, C.teal, "Scheduled") : pill(C.sandDark, C.slate, "To do")}
-          </div>
-        ))}
-        <div style={{ display:"flex", gap:8, marginTop:12, flexWrap:"wrap" }}>
-          <span style={{ fontFamily:sans, fontSize:11.5, fontWeight:600, color:"#fff", background:green, borderRadius:5, padding:"7px 12px" }}>Accept vessel</span>
-          <span style={{ fontFamily:sans, fontSize:11.5, fontWeight:600, color:C.navy, border:`1px solid ${C.mist}`, borderRadius:5, padding:"7px 12px" }}>Renegotiate</span>
-          <span style={{ fontFamily:sans, fontSize:11.5, fontWeight:600, color:"#b3261e", border:`1px solid ${C.mist}`, borderRadius:5, padding:"7px 12px" }}>Reject & refund deposit</span>
-        </div>
-      </div>
-    ),
-    docs: (
-      <div>
-        <div style={{ fontFamily:sans, fontSize:11, color:C.slate, marginBottom:4 }}>Only the documents this deal needs — already filled in from the deal.</div>
-        {[
-          ["Purchase & Sale Agreement","Signed by buyer and seller", pill(greenBg, green, "✓ Signed")],
-          ["Earnest Money Receipt","Signed Oct 22", pill(greenBg, green, "✓ Signed")],
-          ["Survey Authorization","Ready to sign", pill(amberBg, amber, "Waiting on seller")],
-          ["Bill of Sale (FL s.328.46)","Auto-filled · signs at closing", pill(C.sandDark, C.slate, "At closing")],
-          ["FL Title Application HSMV 82040","Pre-filled with vessel & buyer", pill(C.sandDark, C.slate, "At closing")],
-          ["Lien Release","Notary required — flagged", pill(C.tealLight, C.teal, "Notary")],
-        ].map(([t,d,p])=>(
-          <div key={t} style={row}>
-            <div style={{ display:"flex", gap:10, alignItems:"center", minWidth:0 }}>
-              <span style={{ fontSize:16 }}>📄</span>
-              <div style={{ minWidth:0 }}><div style={label}>{t}</div><div style={sub}>{d}</div></div>
+      ),
+    },
+    {
+      title:"Close and transfer title",
+      blurb:"Both sides tick off the closing checklist. Escrow releases the money and the title moves.",
+      body: (
+        <div>
+          {[
+            ["Vessel accepted by buyer", true],
+            ["Bill of sale & title signed", true],
+            ["Final funds released by Escrow.com", true],
+            ["Lien release recorded", true],
+            ["Title application filed with FLHSMV", false],
+          ].map(([t,done])=>(
+            <div key={t} style={{ ...row, justifyContent:"flex-start" }}>
+              <span style={{ width:17, height:17, borderRadius:4, flexShrink:0, background: done ? green : "transparent", border: done ? "none" : `1.5px solid ${C.mist}`, color:"#fff", fontSize:11, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:sans }}>{done ? "✓" : ""}</span>
+              <span style={{ ...label, fontWeight:500, color: done ? C.slate : C.navy }}>{t}</span>
             </div>
-            {p}
+          ))}
+          <div style={{ background:greenBg, border:`1px solid ${green}`, borderRadius:8, padding:"12px 14px", marginTop:14, fontFamily:sans }}>
+            <div style={{ fontSize:13, fontWeight:700, color:green }}>⚓ Deal closed — Nov 14</div>
+            <div style={{ ...sub, color:C.navy }}>Both sides received the full closing packet as a PDF. The buyer has 30 days to file the title.</div>
           </div>
-        ))}
-      </div>
-    ),
-    closing: (
-      <div>
-        <div style={{ fontFamily:sans, fontSize:11, color:C.slate, marginBottom:4 }}>A closing checklist both sides tick off — then the title moves.</div>
-        {[
-          ["Vessel accepted by buyer", false],
-          ["Final funds released by Escrow.com", false],
-          ["Bill of sale & title signed", false],
-          ["Lien release recorded", false],
-          ["Title application filed with FLHSMV", false],
-        ].map(([t])=>(
-          <div key={t} style={{ ...row, justifyContent:"flex-start" }}>
-            <span style={{ width:16, height:16, border:`1.5px solid ${C.mist}`, borderRadius:4, flexShrink:0 }} />
-            <span style={{ ...label, fontWeight:500 }}>{t}</span>
-          </div>
-        ))}
-        <div style={{ ...sub, background:C.sand, borderRadius:8, padding:"10px 12px", color:C.navy, fontSize:11.5, marginTop:12 }}>Target closing: <b>Nov 15</b>. Both sides get a full closing packet as a PDF.</div>
-      </div>
-    ),
+        </div>
+      ),
+    },
+  ];
+
+  const last = slides.length - 1;
+  const go = (n) => setIdx(Math.max(0, Math.min(last, n)));
+  const s = slides[idx];
+  const arrow = (dir) => {
+    const disabled = dir < 0 ? idx === 0 : idx === last;
+    return (
+      <button aria-label={dir < 0 ? "Previous step" : "Next step"} disabled={disabled} onClick={()=>go(idx+dir)}
+        style={{ width:40, height:40, borderRadius:"50%", border:`1px solid ${disabled ? "rgba(255,255,255,0.15)" : "rgba(224,192,116,0.6)"}`, background:"transparent", color: disabled ? "rgba(255,255,255,0.25)" : X.brassLt, fontSize:18, cursor: disabled ? "default" : "pointer", fontFamily:sans, flexShrink:0 }}>{dir < 0 ? "‹" : "›"}</button>
+    );
   };
 
   return (
@@ -5808,12 +5860,26 @@ function ProductPreview({ F, X, isMobile, onStart }) {
       <div style={{ maxWidth:880, margin:"0 auto" }}>
         <div style={{ textAlign:"center", padding:"0 0.5rem" }}>
           <div style={{ fontFamily:sans, fontSize:11, letterSpacing:3, color:X.brassLt, textTransform:"uppercase", fontWeight:500 }}>See the platform</div>
-          <h2 style={{ fontFamily:F.serif, fontWeight:500, fontSize: isMobile ? 24 : 28, color:"#fff", margin:"12px 0 8px", lineHeight:1.2 }}>Look inside a live deal — no sign‑up</h2>
-          <p style={{ fontFamily:sans, fontSize:13.5, color:"rgba(255,255,255,0.65)", maxWidth:560, margin:"0 auto 26px", lineHeight:1.7 }}>This is the deal room the buyer and seller share. Tap through a sample sale from first offer to closing.</p>
+          <h2 style={{ fontFamily:F.serif, fontWeight:500, fontSize: isMobile ? 24 : 28, color:"#fff", margin:"12px 0 8px", lineHeight:1.2 }}>Walk through a whole deal — no{" "}sign{"‑"}up</h2>
+          <p style={{ fontFamily:sans, fontSize:13.5, color:"rgba(255,255,255,0.65)", maxWidth:560, margin:"0 auto 24px", lineHeight:1.7 }}>Six steps, start to finish, in the deal room the buyer and seller share. {isMobile ? "Swipe" : "Click"} through a sample sale.</p>
+        </div>
+
+        {/* Slide caption */}
+        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
+          {!isMobile && arrow(-1)}
+          <div style={{ flex:1, textAlign:"center" }}>
+            <div style={{ fontFamily:sans, fontSize:11, letterSpacing:2, color:X.brassLt, textTransform:"uppercase" }}>Step {idx+1} of 6 · {STEPS[idx]}</div>
+            <div style={{ fontFamily:F.serif, fontSize: isMobile ? 19 : 21, color:"#fff", marginTop:4 }}>{s.title}</div>
+            <div style={{ fontFamily:sans, fontSize:12.5, color:"rgba(255,255,255,0.6)", marginTop:4, lineHeight:1.55, maxWidth:520, marginLeft:"auto", marginRight:"auto", minHeight: isMobile ? 38 : 0 }}>{s.blurb}</div>
+          </div>
+          {!isMobile && arrow(1)}
         </div>
 
         {/* Browser frame */}
-        <div style={{ background:"#fff", borderRadius:12, overflow:"hidden", boxShadow:"0 24px 60px rgba(0,0,0,0.45)", border:"1px solid rgba(255,255,255,0.08)" }}>
+        <div
+          onTouchStart={e=>{ touchX.current = e.touches[0].clientX; }}
+          onTouchEnd={e=>{ if (touchX.current == null) return; const dx = e.changedTouches[0].clientX - touchX.current; touchX.current = null; if (Math.abs(dx) > 45) go(idx + (dx < 0 ? 1 : -1)); }}
+          style={{ background:"#fff", borderRadius:12, overflow:"hidden", boxShadow:"0 24px 60px rgba(0,0,0,0.45)", border:"1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ background:"#eef0f3", padding:"9px 12px", display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ display:"flex", gap:5 }}>{["#ff5f57","#febc2e","#28c840"].map(c=><span key={c} style={{ width:9, height:9, borderRadius:"50%", background:c }} />)}</div>
             <div style={{ flex:1, background:"#fff", borderRadius:6, fontFamily:sans, fontSize:11, color:"#6b7280", padding:"4px 10px", overflow:"hidden", whiteSpace:"nowrap", textOverflow:"ellipsis" }}>boatclosers.com/deal/sample</div>
@@ -5821,46 +5887,51 @@ function ProductPreview({ F, X, isMobile, onStart }) {
           </div>
 
           {/* Deal header */}
-          <div style={{ background:C.navy, color:"#fff", padding: isMobile ? "14px 14px" : "16px 22px", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+          <div style={{ background:C.navy, color:"#fff", padding: isMobile ? "13px 14px" : "15px 22px", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, flexWrap:"wrap" }}>
             <div>
               <div style={{ fontFamily:sans, fontSize: isMobile ? 14.5 : 16, fontWeight:700 }}>2019 Grady-White Freedom 285</div>
-              <div style={{ fontFamily:sans, fontSize:11, color:"rgba(255,255,255,0.6)", marginTop:3 }}>Buyer Mark T. · Seller Dana R. · Stuart, FL</div>
+              <div style={{ fontFamily:sans, fontSize:11, color:"rgba(255,255,255,0.6)", marginTop:3 }}>{idx === 0 ? "Seller Dana R. · Stuart, FL" : "Buyer Mark T. · Seller Dana R. · Stuart, FL"}</div>
             </div>
             <div style={{ textAlign: isMobile ? "left" : "right" }}>
-              <div style={{ fontFamily:sans, fontSize:18, fontWeight:800, color:X.brassLt }}>$96,000</div>
-              <div style={{ fontFamily:sans, fontSize:10.5, color:"rgba(255,255,255,0.6)" }}>Agreed price</div>
+              <div style={{ fontFamily:sans, fontSize:18, fontWeight:800, color:X.brassLt }}>{idx < 2 ? "$99,500" : "$96,000"}</div>
+              <div style={{ fontFamily:sans, fontSize:10.5, color:"rgba(255,255,255,0.6)" }}>{idx < 2 ? "Asking price" : "Agreed price"}</div>
             </div>
           </div>
 
-          {/* Step bar — the real deal steps */}
-          <div style={{ padding: isMobile ? "12px 10px 4px" : "14px 22px 6px", borderBottom:`1px solid ${C.mist}`, display:"flex", alignItems:"flex-start" }}>
-            {STEPS.map((s,i)=>(
-              <div key={s} style={{ display:"flex", alignItems:"flex-start", flex: i<STEPS.length-1 ? 1 : 0 }}>
-                <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
-                  <div style={{ width:22, height:22, borderRadius:"50%", background: i<cur ? green : i===cur ? C.brass : "transparent", border: i>cur ? `1.5px solid ${C.mist}` : "none", color: i<=cur ? "#fff" : C.slate, fontFamily:sans, fontSize:10, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", transition:"all .2s" }}>{i<cur ? "✓" : i+1}</div>
-                  {!isMobile && <div style={{ fontFamily:sans, fontSize:9.5, color: i===cur ? C.navy : C.slate, fontWeight: i===cur ? 700 : 400, marginTop:4, whiteSpace:"nowrap" }}>{s}</div>}
-                </div>
-                {i<STEPS.length-1 && <div style={{ height:2, flex:1, background: i<cur ? green : C.mist, margin:"10px 3px 0", minWidth:6 }} />}
+          {/* Step bar — the app's real steps; tap to jump */}
+          <div style={{ padding: isMobile ? "12px 10px 6px" : "14px 22px 8px", borderBottom:`1px solid ${C.mist}`, display:"flex", alignItems:"flex-start" }}>
+            {STEPS.map((st,i)=>(
+              <div key={st} style={{ display:"flex", alignItems:"flex-start", flex: i<STEPS.length-1 ? 1 : 0 }}>
+                <button onClick={()=>go(i)} aria-label={`Step ${i+1}: ${st}`} style={{ display:"flex", flexDirection:"column", alignItems:"center", background:"none", border:"none", padding:0, cursor:"pointer" }}>
+                  <div style={{ width:24, height:24, borderRadius:"50%", background: i<idx || (i===last && idx===last) ? green : i===idx ? C.brass : "transparent", border: i>idx ? `1.5px solid ${C.mist}` : "none", color: i<=idx ? "#fff" : C.slate, fontFamily:sans, fontSize:10, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", transition:"all .2s" }}>{i<idx || (i===last && idx===last) ? "✓" : i+1}</div>
+                  {!isMobile && <div style={{ fontFamily:sans, fontSize:9.5, color: i===idx ? C.navy : C.slate, fontWeight: i===idx ? 700 : 400, marginTop:4, whiteSpace:"nowrap" }}>{st}</div>}
+                </button>
+                {i<STEPS.length-1 && <div style={{ height:2, flex:1, background: i<idx ? green : C.mist, margin:"11px 3px 0", minWidth:6, transition:"background .2s" }} />}
               </div>
             ))}
           </div>
 
-          {/* Tabs */}
-          <div style={{ display:"flex", gap:4, padding: isMobile ? "10px 10px 0" : "12px 22px 0", overflowX:"auto", WebkitOverflowScrolling:"touch" }}>
-            {tabs.map(([k,t])=>(
-              <button key={k} onClick={()=>setTab(k)} style={{ fontFamily:sans, fontSize: isMobile ? 11.5 : 12, fontWeight:600, whiteSpace:"nowrap", cursor:"pointer", border:"none", borderRadius:"6px 6px 0 0", padding: isMobile ? "8px 7px" : "8px 12px", flexShrink:0, background: tab===k ? C.sand : "transparent", color: tab===k ? C.navy : C.slate, borderBottom: tab===k ? `2px solid ${C.brass}` : "2px solid transparent" }}>{t}</button>
-            ))}
-          </div>
-
-          <div style={{ background:C.sand, padding: isMobile ? "4px 10px 14px" : "6px 22px 18px" }}>
-            <div style={{ background:"#fff", border:`1px solid ${C.mist}`, borderRadius:10, padding: isMobile ? "12px 12px" : "16px 18px", minHeight: isMobile ? 0 : 330 }}>
-              {screens[tab]}
+          <div style={{ background:C.sand, padding: isMobile ? "10px 10px 14px" : "14px 22px 18px" }}>
+            <div key={idx} style={{ background:"#fff", border:`1px solid ${C.mist}`, borderRadius:10, padding: isMobile ? "12px 12px" : "16px 18px", minHeight: isMobile ? 0 : 330, animation:"bcFade .25s ease" }}>
+              {s.body}
             </div>
           </div>
         </div>
+        <style>{"@keyframes bcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}"}</style>
 
-        <div style={{ textAlign:"center", marginTop:26 }}>
-          <button onClick={()=>onStart()} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:3, padding:"13px 30px", fontSize:15, fontWeight:600, fontFamily:sans, cursor:"pointer" }}>Open your own deal room — free</button>
+        {/* Controls under the frame */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:14, marginTop:18 }}>
+          {isMobile && arrow(-1)}
+          <div style={{ display:"flex", gap:7 }}>
+            {slides.map((_,i)=>(
+              <button key={i} aria-label={`Go to step ${i+1}`} onClick={()=>go(i)} style={{ width: i===idx ? 22 : 8, height:8, borderRadius:4, border:"none", padding:0, cursor:"pointer", background: i===idx ? X.brassLt : "rgba(255,255,255,0.25)", transition:"all .2s" }} />
+            ))}
+          </div>
+          {isMobile && arrow(1)}
+        </div>
+
+        <div style={{ textAlign:"center", marginTop:22 }}>
+          <button onClick={()=>onStart()} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:3, padding:"13px 30px", fontSize:15, fontWeight:600, fontFamily:sans, cursor:"pointer" }}>{idx === last ? "Start your own deal — free" : "Open your own deal room — free"}</button>
           <div style={{ fontFamily:sans, fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:10 }}>Sample data for illustration · pay $249 only when you're ready to sign</div>
         </div>
       </div>
@@ -5938,22 +6009,7 @@ function Landing({ onStart, onLegal }) {
     ["4","Documents Signed","Every form auto-filled, signed, shared"],
     ["5","Closed","Title transferred, deal is done"],
   ];
-  const faqs = [
-    ["How do I sell a boat without a broker?","Enter your vessel and both parties, negotiate the price and terms, complete due diligence, then pay $249 to unlock and sign every document the sale needs. BoatClosers gives you the same professional paperwork and closing process a yacht broker uses — you simply run it yourself."],
-    ["What documents do I need to sell a boat privately?","At minimum a purchase agreement, bill of sale, and the title-transfer documents — plus a deposit receipt, as-is acknowledgment, and closing statement. Depending on the deal you may also need financing, insurance, estate, or lost-title documents. BoatClosers includes all "+DOC_COUNT+" and shows you exactly which ones your deal requires."],
-    ["How do I make an offer on a boat I found on Facebook Marketplace or Craigslist?","Start a deal in BoatClosers, enter the vessel, and send a structured offer with an earnest-money deposit attached. Unlike a comment or a text, a deposit-backed offer shows the seller you're serious and creates a recorded paper trail — and once accepted, a signed agreement locks the boat in so it can't be sold to someone else."],
-    ["How do I keep a seller from selling the boat to someone else after we agree?","This is one of the most common ways private deals fall apart. The fix is to secure it: the moment both sides agree, a signed purchase agreement plus an earnest-money deposit binds the deal. The seller can no longer walk to another buyer without consequence, and the buyer can't be left empty-handed after turning others away."],
-    ["Is it safe to buy a boat remotely from another state?","Yes, when the money is handled correctly. BoatClosers keeps the whole negotiation and signing remote, and routes funds through escrow — Escrow.com, a private attorney, or another verified path — so you never wire thousands to a stranger on faith. The funds release only when the deal is complete."],
-    ["Are these documents legally binding?","Our templates follow recognized maritime and state-transfer standards, but enforceability depends on how accurately you complete them and on your state's requirements. We flag the documents that must be notarized, and we strongly recommend a local maritime attorney review anything involving financing, estates, or title problems before signing."],
-    ["How does title transfer work for a Coast Guard documented vessel?","Documented vessels transfer through the National Vessel Documentation Center rather than the state. BoatClosers includes the USCG transfer and documentation forms and walks you through requesting the vessel's abstract of title from the Coast Guard."],
-    ["What if the seller still owes money on the boat?","The deal includes a payoff authorization and lien release so the seller's existing loan is cleared from the title at closing — letting clean title pass to the buyer. The buyer should confirm the lien is released before final payment."],
-    ["What if I inherited a boat I want to sell?","BoatClosers includes an estate and inheritance section with a plain-language guide plus affidavit of heirship, executor authorization, and small-estate forms. Estate rules vary by state, so the app points you to when a probate attorney is needed."],
-    ["Who pays the $249 fee?","Whoever starts the deal pays the flat fee and controls the vessel details and terms. The other party joins free to review, add their information, and sign."],
-    ["What escrow options do I have, and do you hold the money?","You choose from five: Escrow.com (a licensed third party, recommended), a licensed boat brokerage's trust account, a private attorney or title company, a direct wire to the seller, or your own custom arrangement. BoatClosers never holds, touches, or releases funds."],
-    ["The boat I want is listed with a broker. Can I still use BoatClosers?","Yes. You deal with the listing broker directly and BoatClosers handles your side of the paperwork — the offer, the agreement, the deposit, due diligence and closing. It is also worth knowing that a listing broker's commission normally assumes a second broker brings the buyer and takes a share of it. If nobody is doing that — because you are representing yourself — that is a reasonable thing to raise when you decide your number, and far easier to raise before terms are agreed than after. BoatClosers points it out at the right moment when you build your offer. What the broker does about it is entirely theirs to decide."],
-    ["Can I still use a broker or attorney if I want one?","Yes. BoatClosers is built so you don't need one, but nothing stops you from bringing one in — for example, letting a licensed brokerage's trust account hold the escrow deposit, or having an attorney review the agreement before you sign. You run the deal and bring in whatever help you're comfortable with."],
-    ["What if the deal falls through?","If the buyer formally rejects during due diligence, the earnest money is returned and the reason is recorded in a Rejection Notice. BoatClosers does not hold or release any funds."],
-  ];
+  const faqs = FAQS.map(f => [f.q, f.a]);
 
   return (
     <div style={{ fontFamily:F.serif, background:C.sand, color:C.text, minHeight:"100vh" }}>
@@ -6149,6 +6205,7 @@ function Landing({ onStart, onLegal }) {
             <div style={{ fontFamily:F.sans, fontSize:13, color:X.slate, lineHeight:1.7 }}>{a}</div>
           </div>
         ))}
+        <div style={{ textAlign:"center", marginTop:24 }}><a href="/faq" style={{ fontFamily:F.sans, fontSize:14, fontWeight:600, color:C.navy, textDecoration:"underline", textUnderlineOffset:3, textDecorationColor:C.brass }}>See all questions, organized by topic →</a></div>
       </div>
 
       {/* Final CTA */}
