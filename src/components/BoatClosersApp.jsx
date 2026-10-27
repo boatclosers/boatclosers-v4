@@ -5664,6 +5664,210 @@ function AuthScreen({ onAuth, prefillEmail, notice, defaultMode, defaultRole, on
 // ─────────────────────────────────────────────────────────────────────────────
 // LANDING PAGE
 // ─────────────────────────────────────────────────────────────────────────────
+// ── PRODUCT PREVIEW — a clickable sample deal on the landing page ───────────
+// Lets visitors see the actual deal room before signing up. All data is a
+// made-up sample; screens mirror the real steps (offers, escrow, due
+// diligence, documents, closing) so what people see is what they get.
+function ProductPreview({ F, X, isMobile, onStart }) {
+  const [tab, setTab] = useState("offers");
+  const sans = F.sans;
+  const tabs = [
+    ["offers","Offers"],["escrow","Escrow"],["dd", isMobile ? "Inspection" : "Due diligence"],["docs","Documents"],["closing","Closing"],
+  ];
+  const stepFor = { offers:2, escrow:2, dd:3, docs:4, closing:5 };
+  const cur = stepFor[tab];
+  const pill = (bg, fg, t) => <span style={{ display:"inline-block", background:bg, color:fg, fontSize:10.5, fontWeight:600, fontFamily:sans, borderRadius:20, padding:"3px 9px", whiteSpace:"nowrap" }}>{t}</span>;
+  const green = "#2e7d4f", greenBg = "#e6f3ea", amberBg = "#fff4dd", amber = "#8a5a00";
+  const row = { display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, padding:"11px 0", borderBottom:`1px solid ${C.mist}` };
+  const label = { fontFamily:sans, fontSize:12.5, color:C.navy, fontWeight:600 };
+  const sub = { fontFamily:sans, fontSize:11, color:C.slate, marginTop:2, lineHeight:1.45 };
+
+  const Offer = ({ who, side, amt, delta, note, status, time }) => {
+    const buyer = side === "buyer";
+    const accent = buyer ? C.navy : C.brass;
+    return (
+      <div style={{ display:"flex", justifyContent: buyer ? "flex-start" : "flex-end", marginBottom:9 }}>
+        <div style={{ width: isMobile ? "92%" : "78%", background: status==="accepted" ? greenBg : "#fff", border:`1px solid ${status==="accepted" ? green : C.mist}`, borderLeft:`4px solid ${accent}`, borderRadius:8, padding:"10px 12px", opacity: status==="countered" ? 0.6 : 1 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", gap:8 }}>
+            <span style={{ fontFamily:sans, fontSize:10.5, fontWeight:700, color:accent, letterSpacing:0.5, textTransform:"uppercase" }}>{who}</span>
+            <span style={{ fontFamily:sans, fontSize:10, color:C.slate }}>{time}</span>
+          </div>
+          <div style={{ display:"flex", alignItems:"baseline", gap:8, marginTop:2, flexWrap:"wrap" }}>
+            <span style={{ fontFamily:sans, fontSize:19, fontWeight:800, color:C.navy }}>{amt}</span>
+            {delta && <span style={{ fontFamily:sans, fontSize:11, fontWeight:700, color: delta[0]==="▲" ? green : "#b3261e" }}>{delta}</span>}
+            {status==="accepted" && pill(green, "#fff", "✓ Accepted by both")}
+            {status==="countered" && pill(C.sandDark, C.slate, "Countered")}
+          </div>
+          <div style={sub}>{note}</div>
+        </div>
+      </div>
+    );
+  };
+
+  const screens = {
+    offers: (
+      <div>
+        <div style={{ fontFamily:sans, fontSize:11, color:C.slate, marginBottom:10 }}>Every offer and counter, in one thread both sides see live.</div>
+        <Offer who="Buyer · Mark T." side="buyer" amt="$92,000" note="Deposit $9,200 (10%) · Escrow.com · Contingent on survey & sea trial" status="countered" time="Oct 18" />
+        <Offer who="Seller · Dana R." side="seller" amt="$99,500" delta="▲ $7,500" note="Same terms · closing by Nov 15" status="countered" time="Oct 19" />
+        <Offer who="Buyer · Mark T." side="buyer" amt="$96,000" delta="▼ $3,500" note="Deposit $9,600 (10%) · Escrow.com · Survey & sea trial · Close Nov 15" status="accepted" time="Oct 20" />
+        <div style={{ background:C.sand, borderRadius:8, padding:"10px 12px", fontFamily:sans, fontSize:11.5, color:C.navy, marginTop:4 }}>🔒 <b>Deal locked.</b> Purchase agreement signed by both — the boat is off the market.</div>
+      </div>
+    ),
+    escrow: (
+      <div>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:10, flexWrap:"wrap", marginBottom:14 }}>
+          <div>
+            <div style={{ fontFamily:sans, fontSize:11, color:C.slate }}>Earnest money held by</div>
+            <div style={{ fontFamily:sans, fontSize:16, fontWeight:700, color:C.navy }}>Escrow.com · $9,600</div>
+          </div>
+          {pill(greenBg, green, "Funded Oct 22")}
+        </div>
+        <div style={{ display:"flex", alignItems:"flex-start", margin:"6px 0 16px" }}>
+          {["Agreement","Funded","In progress","Inspection","Closed"].map((s,i,a)=>(
+            <div key={s} style={{ display:"flex", alignItems:"flex-start", flex: i<a.length-1 ? 1 : 0 }}>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", minWidth:44 }}>
+                <div style={{ width:22, height:22, borderRadius:"50%", background: i<2 ? green : i===2 ? C.brass : "transparent", border: i>2 ? `1.5px solid ${C.mist}` : "none", color:"#fff", fontSize:10, fontWeight:700, fontFamily:sans, display:"flex", alignItems:"center", justifyContent:"center" }}>{i<2 ? "✓" : i===2 ? "•" : ""}</div>
+                <div style={{ fontFamily:sans, fontSize:9.5, color: i===2 ? C.navy : C.slate, fontWeight: i===2 ? 700 : 400, marginTop:4, textAlign:"center" }}>{s}</div>
+              </div>
+              {i<a.length-1 && <div style={{ height:2, flex:1, background: i<2 ? green : C.mist, marginTop:10 }} />}
+            </div>
+          ))}
+        </div>
+        <div style={{ ...sub, background:C.sand, borderRadius:8, padding:"10px 12px", color:C.navy, fontSize:11.5 }}>Both sides confirm each step. BoatClosers tracks it — the money sits with Escrow.com, never with us.</div>
+      </div>
+    ),
+    dd: (
+      <div>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, marginBottom:6, flexWrap:"wrap" }}>
+          <div style={{ fontFamily:sans, fontSize:11, color:C.slate }}>Buyer's inspection window</div>
+          {pill(amberBg, amber, "6 of 10 days left")}
+        </div>
+        {[
+          ["HIN & Coast Guard record","Builder verified · no open recalls", "done"],
+          ["Abstract of title / lien search","No liens recorded", "done"],
+          ["Marine survey","Booked Nov 4 · surveyor confirmed", "sched"],
+          ["Sea trial","Nov 4, after the survey", "sched"],
+          ["Insurance binder","Needed before closing", "todo"],
+        ].map(([t,d,s])=>(
+          <div key={t} style={row}>
+            <div><div style={label}>{t}</div><div style={sub}>{d}</div></div>
+            {s==="done" ? pill(greenBg, green, "✓ Clear") : s==="sched" ? pill(C.tealLight, C.teal, "Scheduled") : pill(C.sandDark, C.slate, "To do")}
+          </div>
+        ))}
+        <div style={{ display:"flex", gap:8, marginTop:12, flexWrap:"wrap" }}>
+          <span style={{ fontFamily:sans, fontSize:11.5, fontWeight:600, color:"#fff", background:green, borderRadius:5, padding:"7px 12px" }}>Accept vessel</span>
+          <span style={{ fontFamily:sans, fontSize:11.5, fontWeight:600, color:C.navy, border:`1px solid ${C.mist}`, borderRadius:5, padding:"7px 12px" }}>Renegotiate</span>
+          <span style={{ fontFamily:sans, fontSize:11.5, fontWeight:600, color:"#b3261e", border:`1px solid ${C.mist}`, borderRadius:5, padding:"7px 12px" }}>Reject & refund deposit</span>
+        </div>
+      </div>
+    ),
+    docs: (
+      <div>
+        <div style={{ fontFamily:sans, fontSize:11, color:C.slate, marginBottom:4 }}>Only the documents this deal needs — already filled in from the deal.</div>
+        {[
+          ["Purchase & Sale Agreement","Signed by buyer and seller", pill(greenBg, green, "✓ Signed")],
+          ["Earnest Money Receipt","Signed Oct 22", pill(greenBg, green, "✓ Signed")],
+          ["Survey Authorization","Ready to sign", pill(amberBg, amber, "Waiting on seller")],
+          ["Bill of Sale (FL s.328.46)","Auto-filled · signs at closing", pill(C.sandDark, C.slate, "At closing")],
+          ["FL Title Application HSMV 82040","Pre-filled with vessel & buyer", pill(C.sandDark, C.slate, "At closing")],
+          ["Lien Release","Notary required — flagged", pill(C.tealLight, C.teal, "Notary")],
+        ].map(([t,d,p])=>(
+          <div key={t} style={row}>
+            <div style={{ display:"flex", gap:10, alignItems:"center", minWidth:0 }}>
+              <span style={{ fontSize:16 }}>📄</span>
+              <div style={{ minWidth:0 }}><div style={label}>{t}</div><div style={sub}>{d}</div></div>
+            </div>
+            {p}
+          </div>
+        ))}
+      </div>
+    ),
+    closing: (
+      <div>
+        <div style={{ fontFamily:sans, fontSize:11, color:C.slate, marginBottom:4 }}>A closing checklist both sides tick off — then the title moves.</div>
+        {[
+          ["Vessel accepted by buyer", false],
+          ["Final funds released by Escrow.com", false],
+          ["Bill of sale & title signed", false],
+          ["Lien release recorded", false],
+          ["Title application filed with FLHSMV", false],
+        ].map(([t])=>(
+          <div key={t} style={{ ...row, justifyContent:"flex-start" }}>
+            <span style={{ width:16, height:16, border:`1.5px solid ${C.mist}`, borderRadius:4, flexShrink:0 }} />
+            <span style={{ ...label, fontWeight:500 }}>{t}</span>
+          </div>
+        ))}
+        <div style={{ ...sub, background:C.sand, borderRadius:8, padding:"10px 12px", color:C.navy, fontSize:11.5, marginTop:12 }}>Target closing: <b>Nov 15</b>. Both sides get a full closing packet as a PDF.</div>
+      </div>
+    ),
+  };
+
+  return (
+    <div id="preview" style={{ background:X.navyDeep, padding: isMobile ? "3rem 0.75rem" : "4rem 1.25rem" }}>
+      <div style={{ maxWidth:880, margin:"0 auto" }}>
+        <div style={{ textAlign:"center", padding:"0 0.5rem" }}>
+          <div style={{ fontFamily:sans, fontSize:11, letterSpacing:3, color:X.brassLt, textTransform:"uppercase", fontWeight:500 }}>See the platform</div>
+          <h2 style={{ fontFamily:F.serif, fontWeight:500, fontSize: isMobile ? 24 : 28, color:"#fff", margin:"12px 0 8px", lineHeight:1.2 }}>Look inside a live deal — no sign‑up</h2>
+          <p style={{ fontFamily:sans, fontSize:13.5, color:"rgba(255,255,255,0.65)", maxWidth:560, margin:"0 auto 26px", lineHeight:1.7 }}>This is the deal room the buyer and seller share. Tap through a sample sale from first offer to closing.</p>
+        </div>
+
+        {/* Browser frame */}
+        <div style={{ background:"#fff", borderRadius:12, overflow:"hidden", boxShadow:"0 24px 60px rgba(0,0,0,0.45)", border:"1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ background:"#eef0f3", padding:"9px 12px", display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ display:"flex", gap:5 }}>{["#ff5f57","#febc2e","#28c840"].map(c=><span key={c} style={{ width:9, height:9, borderRadius:"50%", background:c }} />)}</div>
+            <div style={{ flex:1, background:"#fff", borderRadius:6, fontFamily:sans, fontSize:11, color:"#6b7280", padding:"4px 10px", overflow:"hidden", whiteSpace:"nowrap", textOverflow:"ellipsis" }}>boatclosers.com/deal/sample</div>
+            <span style={{ fontFamily:sans, fontSize:10, fontWeight:600, color:amber, background:amberBg, borderRadius:20, padding:"3px 8px", whiteSpace:"nowrap" }}>Sample deal</span>
+          </div>
+
+          {/* Deal header */}
+          <div style={{ background:C.navy, color:"#fff", padding: isMobile ? "14px 14px" : "16px 22px", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+            <div>
+              <div style={{ fontFamily:sans, fontSize: isMobile ? 14.5 : 16, fontWeight:700 }}>2019 Grady-White Freedom 285</div>
+              <div style={{ fontFamily:sans, fontSize:11, color:"rgba(255,255,255,0.6)", marginTop:3 }}>Buyer Mark T. · Seller Dana R. · Stuart, FL</div>
+            </div>
+            <div style={{ textAlign: isMobile ? "left" : "right" }}>
+              <div style={{ fontFamily:sans, fontSize:18, fontWeight:800, color:X.brassLt }}>$96,000</div>
+              <div style={{ fontFamily:sans, fontSize:10.5, color:"rgba(255,255,255,0.6)" }}>Agreed price</div>
+            </div>
+          </div>
+
+          {/* Step bar — the real deal steps */}
+          <div style={{ padding: isMobile ? "12px 10px 4px" : "14px 22px 6px", borderBottom:`1px solid ${C.mist}`, display:"flex", alignItems:"flex-start" }}>
+            {STEPS.map((s,i)=>(
+              <div key={s} style={{ display:"flex", alignItems:"flex-start", flex: i<STEPS.length-1 ? 1 : 0 }}>
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
+                  <div style={{ width:22, height:22, borderRadius:"50%", background: i<cur ? green : i===cur ? C.brass : "transparent", border: i>cur ? `1.5px solid ${C.mist}` : "none", color: i<=cur ? "#fff" : C.slate, fontFamily:sans, fontSize:10, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", transition:"all .2s" }}>{i<cur ? "✓" : i+1}</div>
+                  {!isMobile && <div style={{ fontFamily:sans, fontSize:9.5, color: i===cur ? C.navy : C.slate, fontWeight: i===cur ? 700 : 400, marginTop:4, whiteSpace:"nowrap" }}>{s}</div>}
+                </div>
+                {i<STEPS.length-1 && <div style={{ height:2, flex:1, background: i<cur ? green : C.mist, margin:"10px 3px 0", minWidth:6 }} />}
+              </div>
+            ))}
+          </div>
+
+          {/* Tabs */}
+          <div style={{ display:"flex", gap:4, padding: isMobile ? "10px 10px 0" : "12px 22px 0", overflowX:"auto", WebkitOverflowScrolling:"touch" }}>
+            {tabs.map(([k,t])=>(
+              <button key={k} onClick={()=>setTab(k)} style={{ fontFamily:sans, fontSize: isMobile ? 11.5 : 12, fontWeight:600, whiteSpace:"nowrap", cursor:"pointer", border:"none", borderRadius:"6px 6px 0 0", padding: isMobile ? "8px 7px" : "8px 12px", flexShrink:0, background: tab===k ? C.sand : "transparent", color: tab===k ? C.navy : C.slate, borderBottom: tab===k ? `2px solid ${C.brass}` : "2px solid transparent" }}>{t}</button>
+            ))}
+          </div>
+
+          <div style={{ background:C.sand, padding: isMobile ? "4px 10px 14px" : "6px 22px 18px" }}>
+            <div style={{ background:"#fff", border:`1px solid ${C.mist}`, borderRadius:10, padding: isMobile ? "12px 12px" : "16px 18px", minHeight: isMobile ? 0 : 330 }}>
+              {screens[tab]}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ textAlign:"center", marginTop:26 }}>
+          <button onClick={()=>onStart()} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:3, padding:"13px 30px", fontSize:15, fontWeight:600, fontFamily:sans, cursor:"pointer" }}>Open your own deal room — free</button>
+          <div style={{ fontFamily:sans, fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:10 }}>Sample data for illustration · pay $249 only when you're ready to sign</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Landing({ onStart, onLegal }) {
   const [showDocFinder, setShowDocFinder] = useState(false);
   const groupOrder = [...new Set(DOCUMENTS.map(d=>d.group))];
@@ -5766,7 +5970,7 @@ function Landing({ onStart, onLegal }) {
         <div style={{ position:"relative", padding: isMobile?"2.5rem 1.25rem 3rem":"3rem 1.25rem 3.25rem", maxWidth:620, margin:"0 auto" }}>
           <div style={{ marginBottom:14 }}>{eyebrow("Online closing platform · Not a brokerage")}</div>
           <div style={{ fontFamily:F.display, color:X.brassLt, fontSize:isMobile?34:38, letterSpacing:1, fontWeight:600, lineHeight:1 }}>Boatclosers</div>
-          <div style={{ fontFamily:F.sans, color:"rgba(255,255,255,0.66)", fontSize:11.5, marginTop:10, letterSpacing:1.5, textTransform:"uppercase" }}>Buying &amp; selling boats and yachts</div>
+          <div style={{ fontFamily:F.sans, color:"rgba(255,255,255,0.66)", fontSize:11.5, marginTop:10, letterSpacing:1.5, textTransform:"uppercase" }}>Private vessel transactions</div>
           <h1 style={{ ...h2s, fontSize:isMobile?26:31, lineHeight:1.22, color:"#fff", marginTop:26 }}>Close your private boat sale online, <span style={{ color:X.brassLt }}>step by step.</span></h1>
           <p style={{ ...lead, color:"rgba(255,255,255,0.72)", marginTop:16 }}>BoatClosers is an online tool for private buyers and sellers. You make the deal, and we walk you through the offers, the Florida paperwork and safe payment through Escrow.com. Flat $249, done from your phone or computer.</p>
           <div style={{ display:"inline-block", marginTop:18, color:X.brassLt, fontSize:12, fontFamily:F.sans, border:"0.5px solid rgba(184,134,58,0.45)", borderRadius:20, padding:"6px 16px", letterSpacing:0.5 }}>Flat $249 · one price, start to finish</div>
@@ -5774,7 +5978,8 @@ function Landing({ onStart, onLegal }) {
             <button style={brassBtn} onClick={()=>onStart("buyer")}>Start as Buyer</button>
             <button style={outlineBtn} onClick={()=>onStart("seller")}>Start as Seller</button>
           </div>
-          <div style={{ fontFamily:F.sans, color:"rgba(255,255,255,0.4)", fontSize:11, marginTop:14 }}>Free to start · pay only when you're ready to sign</div>
+          <div style={{ marginTop:14 }}><a href="#preview" onClick={e=>{ e.preventDefault(); document.getElementById("preview")?.scrollIntoView({ behavior:"smooth" }); }} style={{ fontFamily:F.sans, fontSize:13, color:"#fff", textDecoration:"underline", textUnderlineOffset:3, textDecorationColor:"rgba(224,192,116,0.6)" }}>See a sample deal first ↓</a></div>
+          <div style={{ fontFamily:F.sans, color:"rgba(255,255,255,0.4)", fontSize:11, marginTop:12 }}>Free to start · pay only when you're ready to sign</div>
           <div style={{ fontFamily:F.sans, fontSize:13, color:"rgba(255,255,255,0.72)", marginTop:16 }}>Smaller deal, price already agreed? <a href="/express" style={{ color:X.brassLt, fontWeight:500 }}>Try BoatClosers Express for $29.99</a></div>
         </div>
       </header>
@@ -5782,22 +5987,24 @@ function Landing({ onStart, onLegal }) {
       {/* Trust bar */}
       <div style={{ background:C.navy2, borderBottom:"1px solid rgba(184,134,58,0.18)", padding:"0.9rem 1.25rem" }}>
         <div style={{ maxWidth:880, margin:"0 auto", display:"flex", flexWrap:"wrap", justifyContent:"center", gap:"8px 24px", fontSize:11.5, fontFamily:F.sans, color:"rgba(255,255,255,0.68)", letterSpacing:0.3 }}>
-          <span>Built for real private boat deals</span>
+          <span>One shared deal room for buyer &amp; seller</span>
           <span>{DOC_COUNT} documents, {CAT_COUNT} categories</span>
           <span>One flat $249 fee</span>
           <span>We never touch your money</span>
         </div>
       </div>
 
+      <ProductPreview F={F} X={X} isMobile={isMobile} onStart={onStart} />
+
       {/* Problem / Solution */}
       <div style={{ maxWidth:880, margin:"0 auto", padding:"3.75rem 1.25rem", textAlign:"center" }}>
         {eyebrow("The problem")}
-        <h2 style={{ ...h2s, fontSize:27, color:C.navy, margin:"14px 0" }}>Buying or selling a boat on your own is harder than it should be.</h2>
-        <p style={{ ...lead, maxWidth:640, margin:"0 auto" }}>Whether you're protecting a big purchase, selling a boat you own, or just trying to do it right — there's never been one place that handles the whole deal, start to finish. The offer, the escrow, the contracts, the title paperwork, the financing a lender wants, the steps you didn't know you needed. So people cobble it together from templates and guesswork, and hope nothing gets missed.</p>
+        <h2 style={{ ...h2s, fontSize:27, color:C.navy, margin:"14px 0" }}>Private boat deals run on texts, templates and trust.</h2>
+        <p style={{ ...lead, maxWidth:640, margin:"0 auto" }}>Offers live in a text thread. The deposit goes to a stranger. The bill of sale is a download from somewhere, and nobody is sure what the state needs for the title. One missed step and the deal stalls — or the money is gone.</p>
         <div style={{ height:1, background:X.mist, margin:"36px auto", maxWidth:120 }} />
         {eyebrow("The solution")}
-        <h2 style={{ ...h2s, fontSize:27, color:C.navy, margin:"14px 0" }}>It's all here — in order, and done right.</h2>
-        <p style={{ ...lead, maxWidth:640, margin:"0 auto" }}>BoatClosers holds every piece of the deal in one place: the offer, the escrow, the contracts, the due diligence, the title paperwork, the close — and the financing documents a lender asks for, like the signed purchase agreement, proof of insurance, and a clean title. Each one is built from how real boat sales actually happen, the messy ones included. You handle your own deal, guided the whole way.</p>
+        <h2 style={{ ...h2s, fontSize:27, color:C.navy, margin:"14px 0" }}>One deal room. Both parties. Every step tracked.</h2>
+        <p style={{ ...lead, maxWidth:640, margin:"0 auto" }}>BoatClosers is software for the transaction itself. Buyer and seller log in to the same deal, negotiate in one thread, route the deposit through escrow, track inspections, and sign documents that fill themselves in from the deal. Each side always sees where things stand and what's next.</p>
         <div style={{ background:C.navy, borderRadius:10, padding:"20px 22px", margin:"24px auto 0", maxWidth:620 }}>
           <div style={{ fontFamily:F.sans, color:"#fff", fontSize:14, lineHeight:1.7 }}>One flat fee — <span style={{ color:X.brassLt, fontWeight:600 }}>$249 for the whole deal</span>, whatever the boat costs. No percentage, no subscription.</div>
         </div>
@@ -5846,9 +6053,9 @@ function Landing({ onStart, onLegal }) {
 
       {/* What's included */}
       <div style={{ maxWidth:880, margin:"0 auto", padding:"3.75rem 1.25rem" }}>
-        <div style={{ textAlign:"center" }}>{eyebrow("What's in the one place")}</div>
-        <h2 style={{ ...h2s, textAlign:"center", fontSize:25, color:C.navy, margin:"14px 0 8px" }}>The whole deal, handled — not a folder of blank forms</h2>
-        <p style={{ ...lead, textAlign:"center", maxWidth:600, margin:"0 auto 38px" }}>Enter your deal once. Everything below fills itself in and stays organized by exactly when you need it.</p>
+        <div style={{ textAlign:"center" }}>{eyebrow("Inside the platform")}</div>
+        <h2 style={{ ...h2s, textAlign:"center", fontSize:25, color:C.navy, margin:"14px 0 8px" }}>Built for the whole vessel transaction</h2>
+        <p style={{ ...lead, textAlign:"center", maxWidth:600, margin:"0 auto 38px" }}>Enter the deal once. Offers, escrow, inspections and paperwork all run from the same record.</p>
         <div style={{ display:"grid", gridTemplateColumns:cols(2), gap:16 }}>
           {features.map(f=>(
             <div key={f.t} style={card}>
@@ -5881,8 +6088,8 @@ function Landing({ onStart, onLegal }) {
       <div style={{ background:X.sandCool, padding:"3.75rem 1.25rem" }}>
         <div style={{ maxWidth:880, margin:"0 auto" }}>
           <div style={{ textAlign:"center" }}>{eyebrow("Where a fair deal actually happens")}</div>
-          <h2 style={{ ...h2s, textAlign:"center", fontSize:25, color:C.navy, margin:"14px 0" }}>The Deal Room — where stuck deals get unstuck</h2>
-          <p style={{ ...lead, textAlign:"center", maxWidth:650, margin:"0 auto 38px" }}>Most private boat sales don't fall apart over price — they fall apart over a missed text, a term nobody would budge on, or an offer with nothing behind it. The Deal Room gives both sides one place to negotiate the entire deal, back and forth, until it's fair.</p>
+          <h2 style={{ ...h2s, textAlign:"center", fontSize:25, color:C.navy, margin:"14px 0" }}>Negotiate in the Deal Room</h2>
+          <p style={{ ...lead, textAlign:"center", maxWidth:650, margin:"0 auto 38px" }}>Price, deposit, contingencies and dates go back and forth in one structured thread — with a deadline on every offer, so nothing sits.</p>
           <div style={{ display:"grid", gridTemplateColumns:cols(3), gap:16 }}>
             {dealroom.map(d=>(
               <div key={d.t} style={card}>
@@ -5946,8 +6153,8 @@ function Landing({ onStart, onLegal }) {
 
       {/* Final CTA */}
       <div style={{ background:C.teal, padding:"3.75rem 1.25rem", textAlign:"center" }}>
-        <h2 style={{ ...h2s, fontSize:26, color:"#fff", marginBottom:10 }}>Ready to close your boat deal?</h2>
-        <p style={{ fontFamily:F.sans, fontSize:14, color:"rgba(255,255,255,0.85)", marginBottom:26 }}>Create your free account, enter your deal, and pay only when you're ready to sign.</p>
+        <h2 style={{ ...h2s, fontSize:26, color:"#fff", marginBottom:10 }}>Open a deal room in two minutes</h2>
+        <p style={{ fontFamily:F.sans, fontSize:14, color:"rgba(255,255,255,0.85)", marginBottom:26 }}>Add the boat, invite the other party, and start negotiating. Pay $249 only when you're ready to sign.</p>
         <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
           <button style={brassBtn} onClick={()=>onStart("buyer")}>Start as Buyer</button>
           <button style={{ ...outlineBtn, borderColor:"rgba(255,255,255,0.4)", color:"#fff" }} onClick={()=>onStart("seller")}>Start as Seller</button>
