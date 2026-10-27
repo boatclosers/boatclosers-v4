@@ -5735,7 +5735,7 @@ function Landing({ onStart, onLegal }) {
     ["5","Closed","Title transferred, deal is done"],
   ];
   const faqs = [
-    ["How do I sell a boat without a broker?","Enter your vessel and both parties, negotiate the price and terms, complete due diligence, then pay $249 to unlock and sign every document the sale needs. BoatClosers gives you the same professional paperwork and closing process a yacht broker uses — you simply run it yourself and keep the commission."],
+    ["How do I sell a boat without a broker?","Enter your vessel and both parties, negotiate the price and terms, complete due diligence, then pay $249 to unlock and sign every document the sale needs. BoatClosers gives you the same professional paperwork and closing process a yacht broker uses — you simply run it yourself."],
     ["What documents do I need to sell a boat privately?","At minimum a purchase agreement, bill of sale, and the title-transfer documents — plus a deposit receipt, as-is acknowledgment, and closing statement. Depending on the deal you may also need financing, insurance, estate, or lost-title documents. BoatClosers includes all "+DOC_COUNT+" and shows you exactly which ones your deal requires."],
     ["How do I make an offer on a boat I found on Facebook Marketplace or Craigslist?","Start a deal in BoatClosers, enter the vessel, and send a structured offer with an earnest-money deposit attached. Unlike a comment or a text, a deposit-backed offer shows the seller you're serious and creates a recorded paper trail — and once accepted, a signed agreement locks the boat in so it can't be sold to someone else."],
     ["How do I keep a seller from selling the boat to someone else after we agree?","This is one of the most common ways private deals fall apart. The fix is to secure it: the moment both sides agree, a signed purchase agreement plus an earnest-money deposit binds the deal. The seller can no longer walk to another buyer without consequence, and the buyer can't be left empty-handed after turning others away."],
@@ -5764,12 +5764,12 @@ function Landing({ onStart, onLegal }) {
         <div style={{ position:"absolute", top:0, left:0, right:0, height:"56%", background:`linear-gradient(180deg, ${X.navySky} 0%, ${X.navyDeep} 100%)` }} />
         <div style={{ position:"absolute", left:0, right:0, top:"56%", height:1, background:"linear-gradient(90deg,transparent,rgba(184,134,58,0.5),transparent)" }} />
         <div style={{ position:"relative", padding: isMobile?"2.5rem 1.25rem 3rem":"3rem 1.25rem 3.25rem", maxWidth:620, margin:"0 auto" }}>
-          <div style={{ marginBottom:14 }}>{eyebrow("Est. for private deals")}</div>
+          <div style={{ marginBottom:14 }}>{eyebrow("Online closing platform · Not a brokerage")}</div>
           <div style={{ fontFamily:F.display, color:X.brassLt, fontSize:isMobile?34:38, letterSpacing:1, fontWeight:600, lineHeight:1 }}>Boatclosers</div>
           <div style={{ fontFamily:F.sans, color:"rgba(255,255,255,0.66)", fontSize:11.5, marginTop:10, letterSpacing:1.5, textTransform:"uppercase" }}>Buying &amp; selling boats and yachts</div>
-          <h1 style={{ ...h2s, fontSize:isMobile?26:31, lineHeight:1.22, color:"#fff", marginTop:26 }}>Everything you need to close a boat deal — <span style={{ color:X.brassLt }}>in one place.</span></h1>
-          <p style={{ ...lead, color:"rgba(255,255,255,0.72)", marginTop:16 }}>Offers, escrow, contracts, due diligence, title paperwork, and the financing documents a lender asks for — handled in order and explained as you go, built from a working yacht broker's playbook. Enter the deal once; every document fills itself in.</p>
-          <div style={{ display:"inline-block", marginTop:18, color:X.brassLt, fontSize:12, fontFamily:F.sans, border:"0.5px solid rgba(184,134,58,0.45)", borderRadius:20, padding:"6px 16px", letterSpacing:0.5 }}>Flat $249 · no commission · no broker</div>
+          <h1 style={{ ...h2s, fontSize:isMobile?26:31, lineHeight:1.22, color:"#fff", marginTop:26 }}>Close your private boat sale online, <span style={{ color:X.brassLt }}>step by step.</span></h1>
+          <p style={{ ...lead, color:"rgba(255,255,255,0.72)", marginTop:16 }}>BoatClosers is an online tool for private buyers and sellers. You make the deal, and we walk you through the offers, the Florida paperwork and safe payment through Escrow.com. Flat $249, done from your phone or computer.</p>
+          <div style={{ display:"inline-block", marginTop:18, color:X.brassLt, fontSize:12, fontFamily:F.sans, border:"0.5px solid rgba(184,134,58,0.45)", borderRadius:20, padding:"6px 16px", letterSpacing:0.5 }}>Flat $249 · one price, start to finish</div>
           <div style={{ display:"flex", gap:10, justifyContent:"center", marginTop:22, flexWrap:"wrap" }}>
             <button style={brassBtn} onClick={()=>onStart("buyer")}>Start as Buyer</button>
             <button style={outlineBtn} onClick={()=>onStart("seller")}>Start as Seller</button>
@@ -5784,7 +5784,7 @@ function Landing({ onStart, onLegal }) {
         <div style={{ maxWidth:880, margin:"0 auto", display:"flex", flexWrap:"wrap", justifyContent:"center", gap:"8px 24px", fontSize:11.5, fontFamily:F.sans, color:"rgba(255,255,255,0.68)", letterSpacing:0.3 }}>
           <span>Built for real private boat deals</span>
           <span>{DOC_COUNT} documents, {CAT_COUNT} categories</span>
-          <span>Flat $249 — not 10% commission</span>
+          <span>One flat $249 fee</span>
           <span>We never touch your money</span>
         </div>
       </div>
@@ -5793,13 +5793,13 @@ function Landing({ onStart, onLegal }) {
       <div style={{ maxWidth:880, margin:"0 auto", padding:"3.75rem 1.25rem", textAlign:"center" }}>
         {eyebrow("The problem")}
         <h2 style={{ ...h2s, fontSize:27, color:C.navy, margin:"14px 0" }}>Buying or selling a boat on your own is harder than it should be.</h2>
-        <p style={{ ...lead, maxWidth:640, margin:"0 auto" }}>Whether you're protecting a big purchase, selling the boat yourself to keep the commission, or just trying to do it right — there's never been one place that handles the whole deal, start to finish. The offer, the escrow, the contracts, the title paperwork, the financing a lender wants, the steps you didn't know you needed. So people cobble it together from templates and guesswork, or hand it to a broker and pay 10% just to make it someone else's problem.</p>
+        <p style={{ ...lead, maxWidth:640, margin:"0 auto" }}>Whether you're protecting a big purchase, selling a boat you own, or just trying to do it right — there's never been one place that handles the whole deal, start to finish. The offer, the escrow, the contracts, the title paperwork, the financing a lender wants, the steps you didn't know you needed. So people cobble it together from templates and guesswork, and hope nothing gets missed.</p>
         <div style={{ height:1, background:X.mist, margin:"36px auto", maxWidth:120 }} />
         {eyebrow("The solution")}
         <h2 style={{ ...h2s, fontSize:27, color:C.navy, margin:"14px 0" }}>It's all here — in order, and done right.</h2>
         <p style={{ ...lead, maxWidth:640, margin:"0 auto" }}>BoatClosers holds every piece of the deal in one place: the offer, the escrow, the contracts, the due diligence, the title paperwork, the close — and the financing documents a lender asks for, like the signed purchase agreement, proof of insurance, and a clean title. Each one is built from how real boat sales actually happen, the messy ones included. You handle your own deal, guided the whole way.</p>
         <div style={{ background:C.navy, borderRadius:10, padding:"20px 22px", margin:"24px auto 0", maxWidth:620 }}>
-          <div style={{ fontFamily:F.sans, color:"#fff", fontSize:14, lineHeight:1.7 }}>And the commission a broker would have taken — <span style={{ color:X.brassLt, fontWeight:600 }}>$10,000 to $50,000 on most boats</span> — stays in your pocket. That's money you keep for handling the deal yourself.</div>
+          <div style={{ fontFamily:F.sans, color:"#fff", fontSize:14, lineHeight:1.7 }}>One flat fee — <span style={{ color:X.brassLt, fontWeight:600 }}>$249 for the whole deal</span>, whatever the boat costs. No percentage, no subscription.</div>
         </div>
       </div>
 
@@ -5833,6 +5833,14 @@ function Landing({ onStart, onLegal }) {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* What we do and don't do */}
+      <div style={{ background:X.paper, borderBottom:`0.5px solid ${X.mist}`, padding:"0 1.25rem 3rem" }}>
+        <div style={{ maxWidth:620, margin:"0 auto", border:`0.5px solid ${X.mist}`, borderLeft:`3px solid ${C.brass}`, borderRadius:8, background:C.sand, padding:"16px 20px" }}>
+          <div style={{ fontFamily:F.sans, fontSize:12.5, fontWeight:600, color:C.navy, marginBottom:6 }}>What we do and don&rsquo;t do</div>
+          <div style={{ fontFamily:F.sans, fontSize:13, color:X.slate, lineHeight:1.65 }}>BoatClosers doesn&rsquo;t list, show or sell your boat, and we never hold your money. You and the other party agree on the deal. We keep it organized and get the paperwork right, and Escrow.com holds the funds until the title changes hands.</div>
         </div>
       </div>
 
@@ -5909,18 +5917,18 @@ function Landing({ onStart, onLegal }) {
       <div style={{ background:C.navy, padding:"3.75rem 1.25rem" }}>
         <div style={{ maxWidth:440, margin:"0 auto", textAlign:"center" }}>
           <h2 style={{ ...h2s, fontSize:26, color:"#fff", marginBottom:8 }}>Simple, honest pricing</h2>
-          <p style={{ fontFamily:F.sans, fontSize:13.5, color:"rgba(255,255,255,0.55)", marginBottom:32 }}>No commissions. No subscription. No surprises.</p>
+          <p style={{ fontFamily:F.sans, fontSize:13.5, color:"rgba(255,255,255,0.55)", marginBottom:32 }}>One flat fee. No subscription. No surprises.</p>
           <div style={{ background:"rgba(255,255,255,0.04)", border:`1.5px solid ${C.brass}`, borderRadius:12, padding:"2.25rem" }}>
             <div style={{ display:"inline-flex", alignItems:"center", gap:10, fontFamily:F.sans, fontSize:11, letterSpacing:3, color:X.brassLt, textTransform:"uppercase", fontWeight:500 }}>Per transaction</div>
             <div style={{ fontFamily:F.sans, fontSize:56, fontWeight:600, color:"#fff", lineHeight:1, marginTop:12 }}>$249</div>
             <div style={{ fontFamily:F.sans, fontSize:12, color:"rgba(255,255,255,0.45)", marginBottom:22 }}>Flat fee · one vessel · one deal</div>
             <div style={{ textAlign:"left", fontFamily:F.sans, fontSize:13, lineHeight:2.15, color:"rgba(255,255,255,0.78)" }}>
-              {[`All ${DOC_COUNT} documents, ${CAT_COUNT} categories`,"See only what your deal needs","Electronic signatures for both parties","Full negotiation, offers & contingencies","Five escrow options","Due-diligence & closing checklists","Financing & lender paperwork","No commission, no subscription, ever"].map(f=>(
+              {[`All ${DOC_COUNT} documents, ${CAT_COUNT} categories`,"See only what your deal needs","Electronic signatures for both parties","Full negotiation, offers & contingencies","Five escrow options","Due-diligence & closing checklists","Financing & lender paperwork","One flat fee, no subscription, ever"].map(f=>(
                 <div key={f} style={{ display:"flex", gap:9, alignItems:"baseline" }}><span style={{ color:C.brass }}>✓</span><span>{f}</span></div>
               ))}
             </div>
             <button style={{ ...brassBtn, display:"block", width:"100%", marginTop:22, padding:13 }} onClick={onStart}>Start Free — Pay When Ready</button>
-            <div style={{ fontFamily:F.sans, fontSize:11, color:"rgba(255,255,255,0.3)", marginTop:12 }}>vs. broker commission: typically $10,000–$50,000+</div>
+            <div style={{ fontFamily:F.sans, fontSize:11, color:"rgba(255,255,255,0.3)", marginTop:12 }}>Same price whether the boat is $5,000 or $500,000</div>
           </div>
         </div>
       </div>
@@ -5939,7 +5947,7 @@ function Landing({ onStart, onLegal }) {
       {/* Final CTA */}
       <div style={{ background:C.teal, padding:"3.75rem 1.25rem", textAlign:"center" }}>
         <h2 style={{ ...h2s, fontSize:26, color:"#fff", marginBottom:10 }}>Ready to close your boat deal?</h2>
-        <p style={{ fontFamily:F.sans, fontSize:14, color:"rgba(255,255,255,0.85)", marginBottom:26 }}>Create your free account, enter your deal, and pay only when you're ready to sign. Keep the commission for yourself.</p>
+        <p style={{ fontFamily:F.sans, fontSize:14, color:"rgba(255,255,255,0.85)", marginBottom:26 }}>Create your free account, enter your deal, and pay only when you're ready to sign.</p>
         <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
           <button style={brassBtn} onClick={()=>onStart("buyer")}>Start as Buyer</button>
           <button style={{ ...outlineBtn, borderColor:"rgba(255,255,255,0.4)", color:"#fff" }} onClick={()=>onStart("seller")}>Start as Seller</button>

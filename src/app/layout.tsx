@@ -6,11 +6,11 @@ const GA_ID = 'G-TSE5VMCK7N'
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.boatclosers.com'),
   title: {
-    default: 'BoatClosers — Buy or Sell a Boat Without a Broker',
+    default: 'BoatClosers: Close a Private Boat Sale Online',
     template: '%s · BoatClosers',
   },
   description:
-    'Buy or sell a boat privately without a broker. Deposit-backed offers, secure escrow, and 56 professional documents — from the purchase agreement and bill of sale to title-transfer paperwork. Flat $249, no commission.',
+    'Online closing tool for private boat sales. Offers, Florida paperwork and Escrow.com payment in one place. Flat $249. Not a brokerage.',
   keywords: [
     'sell a boat without a broker',
     'buy a boat without a broker',
@@ -35,24 +35,24 @@ export const metadata: Metadata = {
     type: 'website',
     url: 'https://www.boatclosers.com',
     siteName: 'BoatClosers',
-    title: 'Buy or Sell a Boat Without a Broker — BoatClosers',
+    title: 'BoatClosers: Close a Private Boat Sale Online',
     description:
-      'The complete private boat sale, done right: deposit-backed offers, secure escrow, and 56 professional documents. Flat $249, no broker, no commission.',
+      'Online closing tool for private boat sales. Offers, Florida paperwork and Escrow.com payment in one place. Flat $249. Not a brokerage.',
     locale: 'en_US',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'BoatClosers — Buy or Sell a Boat Without a Broker',
+        alt: 'BoatClosers — close a private boat sale online',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Buy or Sell a Boat Without a Broker — BoatClosers',
+    title: 'BoatClosers: Close a Private Boat Sale Online',
     description:
-      'Deposit-backed offers, secure escrow, and 56 professional documents for a private boat sale. Flat $249, no commission.',
+      'Online closing tool for private boat sales. Offers, Florida paperwork and Escrow.com payment in one place. Flat $249. Not a brokerage.',
     images: ['/og-image.png'],
   },
   robots: {
