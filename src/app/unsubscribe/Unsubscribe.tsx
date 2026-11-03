@@ -103,7 +103,7 @@ export default function Unsubscribe() {
         <button type="button" disabled={busy} onClick={() => go('texts')} style={btn(false)}>
           Switch to texts
         </button>
-        <span style={{ fontSize: 12, color: muted, lineHeight: 1.5 }}>Message and data rates may apply. Reply STOP to any text to stop.</span>
+        <span style={{ fontSize: 12, color: muted, lineHeight: 1.5 }}>By switching you agree to get deal texts from BoatClosers about offers, signatures, and deadlines. Msg frequency varies. Msg &amp; data rates may apply. Reply STOP to stop, HELP for help. <a href="/sms-terms" style={{ color: gold }}>Terms</a> · <a href="/privacy" style={{ color: gold }}>Privacy</a></span>
       </div>
       <button type="button" disabled={busy} onClick={() => go('stop-all')} style={btn(false)}>
         Stop all emails and texts

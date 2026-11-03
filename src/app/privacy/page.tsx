@@ -23,7 +23,7 @@ export default function Page() {
       <h2>How we share your information</h2>
       <p>{"With the other party to your deal — sharing a deal between a buyer and seller is the whole point of the platform. With service providers that run the platform on our behalf (for example, our hosting and database provider, our email-delivery provider, and, when enabled, our payment processor), under their own terms. And if required by law. We do not sell your personal information."}</p>
       <h2>Text messages and phone numbers</h2>
-      <p>{"If you give us a mobile number and choose to get texts, we use it only to send messages about the sale it is connected to: invitations, offers, documents, and deadline reminders. A party to your sale may also ask us to send you a message about that sale."}</p>
+      <p>{"If you give us a mobile number and choose to get texts, we use it only to send messages about the sale it is connected to: offers, documents, and deadline reminders."}</p>
       <p>{"We do not sell, rent, or share mobile phone numbers or text message opt-in data and consent with third parties or affiliates for marketing or promotional purposes. Text message opt-in data and consent are shared only with the text message provider that delivers our messages (Twilio)."}</p>
       <p>{"Reply STOP to any text to stop, or HELP for help. Message frequency varies. Message and data rates may apply. See our Text Message Terms at boatclosers.com/sms-terms."}</p>
       <h2>Where your data is stored and security</h2>

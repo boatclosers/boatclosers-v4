@@ -43,7 +43,11 @@ export function smsConfigured() {
   const sid = process.env.TWILIO_ACCOUNT_SID
   const auth = process.env.TWILIO_AUTH_TOKEN || (process.env.TWILIO_API_KEY_SID && process.env.TWILIO_API_KEY_SECRET)
   const from = process.env.TWILIO_MESSAGING_SERVICE_SID || process.env.TWILIO_FROM
-  return !!(sid && auth && from)
+  // Carriers block texts until the A2P campaign is approved, and they report the
+  // block after Twilio accepts the send, so nothing downstream can fall back to
+  // email. Stay on email until this is set to "true" in Vercel.
+  const approved = process.env.TWILIO_A2P_APPROVED === 'true'
+  return !!(sid && auth && from && approved)
 }
 
 // ---------- preferences ----------
@@ -52,8 +56,11 @@ export async function getPrefs(email: string): Promise<{ phone?: string; channel
   const e = normalizeEmail(email)
   if (!e) return null
   try {
-    const { data } = await supabaseAdmin.from('comm_prefs').select('phone,channels').eq('email', e).maybeSingle()
+    const { data } = await supabaseAdmin.from('comm_prefs').select('phone,channels,set_by').eq('email', e).maybeSingle()
     if (!data) return null
+    // Only the person themselves can opt in to texts. Older rows set by whoever
+    // started the deal count as email only.
+    if (data.set_by === 'initiator') return { channels: ['email'] }
     return { phone: data.phone || undefined, channels: cleanChannels(data.channels) }
   } catch {
     return null

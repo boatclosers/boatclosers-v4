@@ -9,20 +9,18 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <LegalPage title="Text Message Terms" updated="October 16, 2026">
+    <LegalPage title="Text Message Terms" updated="November 3, 2026">
       <h2>Program</h2>
       <p>
-        <b>BoatClosers Deal Notifications.</b> BoatClosers sends text messages about a specific boat, trailer, or motor sale:
-        invitations to a deal, offers and responses, documents ready to view, reminders before deadlines such as the 30-day
-        Florida title deadline, and messages a buyer or seller asks us to deliver to the other party in their sale.
+        <b>BoatClosers Deal Notifications.</b> BoatClosers sends text messages about a specific boat, trailer, or motor sale you are part of: offers and responses, documents ready to view, and reminders before deadlines such as the 30-day
+        Florida title deadline. We send no marketing texts.
       </p>
 
       <h2>How you opt in</h2>
       <p>
-        You opt in by choosing <b>Text</b> or <b>Both</b> and entering your mobile number on BoatClosers, for example under
-        “How should we send you deal updates?” or “How we reach you.” A party to your sale may also ask us to send you a
-        message about that sale; that first message identifies BoatClosers and the sender, and you can reply STOP to receive
-        no more.
+        You opt in yourself by choosing <b>Text</b> or <b>Both</b> and entering your mobile number under “How should we send you
+        deal updates?” on BoatClosers. Texting is optional, you can choose Email instead, and it isn’t required to buy anything.
+        We don’t text a number that someone else gives us. <a href="/sms-opt-in">See what the opt-in looks like</a>.
       </p>
 
       <h2>Frequency and cost</h2>

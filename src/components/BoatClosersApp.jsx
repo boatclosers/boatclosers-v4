@@ -1212,7 +1212,6 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
   // copyable link the initiator sends themselves.
   const [inviteMode, setInviteMode] = useState(null);
   // How the invite goes out: "email", "sms", or "both". The other party can change it later.
-  const [inviteChannel, setInviteChannel] = useState("email");
   const [inviteResult, setInviteResult] = useState(null);
 
   const otherSide = userRole === "buyer" ? "seller" : "buyer";
@@ -1242,15 +1241,8 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
   // also emails the join link automatically. On the link path we show the url.
   const runInvite = async (showLinkAfter) => {
     const email = data?.[otherSide]?.email;
-    const phone = data?.[otherSide]?.phone;
-    const wantsEmail = inviteChannel !== "sms";
-    const wantsText = inviteChannel !== "email";
-    if (showLinkAfter === false && wantsEmail && !isValidEmail(email)) {
+    if (showLinkAfter === false && !isValidEmail(email)) {
       setInviteError(`Enter the ${otherSide}'s email first.`);
-      return;
-    }
-    if (showLinkAfter === false && wantsText && (phone || "").replace(/\D/g, "").length < 10) {
-      setInviteError(`Enter the ${otherSide}'s mobile number first.`);
       return;
     }
     if (!user?.userId) {
@@ -1274,8 +1266,6 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
         body: JSON.stringify({
           dealId: id,
           inviteEmail: email || `link-share-${otherSide}@boatclosers.com`,
-          invitePhone: showLinkAfter === false && wantsText ? phone : undefined,
-          channels: showLinkAfter === false ? (inviteChannel === "both" ? ["email", "sms"] : inviteChannel === "sms" ? ["sms"] : ["email"]) : ["email"],
           inviteRole: otherSide,
           userId: user.userId
         })
@@ -1430,43 +1420,18 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
           {inviteMode === "email" && !inviteSent && (
             <div>
               <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.8)", marginBottom:8 }}>
-                We'll send the {otherSide} the join link directly. You choose how; they can change it or opt out any time.
+                We'll email the {otherSide} the join link. Only have their phone number? Go back, create a shareable link, and text it from your own phone.
               </div>
-              <div role="radiogroup" aria-label="Send the invite by" style={{ display:"flex", gap:6, marginBottom:10 }}>
-                {[["email","Email"],["sms","Text"],["both","Both"]].map(([k,l]) => (
-                  <button key={k} type="button" role="radio" aria-checked={inviteChannel===k} onClick={()=>{ setInviteChannel(k); setInviteError(""); }}
-                    style={{ flex:1, background: inviteChannel===k ? C.brass : "rgba(255,255,255,0.12)", color: inviteChannel===k ? C.navy : "#fff", border:"1px solid rgba(255,255,255,0.3)", borderRadius:5, padding:"7px 10px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer" }}>
-                    {l}
-                  </button>
-                ))}
-              </div>
-              {inviteChannel !== "sms" && (
-                <input
-                  style={{ ...S.input, marginBottom:10 }}
-                  type="email"
-                  value={(data?.[otherSide]?.email) || ""}
-                  onChange={e=>set(otherSide, "email", e.target.value)}
-                  placeholder={`${otherSide==="seller"?"Seller":"Buyer"}'s email address`}
-                />
-              )}
-              {inviteChannel !== "email" && (
-                <>
-                  <input
-                    style={{ ...S.input, marginBottom:6 }}
-                    type="tel"
-                    autoComplete="off"
-                    value={(data?.[otherSide]?.phone) || ""}
-                    onChange={e=>set(otherSide, "phone", e.target.value)}
-                    placeholder={`${otherSide==="seller"?"Seller":"Buyer"}'s mobile number`}
-                  />
-                  <div style={{ fontSize:10.5, fontFamily:"sans-serif", color:"rgba(255,255,255,0.55)", marginBottom:10, lineHeight:1.5 }}>
-                    Only text someone who expects to hear from you about this boat. They can reply STOP at any time.
-                  </div>
-                </>
-              )}
+              <input
+                style={{ ...S.input, marginBottom:10 }}
+                type="email"
+                value={(data?.[otherSide]?.email) || ""}
+                onChange={e=>set(otherSide, "email", e.target.value)}
+                placeholder={`${otherSide==="seller"?"Seller":"Buyer"}'s email address`}
+              />
               <div style={{ display:"flex", gap:10 }}>
                 <button onClick={()=>runInvite(false)} disabled={inviteLoading} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:inviteLoading?"default":"pointer", opacity:inviteLoading?0.6:1 }}>
-                  {inviteLoading ? "Sending..." : `${inviteChannel==="sms" ? "Text" : inviteChannel==="both" ? "Email and text" : "Email"} the ${otherSide} their invite`}
+                  {inviteLoading ? "Sending..." : `Email the ${otherSide} their invite`}
                 </button>
                 <button onClick={()=>{ setInviteMode(null); setInviteError(""); }} style={{ background:"transparent", color:"rgba(255,255,255,0.6)", border:"none", fontSize:11, fontFamily:"sans-serif", cursor:"pointer" }}>
                   Back
@@ -1479,11 +1444,6 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
           {inviteSent && (
             <div style={{ background:"rgba(34,197,94,0.15)", border:"1px solid rgba(34,197,94,0.4)", borderRadius:6, padding:"10px 12px", fontSize:12, fontFamily:"sans-serif", color:"#bbf7d0" }}>
               ✓ Invite {[inviteResult?.emailSent && `emailed to ${data?.[otherSide]?.email}`, inviteResult?.textSent && `texted to ${data?.[otherSide]?.phone}`].filter(Boolean).join(" and ") || "created"}. They'll get a link to create their account and join this deal.
-              {inviteChannel !== "email" && !inviteResult?.textSent && (
-                <div style={{ marginTop:6, color:"#fde68a" }}>
-                  The text didn't go out{inviteResult?.textError ? ` (${inviteResult.textError})` : ""}.{inviteResult?.emailSent ? " The email did." : " Use the shareable link instead."}
-                </div>
-              )}
             </div>
           )}
 
@@ -6300,7 +6260,7 @@ const LEGAL = {
       ["Information we collect", ["Account information you give us: your name, email, and password. Deal information you enter: vessel details, the parties' contact information, prices, offers, messages, and dates. Files you upload, such as survey reports or deposit proof."]],
       ["How we use your information", ["To provide and operate the service: create and route your documents, let both parties collaborate on the same deal, send transactional emails (invites, offer and signature notifications), and provide support."]],
       ["How we share your information", ["With the other party to your deal — sharing a deal between a buyer and seller is the whole point of the platform. With service providers that run the platform on our behalf (for example, our hosting and database provider, our email-delivery provider, and, when enabled, our payment processor), under their own terms. And if required by law. We do not sell your personal information."]],
-      ["Text messages and phone numbers", ["If you give us a mobile number and choose to get texts, we use it only to send messages about the sale it is connected to: invitations, offers, documents, and deadline reminders. A party to your sale may also ask us to send you a message about that sale.", "We do not sell, rent, or share mobile phone numbers or text message opt-in data and consent with third parties or affiliates for marketing or promotional purposes. Text message opt-in data and consent are shared only with the text message provider that delivers our messages (Twilio).", "Reply STOP to any text to stop, or HELP for help. Message frequency varies. Message and data rates may apply. See our Text Message Terms at boatclosers.com/sms-terms."]],
+      ["Text messages and phone numbers", ["If you give us a mobile number and choose to get texts, we use it only to send messages about the sale it is connected to: offers, documents, and deadline reminders.", "We do not sell, rent, or share mobile phone numbers or text message opt-in data and consent with third parties or affiliates for marketing or promotional purposes. Text message opt-in data and consent are shared only with the text message provider that delivers our messages (Twilio).", "Reply STOP to any text to stop, or HELP for help. Message frequency varies. Message and data rates may apply. See our Text Message Terms at boatclosers.com/sms-terms."]],
       ["Where your data is stored and security", ["Your data is stored with our hosting and database provider. We use reasonable technical and organizational safeguards to protect it, but no method of storage or transmission is perfectly secure."]],
       ["Data retention and your choices", ["We keep deal data to provide the service and maintain records. You can request access to, correction of, or deletion of your account data by emailing us — though some records may be retained where the law requires it."]],
       ["Children", ["BoatClosers is for adults 18 and older and is not directed to children. We do not knowingly collect information from anyone under 18."]],

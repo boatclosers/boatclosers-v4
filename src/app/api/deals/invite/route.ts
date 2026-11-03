@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendEmail, emailLayout } from '@/lib/sendEmail';
 import crypto from 'crypto';
-import { setPrefs, sendSms, normalizePhone, cleanChannels } from '@/lib/comm';
 import { callerId } from '@/lib/dealAuth';
 
 export const dynamic = 'force-dynamic';
@@ -17,13 +16,10 @@ function makeShortCode() {
 }
 
 export async function POST(req: Request) {
-  const { dealId, inviteEmail, invitePhone, channels: rawChannels } = await req.json();
+  const { dealId, inviteEmail } = await req.json();
   // The caller's identity comes from their sign-in, not the request body.
   const userId = await callerId(req);
   if (!userId) return NextResponse.json({ error: 'Please sign in again, then send the invite.' }, { status: 401 });
-  // How the initiator wants the invite delivered: email, text, or both.
-  const channels = cleanChannels(rawChannels);
-  const phone = normalizePhone(invitePhone);
   const placeholder = /^link-share-/.test(String(inviteEmail || ''));
 
   if (!dealId || !inviteEmail || !userId) {
@@ -85,19 +81,10 @@ export async function POST(req: Request) {
   // rather than an invitation to do paperwork. Nothing else about the flow changes.
   const viewingRequest = !!deal?.parties?.viewingRequested;
 
+  // Used only if the invitee has already opted in to texts themselves.
   const smsText = viewingRequest
     ? `BoatClosers: ${inviterLabel} would like to see the ${boat}. Open the request to message them: ${shortUrl}`
     : `BoatClosers: ${inviterLabel} invited you to handle the ${boat} sale, as the ${derivedInviteRole}. Open your deal: ${shortUrl}`;
-
-  if (!placeholder) {
-    // Their choice of how to hear from us, set by the initiator for this invite.
-    // A choice the invitee later makes for themselves always wins.
-    await setPrefs(inviteEmail, phone, channels.includes('sms') && phone ? channels : ['email'], 'initiator');
-  } else if (phone && channels.includes('sms')) {
-    // Text only, no email address: send the invite straight to the phone.
-    const r = await sendSms({ to: phone, body: smsText, context: boat });
-    return NextResponse.json({ success: true, inviteUrl, shortUrl, token, shortCode, emailSent: false, textSent: r.success, textError: r.success ? undefined : r.error });
-  }
 
   const emailResult: any = placeholder ? { success: false } : await sendEmail({
     smsText,

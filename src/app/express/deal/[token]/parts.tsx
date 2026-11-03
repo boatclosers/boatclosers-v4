@@ -695,9 +695,7 @@ export function SellerQuestions({
 }) {
   const [open, setOpen] = useState<Record<string, boolean>>({})
   const contacts = deal.progress?.contacts || {}
-  const [via, setVia] = useState<ChannelChoice>(contacts.sellerPhone && !contacts.sellerEmail ? 'sms' : 'email')
   const [sEmail, setSEmail] = useState<string>(contacts.sellerEmail || deal.progress?.handoff?.sellerEmail || '')
-  const [sPhone, setSPhone] = useState<string>(contacts.sellerPhone || '')
   const [sending, setSending] = useState(false)
   const [sendMsg, setSendMsg] = useState('')
   const askedCount = Array.isArray(deal.progress?.asked) ? deal.progress.asked.length : 0
@@ -708,15 +706,12 @@ export function SellerQuestions({
       const res = await fetch('/api/express/deal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action: 'ask-seller', channels: toChannels(via), email: via !== 'sms' ? sEmail : '', phone: via !== 'email' ? sPhone : '' }),
+        body: JSON.stringify({ token, action: 'ask-seller', email: sEmail }),
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error || 'Could not send.')
       onSent(d.progress)
-      const parts = [d.emailSent && 'emailed', d.textSent && 'texted'].filter(Boolean).join(' and ')
-      setSendMsg(
-        `Sent${parts ? `: ${parts}` : ''}. ${d.textSent ? 'Text replies come to your email. ' : ''}${d.emailSent ? 'Email replies go straight to you.' : ''}${d.textError ? ` ${d.textError}` : ''}`
-      )
+      setSendMsg('Sent. Replies go straight to you.')
     } catch (e: any) {
       setSendMsg(e?.message || 'Could not send.')
     }
@@ -751,15 +746,13 @@ export function SellerQuestions({
         Send them in writing. A written answer is a record if something turns out not to be true, and sellers tend to be
         more careful with buyers who ask this way.
       </p>
-      <ChannelPicker label="Send the questions by" value={via} onChange={setVia} />
-      {via !== 'sms' && <Field id="sq-email" label="Seller’s email" type="email" value={sEmail} onChange={setSEmail} />}
-      {via !== 'email' && <Field id="sq-phone" label="Seller’s mobile number" type="tel" value={sPhone} onChange={setSPhone} />}
+      <Field id="sq-email" label="Seller’s email" type="email" value={sEmail} onChange={setSEmail} />
       <button type="button" onClick={send} disabled={sending || askedCount >= 3} style={{ ...goldButton, opacity: sending || askedCount >= 3 ? 0.6 : 1 }}>
         {sending ? 'Sending...' : askedCount ? 'Send the questions again' : 'Send the questions'}
       </button>
       {sendMsg && <p style={{ margin: 0, color: gold, fontSize: 14, lineHeight: 1.5 }}>{sendMsg}</p>}
       <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.5 }}>
-        We send it from BoatClosers with your name on it. Answers come back to you, and the seller can opt out any time. Prefer
+        We email it from BoatClosers with your name on it. Answers come back to you, and the seller can opt out any time. Only have their number, or prefer
         your own? <a href={mailto} style={{ color: gold }}>Use my email</a> or <a href={sms} style={{ color: gold }}>my texts</a>. Note the
         answers below; they save with your purchase.
       </p>
@@ -973,7 +966,6 @@ export function HandoffStep({
   const [msg, setMsg] = useState('')
   const [emailing, setEmailing] = useState(false)
   const [emailMsg, setEmailMsg] = useState('')
-  const [via, setVia] = useState<ChannelChoice>(saved.sellerPhone ? (saved.sellerEmail ? 'both' : 'sms') : 'email')
   const set = (patch: Partial<Handoff>) => setH({ ...h, ...patch })
 
   const savedProblems = handoffProblems(saved, has)
@@ -1007,13 +999,12 @@ export function HandoffStep({
       const res = await fetch('/api/express/deal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action: 'email-seller', channels: toChannels(via), phone: saved.sellerPhone }),
+        body: JSON.stringify({ token, action: 'email-seller' }),
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error || 'Could not send.')
       onSaved(d.progress)
-      const to = [via !== 'sms' && saved.sellerEmail, d.textSent && saved.sellerPhone].filter(Boolean).join(' and ')
-      setEmailMsg(`Sent to ${to}.${d.textError ? ` ${d.textError}` : ''}`)
+      setEmailMsg(`Sent to ${saved.sellerEmail}.`)
     } catch (e: any) {
       setEmailMsg(e?.message || 'Could not send.')
     }
@@ -1054,7 +1045,7 @@ export function HandoffStep({
         <Field
           id="h-sphone"
           label="Seller’s mobile number"
-          hint="optional, to text them their copy"
+          hint="optional"
           type="tel"
           value={h.sellerPhone || ''}
           onChange={(v) => set({ sellerPhone: v })}
@@ -1179,16 +1170,15 @@ export function HandoffStep({
           <h2 style={h2}>Send the seller their papers</h2>
           <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
             We send them their copies plus their notice of sale on the state form, already filled in, so all they do is sign
-            and file it. A text carries a private link to view and download them. They don’t need an account.
+            and file it. They don’t need an account.
           </p>
-          <ChannelPicker label="Send the seller’s copy by" value={via} onChange={setVia} />
-          {(via !== 'sms' && !saved.sellerEmail) || (via !== 'email' && !saved.sellerPhone) ? (
+          {!saved.sellerEmail ? (
             <p style={{ margin: 0, color: cream, fontSize: 14 }}>
-              Add the seller’s {via !== 'sms' && !saved.sellerEmail ? 'email' : 'mobile number'} in the sale details above, then save.
+              Add the seller’s email in the sale details above, then save.
             </p>
           ) : (
             <button type="button" onClick={emailSeller} disabled={emailing || sentCount >= 3} style={{ ...goldButton, opacity: emailing || sentCount >= 3 ? 0.6 : 1 }}>
-              {emailing ? 'Sending...' : `${sentCount ? 'Send again' : 'Send the seller their papers'}`}
+              {emailing ? 'Sending...' : `${sentCount ? 'Send again' : 'Email the seller their papers'}`}
             </button>
           )}
           {emailMsg && <p style={{ margin: 0, color: gold, fontSize: 14 }}>{emailMsg}</p>}
