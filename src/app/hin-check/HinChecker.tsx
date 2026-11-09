@@ -227,42 +227,55 @@ export default function HinChecker() {
       </div>
 
       {result && (
-        <div
-          style={{
-            marginTop: 20,
-            borderRadius: 6,
-            padding: '22px 26px',
-            background: gold,
-            color: navy,
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-          }}
-        >
-          <div style={{ flex: '1 1 260px' }}>
-            <div style={{ fontFamily: 'Georgia, serif', fontSize: 21, fontWeight: 700, marginBottom: 4 }}>Buying this boat?</div>
-            <div style={{ fontSize: 15, lineHeight: 1.5 }}>
-              BoatClosers Express walks you through the inspection, the bill of sale, and the Florida title forms. Free to
-              start, $29.99 when you’re ready for the paperwork. The seller doesn’t need to sign up.
-            </div>
+        <div style={{ marginTop: 20, borderRadius: 6, padding: '22px 22px 24px', background: gold, color: navy }}>
+          <div style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Buying this boat?</div>
+          <div style={{ fontSize: 15, lineHeight: 1.5, marginBottom: 16 }}>Two next steps: look it over properly, then close it right.</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
+            {[
+              {
+                label: '1 · INSPECT',
+                title: 'My Boat Inspector',
+                text: 'A guided walk-through of the boat before you make an offer, with a written report of what you find. It doesn’t replace a professional marine survey; it helps you decide whether one is worth ordering.',
+                href: 'https://myboatinspector.com',
+                cta: 'Inspect with My Boat Inspector →',
+                external: true,
+              },
+              {
+                label: '2 · CLOSE',
+                title: 'BoatClosers Express',
+                text: 'The bill of sale, Florida title forms, and title deadline reminders, filled in for you. Free to start, $29.99 when you’re ready for the paperwork. The seller doesn’t need to sign up.',
+                href: '/express/start',
+                cta: 'Start BoatClosers Express →',
+                external: false,
+              },
+            ].map((c) => (
+              <div
+                key={c.title}
+                style={{ flex: '1 1 250px', background: cream, borderRadius: 6, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1, color: '#8a6516' }}>{c.label}</div>
+                <div style={{ fontFamily: 'Georgia, serif', fontSize: 19, fontWeight: 700 }}>{c.title}</div>
+                <div style={{ fontSize: 14.5, lineHeight: 1.55, flex: 1 }}>{c.text}</div>
+                <a
+                  href={c.href}
+                  {...(c.external ? { target: '_blank', rel: 'noopener' } : {})}
+                  style={{
+                    marginTop: 4,
+                    background: navy,
+                    color: cream,
+                    padding: '12px 16px',
+                    borderRadius: 5,
+                    fontWeight: 700,
+                    fontSize: 15,
+                    textDecoration: 'none',
+                    textAlign: 'center',
+                  }}
+                >
+                  {c.cta}
+                </a>
+              </div>
+            ))}
           </div>
-          <a
-            href="/express/start"
-            style={{
-              background: navy,
-              color: cream,
-              padding: '13px 22px',
-              borderRadius: 5,
-              fontWeight: 700,
-              fontSize: 16,
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Start BoatClosers Express →
-          </a>
         </div>
       )}
 
