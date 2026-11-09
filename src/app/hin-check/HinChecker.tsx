@@ -230,6 +230,46 @@ export default function HinChecker() {
         <div
           style={{
             marginTop: 20,
+            borderRadius: 6,
+            padding: '22px 26px',
+            background: gold,
+            color: navy,
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+          }}
+        >
+          <div style={{ flex: '1 1 260px' }}>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: 21, fontWeight: 700, marginBottom: 4 }}>Buying this boat?</div>
+            <div style={{ fontSize: 15, lineHeight: 1.5 }}>
+              BoatClosers Express walks you through the inspection, the bill of sale, and the Florida title forms. Free to
+              start, $29.99 when you’re ready for the paperwork. The seller doesn’t need to sign up.
+            </div>
+          </div>
+          <a
+            href="/express/start"
+            style={{
+              background: navy,
+              color: cream,
+              padding: '13px 22px',
+              borderRadius: 5,
+              fontWeight: 700,
+              fontSize: 16,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Start BoatClosers Express →
+          </a>
+        </div>
+      )}
+
+      {result && (
+        <div
+          style={{
+            marginTop: 20,
             border: '1px solid rgba(201,150,46,0.35)',
             borderRadius: 6,
             padding: '24px 26px',
