@@ -425,6 +425,30 @@ async function notifyOnDealChange(previous: any, updated: any) {
       }
     }
 
+    // Sea Yachts escrow & closing (off unless the option is enabled in the app):
+    // tell the owner the first time an offer on this deal names Sea Yachts as
+    // the escrow holder, so a real broker can reach out.
+    const pickedSeaYachts = (list: any[]) => list.some((o: any) => o?.escrowPath === 'sea_yachts')
+    if (pickedSeaYachts(newOffers) && !pickedSeaYachts(prevOffers)) {
+      const o = newOffers.filter((x: any) => x?.escrowPath === 'sea_yachts').slice(-1)[0] || {}
+      try {
+        await sendEmail({
+          to: process.env.SUPPORT_EMAIL || 'chupurdy@gmail.com',
+          essential: true,
+          subject: `Sea Yachts escrow requested — ${boat}`,
+          html: emailLayout(`
+            <h2 style="color:#08152e; font-size:18px;">A deal picked Sea Yachts escrow</h2>
+            <p style="color:#475569; font-size:14px; line-height:1.6;">
+              <strong>${vesselName}</strong> — offer of <strong>$${Number(o?.amount || 0).toLocaleString('en-US')}</strong> names Sea Yachts as the escrow holder.<br/>
+              Buyer: ${esc(buyerEmail || '—')}<br/>Seller: ${esc(sellerEmail || '—')}<br/>Deal ID: ${esc(String(updated?.id || ''))}
+            </p>
+            <p style="color:#475569; font-size:13px; line-height:1.6;">Next: contact both parties and send the Sea Yachts escrow &amp; closing agreement before any money moves.</p>
+          `),
+          context: 'sea_yachts_escrow',
+        })
+      } catch (e) { console.error('sea yachts notify failed', e) }
+    }
+
     const justCanceled = updated?.negotiate?.canceled && !previous?.negotiate?.canceled
     if (justCanceled) {
       const c = updated.negotiate.canceled

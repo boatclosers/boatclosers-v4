@@ -6,7 +6,8 @@ import { DOCUMENTS, fillDocument } from "../data/documents";
 import VesselLookup from "./VesselLookup";
 import DocFinder from "./DocFinder";
 import HinInlineCheck from "./HinInlineCheck";
-import { emo } from "./Icon";
+import { emo, Icon } from "./Icon";
+import { SEA_YACHTS, seaYachtsTierPrice, seaYachtsTierCost } from "../lib/seaYachts";
 import { FAQS } from "../lib/faqs";
 import { FONT } from "../lib/theme";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -301,7 +302,7 @@ function agreedTerms(neg) {
   };
 }
 
-function escLabel(p){ return p==="escrow_com"?"Escrow.com":p==="attorney"?"Third-Party Attorney":p==="brokerage"?"Licensed Broker":p==="custom"?"Custom / Other":"Direct to Seller"; }
+function escLabel(p){ return p==="escrow_com"?"Escrow.com":p==="attorney"?"Third-Party Attorney":p==="sea_yachts"?"Sea Yachts (licensed broker)":p==="brokerage"?"Licensed Broker":p==="custom"?"Custom / Other":"Direct to Seller"; }
 
 function OfferSection({ icon, title, desc, checked, onToggle, children }) {
   return (
@@ -2947,7 +2948,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, marginBottom:7 }}>
             Choose this first. Who holds the money affects what it costs to hold &mdash; which is worth knowing before you settle on an amount.
           </div>
-          <EscrowSelector value={escrowPath} onChange={(v)=>{ setEscrowPath(v); if (v === "none") { setEscrowPct("0"); setCustomMode(false); } }} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
+          <EscrowSelector price={Number(offerAmt||0)} value={escrowPath} onChange={(v)=>{ setEscrowPath(v); if (v === "none") { setEscrowPct("0"); setCustomMode(false); } }} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
           {escrowPath==="escrow_com" && (
             <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginTop:6, lineHeight:1.5 }}>Opening Escrow.com launches a new tab. Everything above is already saved, so you can set it up there and come back to send your offer.</div>
           )}
@@ -3396,7 +3397,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 // ─────────────────────────────────────────────────────────────────────────────
 // ESCROW SELECTOR — reusable expanded card picker
 // ─────────────────────────────────────────────────────────────────────────────
-function EscrowSelector({ value, onChange, depositAmt }) {
+function EscrowSelector({ value, onChange, depositAmt, price }) {
   // Nothing is pre-selected. This used to fall back to options[0] when `value` was
   // empty, so the page rendered Escrow.com's full explanation, disclaimer and button
   // before the buyer had chosen anything — it looked decided when it wasn't.
@@ -3427,8 +3428,15 @@ function EscrowSelector({ value, onChange, depositAmt }) {
       detail:"Both parties agree on an attorney or title company to act as escrow agent. Many charge a flat fee for holding a deposit rather than a percentage, which on a larger deposit is often cheaper than an online escrow service — worth asking for a quote before you decide. Their fees and terms are outside BoatClosers. Our documents support the transaction but we are not involved in fund handling.",
       warn:"Agree on the attorney or title company in writing before transferring any funds. BoatClosers documents (Escrow Instructions, Closing Statement) can be shared with them to support their work.",
     },
+    ...(SEA_YACHTS.ENABLED ? [{
+      id:"sea_yachts", icon:"⚓", label:"Sea Yachts", badge:"Licensed · real person", badgeColor:C.navy,
+      tint:"#eef2f7", line:C.navy,
+      desc:"A licensed Florida yacht brokerage holds your money in a state-regulated trust account, and a real broker you can call runs the closing.",
+      detail:"Sea Yachts acts as a neutral, limited-scope broker for both of you: it holds the funds and runs the closing, and does not negotiate for either side. You keep using BoatClosers for everything else. Both parties sign a short Sea Yachts escrow & closing agreement before any money is sent, and the fee is set in that agreement.",
+      warn:"Send money only after both of you have signed the Sea Yachts agreement, and always confirm wiring instructions by phone with Sea Yachts. Sea Yachts never changes wiring instructions by email.",
+    }] : []),
     {
-      id:"brokerage", icon:"🛥️", label:"Licensed Broker", badge:"Brokerage", badgeColor:C.navy,
+      id:"brokerage", icon:"🛥️", label: SEA_YACHTS.ENABLED ? "Other Licensed Broker" : "Licensed Broker", badge:"Brokerage", badgeColor:C.navy,
       tint:"#eef2f7", line:C.navy,
       desc:"A state-licensed yacht brokerage holds the deposit in their trust account.",
       detail:"If the boat is listed with a broker — or you're using a buyer's broker — a state-licensed brokerage can hold the deposit in their trust/escrow account per state law. Brokerage trust accounts are regulated by the state and often carry little or no separate holding fee, since it's part of the brokerage's normal business. Any commission and terms are between you and the broker.",
@@ -3487,6 +3495,54 @@ function EscrowSelector({ value, onChange, depositAmt }) {
             <div style={{ background:"#fff", border:`1px solid ${selected.line}`, borderRadius:5, padding:"9px 11px", marginTop:9, fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.7 }}>
               <b style={{ color:C.navy }}>What this actually costs:</b> Escrow.com charges on the amount they hold. You&rsquo;re escrowing the <b>{fmt(depositAmt)} deposit</b>, not the boat&rsquo;s full price &mdash; so the fee is roughly <b style={{ color:C.green }}>{fmt(escrowComFee(depositAmt))}</b>, not a percentage of the whole sale.
               <br/><span style={{ fontSize:11 }}>Estimate based on their published tiers; check their calculator for the current rate. Note their policy: if the buyer rejects the vessel or cancels after funds are approved, the buyer pays the escrow fee.</span>
+            </div>
+          )}
+          {value==="sea_yachts" && (
+            <div style={{ background:C.paper, border:`1px solid ${selected.line}`, borderRadius:8, padding:"12px 14px", marginTop:10, fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.65 }}>
+              <div style={{ fontWeight:600, color:C.navy, fontSize:13, marginBottom:6 }}>What it costs, up front</div>
+              {SEA_YACHTS.tiers.map(t=>{
+                const cost = seaYachtsTierCost(t, price);
+                return (
+                  <div key={t.id} style={{ padding:"8px 0", borderBottom:`1px solid ${C.mist}` }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", gap:10, flexWrap:"wrap" }}>
+                      <b style={{ color:C.navy }}>{t.name}</b>
+                      <span style={{ fontWeight:600, color:C.navy }}>{seaYachtsTierPrice(t)}{cost && t.flat == null ? <span style={{ fontWeight:400, color:C.slate }}> · {fmt(cost)} on this offer</span> : null}</span>
+                    </div>
+                    <div style={{ marginTop:2 }}>{t.covers}</div>
+                  </div>
+                );
+              })}
+              <div style={{ marginTop:8 }}>Separate from the $249 BoatClosers fee. You choose the tier when you both sign the Sea Yachts agreement.</div>
+              <details style={{ marginTop:8 }}>
+                <summary style={{ cursor:"pointer", fontWeight:600, color:C.navy }}>Optional add-ons</summary>
+                {SEA_YACHTS.addOns.map(([a,b])=>(
+                  <div key={a} style={{ display:"flex", justifyContent:"space-between", gap:10, padding:"4px 0" }}><span>{a}</span><span style={{ color:C.navy, whiteSpace:"nowrap" }}>{b}</span></div>
+                ))}
+                <div style={{ marginTop:4 }}>Not included in any tier: sales tax and state fees (passed through exactly), survey and haul-out costs.</div>
+              </details>
+              <details style={{ marginTop:6 }}>
+                <summary style={{ cursor:"pointer", fontWeight:600, color:C.navy }}>Please read: how Sea Yachts works</summary>
+                <ul style={{ margin:"6px 0 0", paddingLeft:18 }}>
+                  {SEA_YACHTS.disclaimers.map(d=> <li key={d} style={{ marginBottom:4 }}>{d}</li>)}
+                </ul>
+              </details>
+              <div style={{ marginTop:12, display:"flex", flexWrap:"wrap", gap:8, alignItems:"center" }}>
+                <a href={SEA_YACHTS.verifyUrl} target="_blank" rel="noopener noreferrer"
+                  style={{ display:"inline-flex", alignItems:"center", gap:6, background:C.navy, color:"#fff", borderRadius:4, padding:"8px 13px", fontWeight:600, textDecoration:"none" }}>
+                  <Icon name="shield" /> Verify our Florida license
+                </a>
+                <span style={{ fontSize:11.5 }}>
+                  {SEA_YACHTS.legalName}{SEA_YACHTS.licenseNumber ? ` · License ${SEA_YACHTS.licenseNumber}` : ""} · Broker {SEA_YACHTS.broker}
+                </span>
+              </div>
+              {(SEA_YACHTS.phone || SEA_YACHTS.email) && (
+                <div style={{ marginTop:8 }}>
+                  Talk to a real person {SEA_YACHTS.replyPromise}:{" "}
+                  {SEA_YACHTS.phone && <a href={`tel:${SEA_YACHTS.phone}`} style={{ color:C.navy, fontWeight:600 }}>{SEA_YACHTS.phone}</a>}
+                  {SEA_YACHTS.phone && SEA_YACHTS.email && " · "}
+                  {SEA_YACHTS.email && <a href={`mailto:${SEA_YACHTS.email}`} style={{ color:C.navy, fontWeight:600 }}>{SEA_YACHTS.email}</a>}
+                </div>
+              )}
             </div>
           )}
           {value==="escrow_com" && (
@@ -4138,7 +4194,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             ) : (
               <div style={{ background:"#fffdf5", border:`1px solid ${C.brass}`, borderRadius:8, padding:"15px 17px" }}>
                 <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:12 }}>
-                  The deposit is sent {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "brokerage" ? "to the broker's trust account" : escMethod === "custom" ? "to the holder you agreed on" : "directly to the seller"}, outside BoatClosers. <b>Both of you confirm</b> once it's done.
+                  The deposit is sent {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "sea_yachts" ? "to Sea Yachts' trust account" : escMethod === "brokerage" ? "to the broker's trust account" : escMethod === "custom" ? "to the holder you agreed on" : "directly to the seller"}, outside BoatClosers. <b>Both of you confirm</b> once it's done.
                 </div>
                 {(isBuyer ? !depBuyerConfirmed : !depSellerConfirmed) ? (
                   <button onClick={()=>{ setDepositGateOpen(false); setShowReceipt(true); }} style={{ ...S.btnBrass, width:"100%", fontSize:14, fontWeight:800, padding:"12px 20px", marginBottom:12 }}>
@@ -4315,13 +4371,13 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                   <div style={{ background:"#fffdf5", border:`1px solid ${C.brass}`, borderLeft:`5px solid ${C.brass}`, borderRadius:8, padding:"15px 17px", fontFamily:FONT.sans }}>
                     <div style={{ fontSize:13.5, fontWeight:800, color:"#7a5500", marginBottom:5 }}>The {fmt(dep.deposit)} earnest-money deposit</div>
                     <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:12 }}>
-                      The deposit is sent {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "brokerage" ? "to the broker's trust account" : escMethod === "custom" ? "to the holder you agreed on" : "directly to the seller"}, outside BoatClosers. Once <b>both of you confirm</b> it's done, the deal moves forward. BoatClosers only records the confirmation &mdash; it doesn't hold the money.
+                      The deposit is sent {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "sea_yachts" ? "to Sea Yachts' trust account" : escMethod === "brokerage" ? "to the broker's trust account" : escMethod === "custom" ? "to the holder you agreed on" : "directly to the seller"}, outside BoatClosers. Once <b>both of you confirm</b> it's done, the deal moves forward. BoatClosers only records the confirmation &mdash; it doesn't hold the money.
                     </div>
                     {/* MY action */}
                     {isBuyer && !depBuyerConfirmed ? (
                       <>
                         <div style={{ fontSize:12, color:C.slate, lineHeight:1.7, marginBottom:10 }}>
-                          Send the <b>{fmt(dep.deposit)}</b> {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "brokerage" ? "to the broker's trust account" : escMethod === "custom" ? "to the agreed holder" : "to the seller"} using the payment details you arranged, then sign the earnest-money receipt below to record that you&rsquo;ve sent it.
+                          Send the <b>{fmt(dep.deposit)}</b> {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "sea_yachts" ? "to Sea Yachts' trust account" : escMethod === "brokerage" ? "to the broker's trust account" : escMethod === "custom" ? "to the agreed holder" : "to the seller"} using the payment details you arranged, then sign the earnest-money receipt below to record that you&rsquo;ve sent it.
                         </div>
                         <button onClick={()=>setShowReceipt(true)} style={{ ...S.btnBrass, width:"100%", maxWidth:360, fontSize:14, fontWeight:800, padding:"12px 20px", marginBottom:12 }}>
                           {emo("📄")} Sign the earnest-money receipt →
@@ -4330,7 +4386,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                     ) : !isBuyer && !depSellerConfirmed ? (
                       <>
                         <div style={{ fontSize:12, color:C.slate, lineHeight:1.7, marginBottom:10 }}>
-                          Check your {escMethod === "attorney" ? "attorney/title company" : escMethod === "brokerage" ? "broker's trust account" : "account"}. Once the <b>{fmt(dep.deposit)}</b> has actually arrived, sign the earnest-money receipt below to confirm you received it.
+                          Check your {escMethod === "attorney" ? "attorney/title company" : escMethod === "sea_yachts" ? "Sea Yachts trust account statement" : escMethod === "brokerage" ? "broker's trust account" : "account"}. Once the <b>{fmt(dep.deposit)}</b> has actually arrived, sign the earnest-money receipt below to confirm you received it.
                         </div>
                         <button onClick={()=>setShowReceipt(true)} style={{ ...S.btnBrass, width:"100%", maxWidth:360, fontSize:14, fontWeight:800, padding:"12px 20px", marginBottom:12 }}>
                           {emo("📄")} Sign the earnest-money receipt →

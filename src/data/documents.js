@@ -2340,6 +2340,9 @@ export function assembleDepositHolder(deal) {
   if (path === "attorney") {
     return `<p>The earnest money deposit shall be delivered to and held in the trust account of the <b>attorney the Parties have designated in writing</b> (the \u201cDeposit Holder\u201d), and shall be applied toward the Purchase Price at Closing.</p>` + neutralDuty;
   }
+  if (path === "sea_yachts") {
+    return `<p>The earnest money deposit shall be delivered to and held in the escrow trust account of <b>Sea Yachts LLC</b>, a Florida licensed yacht brokerage (the \u201cDeposit Holder\u201d), under the separate escrow and closing agreement signed by both Parties, and shall be applied toward the Purchase Price at Closing. Sea Yachts LLC acts as a neutral, limited-scope broker for both Parties and does not negotiate for either Party. Both Parties acknowledge that Sea Yachts LLC is owned by the founder of BoatClosers.</p>` + neutralDuty;
+  }
   if (path === "brokerage") {
     return `<p>The earnest money deposit shall be delivered to and held in the escrow or trust account of the <b>licensed broker the Parties have designated in writing</b> (the \u201cDeposit Holder\u201d), and shall be applied toward the Purchase Price at Closing.</p>` + neutralDuty;
   }
@@ -2354,7 +2357,7 @@ export function assembleDepositHolder(deal) {
 // keep holding it, so telling the Parties one will is simply untrue.
 export function assembleDisputedDeposit(deal) {
   const path = (deal || {}).escrowPath || "";
-  const third = path === "escrow_com" || path === "attorney" || path === "brokerage" || (!path);
+  const third = path === "escrow_com" || path === "attorney" || path === "brokerage" || path === "sea_yachts" || (!path);
   if (third) {
     return `<p>If Buyer and Seller dispute entitlement to the earnest money deposit, the holder of the deposit may continue to hold it until Buyer and Seller provide joint written instructions for its release, the Parties reach a written settlement concerning the deposit, or the holder receives other legally sufficient authority directing its release.</p>` +
       `<p>The holder shall not be required to determine which Party is legally entitled to the deposit. Nothing in this section prevents either Party from pursuing a lawful remedy concerning the deposit.</p>`;
