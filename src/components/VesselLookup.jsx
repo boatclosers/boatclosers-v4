@@ -14,6 +14,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState } from "react";
+import { FONT } from "../lib/theme";
+import { emo } from "./Icon";
 
 const C = {
   navy:"#08152e", teal:"#0e6b7c", tealLight:"#e4f4f7", brass:"#b8863a",
@@ -67,11 +69,11 @@ export default function VesselLookup({ hin }) {
           display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left",
           background: open ? C.tealLight : C.white,
           border:`1px solid ${open ? C.teal : C.mist}`, borderRadius:8,
-          padding:"11px 14px", cursor:"pointer", fontFamily:"sans-serif",
+          padding:"11px 14px", cursor:"pointer", fontFamily:FONT.sans,
           transition:"all 0.15s",
         }}
       >
-        <span style={{ fontSize:16 }}>⚓</span>
+        <span style={{ fontSize:16 }}>{emo("⚓")}</span>
         <span style={{ flex:1, fontSize:13, color:C.navy }}>
           <strong>Check this boat&rsquo;s history</strong> &mdash; accidents, storm damage, sinking, theft, salvage and liens
         </span>
@@ -81,7 +83,7 @@ export default function VesselLookup({ hin }) {
       </button>
 
       {open && cleanHin && (
-        <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap", background:C.sand, border:`1px solid ${C.mist}`, borderRadius:7, padding:"9px 12px", marginTop:8, fontFamily:"sans-serif" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap", background:C.sand, border:`1px solid ${C.mist}`, borderRadius:7, padding:"9px 12px", marginTop:8, fontFamily:FONT.sans }}>
           <span style={{ fontSize:11.5, color:C.slate }}>This boat&rsquo;s HIN</span>
           <code style={{ fontSize:13, fontWeight:700, color:C.navy, letterSpacing:0.5 }}>{cleanHin}</code>
           <button onClick={()=>{ try { navigator.clipboard.writeText(cleanHin); setCopied(true); setTimeout(()=>setCopied(false), 1800); } catch (e) {} }}
@@ -94,7 +96,7 @@ export default function VesselLookup({ hin }) {
       {/* Full panel — only when opened */}
       {open && (
         <div style={{ background:C.white, border:`0.5px solid ${C.mist}`, borderTop:"none", borderRadius:"0 0 8px 8px", padding:"1.1rem 1.25rem 1.25rem", marginTop:-4 }}>
-          <p style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65, margin:"4px 0 14px" }}>
+          <p style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.65, margin:"4px 0 14px" }}>
             Not needed for every sale — but on an older, larger, or financed boat it's smart to confirm the vessel is
             documented as the seller claims and carries no hidden liens. Here's how, starting with the free official source.
           </p>
@@ -103,26 +105,26 @@ export default function VesselLookup({ hin }) {
             {LINKS.map((l) => (
               <div key={l.title} style={{ border:`1px solid ${C.mist}`, borderRadius:7, padding:"12px 14px", background:l.bg }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
-                  <span style={{ fontSize:15 }}>{l.icon}</span>
-                  <span style={{ fontSize:9, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".08em", textTransform:"uppercase", color:l.color, background:C.white, padding:"2px 8px", borderRadius:20, border:`1px solid ${l.color}` }}>{l.rank}</span>
+                  <span style={{ fontSize:15 }}>{emo(l.icon)}</span>
+                  <span style={{ fontSize:9, fontFamily:FONT.sans, fontWeight:700, letterSpacing:".08em", textTransform:"uppercase", color:l.color, background:C.white, padding:"2px 8px", borderRadius:20, border:`1px solid ${l.color}` }}>{l.rank}</span>
                 </div>
-                <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, color:C.navy, marginBottom:3 }}>{l.title}</div>
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>{l.desc}</div>
+                <div style={{ fontSize:13, fontFamily:FONT.sans, fontWeight:700, color:C.navy, marginBottom:3 }}>{l.title}</div>
+                <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>{l.desc}</div>
                 <a href={l.url} target="_blank" rel="noopener noreferrer"
-                   style={{ display:"inline-block", marginTop:10, background:l.color, color:"#fff", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, textDecoration:"none" }}>
+                   style={{ display:"inline-block", marginTop:10, background:l.color, color:"#fff", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:FONT.sans, fontWeight:700, textDecoration:"none" }}>
                   {l.btn}
                 </a>
               </div>
             ))}
           </div>
 
-          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:12, padding:"8px 12px", background:C.sandDark, borderRadius:6 }}>
+          <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, marginTop:12, padding:"8px 12px", background:C.sandDark, borderRadius:6 }}>
             <strong>State-titled (non-documented) boats:</strong> run the HIN and request the title and lien record from
             your state's titling agency (DMV/DNR) — that's the equivalent of the Coast Guard abstract for boats that
             aren't federally documented.
           </div>
 
-          <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65, marginTop:12, padding:"10px 12px", border:`1px solid ${C.mist}`, borderRadius:6, background:C.white }}>
+          <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, lineHeight:1.65, marginTop:12, padding:"10px 12px", border:`1px solid ${C.mist}`, borderRadius:6, background:C.white }}>
             <strong style={{ color:C.navy }}>Disclaimer:</strong> BoatClosers is not affiliated with, endorsed by, or
             connected to the U.S. Coast Guard, the National Vessel Documentation Center, CGMIX/PSIX, or any third-party
             service listed above. These links are provided for your convenience only. BoatClosers does not perform title

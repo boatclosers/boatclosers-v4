@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { FONT } from "../lib/theme";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // "WHICH DOCUMENT DO I NEED?" — interactive guide
@@ -310,7 +311,7 @@ export default function DocFinder({ DOCUMENTS, onOpenDoc, C, S, onClose }) {
   const sand = (C && C.sandDark) || "#f4f1ea";
 
   return (
-    <div style={{ fontFamily: "sans-serif", maxWidth: 560, margin: "0 auto" }}>
+    <div style={{ fontFamily:FONT.sans, maxWidth: 560, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: navy }}>Which document do I need?</div>
         {onClose && (
@@ -330,7 +331,7 @@ export default function DocFinder({ DOCUMENTS, onOpenDoc, C, S, onClose }) {
                 style={{
                   textAlign: "left", padding: "13px 15px", borderRadius: 8, border: `1px solid ${mist}`,
                   background: "#fff", color: navy, fontSize: 13.5, fontWeight: 600, cursor: "pointer",
-                  fontFamily: "sans-serif", lineHeight: 1.4,
+                  fontFamily:FONT.sans, lineHeight: 1.4,
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = brass; e.currentTarget.style.background = "#fffdf8"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = mist; e.currentTarget.style.background = "#fff"; }}

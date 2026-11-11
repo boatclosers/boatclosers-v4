@@ -6,7 +6,9 @@ import { DOCUMENTS, fillDocument } from "../data/documents";
 import VesselLookup from "./VesselLookup";
 import DocFinder from "./DocFinder";
 import HinInlineCheck from "./HinInlineCheck";
+import { emo } from "./Icon";
 import { FAQS } from "../lib/faqs";
+import { FONT } from "../lib/theme";
 // ─────────────────────────────────────────────────────────────────────────────
 // BOATCLOSERS v4
 // ─────────────────────────────────────────────────────────────────────────────
@@ -23,8 +25,10 @@ const C = {
   sand:    "#f5f0e8",
   sandDark:"#ede6d8",
   white:   "#ffffff",
-  slate:   "#3d5166",
-  mist:    "#d9d2c5",
+  slate:   "#44586d",
+  mist:    "#ddd5c6",
+  paper:   "#fffdf9",
+  navyDeep:"#061020",
   red:     "#a82828",
   redLight:"#fdecea",
   green:   "#1a5c35",
@@ -232,27 +236,28 @@ const REJECTION_REASONS = [
 
 // ── SHARED UI ─────────────────────────────────────────────────────────────────
 const S = {
-  app:      { fontFamily:"'Georgia','Times New Roman',serif", background:C.sand, minHeight:"100vh", color:C.text },
-  nav:      { background:C.navy, padding:"0 2rem", display:"flex", alignItems:"center", justifyContent:"space-between", height:60, borderBottom:`1px solid rgba(184,134,58,0.35)` },
-  logo:     { fontFamily:"'Georgia',serif", fontSize:19, fontWeight:700, color:C.brass, letterSpacing:1.5, cursor:"pointer" },
-  logoSub:  { fontSize:9, color:"rgba(255,255,255,0.4)", letterSpacing:4, marginTop:1, fontFamily:"sans-serif", textTransform:"uppercase" },
+  app:      { fontFamily:FONT.sans, background:C.sand, minHeight:"100vh", color:C.text, WebkitFontSmoothing:"antialiased" },
+  nav:      { background:C.navyDeep, padding:"0 2rem", display:"flex", alignItems:"center", justifyContent:"space-between", height:60, borderBottom:`1px solid rgba(184,134,58,0.22)` },
+  logo:     { fontFamily:FONT.display, fontSize:20, fontWeight:600, color:C.brass, letterSpacing:1.6, cursor:"pointer" },
+  logoSub:  { fontSize:9, color:"rgba(255,255,255,0.42)", letterSpacing:4, marginTop:2, fontFamily:FONT.sans, textTransform:"uppercase", fontWeight:500 },
   page:     { maxWidth:820, margin:"0 auto", padding:"2rem 1.5rem" },
-  card:     { background:C.white, border:`0.5px solid ${C.mist}`, borderRadius:8, padding:"1.5rem" },
-  cardGold: { background:C.white, border:`2px solid ${C.brass}`, borderRadius:8, padding:"1.5rem" },
-  h1:       { fontSize:24, fontWeight:700, color:C.navy, marginBottom:6 },
-  h2:       { fontSize:20, fontWeight:700, color:C.navy, marginBottom:4 },
-  h3:       { fontSize:15, fontWeight:600, color:C.navy, marginBottom:10, fontFamily:"sans-serif" },
-  label:    { fontSize:12, color:C.slate, fontFamily:"sans-serif", marginBottom:4, display:"block", fontWeight:500 },
-  input:    { width:"100%", border:`1px solid ${C.mist}`, borderRadius:5, padding:"9px 11px", fontSize:13, fontFamily:"sans-serif", background:C.white, color:C.text, boxSizing:"border-box" },
-  select:   { width:"100%", border:`1px solid ${C.mist}`, borderRadius:5, padding:"9px 11px", fontSize:13, fontFamily:"sans-serif", background:C.white, color:C.text, boxSizing:"border-box" },
-  textarea: { width:"100%", border:`1px solid ${C.mist}`, borderRadius:5, padding:"9px 11px", fontSize:13, fontFamily:"sans-serif", background:C.white, color:C.text, resize:"vertical", boxSizing:"border-box" },
-  btn:      { background:C.navy, color:"#fff", border:"none", borderRadius:5, padding:"10px 22px", fontSize:13, cursor:"pointer", fontFamily:"sans-serif", fontWeight:600 },
-  btnBrass: { background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"10px 22px", fontSize:13, cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 },
-  btnOutline:{ background:"transparent", color:C.navy, border:`1px solid ${C.mist}`, borderRadius:5, padding:"9px 20px", fontSize:13, cursor:"pointer", fontFamily:"sans-serif" },
-  btnTeal:  { background:C.teal, color:"#fff", border:"none", borderRadius:5, padding:"10px 22px", fontSize:13, cursor:"pointer", fontFamily:"sans-serif", fontWeight:600 },
+  card:     { background:C.paper, border:`0.5px solid ${C.mist}`, borderRadius:10, padding:"1.5rem", boxShadow:"0 1px 2px rgba(6,16,32,0.04)" },
+  cardGold: { background:C.paper, border:`1.5px solid ${C.brass}`, borderRadius:10, padding:"1.5rem", boxShadow:"0 1px 2px rgba(6,16,32,0.04)" },
+  h1:       { fontFamily:FONT.serif, fontSize:30, fontWeight:500, color:C.navy, marginBottom:6, lineHeight:1.18, letterSpacing:0.2 },
+  h2:       { fontFamily:FONT.serif, fontSize:23, fontWeight:500, color:C.navy, marginBottom:4, lineHeight:1.2, letterSpacing:0.2 },
+  h3:       { fontSize:15, fontWeight:600, color:C.navy, marginBottom:10, fontFamily:FONT.sans },
+  label:    { fontSize:12, color:C.slate, fontFamily:FONT.sans, marginBottom:5, display:"block", fontWeight:500 },
+  input:    { width:"100%", border:`1px solid ${C.mist}`, borderRadius:6, padding:"10px 12px", fontSize:14, fontFamily:FONT.sans, background:C.white, color:C.text, boxSizing:"border-box" },
+  select:   { width:"100%", border:`1px solid ${C.mist}`, borderRadius:6, padding:"10px 12px", fontSize:14, fontFamily:FONT.sans, background:C.white, color:C.text, boxSizing:"border-box" },
+  textarea: { width:"100%", border:`1px solid ${C.mist}`, borderRadius:6, padding:"10px 12px", fontSize:14, fontFamily:FONT.sans, background:C.white, color:C.text, resize:"vertical", boxSizing:"border-box" },
+  btn:      { background:C.navy, color:"#fff", border:"none", borderRadius:4, padding:"11px 24px", fontSize:14, cursor:"pointer", fontFamily:FONT.sans, fontWeight:600, letterSpacing:0.2 },
+  btnBrass: { background:C.brass, color:C.navy, border:"none", borderRadius:4, padding:"11px 24px", fontSize:14, cursor:"pointer", fontFamily:FONT.sans, fontWeight:600, letterSpacing:0.2 },
+  btnOutline:{ background:"transparent", color:C.navy, border:`1px solid ${C.mist}`, borderRadius:4, padding:"10px 22px", fontSize:14, cursor:"pointer", fontFamily:FONT.sans, fontWeight:500 },
+  btnTeal:  { background:C.teal, color:"#fff", border:"none", borderRadius:4, padding:"11px 24px", fontSize:14, cursor:"pointer", fontFamily:FONT.sans, fontWeight:600, letterSpacing:0.2 },
   divider:  { border:"none", borderTop:`1px solid ${C.mist}`, margin:"1.25rem 0" },
-  pill:     { display:"inline-block", fontSize:10, fontFamily:"sans-serif", fontWeight:700, padding:"3px 9px", borderRadius:20, letterSpacing:0.5, textTransform:"uppercase" },
-  tag:      { display:"inline-block", fontSize:10, fontFamily:"sans-serif", background:C.sandDark, color:C.slate, padding:"2px 7px", borderRadius:3, marginRight:4 },
+  pill:     { display:"inline-block", fontSize:10, fontFamily:FONT.sans, fontWeight:600, padding:"3px 9px", borderRadius:20, letterSpacing:0.6, textTransform:"uppercase" },
+  navBtn:   { fontSize:12, color:"rgba(255,255,255,0.86)", background:"transparent", border:"1px solid rgba(255,255,255,0.16)", borderRadius:4, padding:"6px 12px", cursor:"pointer", fontFamily:FONT.sans, fontWeight:500, letterSpacing:0.2, display:"inline-flex", alignItems:"center", gap:6, whiteSpace:"nowrap" },
+  tag:      { display:"inline-block", fontSize:10, fontFamily:FONT.sans, background:C.sandDark, color:C.slate, padding:"2px 7px", borderRadius:3, marginRight:4 },
 };
 
 function Field({ label, children, span2 }) {
@@ -304,8 +309,8 @@ function OfferSection({ icon, title, desc, checked, onToggle, children }) {
       <label style={{ display:"flex", gap:10, alignItems:"flex-start", cursor:"pointer", padding:"13px 14px" }}>
         <input type="checkbox" checked={checked} onChange={onToggle} style={{ width:16, height:16, marginTop:2, accentColor:C.brass, flexShrink:0 }} />
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>{icon} {title} <span style={{ fontSize:11, fontWeight:400, color:checked?C.brass:C.slate }}>{checked?"— included ✓":"— optional, tap to add"}</span></div>
-          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:3, lineHeight:1.55 }}>{desc}</div>
+          <div style={{ fontSize:14, fontWeight:700, fontFamily:FONT.sans, color:C.navy }}>{emo(icon)} {title} <span style={{ fontSize:11, fontWeight:400, color:checked?C.brass:C.slate }}>{checked?"— included ✓":"— optional, tap to add"}</span></div>
+          <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, marginTop:3, lineHeight:1.55 }}>{desc}</div>
         </div>
       </label>
       {checked && <div style={{ padding:"2px 14px 14px" }}>{children}</div>}
@@ -322,7 +327,7 @@ function TipBox({ tips }) {
   }, [tips.length]);
   return (
     <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"10px 14px", marginBottom:20, display:"flex", alignItems:"flex-start", gap:10 }}>
-      <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.teal, lineHeight:1.6, flex:1 }}>{tips[idx]}</div>
+      <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.teal, lineHeight:1.6, flex:1 }}>{emo(tips[idx])}</div>
       <div style={{ display:"flex", gap:4, flexShrink:0, marginTop:2 }}>
         {tips.map((_,i) => (
           <div key={i} onClick={() => setIdx(i)} style={{ width:6, height:6, borderRadius:"50%", background: i===idx ? C.teal : C.mist, cursor:"pointer" }} />
@@ -382,19 +387,19 @@ function MyDeals({ C, S, deals, loading, onOpen, onBack, onNew }) {
           <div style={S.logo}>BOATCLOSERS</div>
           <div style={S.logoSub}>Private Vessel Transactions</div>
         </div>
-        <button onClick={onBack} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.3)", color:"#fff", borderRadius:16, padding:"6px 14px", fontSize:12, cursor:"pointer", fontFamily:"sans-serif" }}>&larr; Back</button>
+        <button onClick={onBack} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.3)", color:"#fff", borderRadius:16, padding:"6px 14px", fontSize:12, cursor:"pointer", fontFamily:FONT.sans }}>&larr; Back</button>
       </nav>
 
       <div style={{ maxWidth:820, margin:"0 auto", padding:"28px 1.25rem 40px" }}>
         <h1 style={S.h1}>Your deals</h1>
-        <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:4, marginBottom:20 }}>
+        <div style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, marginTop:4, marginBottom:20 }}>
           Every deal you have been part of. Closed deals stay here permanently &mdash; open one any time to view, print or email its documents.
         </div>
 
         {loading ? (
-          <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Loading&hellip;</div>
+          <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate }}>Loading&hellip;</div>
         ) : !deals.length ? (
-          <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderRadius:9, padding:"22px 20px", textAlign:"center", fontFamily:"sans-serif" }}>
+          <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderRadius:9, padding:"22px 20px", textAlign:"center", fontFamily:FONT.sans }}>
             <div style={{ fontSize:13.5, color:C.navy, fontWeight:700 }}>No deals yet</div>
             <div style={{ fontSize:12.5, color:C.slate, marginTop:5, lineHeight:1.6 }}>When you start a deal or accept an invitation, it will appear here.</div>
             <button onClick={onNew} style={{ ...S.btnBrass, marginTop:14, fontSize:13, padding:"10px 22px" }}>Start a deal</button>
@@ -407,10 +412,10 @@ function MyDeals({ C, S, deals, loading, onOpen, onBack, onNew }) {
                 <button key={d.id} onClick={()=>onOpen(d.id)}
                   style={{ display:"flex", alignItems:"flex-start", gap:12, width:"100%", textAlign:"left", background:L.tint,
                     border:"none", borderBottom: i < deals.length-1 ? `1px solid ${C.sand}` : "none", borderLeft:`3px solid ${L.bg}`,
-                    padding:"14px 16px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                    padding:"14px 16px", cursor:"pointer", fontFamily:FONT.sans }}>
                   <span style={{ flex:1, minWidth:0 }}>
                     <span style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-                      <span style={{ fontFamily:"'Georgia',serif", fontSize:15.5, color:C.navy }}>{d.boat || "Untitled deal"}</span>
+                      <span style={{ fontFamily:FONT.serif, fontSize:15.5, color:C.navy }}>{d.boat || "Untitled deal"}</span>
                       <span style={{ fontSize:9.5, letterSpacing:0.7, textTransform:"uppercase", fontWeight:800, color:"#fff", background:L.bg, borderRadius:9, padding:"2px 8px" }}>{L.text}</span>
                       {d.vesselName && <span style={{ fontSize:11.5, color:C.slate, fontStyle:"italic" }}>&ldquo;{d.vesselName}&rdquo;</span>}
                     </span>
@@ -459,10 +464,10 @@ function LegalFooter({ C, authedFetch, signedIn }) {
     } catch (e) { setHelpState("Couldn't reach us just now. Please try again."); }
   };
   const doc = openKey === "disclaimer" ? DISCLAIMER : openKey ? LEGAL[openKey] : null;
-  const link = { background:"transparent", border:"none", color:"rgba(255,255,255,0.75)", fontSize:11.5, textDecoration:"underline", cursor:"pointer", fontFamily:"sans-serif", padding:0 };
+  const link = { background:"transparent", border:"none", color:"rgba(255,255,255,0.75)", fontSize:11.5, textDecoration:"underline", cursor:"pointer", fontFamily:FONT.sans, padding:0 };
   return (
     <>
-      <footer style={{ background:C.navy, color:"rgba(255,255,255,0.6)", padding:"20px 22px 24px", marginTop:40, fontFamily:"sans-serif" }}>
+      <footer style={{ background:C.navy, color:"rgba(255,255,255,0.6)", padding:"20px 22px 24px", marginTop:40, fontFamily:FONT.sans }}>
         <div style={{ maxWidth:880, margin:"0 auto" }}>
           <div style={{ fontSize:11.5, lineHeight:1.7, marginBottom:11 }}>
             BoatClosers organizes private boat sales and generates documents from what you enter. It is <b style={{ color:"rgba(255,255,255,0.85)" }}>not a law firm, escrow agent, or surveyor</b>, does not hold your funds, and does not verify ownership, condition, liens, or notarization. Document requirements vary by state &mdash; confirm with your titling agency or an attorney before relying on one.
@@ -485,7 +490,7 @@ function LegalFooter({ C, authedFetch, signedIn }) {
 
       {helpOpen && (
         <div onClick={()=>setHelpOpen(false)}
-          style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", zIndex:5100, overflowY:"auto", padding:"20px 12px", fontFamily:"sans-serif" }}>
+          style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", zIndex:5100, overflowY:"auto", padding:"20px 12px", fontFamily:FONT.sans }}>
           <div onClick={e=>e.stopPropagation()}
             style={{ maxWidth:520, margin:"8vh auto 0", background:"#fff", borderRadius:12, overflow:"hidden", border:`2px solid ${C.brass}` }}>
             <div style={{ background:C.navy, color:"#fff", padding:"13px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
@@ -504,7 +509,7 @@ function LegalFooter({ C, authedFetch, signedIn }) {
                   </div>
                   <textarea value={helpMsg} onChange={e=>setHelpMsg(e.target.value)}
                     placeholder="What can we help with?"
-                    style={{ width:"100%", minHeight:110, fontSize:13, fontFamily:"sans-serif", padding:"10px 12px", border:`1px solid ${C.mist}`, borderRadius:7, resize:"vertical", boxSizing:"border-box" }} />
+                    style={{ width:"100%", minHeight:110, fontSize:13, fontFamily:FONT.sans, padding:"10px 12px", border:`1px solid ${C.mist}`, borderRadius:7, resize:"vertical", boxSizing:"border-box" }} />
                   {helpState && helpState !== "sending" && (
                     <div style={{ fontSize:12, color:"#dc2626", marginTop:7 }}>{helpState}</div>
                   )}
@@ -524,10 +529,10 @@ function LegalFooter({ C, authedFetch, signedIn }) {
       )}
 
       {doc && (
-        <div onClick={()=>setOpenKey(null)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", zIndex:5000, overflowY:"auto", padding:"20px 12px", fontFamily:"sans-serif" }}>
+        <div onClick={()=>setOpenKey(null)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", zIndex:5000, overflowY:"auto", padding:"20px 12px", fontFamily:FONT.sans }}>
           <div onClick={e=>e.stopPropagation()} style={{ maxWidth:660, margin:"0 auto", background:"#fff", borderRadius:12, overflow:"hidden", border:`2px solid ${C.brass}` }}>
             <div style={{ background:C.navy, color:"#fff", padding:"14px 20px", display:"flex", justifyContent:"space-between", alignItems:"center", position:"sticky", top:0 }}>
-              <span style={{ fontFamily:"'Georgia',serif", fontSize:16, color:C.brass }}>{doc.title}</span>
+              <span style={{ fontFamily:FONT.serif, fontSize:16, color:C.brass }}>{doc.title}</span>
               <button onClick={()=>setOpenKey(null)} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.7)", fontSize:20, cursor:"pointer", lineHeight:1 }}>&times;</button>
             </div>
             <div style={{ padding:"18px 20px 22px" }}>
@@ -743,40 +748,40 @@ function DealAssistant({ step, role, vessel, seen, onSeen }) {
   return (
     <div style={{ border:`1px solid ${C.navy}`, borderRadius:8, marginBottom:20, overflow:"hidden", background:"#fff" }}>
       <div onClick={()=>setOpen(o=>!o)} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"11px 14px", background:C.navy }}>
-        <span style={{ fontSize:18 }}>🧭</span>
+        <span style={{ fontSize:18, color:C.brass2, display:"inline-flex" }}>{emo("🧭")}</span>
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:"#fff" }}>Deal Assistant</div>
-          <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.6)" }}>{c.title} — what to do and why</div>
+          <div style={{ fontSize:13, fontWeight:800, fontFamily:FONT.sans, color:"#fff" }}>Deal Assistant</div>
+          <div style={{ fontSize:11, fontFamily:FONT.sans, color:"rgba(255,255,255,0.6)" }}>{c.title} — what to do and why</div>
         </div>
-        <span style={{ color:C.brass, fontSize:12, fontFamily:"sans-serif", fontWeight:700 }}>{open ? "▲ Hide" : "▼ Guide me"}</span>
+        <span style={{ color:C.brass, fontSize:12, fontFamily:FONT.sans, fontWeight:700 }}>{open ? "▲ Hide" : "▼ Guide me"}</span>
       </div>
       {open && (
         <div style={{ padding:"14px 16px" }}>
-          <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.text, lineHeight:1.65, marginBottom:12 }}>{g.summary}</div>
+          <div style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.text, lineHeight:1.65, marginBottom:12 }}>{g.summary}</div>
           {g.todo && (
             <div style={{ marginBottom:12 }}>
-              <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.4, textTransform:"uppercase", color:C.navy, fontFamily:"sans-serif", marginBottom:6 }}>What to do now</div>
+              <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.4, textTransform:"uppercase", color:C.navy, fontFamily:FONT.sans, marginBottom:6 }}>What to do now</div>
               {g.todo.map((t,i)=>(
-                <div key={i} style={{ display:"flex", gap:8, fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.55, marginBottom:5 }}>
+                <div key={i} style={{ display:"flex", gap:8, fontSize:12.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.55, marginBottom:5 }}>
                   <span style={{ color:C.brass, fontWeight:700, flexShrink:0 }}>{i+1}.</span><span>{t}</span>
                 </div>
               ))}
             </div>
           )}
           {g.next && (
-            <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, background:C.sandDark, borderRadius:6, padding:"9px 12px", marginBottom: faqs.length?12:0 }}>
+            <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, background:C.sandDark, borderRadius:6, padding:"9px 12px", marginBottom: faqs.length?12:0 }}>
               <b style={{ color:C.navy }}>What happens next:</b> {g.next}
             </div>
           )}
           {faqs.length>0 && (
             <div>
-              <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.4, textTransform:"uppercase", color:C.navy, fontFamily:"sans-serif", marginBottom:4 }}>Common questions</div>
+              <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.4, textTransform:"uppercase", color:C.navy, fontFamily:FONT.sans, marginBottom:4 }}>Common questions</div>
               {faqs.map((f,i)=>(
                 <div key={i} style={{ borderBottom:`1px solid ${C.mist}` }}>
-                  <div onClick={()=>setFaqOpen(faqOpen===i?null:i)} style={{ display:"flex", justifyContent:"space-between", gap:10, cursor:"pointer", padding:"9px 0", fontSize:12.5, fontFamily:"sans-serif", fontWeight:600, color:C.navy }}>
+                  <div onClick={()=>setFaqOpen(faqOpen===i?null:i)} style={{ display:"flex", justifyContent:"space-between", gap:10, cursor:"pointer", padding:"9px 0", fontSize:12.5, fontFamily:FONT.sans, fontWeight:600, color:C.navy }}>
                     <span>{f.q}</span><span style={{ color:C.brass, flexShrink:0 }}>{faqOpen===i?"–":"+"}</span>
                   </div>
-                  {faqOpen===i && <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, padding:"0 0 10px" }}>{f.a}</div>}
+                  {faqOpen===i && <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, padding:"0 0 10px" }}>{f.a}</div>}
                 </div>
               ))}
             </div>
@@ -800,7 +805,7 @@ function DataWarning({ vessel, parties }) {
   if (missing.length === 0) return null;
   return (
     <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"12px 14px", marginBottom:20 }}>
-      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.brass, marginBottom:6 }}>⚠ Some document fields will be blank without this info:</div>
+      <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.brass, marginBottom:6 }}>{emo("⚠")} Some document fields will be blank without this info:</div>
       <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
         {missing.map(m => <span key={m} style={{ ...S.tag, background:"#fdeab0", color:"#7a5500" }}>{m}</span>)}
       </div>
@@ -830,20 +835,20 @@ function ProgressBar({ step, setStep, maxStep, dealPaid }) {
                     background: done ? C.green : current ? C.brass : "transparent",
                     color: done ? "#fff" : current ? "#fff" : C.slate,
                     display:"flex", alignItems:"center", justifyContent:"center",
-                    fontSize:11, fontWeight:700, fontFamily:"sans-serif", flexShrink:0,
+                    fontSize:11, fontWeight:700, fontFamily:FONT.sans, flexShrink:0,
                     border: current ? `2px solid ${C.navy}` : preview ? `2px dashed ${C.mist}` : "none",
                     cursor: locked ? "not-allowed" : "pointer",
                     opacity: locked ? 0.4 : preview ? 0.65 : 1,
                     transition:"all 0.15s",
                   }}
                 >
-                  {locked ? "🔒" : done ? "✓" : i+1}
+                  {locked ? emo("🔒") : done ? "✓" : i+1}
                 </div>
                 <div
                   className="bc-steplabel"
                   onClick={() => { if (!locked) setStep(i); }}
                   style={{
-                    fontSize:9, fontFamily:"sans-serif",
+                    fontSize:9, fontFamily:FONT.sans,
                     color: current ? C.navy : done ? C.teal : C.slate,
                     marginTop:3, whiteSpace:"nowrap",
                     fontWeight: current ? 700 : 400,
@@ -853,7 +858,7 @@ function ProgressBar({ step, setStep, maxStep, dealPaid }) {
                     opacity: locked ? 0.4 : preview ? 0.6 : 1,
                   }}
                 >
-                  {s}{locked ? " 🔒" : preview ? " 👁" : ""}
+                  {s}{locked ? emo(" 🔒") : preview ? emo(" 👁") : ""}
                 </div>
               </div>
               {i<STEPS.length-1 && (
@@ -874,8 +879,8 @@ function PreviewBanner({ step, maxStep, setStep }) {
     <div style={{ background:"#fff9ee", borderBottom:`2px solid ${C.brass}`, padding:"10px 2rem" }}>
       <div style={{ maxWidth:820, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <span style={{ fontSize:18 }}>👁</span>
-          <div style={{ fontSize:12, fontFamily:"sans-serif", color:"#7a5500", lineHeight:1.5 }}>
+          <span style={{ fontSize:18 }}>{emo("👁")}</span>
+          <div style={{ fontSize:12, fontFamily:FONT.sans, color:"#7a5500", lineHeight:1.5 }}>
             <strong>Preview mode</strong> — you're looking ahead at {STEPS[step]}. You can explore what's here, but actions and signatures require completing the earlier steps first.
             {step === 4 && <span> &nbsp;The $249 paywall must be completed before signing any documents.</span>}
           </div>
@@ -897,9 +902,9 @@ function LockedStep({ stepName, onBack }) {
   return (
     <div style={S.page}>
       <div style={{ ...S.card, textAlign:"center", padding:"3rem 2rem", borderTop:`3px solid ${C.brass}`, maxWidth:560, margin:"2rem auto" }}>
-        <div style={{ fontSize:42, marginBottom:14 }}>🔒</div>
-        <div style={{ fontSize:20, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>{stepName} is locked</div>
-        <div style={{ fontSize:14, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, maxWidth:440, margin:"0 auto 22px" }}>
+        <div style={{ fontSize:42, marginBottom:14 }}>{emo("🔒")}</div>
+        <div style={{ fontSize:20, fontWeight:800, fontFamily:FONT.sans, color:C.navy, marginBottom:10 }}>{stepName} is locked</div>
+        <div style={{ fontSize:14, fontFamily:FONT.sans, color:C.slate, lineHeight:1.7, maxWidth:440, margin:"0 auto 22px" }}>
           This opens once the deal is finalized — both parties sign the Purchase Agreement and the one-time $249 fee is paid to make it binding. Until then, due diligence, documents, and closing stay locked for both sides.
         </div>
         <button style={S.btnBrass} onClick={onBack}>← Back to the Deal Room</button>
@@ -922,11 +927,11 @@ function BrokerTip({ children }) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ marginTop:7 }}>
-      <button onClick={()=>setOpen(v=>!v)} style={{ background:"none", border:"none", padding:0, cursor:"pointer", fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:"#7a5500", display:"inline-flex", alignItems:"center", gap:4 }}>
-        💡 Broker tip {open ? "▲" : "▾"}
+      <button onClick={()=>setOpen(v=>!v)} style={{ background:"none", border:"none", padding:0, cursor:"pointer", fontSize:11, fontFamily:FONT.sans, fontWeight:700, color:"#7a5500", display:"inline-flex", alignItems:"center", gap:4 }}>
+        {emo("💡")} Broker tip {open ? "▲" : "▾"}
       </button>
       {open && (
-        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"#475569", lineHeight:1.6, marginTop:5, paddingLeft:9, borderLeft:"2px solid #b8863a" }}>
+        <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:"#475569", lineHeight:1.6, marginTop:5, paddingLeft:9, borderLeft:"2px solid #b8863a" }}>
           {children}
         </div>
       )}
@@ -936,7 +941,7 @@ function BrokerTip({ children }) {
 
 function WhatsNext({ children }) {
   return (
-    <div style={{ background:"#eef4fb", borderLeft:"3px solid #08152e", borderRadius:6, padding:"10px 13px", marginTop:20, fontSize:12.5, fontFamily:"sans-serif", color:"#334155", lineHeight:1.6 }}>
+    <div style={{ background:"#eef4fb", borderLeft:"3px solid #08152e", borderRadius:6, padding:"10px 13px", marginTop:20, fontSize:12.5, fontFamily:FONT.sans, color:"#334155", lineHeight:1.6 }}>
       <strong style={{ color:"#08152e" }}>What happens next: </strong>{children}
     </div>
   );
@@ -953,45 +958,45 @@ function StepVessel({ data, setData, userRole, onNext }) {
       <DealAssistant step="vessel" role={userRole} vessel={data} />
       {userRole==="seller" ? (
         <div style={{ background:"#eef4fb", border:`1px solid ${C.navy}`, borderRadius:8, padding:"13px 16px", marginBottom:18 }}>
-          <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>📋 You're the seller — you know this boat best</div>
-          <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+          <div style={{ fontSize:13, fontWeight:800, fontFamily:FONT.sans, color:C.navy, marginBottom:4 }}>{emo("📋")} You're the seller — you know this boat best</div>
+          <div style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>
             Please review every detail below and complete anything that's missing or that the buyer couldn't fill in — the closing documents depend on this being accurate. You won't build the offer here; that's the buyer's part. Once the details are right, just <b>wait for the buyer's offer</b> — we'll bring it to you and email you the moment it arrives.
           </div>
         </div>
       ) : (
         <div style={{ background:"#eef4fb", border:`1px solid ${C.navy}`, borderRadius:8, padding:"13px 16px", marginBottom:18 }}>
-          <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>📋 You're the buyer — enter what you know</div>
-          <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+          <div style={{ fontSize:13, fontWeight:800, fontFamily:FONT.sans, color:C.navy, marginBottom:4 }}>{emo("📋")} You're the buyer — enter what you know</div>
+          <div style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>
             Fill in the boat's details from the listing as best you can. You may not have everything — HIN, engine hours, title numbers — and that's fine. The <b>seller knows the boat best and will confirm and complete the details</b> when they join. Enter what you have, then move on to set up the parties and build your offer.
           </div>
         </div>
       )}
       <div style={{ marginBottom:"1.5rem" }}>
         <h1 style={S.h1}>Vessel Information</h1>
-        <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Fill in what you have now. You can complete remaining fields before signing. Asking price, year, make, and model are required to continue.</p>
+        <p style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate }}>Fill in what you have now. You can complete remaining fields before signing. Asking price, year, make, and model are required to continue.</p>
       </div>
       <div style={{ background:C.navy, borderRadius:9, padding:"15px 18px", marginBottom:"1.25rem", display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
         <div style={{ flexShrink:0 }}>
-          <div style={{ fontSize:15, fontWeight:800, color:"#fff", fontFamily:"sans-serif" }}>Asking Price <span style={{ color:C.brass }}>*</span></div>
+          <div style={{ fontSize:15, fontWeight:800, color:"#fff", fontFamily:FONT.sans }}>Asking Price <span style={{ color:C.brass }}>*</span></div>
           {data.askingPrice && Number(data.askingPrice) > 0 && (
-            <div style={{ fontSize:12, color:C.brass, fontWeight:700, fontFamily:"sans-serif", marginTop:2 }}>{fmt(Number(data.askingPrice))}</div>
+            <div style={{ fontSize:12, color:C.brass, fontWeight:700, fontFamily:FONT.sans, marginTop:2 }}>{fmt(Number(data.askingPrice))}</div>
           )}
         </div>
         <div style={{ position:"relative", flex:1, minWidth:200, maxWidth:300 }}>
-          <span style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)", fontSize:18, fontWeight:800, color:C.brass, fontFamily:"sans-serif", pointerEvents:"none" }}>$</span>
+          <span style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)", fontSize:18, fontWeight:800, color:C.brass, fontFamily:FONT.sans, pointerEvents:"none" }}>$</span>
           <input
             type="number"
             value={data.askingPrice}
             onChange={e=>set("askingPrice",e.target.value)}
             placeholder="85,000"
-            style={{ width:"100%", boxSizing:"border-box", padding:"11px 14px 11px 32px", fontSize:19, fontWeight:800, fontFamily:"sans-serif", color:C.navy, background:"#fff", border:`2px solid ${C.brass}`, borderRadius:7, outline:"none" }}
+            style={{ width:"100%", boxSizing:"border-box", padding:"11px 14px 11px 32px", fontSize:19, fontWeight:800, fontFamily:FONT.sans, color:C.navy, background:"#fff", border:`2px solid ${C.brass}`, borderRadius:7, outline:"none" }}
           />
         </div>
       </div>
       {userRole==="buyer" && Number(data.askingPrice) > 0 && Number(data.askingPrice) <= EXPRESS_SUGGEST_MAX && (
         <div style={{ background:C.sand, border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 16px", marginBottom:18 }}>
-          <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>Simple deal? BoatClosers Express may be all you need</div>
-          <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+          <div style={{ fontSize:13, fontWeight:800, fontFamily:FONT.sans, color:C.navy, marginBottom:4 }}>Simple deal? BoatClosers Express may be all you need</div>
+          <div style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>
             If you and the seller already agree on the price, there's no deposit to hold, and the title is clear, <b>BoatClosers Express ($29.99)</b> covers it:
             a Florida bill of sale and state forms filled in for you, a guided inspection, and help titling the boat. The seller doesn't sign up.
             Stay here if you want to negotiate, put down a deposit, make the sale depend on a survey or sea trial, or have you both sign a purchase agreement.{" "}
@@ -1002,7 +1007,7 @@ function StepVessel({ data, setData, userRole, onNext }) {
       <div style={S.card}>
         <h3 style={S.h3}>Identification</h3>
         <Grid2>
-          <Field label="Year *"><input style={S.input} type="number" value={data.year} onChange={e=>set("year",e.target.value)} placeholder="2019" />{data.year && !isValidYear(data.year) && <div style={{ fontSize:11, color:"#b91c1c", fontFamily:"sans-serif", marginTop:3 }}>Enter a valid 4-digit year.</div>}</Field>
+          <Field label="Year *"><input style={S.input} type="number" value={data.year} onChange={e=>set("year",e.target.value)} placeholder="2019" />{data.year && !isValidYear(data.year) && <div style={{ fontSize:11, color:"#b91c1c", fontFamily:FONT.sans, marginTop:3 }}>Enter a valid 4-digit year.</div>}</Field>
           <Field label="Make / Manufacturer *"><input style={S.input} value={data.make} onChange={e=>set("make",capFirst(e.target.value))} placeholder="Boston Whaler" /></Field>
           <Field label="Model *"><input style={S.input} value={data.model} onChange={e=>set("model",capFirst(e.target.value))} placeholder="Outrage 280" /></Field>
           <Field label="Vessel Name (if any)"><input style={S.input} value={data.name} onChange={e=>set("name",capFirst(e.target.value))} placeholder="Sea Dreams" /></Field>
@@ -1036,14 +1041,14 @@ function StepVessel({ data, setData, userRole, onNext }) {
         </Grid2>
         {/* Generator — optional, collapsed by default so it doesn't crowd the page. */}
         {!showGenerator ? (
-          <button onClick={()=>setShowGenerator(true)} style={{ marginTop:12, background:"transparent", color:C.navy, border:`1px dashed ${C.brass}`, borderRadius:7, padding:"9px 14px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>
+          <button onClick={()=>setShowGenerator(true)} style={{ marginTop:12, background:"transparent", color:C.navy, border:`1px dashed ${C.brass}`, borderRadius:7, padding:"9px 14px", fontSize:12.5, fontWeight:700, fontFamily:FONT.sans, cursor:"pointer" }}>
             + Add generator details (optional)
           </button>
         ) : (
           <div style={{ marginTop:12, border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px 16px", background:C.sandDark }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-              <div style={{ fontSize:13, fontWeight:800, color:C.navy, fontFamily:"sans-serif" }}>⚡ Generator</div>
-              <button onClick={()=>{ setShowGenerator(false); set("genMake",""); set("genKw",""); set("genHours",""); }} style={{ background:"none", border:"none", color:C.slate, fontSize:12, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }}>Remove</button>
+              <div style={{ fontSize:13, fontWeight:800, color:C.navy, fontFamily:FONT.sans }}>{emo("⚡")} Generator</div>
+              <button onClick={()=>{ setShowGenerator(false); set("genMake",""); set("genKw",""); set("genHours",""); }} style={{ background:"none", border:"none", color:C.slate, fontSize:12, fontFamily:FONT.sans, cursor:"pointer", textDecoration:"underline" }}>Remove</button>
             </div>
             <Grid2>
               <Field label="Generator Make"><input style={S.input} value={data.genMake||""} onChange={e=>set("genMake",e.target.value)} placeholder="Onan / Kohler / Northern Lights" /></Field>
@@ -1068,7 +1073,7 @@ function StepVessel({ data, setData, userRole, onNext }) {
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {[["yes","Yes — broker listed"],["no","No — private sale"],["unsure","Not sure"]].map(([v,lbl]) => (
                 <button key={v} type="button" onClick={()=>set("brokerListed", v)}
-                  style={{ fontSize:12.5, padding:"8px 14px", borderRadius:18, cursor:"pointer", fontFamily:"sans-serif", fontWeight:700,
+                  style={{ fontSize:12.5, padding:"8px 14px", borderRadius:18, cursor:"pointer", fontFamily:FONT.sans, fontWeight:700,
                     border:`1.5px solid ${data.brokerListed===v ? C.brass : C.mist}`,
                     background: data.brokerListed===v ? C.brass : C.white,
                     color: data.brokerListed===v ? "#fff" : C.slate }}>{lbl}</button>
@@ -1083,14 +1088,14 @@ function StepVessel({ data, setData, userRole, onNext }) {
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {[["yes","Yes"],["no","No — state titled"],["unsure","Not sure"]].map(([v,lbl]) => (
                 <button key={v} type="button" onClick={()=>set("isDocumented", v)}
-                  style={{ fontSize:12.5, padding:"8px 14px", borderRadius:18, cursor:"pointer", fontFamily:"sans-serif", fontWeight:700,
+                  style={{ fontSize:12.5, padding:"8px 14px", borderRadius:18, cursor:"pointer", fontFamily:FONT.sans, fontWeight:700,
                     border:`1.5px solid ${data.isDocumented===v ? C.brass : C.mist}`,
                     background: data.isDocumented===v ? C.brass : C.white,
                     color: data.isDocumented===v ? "#fff" : C.slate }}>{lbl}</button>
               ))}
             </div>
             {data.isDocumented === "unsure" && (
-              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:8 }}>
+              <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, marginTop:8 }}>
                 A documented vessel has a Certificate of Documentation from the Coast Guard and its official number carved into the hull &mdash; not a state registration decal. Larger boats usually are; most trailerable boats are not.
               </div>
             )}
@@ -1116,8 +1121,8 @@ function StepVessel({ data, setData, userRole, onNext }) {
       </div>
       <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8, marginTop:"1.5rem" }}>
         {!canContinue && (
-          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.red, textAlign:"right", maxWidth:440, lineHeight:1.5 }}>
-            ⚠️ Before you continue, please add: {[
+          <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.red, textAlign:"right", maxWidth:440, lineHeight:1.5 }}>
+            {emo("⚠")} Before you continue, please add: {[
               (!data.year || !isValidYear(data.year)) && "a valid year",
               !data.make && "make",
               !data.model && "model",
@@ -1174,7 +1179,7 @@ function MyContactPrefs({ authToken, defaultPhone }) {
     setSaving(false);
   };
   return (
-    <div style={{ background:"#fff", border:`1px solid ${C.mist}`, borderRadius:8, padding:"12px 15px", marginBottom:16, fontFamily:"sans-serif" }}>
+    <div style={{ background:"#fff", border:`1px solid ${C.mist}`, borderRadius:8, padding:"12px 15px", marginBottom:16, fontFamily:FONT.sans }}>
       <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:6 }}>How should we send you deal updates?</div>
       <div role="radiogroup" aria-label="Send my updates by" style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
         {[["email","Email"],["sms","Text"],["both","Both"]].map(([k,l]) => (
@@ -1308,7 +1313,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
       <DealAssistant step="parties" role={userRole} vessel={vessel} />
       <div style={{ marginBottom:"1.5rem" }}>
         <h1 style={S.h1}>Buyer & Seller Information</h1>
-        <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>
+        <p style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate }}>
           {userRole==="seller" ? "You are the Seller on this deal." : "You are the Buyer on this deal."} Your side is highlighted. The deal initiator controls vessel details and deal terms.
         </p>
       </div>
@@ -1316,15 +1321,15 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
       {userRole==="seller" && (
         <div style={{ background:"#eef4fb", border:`1px solid ${C.navy}`, borderRadius:8, padding:"12px 16px", marginBottom:18, display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
           <div style={{ flex:1, minWidth:200 }}>
-            <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:2 }}>📋 You know this boat best</div>
-            <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.5 }}>Review the boat details and fix anything that's wrong or missing — the closing documents depend on it being accurate.</div>
+            <div style={{ fontSize:13, fontWeight:800, fontFamily:FONT.sans, color:C.navy, marginBottom:2 }}>{emo("📋")} You know this boat best</div>
+            <div style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.5 }}>Review the boat details and fix anything that's wrong or missing — the closing documents depend on it being accurate.</div>
           </div>
           <button onClick={onBack} style={{ ...S.btn, fontSize:12.5, padding:"9px 16px", whiteSpace:"nowrap" }}>Review boat details →</button>
         </div>
       )}
       {/* ── INVITE OTHER PARTY (only until the other side joins) ── */}
       {isDocumented && (
-        <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:9, padding:"13px 15px", marginBottom:16, fontFamily:"sans-serif" }}>
+        <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:9, padding:"13px 15px", marginBottom:16, fontFamily:FONT.sans }}>
           <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:4 }}>🇺🇸 This vessel is U.S. Coast Guard documented</div>
           <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7 }}>
             A documented vessel may only be owned by a <b>U.S. citizen</b>, which is why each party&rsquo;s citizenship is asked below.
@@ -1347,8 +1352,8 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
         return (
           <button onClick={onNext}
             style={{ display:"flex", alignItems:"center", gap:12, width:"100%", textAlign:"left", background:"#f0fdf4",
-              border:"2px solid #22a06b", borderRadius:9, padding:"13px 15px", marginBottom:16, cursor:"pointer", fontFamily:"sans-serif" }}>
-            <span style={{ fontSize:20, lineHeight:1 }}>📩</span>
+              border:"2px solid #22a06b", borderRadius:9, padding:"13px 15px", marginBottom:16, cursor:"pointer", fontFamily:FONT.sans }}>
+            <span style={{ fontSize:20, lineHeight:1 }}>{emo("📩")}</span>
             <span style={{ flex:1 }}>
               <span style={{ display:"block", fontSize:13.5, fontWeight:800, color:"#166534" }}>
                 {latest.status === "agreed" ? "Price agreed" : "An offer has arrived"}
@@ -1365,10 +1370,10 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
 
       {!partyBJoined ? (
       <div style={{ background:C.navy, borderRadius:8, padding:"14px 18px", marginTop:16, display:"flex", gap:14, alignItems:"flex-start" }}>
-        <div style={{ fontSize:22, flexShrink:0 }}>📧</div>
+        <div style={{ fontSize:22, flexShrink:0 }}>{emo("📧")}</div>
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:13, fontWeight:700, color:C.brass, fontFamily:"sans-serif", marginBottom:4 }}>Invite the Other Party</div>
-          <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.75)", lineHeight:1.7, marginBottom:12 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:C.brass, fontFamily:FONT.sans, marginBottom:4 }}>Invite the Other Party</div>
+          <div style={{ fontSize:12, fontFamily:FONT.sans, color:"rgba(255,255,255,0.75)", lineHeight:1.7, marginBottom:12 }}>
             The other party needs a free BoatClosers account to join this deal, respond to offers, and sign documents. When they join, your deal is pre-linked and they fill in their own side.
           </div>
 
@@ -1378,18 +1383,18 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
               viewing instead of paperwork. BoatClosers never sets or confirms a time. */}
           {inviteMode === null && !inviteSent && !inviteLink && (
             <div style={{ background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:6, padding:"11px 13px", marginBottom:14 }}>
-              <div style={{ fontSize:12, fontFamily:"sans-serif", color:"#fff", fontWeight:600, marginBottom:7 }}>
+              <div style={{ fontSize:12, fontFamily:FONT.sans, color:"#fff", fontWeight:600, marginBottom:7 }}>
                 {userRole === "seller" ? "Has the buyer seen the boat in person?" : "Have you seen this boat in person?"}
               </div>
               <div style={{ display:"flex", gap:8, marginBottom:7 }}>
-                <button onClick={()=>setData(d=>({...d, viewingRequested:false}))} style={{ flex:1, background: data?.viewingRequested===false ? C.brass : "rgba(255,255,255,0.12)", color: data?.viewingRequested===false ? C.navy : "#fff", border:"1px solid rgba(255,255,255,0.25)", borderRadius:5, padding:"7px 10px", fontSize:11.5, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer" }}>
+                <button onClick={()=>setData(d=>({...d, viewingRequested:false}))} style={{ flex:1, background: data?.viewingRequested===false ? C.brass : "rgba(255,255,255,0.12)", color: data?.viewingRequested===false ? C.navy : "#fff", border:"1px solid rgba(255,255,255,0.25)", borderRadius:5, padding:"7px 10px", fontSize:11.5, fontFamily:FONT.sans, fontWeight:700, cursor:"pointer" }}>
                   Yes
                 </button>
-                <button onClick={()=>setData(d=>({...d, viewingRequested:true}))} style={{ flex:1, background: data?.viewingRequested===true ? C.brass : "rgba(255,255,255,0.12)", color: data?.viewingRequested===true ? C.navy : "#fff", border:"1px solid rgba(255,255,255,0.25)", borderRadius:5, padding:"7px 10px", fontSize:11.5, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer" }}>
+                <button onClick={()=>setData(d=>({...d, viewingRequested:true}))} style={{ flex:1, background: data?.viewingRequested===true ? C.brass : "rgba(255,255,255,0.12)", color: data?.viewingRequested===true ? C.navy : "#fff", border:"1px solid rgba(255,255,255,0.25)", borderRadius:5, padding:"7px 10px", fontSize:11.5, fontFamily:FONT.sans, fontWeight:700, cursor:"pointer" }}>
                   Not yet
                 </button>
               </div>
-              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"rgba(255,255,255,0.7)", lineHeight:1.6 }}>
+              <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:"rgba(255,255,255,0.7)", lineHeight:1.6 }}>
                 {data?.viewingRequested === true
                   ? <>Your invite will ask to <b style={{color:"#fff"}}>arrange a viewing</b> instead of opening with paperwork. You two agree the time between yourselves &mdash; BoatClosers doesn&rsquo;t set or confirm appointments.</>
                   : data?.viewingRequested === false
@@ -1402,14 +1407,14 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
           {/* Step 1: the one question that decides everything */}
           {inviteMode === null && !inviteSent && !inviteLink && (
             <div>
-              <div style={{ fontSize:12, fontFamily:"sans-serif", color:"#fff", fontWeight:600, marginBottom:8 }}>
+              <div style={{ fontSize:12, fontFamily:FONT.sans, color:"#fff", fontWeight:600, marginBottom:8 }}>
                 How do you want to send the invite?
               </div>
               <div style={{ display:"flex", gap:10 }}>
-                <button onClick={()=>{ setInviteMode("email"); setInviteError(""); }} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer" }}>
+                <button onClick={()=>{ setInviteMode("email"); setInviteError(""); }} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:FONT.sans, fontWeight:700, cursor:"pointer" }}>
                   Email or text them
                 </button>
-                <button onClick={()=>{ setInviteMode("link"); setInviteError(""); }} style={{ background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer" }}>
+                <button onClick={()=>{ setInviteMode("link"); setInviteError(""); }} style={{ background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:FONT.sans, fontWeight:700, cursor:"pointer" }}>
                   No — give me a link to share
                 </button>
               </div>
@@ -1419,7 +1424,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
           {/* EMAIL PATH: enter email right here, we auto-send the join link. */}
           {inviteMode === "email" && !inviteSent && (
             <div>
-              <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.8)", marginBottom:8 }}>
+              <div style={{ fontSize:12, fontFamily:FONT.sans, color:"rgba(255,255,255,0.8)", marginBottom:8 }}>
                 We'll email the {otherSide} the join link. Only have their phone number? Go back, create a shareable link, and text it from your own phone.
               </div>
               <input
@@ -1430,10 +1435,10 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
                 placeholder={`${otherSide==="seller"?"Seller":"Buyer"}'s email address`}
               />
               <div style={{ display:"flex", gap:10 }}>
-                <button onClick={()=>runInvite(false)} disabled={inviteLoading} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:inviteLoading?"default":"pointer", opacity:inviteLoading?0.6:1 }}>
+                <button onClick={()=>runInvite(false)} disabled={inviteLoading} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:FONT.sans, fontWeight:700, cursor:inviteLoading?"default":"pointer", opacity:inviteLoading?0.6:1 }}>
                   {inviteLoading ? "Sending..." : `Email the ${otherSide} their invite`}
                 </button>
-                <button onClick={()=>{ setInviteMode(null); setInviteError(""); }} style={{ background:"transparent", color:"rgba(255,255,255,0.6)", border:"none", fontSize:11, fontFamily:"sans-serif", cursor:"pointer" }}>
+                <button onClick={()=>{ setInviteMode(null); setInviteError(""); }} style={{ background:"transparent", color:"rgba(255,255,255,0.6)", border:"none", fontSize:11, fontFamily:FONT.sans, cursor:"pointer" }}>
                   Back
                 </button>
               </div>
@@ -1442,7 +1447,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
 
           {/* EMAIL PATH success */}
           {inviteSent && (
-            <div style={{ background:"rgba(34,197,94,0.15)", border:"1px solid rgba(34,197,94,0.4)", borderRadius:6, padding:"10px 12px", fontSize:12, fontFamily:"sans-serif", color:"#bbf7d0" }}>
+            <div style={{ background:"rgba(34,197,94,0.15)", border:"1px solid rgba(34,197,94,0.4)", borderRadius:6, padding:"10px 12px", fontSize:12, fontFamily:FONT.sans, color:"#bbf7d0" }}>
               ✓ Invite {[inviteResult?.emailSent && `emailed to ${data?.[otherSide]?.email}`, inviteResult?.textSent && `texted to ${data?.[otherSide]?.phone}`].filter(Boolean).join(" and ") || "created"}. They'll get a link to create their account and join this deal.
             </div>
           )}
@@ -1450,24 +1455,24 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
           {/* LINK PATH: show a copyable link they send themselves */}
           {inviteMode === "link" && (
             <div>
-              <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.8)", marginBottom:8 }}>
+              <div style={{ fontSize:12, fontFamily:FONT.sans, color:"rgba(255,255,255,0.8)", marginBottom:8 }}>
                 We'll create a link you can paste anywhere — Facebook Messenger, Craigslist reply, or a text. Anyone who opens it can create their account and join this deal as the {otherSide}.
               </div>
               {!inviteLink ? (
                 <div style={{ display:"flex", gap:10 }}>
-                  <button onClick={()=>runInvite(true)} disabled={inviteLoading} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, cursor:inviteLoading?"default":"pointer", opacity:inviteLoading?0.6:1 }}>
+                  <button onClick={()=>runInvite(true)} disabled={inviteLoading} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:FONT.sans, fontWeight:700, cursor:inviteLoading?"default":"pointer", opacity:inviteLoading?0.6:1 }}>
                     {inviteLoading ? "Creating..." : "Create shareable link"}
                   </button>
-                  <button onClick={()=>{ setInviteMode(null); setInviteError(""); }} style={{ background:"transparent", color:"rgba(255,255,255,0.6)", border:"none", fontSize:11, fontFamily:"sans-serif", cursor:"pointer" }}>
+                  <button onClick={()=>{ setInviteMode(null); setInviteError(""); }} style={{ background:"transparent", color:"rgba(255,255,255,0.6)", border:"none", fontSize:11, fontFamily:FONT.sans, cursor:"pointer" }}>
                     Back
                   </button>
                 </div>
               ) : (
                 <div style={{ background:"rgba(255,255,255,0.08)", borderRadius:6, padding:"9px 12px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
-                  <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.7)", wordBreak:"break-all", flex:1 }}>
+                  <div style={{ fontSize:11, fontFamily:FONT.sans, color:"rgba(255,255,255,0.7)", wordBreak:"break-all", flex:1 }}>
                     {inviteLink}
                   </div>
-                  <button onClick={copyInviteLink} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"5px 12px", fontSize:11, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", flexShrink:0 }}>
+                  <button onClick={copyInviteLink} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"5px 12px", fontSize:11, fontFamily:FONT.sans, fontWeight:700, cursor:"pointer", flexShrink:0 }}>
                     {inviteCopied ? "Copied!" : "Copy Link"}
                   </button>
                 </div>
@@ -1476,21 +1481,21 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
           )}
 
           {inviteError && (
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:"#fca5a5", marginTop:8 }}>{inviteError}</div>
+            <div style={{ fontSize:11, fontFamily:FONT.sans, color:"#fca5a5", marginTop:8 }}>{inviteError}</div>
           )}
         </div>
       </div>
       ) : (
-        <div style={{ background:"#eef7f0", border:"1px solid #22a06b", borderRadius:8, padding:"13px 16px", marginTop:16, fontFamily:"sans-serif" }}>
+        <div style={{ background:"#eef7f0", border:"1px solid #22a06b", borderRadius:8, padding:"13px 16px", marginTop:16, fontFamily:FONT.sans }}>
           <div style={{ fontSize:12.5, color:"#176844", fontWeight:700 }}>✓ Both parties have joined this deal</div>
           <div style={{ fontSize:12, color:"#176844", marginTop:4, lineHeight:1.6 }}>
             Before you go on, check two things: <b>your own details below</b>, and <b>the boat</b>. Both are copied straight onto the Purchase Agreement, the bill of sale and the title paperwork &mdash; a wrong hull number or year is a wasted trip to the tag office.
           </div>
           {(vessel?.year || vessel?.make || vessel?.model) && (
             <div style={{ background:"#fff", border:"1px solid #cfe6d8", borderRadius:6, padding:"10px 12px", marginTop:10 }}>
-              <div style={{ fontSize:13.5, color:C.navy, fontFamily:"'Georgia',serif" }}>
+              <div style={{ fontSize:13.5, color:C.navy, fontFamily:FONT.serif }}>
                 {[vessel.year, vessel.make, vessel.model].filter(Boolean).join(" ")}
-                {vessel.name ? <span style={{ fontSize:11.5, color:C.slate, fontStyle:"italic", fontFamily:"sans-serif" }}> &ldquo;{vessel.name}&rdquo;</span> : null}
+                {vessel.name ? <span style={{ fontSize:11.5, color:C.slate, fontStyle:"italic", fontFamily:FONT.sans }}> &ldquo;{vessel.name}&rdquo;</span> : null}
               </div>
               <div style={{ fontSize:11.5, color:C.slate, marginTop:4, lineHeight:1.7 }}>
                 {[
@@ -1503,7 +1508,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
                 ].filter(Boolean).join(" · ")}
               </div>
               <button onClick={()=>onBack && onBack()}
-                style={{ marginTop:9, background:"transparent", border:`1px solid ${C.mist}`, color:C.navy, borderRadius:14, padding:"5px 13px", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>
+                style={{ marginTop:9, background:"transparent", border:`1px solid ${C.mist}`, color:C.navy, borderRadius:14, padding:"5px 13px", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:FONT.sans }}>
                 Edit vessel details &rarr;
               </button>
             </div>
@@ -1525,10 +1530,10 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
           return (
           <div key={side} style={{ ...S.card, border: side===userRole ? `2px solid ${C.brass}` : `0.5px solid ${C.mist}`, position:"relative", ...(!isMine && !partyBJoined ? { background:C.sandDark, opacity:0.92 } : {}) }}>
             {side===userRole && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.brass, color:C.navy }}>You</span>}
-            {locked && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.mist, color:C.slate }}>🔒 Locked</span>}
+            {locked && <span style={{ ...S.pill, position:"absolute", top:12, right:12, background:C.mist, color:C.slate }}>{emo("🔒")} Locked</span>}
             <h3 style={S.h3}>{side==="buyer" ? "Buyer" : "Seller"}</h3>
             {!isMine && !partyBJoined && (
-              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:10 }}>
+              <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
                 The {side} fills this in when they join &mdash; nothing needed from you here. Use the invite above to bring them in.
               </div>
             )}
@@ -1538,11 +1543,11 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
               </Field>
               <Field label="Email *">
                 <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} type="email" value={data[side].email} readOnly={locked} onChange={e=>!locked&&set(side,"email",e.target.value)} />
-                {!locked && data[side].email && !isValidEmail(data[side].email) && <div style={{ fontSize:11, color:"#b91c1c", fontFamily:"sans-serif", marginTop:3 }}>Enter a valid email address.</div>}
+                {!locked && data[side].email && !isValidEmail(data[side].email) && <div style={{ fontSize:11, color:"#b91c1c", fontFamily:FONT.sans, marginTop:3 }}>Enter a valid email address.</div>}
               </Field>
               <Field label="Phone">
                 <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].phone} readOnly={locked} onChange={e=>!locked&&set(side,"phone",e.target.value)} />
-                {!locked && !isValidPhone(data[side].phone) && <div style={{ fontSize:11, color:"#b91c1c", fontFamily:"sans-serif", marginTop:3 }}>Enter a valid phone number.</div>}
+                {!locked && !isValidPhone(data[side].phone) && <div style={{ fontSize:11, color:"#b91c1c", fontFamily:FONT.sans, marginTop:3 }}>Enter a valid phone number.</div>}
               </Field>
               <Field label="Address">
                 <input style={locked?{...S.input,background:C.sandDark,color:C.slate,cursor:"not-allowed"}:S.input} value={data[side].address} readOnly={locked} onChange={e=>!locked&&set(side,"address",e.target.value)} />
@@ -1563,8 +1568,8 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
               </Field>}
             </Grid2>
             {locked && (
-              <div style={{ marginTop:12, padding:"10px 12px", background:C.sandDark, borderRadius:5, fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
-                🔒 This is the other party&rsquo;s information. {partyBJoined
+              <div style={{ marginTop:12, padding:"10px 12px", background:C.sandDark, borderRadius:5, fontSize:12, fontFamily:FONT.sans, color:C.slate }}>
+                {emo("🔒")} This is the other party&rsquo;s information. {partyBJoined
                   ? "They control their own contact details and you can't edit them."
                   : "It fills in when they join \u2014 they enter their own details, so nothing here is yours to complete."}
               </div>
@@ -1578,8 +1583,8 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
         <button style={S.btnOutline} onClick={onBack}>← Back</button>
         <div style={{ textAlign:"right" }}>
           {!canContinue && (
-            <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.red, marginBottom:6 }}>
-              ⚠️ Please add {[
+            <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.red, marginBottom:6 }}>
+              {emo("⚠")} Please add {[
                 !(userRole==="seller"?data.seller.name:data.buyer.name) && "your full legal name",
                 (() => { const e = userRole==="seller"?data.seller.email:data.buyer.email; return !e ? "your email" : !isValidEmail(e) ? "a valid email address" : false; })(),
               ].filter(Boolean).join(" and ")} to continue.
@@ -2168,18 +2173,18 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     const iSigned = myRole==="buyer" ? buyerSigned : sellerSigned;
     return (
         <div style={{ background: bothSigned ? "linear-gradient(135deg,#fff7e6,#f0fdf4)" : "#f0fdf4", border:`2px solid ${bothSigned ? C.brass : C.green}`, borderRadius:10, padding:"18px 20px", marginBottom:16, boxShadow: bothSigned ? "0 6px 22px rgba(184,134,58,0.20)" : "none" }}>
-          <div style={{ fontSize:17, fontWeight:800, fontFamily:"sans-serif", color:"#166534", marginBottom:8 }}>
-            {bothSigned ? "🎉 Both parties have signed!" : `🤝 Price Agreed — ${fmt(agreedOffer.amount)}`}
+          <div style={{ fontSize:17, fontWeight:800, fontFamily:FONT.sans, color:"#166534", marginBottom:8 }}>
+            {bothSigned ? emo("🎉 Both parties have signed!") : emo(`🤝 Price Agreed — ${fmt(agreedOffer.amount)}`)}
           </div>
-          <div style={{ display:"flex", gap:16, fontSize:12.5, fontFamily:"sans-serif", color:C.slate, marginBottom:12, flexWrap:"wrap" }}>
-            <span>{buyerSigned ? "✅" : "⬜"} Buyer signed</span>
-            <span>{sellerSigned ? "✅" : "⬜"} Seller signed</span>
+          <div style={{ display:"flex", gap:16, fontSize:12.5, fontFamily:FONT.sans, color:C.slate, marginBottom:12, flexWrap:"wrap" }}>
+            <span>{buyerSigned ? emo("✅") : emo("⬜")} Buyer signed</span>
+            <span>{sellerSigned ? emo("✅") : emo("⬜")} Seller signed</span>
             <span style={{ fontWeight:700, color:C.navy }}>· {fmt(agreedOffer.amount)}</span>
           </div>
 
           {!bothSigned ? (
             <>
-              <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:12 }}>
+              <div style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, marginBottom:12 }}>
                 Both parties sign the Purchase Agreement for free — each signs only their own line. {amInitiator ? "Once both have signed, you pay the one-time $249 to make it binding." : "Once both have signed, the party who started the deal pays the $249 — nothing for you to pay."}
               </div>
               <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
@@ -2196,7 +2201,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                   <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }}
                     onClick={()=>{ setConflictTopic("dates"); setPreSignAsk(true); setConflictOpen(true); }}
                     title="Ask the other party for a change before you sign">
-                    ✋ I need a change before I sign
+                    {emo("✋")} I need a change before I sign
                   </button>
                 )}
                 {!buyerSigned && !sellerSigned && myRole === "seller" && (
@@ -2213,15 +2218,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             </>
           ) : amInitiator ? (
             <>
-              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
+              <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.navy, lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
                 The Purchase Agreement is fully signed. Pay the one-time <b>{feeLabel}</b> to make the deal binding and unlock Due Diligence, Documents, and Closing for both parties.
                 {expressCredit ? <> Your <b>$29.99 BoatClosers Express</b> purchase is credited.</> : null}
               </div>
               <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
-                <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("initiator",249)}>💳 Pay {feeLabel} &amp; unlock the deal →</button>
+                <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("initiator",249)}>{emo("💳")} Pay {feeLabel} &amp; unlock the deal →</button>
                 <button style={{ ...S.btnOutline, fontSize:13, padding:"13px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
               </div>
-              <div style={{ background:"#eef4fb", borderLeft:"3px solid #08152e", borderRadius:6, padding:"10px 13px", marginTop:14, fontSize:12, fontFamily:"sans-serif", color:"#334155", lineHeight:1.6 }}>
+              <div style={{ background:"#eef4fb", borderLeft:"3px solid #08152e", borderRadius:6, padding:"10px 13px", marginTop:14, fontSize:12, fontFamily:FONT.sans, color:"#334155", lineHeight:1.6 }}>
                 <strong style={{ color:"#08152e" }}>If this deal falls through: </strong>
                 your $249 carries over. You have 60 days to start another deal &mdash; a different
                 buyer, or a different boat &mdash; at no additional fee, with this boat&rsquo;s details
@@ -2230,7 +2235,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             </>
           ) : (
             <>
-              <div style={{ fontSize:13, fontFamily:"sans-serif", color:"#166534", lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
+              <div style={{ fontSize:13, fontFamily:FONT.sans, color:"#166534", lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
                 ✓ All signed! Waiting for the party who started this deal to pay the one-time $249 and make it binding — <b>nothing for you to pay</b>. You'll be unlocked automatically the moment they do.
               </div>
               <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={()=>{ setPaModal(agreedOffer); setPaStage("sign"); }}>View signed agreement</button>
@@ -2279,14 +2284,14 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       <div style={{ minHeight:"100vh", background:"rgba(8,21,46,0.85)", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"2rem 1rem" }}>
         <div style={{ background:C.white, borderRadius:10, width:"100%", maxWidth:440, border:`2px solid ${C.brass}`, overflow:"hidden" }}>
           <div style={{ background:C.navy, padding:"1.1rem 1.5rem" }}>
-            <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:"sans-serif", textTransform:"uppercase" }}>BoatClosers.com · Secure Checkout</div>
+            <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:FONT.sans, textTransform:"uppercase" }}>BoatClosers.com · Secure Checkout</div>
             <div style={{ fontSize:18, fontWeight:700, color:C.white }}>Complete your payment</div>
           </div>
           <div style={{ padding:"1.4rem 1.5rem" }}>
             <div style={{ background:C.sandDark, borderRadius:8, padding:"14px 16px", marginBottom:18 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, fontFamily:"sans-serif", color:C.text, marginBottom:6 }}><span>{fee < 249 ? "BoatClosers deal fee — your half" : "BoatClosers deal fee (one-time)"}</span><span style={{ fontWeight:700 }}>${fee.toFixed(2)}</span></div>
-              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.5, marginBottom:10 }}>For the {vessel.year} {vessel.make} {vessel.model} — {fmt(amt)}. Unlocks Due Diligence, Documents, and Closing for both parties and makes the signed agreement binding.</div>
-              <div style={{ borderTop:`1px solid ${C.mist}`, paddingTop:8, display:"flex", justifyContent:"space-between", fontSize:15, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}><span>Total due today</span><span>${fee.toFixed(2)}</span></div>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, fontFamily:FONT.sans, color:C.text, marginBottom:6 }}><span>{fee < 249 ? "BoatClosers deal fee — your half" : "BoatClosers deal fee (one-time)"}</span><span style={{ fontWeight:700 }}>${fee.toFixed(2)}</span></div>
+              <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.5, marginBottom:10 }}>For the {vessel.year} {vessel.make} {vessel.model} — {fmt(amt)}. Unlocks Due Diligence, Documents, and Closing for both parties and makes the signed agreement binding.</div>
+              <div style={{ borderTop:`1px solid ${C.mist}`, paddingTop:8, display:"flex", justifyContent:"space-between", fontSize:15, fontFamily:FONT.sans, fontWeight:800, color:C.navy }}><span>Total due today</span><span>${fee.toFixed(2)}</span></div>
             </div>
             <label style={S.label}>Name on card</label>
             <input style={S.input} value={card.name} onChange={e=>setPayCard(c=>({ ...c, name:capFirst(e.target.value) }))} placeholder="Full name" />
@@ -2297,7 +2302,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               <div style={{ flex:1 }}><label style={S.label}>CVC</label><input style={S.input} value={card.cvc} onChange={e=>setPayCard(c=>({ ...c, cvc:e.target.value }))} placeholder="123" inputMode="numeric" /></div>
               <div style={{ flex:1 }}><label style={S.label}>ZIP</label><input style={S.input} value={card.zip} onChange={e=>setPayCard(c=>({ ...c, zip:e.target.value }))} placeholder="33401" inputMode="numeric" /></div>
             </div>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, margin:"12px 0", display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>🔒 Payments are encrypted. <span style={{ color:C.brass, fontWeight:700 }}>Test mode — no real charge yet.</span></div>
+            <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, margin:"12px 0", display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>{emo("🔒")} Payments are encrypted. <span style={{ color:C.brass, fontWeight:700 }}>Test mode — no real charge yet.</span></div>
             <button onClick={doPay} disabled={!validCard||payProcessing} style={{ ...S.btnBrass, width:"100%", padding:"13px", fontSize:15, fontWeight:700, opacity:(!validCard||payProcessing)?0.5:1 }}>
               {payProcessing ? "Processing…" : `Pay $${fee.toFixed(2)}`}
             </button>
@@ -2373,17 +2378,17 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       <div style={{ minHeight:"100vh", background:"rgba(8,21,46,0.85)", display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"2rem 1rem" }}>
         <div style={{ background:C.white, borderRadius:10, width:"100%", maxWidth:680, border:`2px solid ${C.brass}` }}>
           <div style={{ background:C.navy, padding:"1rem 1.5rem", borderRadius:"8px 8px 0 0" }}>
-            <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:"sans-serif", textTransform:"uppercase" }}>BoatClosers.com</div>
+            <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:FONT.sans, textTransform:"uppercase" }}>BoatClosers.com</div>
             <div style={{ fontSize:16, fontWeight:700, color:C.white, letterSpacing:0.5 }}>PURCHASE &amp; SALE AGREEMENT</div>
-            <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", marginTop:2 }}>Sign your own line free · the initiator pays $249 to make it binding · {today()}</div>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:FONT.sans, marginTop:2 }}>Sign your own line free · the initiator pays $249 to make it binding · {today()}</div>
           </div>
 
           <div style={{ padding:"1.5rem", overflowY:"auto", maxHeight:"65vh" }}>
             <div style={{ background: bothSigned ? C.greenLight : "#fff8e6", border:`1.5px solid ${bothSigned ? C.green : C.brass}`, borderRadius:6, padding:"10px 14px", marginBottom:16, textAlign:"center" }}>
-              <div style={{ fontSize:12, fontWeight:800, color: bothSigned ? C.green : "#7a5500", fontFamily:"sans-serif", letterSpacing:1 }}>
+              <div style={{ fontSize:12, fontWeight:800, color: bothSigned ? C.green : "#7a5500", fontFamily:FONT.sans, letterSpacing:1 }}>
                 {bothSigned ? "✓ BOTH PARTIES SIGNED" : "SIGN YOUR OWN LINE TO PROCEED"}
               </div>
-              <div style={{ fontSize:11, color: bothSigned ? "#0d7a4f" : "#7a5500", fontFamily:"sans-serif", marginTop:2 }}>
+              <div style={{ fontSize:11, color: bothSigned ? "#0d7a4f" : "#7a5500", fontFamily:FONT.sans, marginTop:2 }}>
                 {bothSigned ? "The initiator now pays the one-time $249 fee to make this agreement binding." : "You can only sign your own line. The agreement becomes binding once both sign and the fee is paid."}
               </div>
             </div>
@@ -2399,7 +2404,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
             {!bothSigned && !mySigned && (
               <button onClick={()=>sigRef.current?.scrollIntoView({ behavior:"smooth", block:"center" })} style={{ ...S.btnBrass, width:"100%", padding:"11px", fontSize:14, marginBottom:14 }}>
-                ✍️ Read the agreement, then scroll to sign ↓
+                {emo("✍")} Read the agreement, then scroll to sign ↓
               </button>
             )}
 
@@ -2409,53 +2414,53 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
             <hr style={S.divider}/>
 
-            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:5, padding:"10px 14px", fontSize:11, fontFamily:"sans-serif", color:"#7a5500", marginBottom:16 }}>
+            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:5, padding:"10px 14px", fontSize:11, fontFamily:FONT.sans, color:"#7a5500", marginBottom:16 }}>
               By signing, both parties agree to the terms above and acknowledge that BoatClosers provides document facilitation only — not legal advice, brokerage, or escrow services.
             </div>
 
             <div ref={sigRef} style={{ scrollMarginTop:20 }}>
-              <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:C.navy, margin:"4px 0 10px", textAlign:"center", letterSpacing:0.5 }}>✍️ SIGN HERE — {bothSigned ? "both parties have signed" : "type your full legal name on your line"}</div>
+              <div style={{ fontSize:13, fontWeight:800, fontFamily:FONT.sans, color:C.navy, margin:"4px 0 10px", textAlign:"center", letterSpacing:0.5 }}>{emo("✍")} SIGN HERE — {bothSigned ? "both parties have signed" : "type your full legal name on your line"}</div>
             <div className="bc-grid2" style={{ gap:20 }}>
               <div style={{ background:C.sandDark, borderRadius:6, padding:"14px", border: buyerSigned ? `1.5px solid ${C.green}` : `1px solid ${C.mist}` }}>
-                <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>Buyer: {parties.buyer.name||"Buyer"}{iAmBuyer ? " (you)" : ""}</div>
+                <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:10 }}>Buyer: {parties.buyer.name||"Buyer"}{iAmBuyer ? " (you)" : ""}</div>
                 {buyerSigned ? (
-                  <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Signed — {live.paBuyerSig}{live.paBuyerWhen ? <span style={{ display:"block", fontSize:10.5, fontWeight:400, color:C.slate, marginTop:2 }}>{live.paBuyerWhen}</span> : null}</div>
+                  <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.green, fontWeight:700 }}>✓ Signed — {live.paBuyerSig}{live.paBuyerWhen ? <span style={{ display:"block", fontSize:10.5, fontWeight:400, color:C.slate, marginTop:2 }}>{live.paBuyerWhen}</span> : null}</div>
                 ) : iAmBuyer ? (
                   <>
-                    <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
+                    <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:FONT.sans, color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
                       <input type="checkbox" checked={paBuyerDisc} onChange={e=>setPaBuyerDisc(e.target.checked)} style={{ marginTop:1, accentColor:C.navy, flexShrink:0 }} />
                       I have read and agree to all terms above
                     </label>
                     <label style={S.label}>Type your full name to sign</label>
                     <input style={S.input} placeholder="Your full legal name" value={paBuyerName} onChange={e=>setPaBuyerName(e.target.value)} />
                     {parties.buyer?.name && paBuyerName.trim() && !sigMatchesName(paBuyerName, parties.buyer.name) && (
-                      <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the buyer name on this deal: <b>{parties.buyer.name}</b>. To change it, update the buyer name in the Parties step.</div>
+                      <div style={{ fontSize:11.5, color:C.red, fontFamily:FONT.sans, fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the buyer name on this deal: <b>{parties.buyer.name}</b>. To change it, update the buyer name in the Parties step.</div>
                     )}
                     <button style={{ ...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"9px", opacity:(paBuyerName.trim()&&paBuyerDisc&&sigMatchesName(paBuyerName, parties.buyer?.name))?1:0.4 }} disabled={!(paBuyerName.trim()&&paBuyerDisc&&sigMatchesName(paBuyerName, parties.buyer?.name))} onClick={()=>signMyLine(paModal.id)}>Sign as buyer</button>
                   </>
                 ) : (
-                  <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, fontStyle:"italic" }}>⏳ Awaiting the buyer's signature</div>
+                  <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, fontStyle:"italic" }}>⏳ Awaiting the buyer's signature</div>
                 )}
               </div>
               <div style={{ background:C.sandDark, borderRadius:6, padding:"14px", border: sellerSigned ? `1.5px solid ${C.green}` : `1px solid ${C.mist}` }}>
-                <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>Seller: {parties.seller.name||"Seller"}{!iAmBuyer ? " (you)" : ""}</div>
+                <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:10 }}>Seller: {parties.seller.name||"Seller"}{!iAmBuyer ? " (you)" : ""}</div>
                 {sellerSigned ? (
-                  <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Signed — {live.paSellerSig}{live.paSellerWhen ? <span style={{ display:"block", fontSize:10.5, fontWeight:400, color:C.slate, marginTop:2 }}>{live.paSellerWhen}</span> : null}</div>
+                  <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.green, fontWeight:700 }}>✓ Signed — {live.paSellerSig}{live.paSellerWhen ? <span style={{ display:"block", fontSize:10.5, fontWeight:400, color:C.slate, marginTop:2 }}>{live.paSellerWhen}</span> : null}</div>
                 ) : !iAmBuyer ? (
                   <>
-                    <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
+                    <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:FONT.sans, color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
                       <input type="checkbox" checked={paSellerDisc} onChange={e=>setPaSellerDisc(e.target.checked)} style={{ marginTop:1, accentColor:C.navy, flexShrink:0 }} />
                       I have read and agree to all terms above
                     </label>
                     <label style={S.label}>Type your full name to sign</label>
                     <input style={S.input} placeholder="Your full legal name" value={paSellerName} onChange={e=>setPaSellerName(e.target.value)} />
                     {parties.seller?.name && paSellerName.trim() && !sigMatchesName(paSellerName, parties.seller.name) && (
-                      <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the seller name on this deal: <b>{parties.seller.name}</b>. To change it, update the seller name in the Parties step.</div>
+                      <div style={{ fontSize:11.5, color:C.red, fontFamily:FONT.sans, fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the seller name on this deal: <b>{parties.seller.name}</b>. To change it, update the seller name in the Parties step.</div>
                     )}
                     <button style={{ ...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"9px", opacity:(paSellerName.trim()&&paSellerDisc&&sigMatchesName(paSellerName, parties.seller?.name))?1:0.4 }} disabled={!(paSellerName.trim()&&paSellerDisc&&sigMatchesName(paSellerName, parties.seller?.name))} onClick={()=>signMyLine(paModal.id)}>Sign as seller</button>
                   </>
                 ) : (
-                  <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, fontStyle:"italic" }}>⏳ Awaiting the seller's signature</div>
+                  <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, fontStyle:"italic" }}>⏳ Awaiting the seller's signature</div>
                 )}
               </div>
             </div>
@@ -2465,7 +2470,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ padding:"1rem 1.5rem", borderTop:`1px solid ${C.mist}`, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, flexWrap:"wrap" }}>
             <button style={S.btnOutline} onClick={()=>setPaModal(null)}>← Back to deal</button>
             {!bothSigned ? (
-              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, textAlign:"right" }}>
+              <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, textAlign:"right" }}>
                 {mySigned ? `✓ You've signed — waiting for the ${otherRole} to sign.` : "Sign your line above to continue."}
               </div>
             ) : amInitiator ? (
@@ -2473,7 +2478,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 Pay {feeLabel} &amp; make binding →
               </button>
             ) : (
-              <div style={{ fontSize:12, fontFamily:"sans-serif", color:"#166534", textAlign:"right", fontWeight:700 }}>
+              <div style={{ fontSize:12, fontFamily:FONT.sans, color:"#166534", textAlign:"right", fontWeight:700 }}>
                 ✓ Both signed — waiting for the initiator to pay $249 to finalize.
               </div>
             )}
@@ -2491,19 +2496,19 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         {offers.length > 0 ? (
           <>
             <h1 style={S.h1}>Deal Room</h1>
-            <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>
+            <p style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate }}>
               {vessel.year} {vessel.make} {vessel.model} — negotiate here until you both agree, then lock the deal. Offers, counters, and messages all live in this room.
             </p>
           </>
         ) : myRole==="seller" ? (
           <>
             <h1 style={S.h1}>Deal Room</h1>
-            <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>You're all set for {vessel.year} {vessel.make} {vessel.model}. The next step is the buyer's offer — sit tight and we'll bring it to you right here.</p>
+            <p style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate }}>You're all set for {vessel.year} {vessel.make} {vessel.model}. The next step is the buyer's offer — sit tight and we'll bring it to you right here.</p>
           </>
         ) : (
           <>
             <h1 style={S.h1}>{myRole==="seller" ? "Review the Offer" : "Build Your Offer"}</h1>
-            <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>{myRole==="seller"
+            <p style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate }}>{myRole==="seller"
               ? "Set your asking price, then review the buyer\u2019s offer when it arrives. You can accept it, counter on price, or flag a conflict on the terms. Free until you lock the deal."
               : "Set your price and deposit \u2014 plus contingencies and dates if your deal needs them \u2014 and send it. The seller can accept, counter, or flag a conflict. It stays free until a full offer is accepted and you\u2019re ready to sign."}</p>
           </>
@@ -2517,10 +2522,10 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       {/* ── DEAL LOCKED BANNER ── */}
       {acceptedOffer && (
         <div style={{ background:`linear-gradient(135deg, ${C.green} 0%, #0d7a4f 100%)`, borderRadius:10, padding:"16px 20px", marginBottom:16, color:"#fff", display:"flex", alignItems:"center", gap:14 }}>
-          <div style={{ fontSize:28 }}>🔒</div>
+          <div style={{ fontSize:28 }}>{emo("🔒")}</div>
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif" }}>Deal Locked — {fmt(acceptedOffer.amount)}</div>
-            <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.85)", marginTop:2, lineHeight:1.5 }}>
+            <div style={{ fontSize:15, fontWeight:800, fontFamily:FONT.sans }}>Deal Locked — {fmt(acceptedOffer.amount)}</div>
+            <div style={{ fontSize:12, fontFamily:FONT.sans, color:"rgba(255,255,255,0.85)", marginTop:2, lineHeight:1.5 }}>
               The Purchase Agreement is signed and binding. Earnest money: {fmt(acceptedOffer.deposit)} · Due Diligence: {acceptedOffer.ddDays||"10"} days · Closing: {acceptedOffer.closingDate||"TBD"}. All documents are unlocked.
             </div>
           </div>
@@ -2530,12 +2535,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       {/* ── YOUR POSITION + WHAT TO DO (Deal Room) ── */}
       {offers.length > 0 && !acceptedOffer && (
         <div style={{ background: myRole==="seller" ? "#fff9ee" : C.navy, border: myRole==="seller" ? `1px solid ${C.brass}` : "none", borderRadius:10, padding:"14px 18px", marginBottom:16, display:"flex", gap:12, alignItems:"flex-start" }}>
-          <div style={{ fontSize:24, flexShrink:0 }}>{myRole==="seller" ? "⚓" : "🧑‍💼"}</div>
+          <div style={{ fontSize:24, flexShrink:0 }}>{myRole==="seller" ? emo("⚓") : emo("🧑‍💼")}</div>
           <div>
-            <div style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif", color: myRole==="seller" ? "#7a5500" : "#fff" }}>
+            <div style={{ fontSize:15, fontWeight:800, fontFamily:FONT.sans, color: myRole==="seller" ? "#7a5500" : "#fff" }}>
               You are the {myRole==="seller" ? "seller" : "buyer"}{myTurn && !agreedOffer ? " — it's your move" : ""}
             </div>
-            <div style={{ fontSize:13, fontFamily:"sans-serif", color: myRole==="seller" ? C.slate : "rgba(255,255,255,0.85)", lineHeight:1.55, marginTop:2 }}>
+            <div style={{ fontSize:13, fontFamily:FONT.sans, color: myRole==="seller" ? C.slate : "rgba(255,255,255,0.85)", lineHeight:1.55, marginTop:2 }}>
               {agreedOffer ? "Price agreed — finish at the lock step below." :
                myTurn && latestPendingTop ? `The ${latestPendingTop.from==="buyer" ? "buyer" : "seller"} offered ${fmt(latestPendingTop.amount)}. Accept it, counter the price, or reject — all below.` :
                myOfferAwaiting ? `Your offer of ${fmt(latestPendingTop.amount)} is on the table — waiting for the ${myRole==="buyer" ? "seller" : "buyer"} to respond.` :
@@ -2551,14 +2556,14 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       {myRole === "seller" && offers.length > 0 && !frozen && !acceptedOffer && !conflictSent && (
         <button onClick={()=>setConflictOpen(true)}
           style={{ fontSize:13, padding:"9px 16px", fontWeight:700, marginBottom:10, cursor:"pointer",
-            fontFamily:"sans-serif", borderRadius:20, background:C.white, color:C.navy,
+            fontFamily:FONT.sans, borderRadius:20, background:C.white, color:C.navy,
             border:`1px solid ${C.mist}` }}>
           Ask the buyer to change something &rarr;
         </button>
       )}
       {/* The confirmation lived in the block that moved, so it moves with it. */}
       {myRole === "seller" && conflictSent && !frozen && !acceptedOffer && (
-        <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:8, padding:"11px 13px", marginBottom:10, fontFamily:"sans-serif", fontSize:12, color:C.slate, lineHeight:1.6 }}>
+        <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:8, padding:"11px 13px", marginBottom:10, fontFamily:FONT.sans, fontSize:12, color:C.slate, lineHeight:1.6 }}>
           ✓ Sent. The buyer has been emailed and can revise their offer &mdash; nothing here has changed in the meantime.
         </div>
       )}
@@ -2586,7 +2591,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ marginBottom:12 }}>
             <button onClick={()=>setCgGuideOpen(o=>!o)}
               style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, width:"100%", textAlign:"left",
-                background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius: cgGuideOpen ? "8px 8px 0 0" : 8, padding:"12px 14px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius: cgGuideOpen ? "8px 8px 0 0" : 8, padding:"12px 14px", cursor:"pointer", fontFamily:FONT.sans }}>
               <span>
                 <span style={{ display:"block", fontSize:12.5, fontWeight:800, color:C.navy }}>
                   {none ? "This offer has no contingencies" : "What the buyer\u2019s contingencies mean for you"}
@@ -2600,7 +2605,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             {cgGuideOpen && (
 
             <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderTop:"none", borderRadius:"0 0 8px 8px", padding:"13px 15px" }}>
-              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7, fontFamily:"sans-serif" }}>
+              <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7, fontFamily:FONT.sans }}>
                 {none
                   ? <>Nothing here lets the buyer walk away and keep their deposit. That is a stronger offer than one with conditions attached, and worth weighing against the price.</>
                   : <>A contingency is a condition the buyer can withdraw under, with their deposit returned. The more of them, the more ways the deal can end. Here is what they have attached:</>}
@@ -2608,7 +2613,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               {!none && (
                 <div style={{ marginTop:10 }}>
                   {chosen.map(([k, name, what]) => (
-                    <div key={k} style={{ borderTop:`1px solid ${C.mist}`, paddingTop:8, marginTop:8, fontFamily:"sans-serif" }}>
+                    <div key={k} style={{ borderTop:`1px solid ${C.mist}`, paddingTop:8, marginTop:8, fontFamily:FONT.sans }}>
                       <div style={{ fontSize:12, fontWeight:800, color:C.navy }}>{name}</div>
                       <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65, marginTop:2 }}>{what}</div>
                     </div>
@@ -2632,7 +2637,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             ? { ...S.btnOutline, width:"100%", fontSize:13, padding:"10px 0", fontWeight:700, marginBottom:16 }
             : { ...S.btnBrass, width:"100%", fontSize:16.5, fontWeight:800, padding:"15px 12px",
                 letterSpacing:0.2, marginBottom:16, boxShadow:"0 3px 10px rgba(184,134,58,0.35)" }}>
-          {showBuilder ? "✕ Close" : "✏️ Change the terms →"}
+          {showBuilder ? "✕ Close" : emo("✏️ Change the terms →")}
         </button>
       )}
 
@@ -2640,13 +2645,13 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       {acceptedOffer ? (
         <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.green}` }}>
           <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-            <div style={{ width:32, height:32, borderRadius:6, background:C.green, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>🔒</div>
+            <div style={{ width:32, height:32, borderRadius:6, background:C.green, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>{emo("🔒")}</div>
             <div>
-              <div style={{ fontSize:16, fontWeight:800, fontFamily:"sans-serif", color:C.navy }}>Terms Locked</div>
-              <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>The Purchase Agreement is signed and binding.</div>
+              <div style={{ fontSize:16, fontWeight:800, fontFamily:FONT.sans, color:C.navy }}>Terms Locked</div>
+              <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate }}>The Purchase Agreement is signed and binding.</div>
             </div>
           </div>
-          <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, background:C.sandDark, borderRadius:6, padding:"12px 14px" }}>
+          <div style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, background:C.sandDark, borderRadius:6, padding:"12px 14px" }}>
             The agreed terms are frozen for both parties and can't be edited here. The only change allowed now is the <b>buyer's vessel decision during due diligence</b> — accept as-is, reject, or propose a new price (which is recorded as an <b>addendum</b> to the signed Purchase Agreement, not a change to it).
           </div>
           {Number(acceptedOffer.deposit) > 0 && (() => {
@@ -2661,7 +2666,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             const bg = verified ? C.greenLight : disputed ? C.redLight : "#fff8e6";
             const bd = verified ? C.green : disputed ? C.red : C.brass;
             const head = verified ? "✓ Deposit verified — this deal is secured"
-              : disputed ? "⚠️ The seller could not verify the deposit — deal on hold"
+              : disputed ? emo("⚠️ The seller could not verify the deposit — deal on hold")
               : hasProof ? "⏸️ Waiting on the seller to confirm the deposit"
               : "⏳ Waiting on the earnest-money deposit";
             const body = verified
@@ -2678,7 +2683,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             // Due Diligence" but offers no way to get there — a dead end after signing.
             const showDepositCta = !verified;
             return (
-              <div style={{ background:bg, border:`1px solid ${bd}`, borderRadius:6, padding:"11px 13px", marginTop:10, fontFamily:"sans-serif" }}>
+              <div style={{ background:bg, border:`1px solid ${bd}`, borderRadius:6, padding:"11px 13px", marginTop:10, fontFamily:FONT.sans }}>
                 <div style={{ fontSize:12.5, fontWeight:800, color: verified ? C.green : disputed ? C.red : "#7a5500", marginBottom:3 }}>{head}</div>
                 <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>{body}</div>
                 {showDepositCta && onNext && (
@@ -2698,13 +2703,13 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         </div>
       ) : (myRole === "seller" && offers.length === 0 && !showBuilder) ? (
         <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.navy}`, textAlign:"center" }}>
-          <div style={{ fontSize:34, marginBottom:6 }}>📭</div>
-          <div style={{ fontSize:17, fontWeight:800, fontFamily:"sans-serif", color:C.navy, marginBottom:6 }}>Waiting for the buyer's offer</div>
-          <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, maxWidth:460, margin:"0 auto 16px" }}>
+          <div style={{ fontSize:34, marginBottom:6 }}>{emo("📭")}</div>
+          <div style={{ fontSize:17, fontWeight:800, fontFamily:FONT.sans, color:C.navy, marginBottom:6 }}>Waiting for the buyer's offer</div>
+          <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate, lineHeight:1.7, maxWidth:460, margin:"0 auto 16px" }}>
             You're all set — there's nothing you need to build. The buyer puts together the offer (price, deposit, and terms) and sends it to you. The moment it arrives you'll be able to <b>accept it, counter the price, or flag a conflict</b> right here, and we'll email you so you don't have to keep checking.
           </div>
           <div style={{ background:C.sandDark, borderRadius:8, padding:"14px 16px", textAlign:"left", maxWidth:460, margin:"0 auto" }}>
-            <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.4, textTransform:"uppercase", color:C.navy, fontFamily:"sans-serif", marginBottom:10 }}>What happens next</div>
+            <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.4, textTransform:"uppercase", color:C.navy, fontFamily:FONT.sans, marginBottom:10 }}>What happens next</div>
             {[
               ["1","The buyer sends an offer","You'll get an email and see it appear here"],
               ["2","You respond","Accept it, counter the price, or flag a conflict"],
@@ -2712,15 +2717,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               ["4","Due diligence & closing","Survey, documents, and the handover"],
             ].map(([n,t,d])=>(
               <div key={n} style={{ display:"flex", gap:10, marginBottom:9, alignItems:"flex-start" }}>
-                <span style={{ width:20, height:20, borderRadius:"50%", background:C.brass, color:C.navy, fontSize:11, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontFamily:"sans-serif" }}>{n}</span>
+                <span style={{ width:20, height:20, borderRadius:"50%", background:C.brass, color:C.navy, fontSize:11, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontFamily:FONT.sans }}>{n}</span>
                 <div>
-                  <div style={{ fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>{t}</div>
-                  <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.4 }}>{d}</div>
+                  <div style={{ fontSize:12.5, fontWeight:700, fontFamily:FONT.sans, color:C.navy }}>{t}</div>
+                  <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.4 }}>{d}</div>
                 </div>
               </div>
             ))}
           </div>
-          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:14, lineHeight:1.55, maxWidth:460, margin:"14px auto 0" }}>
+          <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, marginTop:14, lineHeight:1.55, maxWidth:460, margin:"14px auto 0" }}>
             Your asking price of <b>{fmt(Number(vessel.askingPrice)) || "—"}</b> is set as the buyer's anchor. If you want to review or pre-set the full terms a buyer can offer against, you can open them below.
           </div>
 
@@ -2728,18 +2733,18 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       ) : (!frozen && myRole !== "seller" && (offers.length === 0 || showBuilder)) ? (
       <div style={{ ...S.card, marginBottom:16, borderTop:`3px solid ${C.brass}` }}>
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
-          <div style={{ width:32, height:32, borderRadius:6, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>📝</div>
+          <div style={{ width:32, height:32, borderRadius:6, background:C.brass, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>{emo("📝")}</div>
           <div>
-            <div style={{ fontSize:16, fontWeight:800, fontFamily:"sans-serif", color:C.navy }}>{offers.length>0 ? "Counter-Offer" : "Build Your Offer"}</div>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>{offers.length>0 ? "Adjust the terms and send your counter — it replaces the current offer on the table." : "Assemble the full package, then send it across."}</div>
+            <div style={{ fontSize:16, fontWeight:800, fontFamily:FONT.sans, color:C.navy }}>{offers.length>0 ? "Counter-Offer" : "Build Your Offer"}</div>
+            <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate }}>{offers.length>0 ? "Adjust the terms and send your counter — it replaces the current offer on the table." : "Assemble the full package, then send it across."}</div>
           </div>
         </div>
 
         {/* Offering as — fixed to your real role on this deal */}
         <div style={{ marginBottom:14 }}>
           <label style={{ ...S.label, marginBottom:5 }}>You are negotiating as</label>
-          <div style={{ display:"flex", alignItems:"center", gap:8, padding:"9px 12px", borderRadius:6, background: myRole==="seller"?C.brass:C.navy, color: myRole==="seller"?C.navy:"#fff", fontSize:13, fontFamily:"sans-serif", fontWeight:700 }}>
-            {myRole==="seller" ? "⚓ Seller" : "🧑‍💼 Buyer"}
+          <div style={{ display:"flex", alignItems:"center", gap:8, padding:"9px 12px", borderRadius:6, background: myRole==="seller"?C.brass:C.navy, color: myRole==="seller"?C.navy:"#fff", fontSize:13, fontFamily:FONT.sans, fontWeight:700 }}>
+            {myRole==="seller" ? emo("⚓ Seller") : emo("🧑‍💼 Buyer")}
             <span style={{ fontWeight:400, fontSize:11, opacity:0.85 }}>
               {myRole==="seller" ? "— you can counter the buyer's offers" : "— you author the offer terms"}
             </span>
@@ -2747,31 +2752,31 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         </div>
 
         {myRole==="seller" && (
-          <div style={{ marginBottom:14, padding:"11px 14px", background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:6, fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+          <div style={{ marginBottom:14, padding:"11px 14px", background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:6, fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>
             <b style={{ color:C.navy }}>The buyer authors the offer terms.</b> You can see everything that's on the table below, and you can <b>counter the price</b> (Offer Amount). To request changes to dates, deposit, or contingencies, use <b>Flag a conflict</b> at the bottom — the buyer makes the actual edits.
           </div>
         )}
 
         {/* 💵 Price — the OFFER is the star; asking price is muted reference */}
         <div style={{ border:`1px solid ${C.mist}`, borderRadius:8, padding:"14px", marginBottom:10, background:"#fff" }}>
-          <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>💵 Price</div>
-          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, margin:"3px 0 12px", lineHeight:1.55, display: myRole==="seller" ? "none" : undefined }}>The seller's asking price is shown for reference. Enter the amount you're actually offering below.</div>
+          <div style={{ fontSize:14, fontWeight:700, fontFamily:FONT.sans, color:C.navy }}>{emo("💵")} Price</div>
+          <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, margin:"3px 0 12px", lineHeight:1.55, display: myRole==="seller" ? "none" : undefined }}>The seller's asking price is shown for reference. Enter the amount you're actually offering below.</div>
 
           {/* Asking price. For the BUYER this is muted reference with a one-tap
               match. For the SELLER it is their own anchor — shown plainly, and
               never with an "offer full asking" button, which would have them
               offering their own price back to themselves. */}
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, background:C.sandDark, borderRadius:6, padding:"8px 12px", marginBottom:12, flexWrap:"wrap" }}>
-            <label style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, fontWeight:600 }}>{myRole==="seller" ? "Your asking price" : "Asking price (reference)"}</label>
+            <label style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, fontWeight:600 }}>{myRole==="seller" ? "Your asking price" : "Asking price (reference)"}</label>
             <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
               {/* The asking price is the seller's, set on the Vessel step. It was an
                   open input here — so the BUYER could edit the seller's asking price,
                   which is not theirs to change. Shown, never edited. */}
-              <span style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif", color:C.navy, whiteSpace:"nowrap" }}>
+              <span style={{ fontSize:15, fontWeight:800, fontFamily:FONT.sans, color:C.navy, whiteSpace:"nowrap" }}>
                 {Number(vessel.askingPrice) > 0 ? fmt(Number(vessel.askingPrice)) : "\u2014"}
               </span>
               {Number(askingPrice)>0 && myRole!=="seller" && (
-                <button type="button" onClick={()=>setOfferAmt(String(Number(askingPrice)))} style={{ background:C.navy, color:"#fff", border:"none", borderRadius:5, padding:"7px 12px", fontSize:11.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", whiteSpace:"nowrap" }}>
+                <button type="button" onClick={()=>setOfferAmt(String(Number(askingPrice)))} style={{ background:C.navy, color:"#fff", border:"none", borderRadius:5, padding:"7px 12px", fontSize:11.5, fontWeight:700, fontFamily:FONT.sans, cursor:"pointer", whiteSpace:"nowrap" }}>
                   Offer full asking →
                 </button>
               )}
@@ -2782,7 +2787,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               applies — a broker-listed boat, and a buyer who has no broker of their
               own. It states the position; it does not name a figure. */}
           {vessel?.brokerListed === "yes" && myRole !== "seller" && (
-            <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:8, padding:"12px 14px", marginBottom:10, fontFamily:"sans-serif" }}>
+            <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:8, padding:"12px 14px", marginBottom:10, fontFamily:FONT.sans }}>
               <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:4 }}>You&rsquo;re representing yourself on a broker-listed boat</div>
               <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7 }}>
                 A listing broker&rsquo;s commission normally assumes a second broker brings the buyer and takes a share of it. Nobody is doing that here &mdash; you are, with BoatClosers handling the paperwork. That is worth taking into account when you decide your number, and far easier to raise <b>before</b> terms are agreed than after. What they will do about it is up to them.
@@ -2802,7 +2807,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ border:`2px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", background:"#fffaf0" }}>
             {/* A seller does not make an offer — they counter one. Same field,
                 honest label. */}
-            <label style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, fontWeight:800, display:"block", marginBottom:6 }}>{myRole==="seller" ? "\ud83d\udcb0 Your Counter Price" : "\ud83d\udcb0 Your Offer Price"}</label>
+            <label style={{ fontSize:13, fontFamily:FONT.sans, color:C.navy, fontWeight:800, display:"block", marginBottom:6 }}>{myRole==="seller" ? "\ud83d\udcb0 Your Counter Price" : "\ud83d\udcb0 Your Offer Price"}</label>
             <input style={{ ...S.input, fontSize:22, fontWeight:800, color:C.navy, padding:"12px 14px", border:`1.5px solid ${C.brass}`, background:"#fff", margin:0 }} type="number" value={offerAmt} onChange={e=>setOfferAmt(e.target.value)} placeholder={myRole==="seller" ? "Enter your counter" : "Enter your offer here"} />
             {/* Optional, buyer only, collapsed. A bare lower number reads as
                 haggling; a reason reads as a case. */}
@@ -2810,12 +2815,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               <div style={{ marginTop:9 }}>
                 {!priceNoteOpen && !priceNote ? (
                   <button type="button" onClick={()=>setPriceNoteOpen(true)}
-                    style={{ background:"transparent", border:"none", color:C.teal, fontSize:11.5, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", textDecoration:"underline", padding:0 }}>
+                    style={{ background:"transparent", border:"none", color:C.teal, fontSize:11.5, fontFamily:FONT.sans, fontWeight:700, cursor:"pointer", textDecoration:"underline", padding:0 }}>
                     Add a note about your number (optional)
                   </button>
                 ) : (
                   <>
-                    <label style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, display:"block", marginBottom:4 }}>Why this number (optional &mdash; the seller sees this with your offer)</label>
+                    <label style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, display:"block", marginBottom:4 }}>Why this number (optional &mdash; the seller sees this with your offer)</label>
                     <textarea value={priceNote} onChange={e=>setPriceNote(e.target.value)}
                       placeholder="e.g. needs a trailer, the port engine is due for service, or it wasn't quite what the listing described"
                       style={{ ...S.textarea, minHeight:52, fontSize:12.5 }} />
@@ -2824,7 +2829,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               </div>
             )}
             {offerAmt && Number(askingPrice)>0 && (
-              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color: Number(offerAmt) < Number(askingPrice) ? C.teal : C.slate, marginTop:6, fontWeight:700 }}>
+              <div style={{ fontSize:11.5, fontFamily:FONT.sans, color: Number(offerAmt) < Number(askingPrice) ? C.teal : C.slate, marginTop:6, fontWeight:700 }}>
                 {Number(offerAmt) < Number(askingPrice)
                   ? `${fmt(Number(askingPrice)-Number(offerAmt))} below asking`
                   : Number(offerAmt) > Number(askingPrice)
@@ -2847,7 +2852,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               <button key={d} onClick={()=>{ if(d==="Custom") setDdCustom(true); else { setDdDays(d); setDdCustom(false); } }} style={{ ...S.btnOutline, background:(ddDays===d&&!ddCustom)||(d==="Custom"&&ddCustom)?C.navy:"transparent", color:(ddDays===d&&!ddCustom)||(d==="Custom"&&ddCustom)?"#fff":C.navy, padding:"8px 0", textAlign:"center", fontSize:12, fontWeight:700 }}>{d==="Custom"?"Custom":`${d}d`}</button>
             ))}
           </div>
-          {ddCustom && (<div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}><input style={{...S.input, maxWidth:90}} type="number" min="1" max="90" value={ddDays} onChange={e=>setDdDays(e.target.value)} placeholder="21" /><span style={{ fontSize:12, color:C.slate, fontFamily:"sans-serif" }}>days</span></div>)}
+          {ddCustom && (<div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}><input style={{...S.input, maxWidth:90}} type="number" min="1" max="90" value={ddDays} onChange={e=>setDdDays(e.target.value)} placeholder="21" /><span style={{ fontSize:12, color:C.slate, fontFamily:FONT.sans }}>days</span></div>)}
           <BrokerTip>10&ndash;14 days is typical. That's enough to book a surveyor, haul the boat out, and run a sea trial without rushing &mdash; surveyors are often booked a week out. Go shorter only if the survey is already scheduled.</BrokerTip>
           <Grid2>
             <Field label="DD Start"><input style={S.input} type="date" value={ddStart} onChange={e=>setDdStart(e.target.value)} /></Field>
@@ -2855,7 +2860,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           </Grid2>
           <label style={{ display:"flex", gap:8, alignItems:"flex-start", cursor:"pointer", margin:"4px 0 10px" }}>
             <input type="checkbox" checked={ddExtension} onChange={e=>setDdExtension(e.target.checked)} style={{ width:14, height:14, marginTop:2, accentColor:C.teal }} />
-            <span style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>Allow a due-diligence extension if both parties agree</span>
+            <span style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate }}>Allow a due-diligence extension if both parties agree</span>
           </label>
           {ddExtension && (<Grid2><Field label="Max extension days"><input style={S.input} type="number" value={ddExtDays} onChange={e=>setDdExtDays(e.target.value)} placeholder="7" /></Field><Field label="If extended, deposit:"><select style={S.select} value={ddExtDepositRule} onChange={e=>setDdExtDepositRule(e.target.value)}><option value="returnable">Stays returnable</option><option value="nonrefundable">Becomes non-refundable</option><option value="partial">50% non-refundable</option></select></Field></Grid2>)}
           <Grid2>
@@ -2863,8 +2868,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             <Field label="Final Payment"><select style={S.select} value={paymentType} onChange={e=>setPaymentType(e.target.value)}><option value="cash">All Cash</option><option value="finance">Financed</option><option value="other">Other / TBD</option></select></Field>
           </Grid2>
           {closingTooEarly && (
-            <div style={{ background:C.redLight, border:`1px solid ${C.red}`, borderRadius:6, padding:"10px 13px", marginTop:9, fontFamily:"sans-serif" }}>
-              <div style={{ fontSize:12, color:C.red, fontWeight:700, lineHeight:1.5 }}>⚠️ Closing is set before due diligence ends ({ddEndDate}).</div>
+            <div style={{ background:C.redLight, border:`1px solid ${C.red}`, borderRadius:6, padding:"10px 13px", marginTop:9, fontFamily:FONT.sans }}>
+              <div style={{ fontSize:12, color:C.red, fontWeight:700, lineHeight:1.5 }}>{emo("⚠")} Closing is set before due diligence ends ({ddEndDate}).</div>
               <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:4 }}>You can't close on a boat you're still allowed to inspect &mdash; the survey and sea trial have to finish first. Push the closing date out, or shorten the due-diligence window.</div>
               <button style={{...S.btnOutline, fontSize:12, padding:"7px 13px", marginTop:8}} onClick={()=>setClosingDate(addDays(ddEndDate, 7))}>Move closing to {addDays(ddEndDate, 7)}</button>
             </div>
@@ -2880,7 +2885,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           {/* How long the offer stands. A deadline is a condition of the offer, so
               it belongs with the others rather than floating above the send button. */}
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, background:C.sandDark, borderRadius:6, padding:"8px 12px", marginTop:6, flexWrap:"wrap" }}>
-            <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate }}>⏳ This offer is good for:</span>
+            <span style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate }}>⏳ This offer is good for:</span>
             <select style={{...S.select, width:"auto", padding:"6px 10px", fontSize:12}} value={offerExpiry} onChange={e=>setOfferExpiry(e.target.value)}>
               <option value="0">No expiration</option>
               <option value="24">24 hours</option>
@@ -2893,28 +2898,28 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
         {/* 🏦 Money owed on the boat — the most common reason a closing slips */}
         <div style={{ border:`1px solid ${hasLien==="yes" ? C.brass : C.mist}`, borderRadius:8, marginBottom:10, background: hasLien==="yes" ? "#fffdf8" : "#fff", padding:"13px 14px" }}>
-          <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>🏦 Money Owed on the Boat</div>
-          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:3, marginBottom:11, lineHeight:1.55 }}>
+          <div style={{ fontSize:14, fontWeight:700, fontFamily:FONT.sans, color:C.navy }}>{emo("🏦")} Money Owed on the Boat</div>
+          <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, marginTop:3, marginBottom:11, lineHeight:1.55 }}>
             If the seller still owes on a loan, it has to be paid off before the title can transfer. Worth settling early &mdash; it is the most common reason a boat deal stalls at the end.
           </div>
           <label style={S.label}>Is there a loan or lien on the vessel?</label>
           <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:10 }}>
             {[["no","No — owned free and clear"],["yes","Yes — there is a payoff"],["unsure","Not sure yet"]].map(([v,lbl]) => (
               <button key={v} type="button" onClick={()=>{ setHasLien(v); saveLien({ sellerHasLien: v }); }}
-                style={{ fontSize:12.5, padding:"8px 14px", borderRadius:18, cursor:"pointer", fontFamily:"sans-serif", fontWeight:700,
+                style={{ fontSize:12.5, padding:"8px 14px", borderRadius:18, cursor:"pointer", fontFamily:FONT.sans, fontWeight:700,
                   border:`1.5px solid ${hasLien===v ? C.brass : C.mist}`, background: hasLien===v ? C.brass : C.white, color: hasLien===v ? "#fff" : C.slate }}>{lbl}</button>
             ))}
           </div>
 
           {hasLien === "unsure" && (
-            <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, background:C.sand, borderRadius:6, padding:"10px 12px" }}>
+            <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, background:C.sand, borderRadius:6, padding:"10px 12px" }}>
               Worth settling before closing. A lien search and a written payoff request are both in your documents, and the seller&rsquo;s lender can confirm in a phone call.
             </div>
           )}
 
           {hasLien === "yes" && (
             <>
-              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:10 }}>
+              <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
                 These fill in the Payoff Demand, the Lien Release and the Closing Statement, so they only need typing once. Leave blank for now if you don&rsquo;t have them yet.
               </div>
               <Field label="Lender / lienholder name">
@@ -2929,7 +2934,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 <input style={S.input} value={lienAmount} placeholder="$" inputMode="decimal"
                   onChange={e=>{ setLienAmount(e.target.value); saveLien({ lienAmount: e.target.value }); }} />
               </Field>
-              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+              <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>
                 Get the exact figure from the lender in writing, good through your closing date. Verbal payoff numbers change with interest.
               </div>
             </>
@@ -2939,22 +2944,22 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
         {/* 🔒 Escrow Terms — opt-in (deposit amount, terms, and where it's held all together) */}
         <OfferSection icon="🔒" title="Escrow Terms" desc="Money the buyer puts down to take the boat off the market while they inspect it. It isn't an extra cost — it comes off the purchase price at closing. Set the amount, what happens to it if the deal falls apart, and who holds it in the meantime. BoatClosers never touches the money; a neutral third party you both agree on holds it." checked={inclDepositTerms} onToggle={()=>setInclDepositTerms(v=>!v)}>
           <label style={S.label}>Escrow Method &mdash; where the deposit is held</label>
-          <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:7 }}>
+          <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, marginBottom:7 }}>
             Choose this first. Who holds the money affects what it costs to hold &mdash; which is worth knowing before you settle on an amount.
           </div>
           <EscrowSelector value={escrowPath} onChange={(v)=>{ setEscrowPath(v); if (v === "none") { setEscrowPct("0"); setCustomMode(false); } }} depositAmt={Math.round(Number(offerAmt||0)*Number(escrowPct)/100)} />
           {escrowPath==="escrow_com" && (
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.5 }}>Opening Escrow.com launches a new tab. Everything above is already saved, so you can set it up there and come back to send your offer.</div>
+            <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginTop:6, lineHeight:1.5 }}>Opening Escrow.com launches a new tab. Everything above is already saved, so you can set it up there and come back to send your offer.</div>
           )}
           {/* Percentage only appears AFTER a method is chosen — and never for "No deposit".
               The method is the decision; the amount follows from it. */}
           {escrowPath === "none" ? (
-            <div style={{ background:"#f4f4f5", border:`1px solid ${C.mist}`, borderRadius:6, padding:"11px 13px", marginTop:14, fontFamily:"sans-serif" }}>
-              <div style={{ fontSize:12.5, color:C.navy, fontWeight:700, lineHeight:1.5 }}>🚫 No earnest money on this offer</div>
+            <div style={{ background:"#f4f4f5", border:`1px solid ${C.mist}`, borderRadius:6, padding:"11px 13px", marginTop:14, fontFamily:FONT.sans }}>
+              <div style={{ fontSize:12.5, color:C.navy, fontWeight:700, lineHeight:1.5 }}>{emo("🚫")} No earnest money on this offer</div>
               <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginTop:5 }}>The deal moves straight to due diligence with nothing to deposit or confirm. The boat isn&rsquo;t held off the market &mdash; the seller can keep showing it until closing.</div>
             </div>
           ) : !escrowPath ? (
-            <div style={{ background:C.sandDark, border:`1px solid ${C.mist}`, borderRadius:6, padding:"11px 13px", marginTop:14, fontFamily:"sans-serif" }}>
+            <div style={{ background:C.sandDark, border:`1px solid ${C.mist}`, borderRadius:6, padding:"11px 13px", marginTop:14, fontFamily:FONT.sans }}>
               <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>Choose how earnest money is handled above, then set the amount here.</div>
             </div>
           ) : (<>
@@ -2979,12 +2984,12 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           {customMode && (
             <div style={{ marginTop:8 }}>
               {!offerAmt ? (
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.red, fontWeight:700, lineHeight:1.5 }}>Enter your offer price first &mdash; a custom deposit is worked out against it.</div>
+                <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.red, fontWeight:700, lineHeight:1.5 }}>Enter your offer price first &mdash; a custom deposit is worked out against it.</div>
               ) : (
                 <>
                   <label style={S.label}>Custom deposit amount</label>
                   <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                    <span style={{ fontSize:17, fontWeight:800, color:C.navy, fontFamily:"sans-serif" }}>$</span>
+                    <span style={{ fontSize:17, fontWeight:800, color:C.navy, fontFamily:FONT.sans }}>$</span>
                     <input style={{...S.input, maxWidth:190}} type="number" min="0" step="100" value={customDep}
                       onChange={e=>{
                         const v = e.target.value;
@@ -2995,7 +3000,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                       placeholder="5000" />
                   </div>
                   {customDep && Number(customDep)>0 && (
-                    <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.6 }}>
+                    <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, marginTop:6, lineHeight:1.6 }}>
                       That&rsquo;s <b>{pctLabel(escrowPct)}%</b> of your {fmt(Number(offerAmt))} offer.
                       {Number(customDep) > Number(offerAmt) && <span style={{ color:C.red, fontWeight:700 }}> &mdash; that&rsquo;s more than the offer itself, double-check it.</span>}
                     </div>
@@ -3005,7 +3010,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             </div>
           )}
           {(escrowPct==="0" || escrowPct==="") ? (
-            <div style={{ background:C.sandDark, borderRadius:6, padding:"11px 13px", marginTop:8, fontFamily:"sans-serif" }}>
+            <div style={{ background:C.sandDark, borderRadius:6, padding:"11px 13px", marginTop:8, fontFamily:FONT.sans }}>
               <div style={{ fontSize:12, color:C.text, lineHeight:1.7 }}>
                 <b>Thinking about it?</b> Earnest money is a good-faith deposit that takes the boat <b>off the market</b> while you inspect it. It shows the seller you&rsquo;re serious, and it buys you protected time for a survey and sea trial without worrying they&rsquo;ll sell it to someone else. Most private boat deals include one.
               </div>
@@ -3014,7 +3019,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
               </div>
             </div>
           ) : (
-            <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"10px 13px", marginTop:8, fontFamily:"sans-serif" }}>
+            <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"10px 13px", marginTop:8, fontFamily:FONT.sans }}>
               <div style={{ fontSize:12.5, color:C.teal, fontWeight:700, lineHeight:1.5 }}>
                 {offerAmt ? <>✓ {fmt(Math.round(Number(offerAmt)*Number(escrowPct)/100))} earnest money ({pctLabel(escrowPct)}% of your offer)</> : <>✓ {pctLabel(escrowPct)}% earnest money &mdash; enter your offer price to see the amount</>}
               </div>
@@ -3043,7 +3048,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             <option value="24">24 hours of the deal locking</option>
             <option value="36">36 hours of the deal locking</option>
           </select>
-          <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:6, lineHeight:1.5 }}>
+          <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginTop:6, lineHeight:1.5 }}>
             After the deal locks, the buyer uploads proof of the earnest-money deposit within this window. If proof isn't provided in time the deal can expire — the seller may grant an extension or end it.
           </div>
           <div style={{ height:10 }}/>
@@ -3056,8 +3061,8 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
         {/* Submit */}
         {offerBlocked && !myOfferAwaiting && (
-          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.red, marginTop:8, textAlign:"center", lineHeight:1.5 }}>
-            ⚠️ Before you send, please {[
+          <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.red, marginTop:8, textAlign:"center", lineHeight:1.5 }}>
+            {emo("⚠")} Before you send, please {[
               !offerAmt && "enter your offer price",
               needsEscrowPath && "choose where the deposit will be held",
               (inclContingencies && localContingencies.length===0 && !cashWaived) && "choose your contingencies, or use the cash-offer option to waive them all",
@@ -3072,7 +3077,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             press this wondering what they just sent. */}
         <div style={{ marginTop:16, border:`2px solid ${offerBlocked||myOfferAwaiting ? C.mist : C.brass}`, borderRadius:10, overflow:"hidden", background: offerBlocked||myOfferAwaiting ? "#f8fafc" : "#fffdf7" }}>
           {!offerBlocked && !myOfferAwaiting && (
-            <div style={{ padding:"12px 15px", borderBottom:`1px solid ${C.mist}`, fontFamily:"sans-serif" }}>
+            <div style={{ padding:"12px 15px", borderBottom:`1px solid ${C.mist}`, fontFamily:FONT.sans }}>
               <div style={{ fontSize:10.5, letterSpacing:1.4, textTransform:"uppercase", color:C.slate, fontWeight:700, marginBottom:7 }}>
                 You're about to send
               </div>
@@ -3080,7 +3085,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 <span><b style={{ fontSize:15, color:C.navy }}>{fmt(Number(offerAmt)||0)}</b> offer</span>
                 {inclDepositTerms && escrowPct!=="0" && escrowPct!=="" && <span>· {fmt(Math.round(Number(offerAmt||0)*Number(escrowPct)/100))} deposit ({pctLabel(escrowPct)}%) via {escLabel(escrowPath)}</span>}
                 {inclDepositTerms && escrowPct==="0" && <span>· no deposit</span>}
-                {inclContingencies && <span>· {localContingencies.length ? localContingencies.map(k=>CONTINGENCY_LABELS[k]||k).join(", ") : cashWaived ? "💵 cash offer, no contingencies" : "no contingencies"}</span>}
+                {inclContingencies && <span>· {localContingencies.length ? localContingencies.map(k=>CONTINGENCY_LABELS[k]||k).join(", ") : cashWaived ? emo("💵 cash offer, no contingencies") : "no contingencies"}</span>}
                 {inclDates && <span>· {ddDays}-day due diligence{closingDate ? `, closing ${closingDate}` : ""}</span>}
                 {offerExpiry!=="0" && <span>· expires in {offerExpiry}h</span>}
               </div>
@@ -3089,22 +3094,22 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           <div style={{ padding:"13px 15px" }}>
             <button style={{...S.btnBrass, width:"100%", fontSize:16.5, fontWeight:800, padding:"15px 12px", letterSpacing:0.2, opacity:(offerBlocked||myOfferAwaiting)?0.45:1, boxShadow:(offerBlocked||myOfferAwaiting)?"none":"0 3px 10px rgba(184,134,58,0.35)"}} onClick={makeOffer} disabled={offerBlocked||myOfferAwaiting}>
               {offerAmt && !offerBlocked
-                ? `📨 Send ${fmt(Number(offerAmt))} ${(offers.length===0 && myRole!=="seller") ? "Offer" : "Counter-Offer"} to the ${myRole==="seller" ? "Buyer" : "Seller"} →`
-                : `📨 ${(offers.length===0 && myRole!=="seller") ? "Send Offer to Seller" : (myRole==="seller" ? "Send Counter-Offer to Buyer" : "Send Counter-Offer to Seller")} →`}
+                ? emo(`📨 Send ${fmt(Number(offerAmt))} ${(offers.length===0 && myRole!=="seller") ? "Offer" : "Counter-Offer"} to the ${myRole==="seller" ? "Buyer" : "Seller"} →`)
+                : emo(`📨 ${(offers.length===0 && myRole!=="seller") ? "Send Offer to Seller" : (myRole==="seller" ? "Send Counter-Offer to Buyer" : "Send Counter-Offer to Seller")} →`)}
             </button>
             {!offerBlocked && !myOfferAwaiting && (
-              <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, textAlign:"center", marginTop:8, lineHeight:1.5 }}>
+              <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, textAlign:"center", marginTop:8, lineHeight:1.5 }}>
                 They'll get an email straight away and can accept, counter, or flag a conflict. You can withdraw or revise until they respond.
               </div>
             )}
           </div>
         </div>
         {myOfferAwaiting ? (
-          <div style={{ textAlign:"center", fontSize:11, color:C.slate, fontFamily:"sans-serif", marginTop:8, lineHeight:1.5 }}>
+          <div style={{ textAlign:"center", fontSize:11, color:C.slate, fontFamily:FONT.sans, marginTop:8, lineHeight:1.5 }}>
             ⏳ Your offer is on the table — waiting for the {myRole==="buyer" ? "seller" : "buyer"} to respond. You'll be able to send a new offer if they counter or reject.
           </div>
         ) : (
-          <div style={{ textAlign:"center", fontSize:10.5, color:C.slate, fontFamily:"sans-serif", marginTop:8, lineHeight:1.5 }}>
+          <div style={{ textAlign:"center", fontSize:10.5, color:C.slate, fontFamily:FONT.sans, marginTop:8, lineHeight:1.5 }}>
             Free to send and negotiate. You only pay $249 when a full offer is accepted and you're ready to sign.
           </div>
         )}
@@ -3117,7 +3122,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
 
       {conflictOpen && !conflictSent && (
         <div onClick={()=>{ setConflictOpen(false); setConflictErr(""); setAskMode("conflict"); setPreSignAsk(false); }}
-          style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.7)", zIndex:4000, overflowY:"auto", padding:"20px 12px", fontFamily:"sans-serif" }}>
+          style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.7)", zIndex:4000, overflowY:"auto", padding:"20px 12px", fontFamily:FONT.sans }}>
           <div onClick={e=>e.stopPropagation()}
             style={{ maxWidth:520, margin:"4vh auto 0", background:"#fff", borderRadius:12, overflow:"hidden", border:`2px solid ${C.brass}` }}>
             <div style={{ background:C.navy, color:"#fff", padding:"13px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
@@ -3126,7 +3131,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                 style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.7)", fontSize:20, cursor:"pointer", lineHeight:1 }}>&times;</button>
             </div>
             <div style={{ padding:"18px 20px 20px" }}>
-              <div style={{ fontFamily:"'Georgia',serif", fontSize:18, color:C.navy, marginBottom:6 }}>{reviseAsk ? "Ask the buyer to revise the terms" : preSignAsk ? "Ask for a change before you sign" : "Ask the buyer to adjust their terms"}</div>
+              <div style={{ fontFamily:FONT.serif, fontSize:18, color:C.navy, marginBottom:6 }}>{reviseAsk ? "Ask the buyer to revise the terms" : preSignAsk ? "Ask for a change before you sign" : "Ask the buyer to adjust their terms"}</div>
               <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:14 }}>
                 {reviseAsk
                   ? <>The buyer writes the terms, so only they can change them. Tell them what needs revising and the offer reopens for editing &mdash; they will get an email and the agreed price is set aside until you both agree again. <b>This does not end the deal.</b></>
@@ -3173,17 +3178,17 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
               <h3 style={{...S.h3, margin:0}}>Negotiation</h3>
               {gap !== null && gap > 0 && (
-                <span style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.brass, background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:20, padding:"3px 12px" }}>
+                <span style={{ fontSize:12, fontFamily:FONT.sans, fontWeight:700, color:C.brass, background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:20, padding:"3px 12px" }}>
                   {fmt(gap)} apart
                 </span>
               )}
               {gap === 0 && (
-                <span style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.green, background:C.greenLight, borderRadius:20, padding:"3px 12px" }}>
+                <span style={{ fontSize:12, fontFamily:FONT.sans, fontWeight:700, color:C.green, background:C.greenLight, borderRadius:20, padding:"3px 12px" }}>
                   Both sides aligned ✓
                 </span>
               )}
             </div>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:14 }}>Newest first — buyer on the left, seller on the right.</div>
+            <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginBottom:14 }}>Newest first — buyer on the left, seller on the right.</div>
 
             {[...offers].reverse().map((o,ri) => {
               // ri walks the REVERSED list; i is the position in the real order, so
@@ -3207,15 +3212,15 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                     opacity: o.status==="countered" ? 0.62 : 1,
                   }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:10 }}>
-                      <div style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:accent, textTransform:"uppercase", letterSpacing:0.5 }}>
-                        {isBuyer?"🧑‍💼":"⚓"} {partyName}
+                      <div style={{ fontSize:11, fontFamily:FONT.sans, fontWeight:700, color:accent, textTransform:"uppercase", letterSpacing:0.5 }}>
+                        {isBuyer?emo("🧑‍💼"):emo("⚓")} {partyName}
                       </div>
-                      <div style={{ fontSize:10, fontFamily:"sans-serif", color:C.slate }}>{o.time}</div>
+                      <div style={{ fontSize:10, fontFamily:FONT.sans, color:C.slate }}>{o.time}</div>
                     </div>
                     <div style={{ display:"flex", alignItems:"baseline", gap:9, marginTop:3 }}>
-                      <span style={{ fontSize:20, fontWeight:800, color:C.navy, fontFamily:"sans-serif" }}>{fmt(o.amount)}</span>
+                      <span style={{ fontSize:20, fontWeight:800, color:C.navy, fontFamily:FONT.sans }}>{fmt(o.amount)}</span>
                       {delta !== 0 && (
-                        <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color: delta>0?C.green:C.red }}>
+                        <span style={{ fontSize:11, fontFamily:FONT.sans, fontWeight:700, color: delta>0?C.green:C.red }}>
                           {delta>0?"▲":"▼"} {fmt(Math.abs(delta))}
                         </span>
                       )}
@@ -3226,13 +3231,13 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                       {/* The reason travels with the number it explains — a message
                           six replies later is no longer attached to anything. */}
                       {o.priceNote && (
-                        <div style={{ background:"#fff", border:`1px solid ${C.mist}`, borderRadius:6, padding:"8px 10px", marginTop:6, fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.55, fontStyle:"italic" }}>
+                        <div style={{ background:"#fff", border:`1px solid ${C.mist}`, borderRadius:6, padding:"8px 10px", marginTop:6, fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.55, fontStyle:"italic" }}>
                           &ldquo;{o.priceNote}&rdquo;
                           <div style={{ fontStyle:"normal", fontSize:10.5, color:C.mist2 || "#8a8578", marginTop:3 }}>&mdash; the {o.from === "seller" ? "seller" : "buyer"}&rsquo;s note</div>
                         </div>
                       )}
                     </div>
-                    <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:4, lineHeight:1.5 }}>
+                    <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginTop:4, lineHeight:1.5 }}>
                       Deposit: {fmt(o.deposit)} ({pctLabel(o.escrowPct)}%) · {escLabel(o.escrowPath)}
                       {o.inclContingencies && o.contingencies?.length ? ` · Contingent on ${contingencyNames(o.contingencies)}` : " · no contingencies"}
                       {o.inclDates ? ` · Due Diligence ${o.ddDays} days · Close ${o.closingDate||"TBD"}` : " · dates open"}
@@ -3241,26 +3246,26 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                     {/* status / actions */}
                     <div style={{ marginTop:9 }}>
                       {o.status==="pending" && o.expiresAt && !oExpired && (
-                        <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.brass, fontWeight:600, marginBottom:6 }}>⏳ Expires in {hoursLeft(o.expiresAt)}</div>
+                        <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.brass, fontWeight:600, marginBottom:6 }}>⏳ Expires in {hoursLeft(o.expiresAt)}</div>
                       )}
                       {o.status==="accepted" && <span style={{...S.pill, background:C.green, color:"#fff"}}>Accepted ✓ — Purchase Agreement signed</span>}
                       {o.status==="agreed" && <span style={{...S.pill, background:"#166534", color:"#fff"}}>Price agreed ✓ — awaiting lock</span>}
                       {o.status==="rejected" && <span style={{...S.pill, background:C.red, color:"#fff"}}>Rejected</span>}
                       {o.status==="countered" && <span style={{...S.pill, background:C.mist, color:C.slate}}>Countered — see newer offer above</span>}
                       {isLatestPending && !frozen && oExpired ? (
-                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.red, background:C.redLight, borderRadius:6, padding:"8px 12px", lineHeight:1.6 }}>
-                          ⚠️ This offer expired. {o.from===myRole ? "Send a fresh offer above to keep the deal moving." : "It can no longer be accepted — send a counter-offer above to restart negotiation."}
+                        <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.red, background:C.redLight, borderRadius:6, padding:"8px 12px", lineHeight:1.6 }}>
+                          {emo("⚠")} This offer expired. {o.from===myRole ? "Send a fresh offer above to keep the deal moving." : "It can no longer be accepted — send a counter-offer above to restart negotiation."}
                         </div>
                       ) : isLatestPending && !frozen && (
                         o.from === myRole ? (
-                          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, fontStyle:"italic", background:C.sandDark, borderRadius:6, padding:"8px 12px" }}>
+                          <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, fontStyle:"italic", background:C.sandDark, borderRadius:6, padding:"8px 12px" }}>
                             ⏳ Sent — waiting for the {myRole==="buyer" ? "seller" : "buyer"} to accept, counter, or reject. You can't respond to your own offer.
                           </div>
                         ) : (
                           <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
                             <button style={{...S.btn, background:C.green, fontSize:12, padding:"8px 16px"}} onClick={()=>acceptOffer(o.id)}>Accept {fmt(o.amount)} &amp; Sign</button>
                             <div style={{ display:"flex", alignItems:"center", gap:6, background:C.sandDark, borderRadius:6, padding:"5px 8px" }}>
-                              <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, whiteSpace:"nowrap" }}>Counter&nbsp;$</span>
+                              <span style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, whiteSpace:"nowrap" }}>Counter&nbsp;$</span>
                               <input style={{...S.input, width:104, padding:"6px 8px", fontSize:13}} type="number" value={quickAmt} onChange={e=>setQuickAmt(e.target.value)} placeholder={String(o.amount)} />
                               <button style={{...S.btn, background:C.navy, fontSize:12, padding:"8px 12px"}} onClick={()=>sendQuickCounter(o)}>Send →</button>
                             </div>
@@ -3270,7 +3275,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                                 onClick={()=>{ setShowBuilder(true); setConflictOpen(true); setTimeout(()=>offerFormRef.current?.scrollIntoView({behavior:"smooth",block:"center"}),80); }}
                                 title="Not about the price? Use this to ask the buyer to change the dates, deposit, or contingencies before you accept. It sends the buyer your concern — they make the actual edits and send a revised offer."
                                 style={{...S.btn, background:"#b45309", color:"#fff", fontSize:12, padding:"8px 14px", whiteSpace:"nowrap"}}>
-                                ⚑ Flag a conflict
+                                {emo("⚑")} Flag a conflict
                               </button>
                             )}
                           </div>
@@ -3289,21 +3294,21 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       <div style={{ ...S.card, marginBottom:16 }}>
         <button onClick={()=>setShowMessages(true)} style={{ display:"flex", width:"100%", justifyContent:"space-between", alignItems:"center", background:"transparent", border:"none", cursor:"pointer", padding:0 }}>
           <div style={{ textAlign:"left" }}>
-            <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>💬 Messages {messages.length>0 && <span style={{ fontSize:11, fontWeight:400, color:C.slate }}>({messages.length})</span>}</div>
-            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:2 }}>Your private thread with the other party — ask questions, clarify terms, and keep everything about this deal in one place. Every offer, counter, and note lands here too, and both sides see it in real time.</div>
+            <div style={{ fontSize:14, fontWeight:700, fontFamily:FONT.sans, color:C.navy }}>{emo("💬")} Messages {messages.length>0 && <span style={{ fontSize:11, fontWeight:400, color:C.slate }}>({messages.length})</span>}</div>
+            <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginTop:2 }}>Your private thread with the other party — ask questions, clarify terms, and keep everything about this deal in one place. Every offer, counter, and note lands here too, and both sides see it in real time.</div>
           </div>
           <span style={{ fontSize:13, color:C.slate }}>{showMessages?"▲":"▼"}</span>
         </button>
         {showMessages && (
           <div style={{ marginTop:12 }}>
             <div style={{ height:200, overflowY:"auto", display:"flex", flexDirection:"column", border:`1px solid ${C.mist}`, borderRadius:5, padding:"8px", marginBottom:8 }}>
-              {messages.length===0 && <div style={{ fontSize:12, color:C.slate, fontFamily:"sans-serif", textAlign:"center", margin:"auto" }}>No messages yet. Say hello or ask a question to get started — your offers and counters will show up here too, so the whole conversation stays in one place.</div>}
+              {messages.length===0 && <div style={{ fontSize:12, color:C.slate, fontFamily:FONT.sans, textAlign:"center", margin:"auto" }}>No messages yet. Say hello or ask a question to get started — your offers and counters will show up here too, so the whole conversation stays in one place.</div>}
               {messages.map((m,i) => {
                 const mine = m.from === myRole;
                 return (
-                <div key={i} style={{ alignSelf:mine?"flex-end":"flex-start", maxWidth:"88%", background:mine?C.navy:C.sandDark, color:mine?"#fff":C.text, borderRadius:mine?"12px 12px 2px 12px":"12px 12px 12px 2px", padding:"8px 12px", fontSize:12, fontFamily:"sans-serif", lineHeight:1.5, marginBottom:5 }}>
+                <div key={i} style={{ alignSelf:mine?"flex-end":"flex-start", maxWidth:"88%", background:mine?C.navy:C.sandDark, color:mine?"#fff":C.text, borderRadius:mine?"12px 12px 2px 12px":"12px 12px 12px 2px", padding:"8px 12px", fontSize:12, fontFamily:FONT.sans, lineHeight:1.5, marginBottom:5 }}>
                   <div style={{ fontSize:10, color:mine?"rgba(255,255,255,0.5)":C.slate, marginBottom:2 }}>{m.from==="buyer"?(parties.buyer?.name||"Buyer"):(parties.seller?.name||"Seller")} · {m.time}</div>
-                  {m.text}
+                  {emo(m.text)}
                 </div>
                 );
               })}
@@ -3320,11 +3325,11 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
       {/* ── AGREED PRICE SUMMARY if offer accepted ── */}
       {acceptedOffer && (
         <div style={{...S.cardGold, marginBottom:16}}>
-          <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>✓ Agreed Price Summary</div>
+          <div style={{ fontSize:13, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:10 }}>✓ Agreed Price Summary</div>
           <div className="bc-grid3" style={{ gap:10 }}>
             {[["Purchase Price",fmt(acceptedOffer.amount)],["Earnest Money",fmt(acceptedOffer.deposit)],["Escrow",escLabel(acceptedOffer.escrowPath)]].map(([l,v])=>(
               <div key={l} style={{ background:C.sandDark, borderRadius:5, padding:"10px 12px" }}>
-                <div style={{ fontSize:10, color:C.slate, fontFamily:"sans-serif" }}>{l}</div>
+                <div style={{ fontSize:10, color:C.slate, fontFamily:FONT.sans }}>{l}</div>
                 <div style={{ fontSize:15, fontWeight:700, color:C.navy }}>{v}</div>
               </div>
             ))}
@@ -3346,7 +3351,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             if (needsDeposit && !auto && dv?.status !== "confirmed") { setDepositAckOpen(true); return; }
             proceed();
           }}>
-          {canProceed ? "Continue to Due Diligence →" : "🔒 Finalize the deal to continue"}
+          {canProceed ? "Continue to Due Diligence →" : emo("🔒 Finalize the deal to continue")}
         </button>
       </div>
 
@@ -3360,7 +3365,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
           being told what that means. */}
       {depositAckOpen && (
         <div onClick={()=>setDepositAckOpen(false)}
-          style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.7)", zIndex:4200, overflowY:"auto", padding:"20px 12px", fontFamily:"sans-serif" }}>
+          style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.7)", zIndex:4200, overflowY:"auto", padding:"20px 12px", fontFamily:FONT.sans }}>
           <div onClick={e=>e.stopPropagation()}
             style={{ maxWidth:480, margin:"8vh auto 0", background:"#fff", borderRadius:12, overflow:"hidden", border:`2px solid ${C.brass}` }}>
             <div style={{ background:C.navy, color:"#fff", padding:"13px 20px", fontSize:12.5, letterSpacing:1 }}>
@@ -3450,8 +3455,8 @@ function EscrowSelector({ value, onChange, depositAmt }) {
     <div>
       <div className="bc-grid3" style={{ gap:8, marginBottom:8 }}>
         {options.map(opt=>(
-          <button key={opt.id} onClick={()=>{ onChange(opt.id); setShowDetail(false); }} style={{ padding:"10px 8px", borderRadius:6, cursor:"pointer", border:`2px solid ${value===opt.id?opt.badgeColor:C.mist}`, background:value===opt.id?opt.tint:"transparent", textAlign:"center", fontFamily:"sans-serif", transition:"all 0.15s" }}>
-            <div style={{ fontSize:18, marginBottom:4 }}>{opt.icon}</div>
+          <button key={opt.id} onClick={()=>{ onChange(opt.id); setShowDetail(false); }} style={{ padding:"10px 8px", borderRadius:6, cursor:"pointer", border:`2px solid ${value===opt.id?opt.badgeColor:C.mist}`, background:value===opt.id?opt.tint:"transparent", textAlign:"center", fontFamily:FONT.sans, transition:"all 0.15s" }}>
+            <div style={{ fontSize:18, marginBottom:4 }}>{emo(opt.icon)}</div>
             <div style={{ fontSize:12, fontWeight:700, color:value===opt.id?opt.badgeColor:C.navy }}>{opt.label}</div>
             <div style={{ fontSize:9, color:value===opt.id?opt.badgeColor:C.slate, marginTop:2, fontWeight:600, textTransform:"uppercase", letterSpacing:0.5 }}>{opt.badge}</div>
           </button>
@@ -3459,35 +3464,35 @@ function EscrowSelector({ value, onChange, depositAmt }) {
       </div>
 
       {!selected ? (
-        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"#b91c1c", fontWeight:700, lineHeight:1.5 }}>
+        <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:"#b91c1c", fontWeight:700, lineHeight:1.5 }}>
           Choose where the deposit will be held.
         </div>
       ) : (
         <div style={{ background:selected.tint, border:`1px solid ${selected.line}`, borderRadius:6, padding:"10px 13px" }}>
           <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10 }}>
-            <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.text, lineHeight:1.6, flex:1 }}>{selected.desc}</div>
-            <button onClick={()=>setShowDetail(v=>!v)} style={{ background:"none", border:`1px solid ${selected.line}`, borderRadius:5, color:selected.badgeColor, fontSize:10.5, fontFamily:"sans-serif", fontWeight:700, padding:"4px 9px", cursor:"pointer", whiteSpace:"nowrap" }}>
+            <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.text, lineHeight:1.6, flex:1 }}>{selected.desc}</div>
+            <button onClick={()=>setShowDetail(v=>!v)} style={{ background:"none", border:`1px solid ${selected.line}`, borderRadius:5, color:selected.badgeColor, fontSize:10.5, fontFamily:FONT.sans, fontWeight:700, padding:"4px 9px", cursor:"pointer", whiteSpace:"nowrap" }}>
               {showDetail ? "Hide details ▲" : "Details ▾"}
             </button>
           </div>
           {showDetail && (
             <div style={{ marginTop:10, paddingTop:10, borderTop:`1px solid ${selected.line}` }}>
-              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.text, lineHeight:1.7, marginBottom:8 }}>{selected.detail}</div>
-              <div style={{ background:"rgba(255,255,255,0.65)", border:`1px solid ${selected.line}`, borderRadius:5, padding:"8px 11px", fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+              <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.text, lineHeight:1.7, marginBottom:8 }}>{selected.detail}</div>
+              <div style={{ background:"rgba(255,255,255,0.65)", border:`1px solid ${selected.line}`, borderRadius:5, padding:"8px 11px", fontSize:11, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>
                 {selected.warn}
               </div>
             </div>
           )}
           {value==="escrow_com" && depositAmt > 0 && (
-            <div style={{ background:"#fff", border:`1px solid ${selected.line}`, borderRadius:5, padding:"9px 11px", marginTop:9, fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
+            <div style={{ background:"#fff", border:`1px solid ${selected.line}`, borderRadius:5, padding:"9px 11px", marginTop:9, fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.7 }}>
               <b style={{ color:C.navy }}>What this actually costs:</b> Escrow.com charges on the amount they hold. You&rsquo;re escrowing the <b>{fmt(depositAmt)} deposit</b>, not the boat&rsquo;s full price &mdash; so the fee is roughly <b style={{ color:C.green }}>{fmt(escrowComFee(depositAmt))}</b>, not a percentage of the whole sale.
               <br/><span style={{ fontSize:11 }}>Estimate based on their published tiers; check their calculator for the current rate. Note their policy: if the buyer rejects the vessel or cancels after funds are approved, the buyer pays the escrow fee.</span>
             </div>
           )}
           {value==="escrow_com" && (
             <a href="https://www.escrow.com" target="_blank" rel="noopener noreferrer"
-              style={{ display:"inline-flex", alignItems:"center", gap:7, background:C.green, color:"#fff", borderRadius:5, padding:"7px 14px", fontSize:11.5, fontFamily:"sans-serif", fontWeight:700, textDecoration:"none", marginTop:9 }}>
-              🏦 Open Escrow.com →
+              style={{ display:"inline-flex", alignItems:"center", gap:7, background:C.green, color:"#fff", borderRadius:5, padding:"7px 14px", fontSize:11.5, fontFamily:FONT.sans, fontWeight:700, textDecoration:"none", marginTop:9 }}>
+              {emo("🏦")} Open Escrow.com →
             </a>
           )}
         </div>
@@ -3570,13 +3575,13 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
       <div style={{ background:"#fff", borderRadius:10, width:"100%", maxWidth:560, border:`2px solid ${C.brass}`, overflow:"hidden", margin:"auto" }}>
         <div style={{ background:C.navy, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <div>
-            <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:"sans-serif", textTransform:"uppercase" }}>BoatClosers.com</div>
+            <div style={{ fontSize:9, letterSpacing:3, color:C.brass, fontFamily:FONT.sans, textTransform:"uppercase" }}>BoatClosers.com</div>
             <div style={{ fontSize:15, fontWeight:700, color:"#fff" }}>Earnest Money Deposit Receipt</div>
           </div>
           <button onClick={onClose} style={{ background:"rgba(255,255,255,0.1)", border:"none", color:"rgba(255,255,255,0.7)", cursor:"pointer", borderRadius:5, width:28, height:28, fontSize:16, display:"flex", alignItems:"center", justifyContent:"center" }}>×</button>
         </div>
         <div style={{ padding:"1.5rem" }}>
-          <div style={{ background:C.sandDark, borderRadius:6, padding:"16px 18px", fontSize:12, fontFamily:"sans-serif", lineHeight:2, color:C.text, marginBottom:16 }}>
+          <div style={{ background:C.sandDark, borderRadius:6, padding:"16px 18px", fontSize:12, fontFamily:FONT.sans, lineHeight:2, color:C.text, marginBottom:16 }}>
             <div style={{ textAlign:"center", borderBottom:`1px solid ${C.mist}`, paddingBottom:10, marginBottom:12 }}>
               <div style={{ fontSize:14, fontWeight:800, letterSpacing:1 }}>DEPOSIT RECEIPT</div>
               <div style={{ fontSize:10, color:C.slate }}>Date: {today()}</div>
@@ -3602,24 +3607,24 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
           </div>
 
           {disputed && (
-            <div style={{ background:C.redLight, border:`1px solid ${C.red}`, borderRadius:6, padding:"11px 13px", marginBottom:14, fontFamily:"sans-serif" }}>
-              <div style={{ fontSize:12.5, fontWeight:800, color:C.red, marginBottom:3 }}>⚠️ The seller reports these funds have not arrived</div>
+            <div style={{ background:C.redLight, border:`1px solid ${C.red}`, borderRadius:6, padding:"11px 13px", marginBottom:14, fontFamily:FONT.sans }}>
+              <div style={{ fontSize:12.5, fontWeight:800, color:C.red, marginBottom:3 }}>{emo("⚠")} The seller reports these funds have not arrived</div>
               <div style={{ fontSize:12, color:C.slate, lineHeight:1.6 }}>{verif.note ? `Their note: ${verif.note}. ` : ""}Wires can take 1&ndash;2 business days to land. Check with your escrow agent, then the buyer can sign a corrected receipt below.</div>
             </div>
           )}
 
           {isBuyer && (!buyerSigned || disputed) && (
-            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"13px 15px", fontFamily:"sans-serif" }}>
+            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"13px 15px", fontFamily:FONT.sans }}>
               <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:7 }}>Sign as the buyer</div>
               <label style={S.label}>{isEscrowCom ? "Escrow.com transaction ID" : "Confirmation / reference #"}</label>
               <input style={S.input} value={refNo} onChange={e=>setRefNo(e.target.value)} placeholder={isEscrowCom ? "e.g. 5588989 — the numbered ID from your Escrow.com transaction" : "Wire confirmation, escrow transaction #, or check #"} />
               {isEscrowCom && (
-                <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:4 }}>
+                <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, marginTop:4 }}>
                   You&rsquo;ll find this number on your transaction at escrow.com &mdash; it&rsquo;s how BoatClosers confirms your deposit automatically, so you won&rsquo;t have to wait on the seller to verify it by hand.
                 </div>
               )}
               {isEscrowCom && refNo.trim() && !/^\d+$/.test(refNo.trim()) && (
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.red, fontWeight:700, marginTop:4 }}>The Escrow.com transaction ID is numbers only.</div>
+                <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.red, fontWeight:700, marginTop:4 }}>The Escrow.com transaction ID is numbers only.</div>
               )}
               <div style={{ height:8 }}/>
               <label style={S.label}>Note (optional)</label>
@@ -3629,14 +3634,14 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
               </div>
               <input style={S.input} value={sigName} onChange={e=>setSigName(e.target.value)} placeholder="Type your full name to sign" />
               {parties.buyer?.name && sigName.trim() && !sigMatchesName(sigName, parties.buyer.name) && (
-                <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the buyer name on this deal: <b>{parties.buyer.name}</b>.</div>
+                <div style={{ fontSize:11.5, color:C.red, fontFamily:FONT.sans, fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the buyer name on this deal: <b>{parties.buyer.name}</b>.</div>
               )}
               <button style={{...S.btnBrass, width:"100%", marginTop:10, fontSize:13, padding:"11px", opacity:(refNo.trim()&&sigName.trim()&&(!isEscrowCom||/^\d+$/.test(refNo.trim()))&&sigMatchesName(sigName, parties.buyer?.name))?1:0.5}} disabled={!refNo.trim()||!sigName.trim()||(isEscrowCom&&!/^\d+$/.test(refNo.trim()))||!sigMatchesName(sigName, parties.buyer?.name)} onClick={signAsBuyer}>Sign the receipt</button>
             </div>
           )}
 
           {!isBuyer && buyerSigned && !sellerSigned && (
-            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"13px 15px", fontFamily:"sans-serif" }}>
+            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"13px 15px", fontFamily:FONT.sans }}>
               <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:7 }}>Sign as the seller</div>
               <div style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:6, padding:"10px 12px", fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
                 <b>Before you sign:</b> confirm with your escrow agent, attorney, or bank that the {amt} is actually <b>in the account</b>. Don't rely on a screenshot or the buyer's word &mdash; a wire can be recalled, and a confirmation number is not proof the money landed.
@@ -3648,7 +3653,7 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
               </div>
               <input style={S.input} value={sigName} onChange={e=>setSigName(e.target.value)} placeholder="Type your full name to sign" />
               {parties.seller?.name && sigName.trim() && !sigMatchesName(sigName, parties.seller.name) && (
-                <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the seller name on this deal: <b>{parties.seller.name}</b>.</div>
+                <div style={{ fontSize:11.5, color:C.red, fontFamily:FONT.sans, fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the seller name on this deal: <b>{parties.seller.name}</b>.</div>
               )}
               <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap" }}>
                 <button style={{...S.btn, background:C.green, color:"#fff", flex:1, minWidth:170, fontSize:13, padding:"11px", opacity:(sigName.trim()&&sigMatchesName(sigName, parties.seller?.name))?1:0.5}} disabled={!sigName.trim()||!sigMatchesName(sigName, parties.seller?.name)} onClick={signAsSeller}>✓ Sign &mdash; funds received</button>
@@ -3658,17 +3663,17 @@ function EarnestReceiptModal({ open, onClose, vessel, parties, negotiate, setNeg
           )}
 
           {isBuyer && buyerSigned && !sellerSigned && !disputed && (
-            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"12px 14px", fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"12px 14px", fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>
               <b style={{ color:"#7a5500" }}>You've signed.</b> The seller now confirms the funds arrived and signs the same receipt. You'll be emailed the moment they do, and due diligence opens then.
             </div>
           )}
           {!isBuyer && !buyerSigned && (
-            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"12px 14px", fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+            <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"12px 14px", fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>
               Waiting for the buyer to send the deposit and sign this receipt. You'll be emailed when they do, and you'll sign underneath to confirm it arrived.
             </div>
           )}
           {buyerSigned && sellerSigned && (
-            <div style={{ background:C.greenLight, border:"1px solid #a8d8b8", borderRadius:6, padding:"12px 14px", fontSize:12.5, fontFamily:"sans-serif", color:C.green, lineHeight:1.6, fontWeight:700 }}>
+            <div style={{ background:C.greenLight, border:"1px solid #a8d8b8", borderRadius:6, padding:"12px 14px", fontSize:12.5, fontFamily:FONT.sans, color:C.green, lineHeight:1.6, fontWeight:700 }}>
               ✓ Fully signed by both parties — this deal is secured and due diligence is open.
             </div>
           )}
@@ -3733,16 +3738,16 @@ function RejectionNotice({ rejection, escrowPath, viewerRole, vessel, isInitiato
   return (
     <div>
     <div ref={noticeRef} style={{ border:`1px solid ${C.red}`, borderRadius:8, overflow:"hidden", marginTop:4 }}>
-      <div style={{ background:C.red, color:"#fff", padding:"10px 14px", fontSize:12, fontWeight:700, fontFamily:"sans-serif", letterSpacing:0.5 }}>VESSEL REJECTION NOTICE — DEAL ENDED</div>
+      <div style={{ background:C.red, color:"#fff", padding:"10px 14px", fontSize:12, fontWeight:700, fontFamily:FONT.sans, letterSpacing:0.5 }}>VESSEL REJECTION NOTICE — DEAL ENDED</div>
       {isInitiator && (
-        <div style={{ background:"#eef7f0", borderBottom:`1px solid ${C.green}`, padding:"12px 16px", fontFamily:"sans-serif" }}>
-          <div style={{ fontSize:12, fontWeight:800, color:"#166534", letterSpacing:0.3, marginBottom:4 }}>💡 Your fee carries over — 60-day credit</div>
+        <div style={{ background:"#eef7f0", borderBottom:`1px solid ${C.green}`, padding:"12px 16px", fontFamily:FONT.sans }}>
+          <div style={{ fontSize:12, fontWeight:800, color:"#166534", letterSpacing:0.3, marginBottom:4 }}>{emo("💡")} Your fee carries over — 60-day credit</div>
           <div style={{ fontSize:11.5, color:"#256b3f", lineHeight:1.65 }}>
             This deal fell through, so you don't start over from scratch. As the party who paid, you have <b>60 days from today</b> to begin a new deal — a backup buyer, or a different boat — with no additional fee. The one-time $249 is only fully used once a deal actually closes. If you don't start a new deal within 60 days, the credit expires.
           </div>
         </div>
       )}
-      <div style={{ background:"#fff", padding:"14px 16px", fontFamily:"sans-serif" }}>
+      <div style={{ background:"#fff", padding:"14px 16px", fontFamily:FONT.sans }}>
         <div style={{ fontSize:12, color:C.text, lineHeight:1.7 }}>The buyer has formally rejected <b>{vessel?.year} {vessel?.make} {vessel?.model}</b> after due diligence. This ends the deal.</div>
         <div style={{ marginTop:10, fontSize:11, fontWeight:700, color:C.navy, textTransform:"uppercase", letterSpacing:0.4 }}>Reasons</div>
         <ul style={{ margin:"4px 0 0", paddingLeft:18, fontSize:12, color:C.text, lineHeight:1.6 }}>
@@ -3767,14 +3772,14 @@ function RejectionNotice({ rejection, escrowPath, viewerRole, vessel, isInitiato
         </div>
       </div>
     </div>
-    <div style={{ marginTop:12, background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", fontFamily:"sans-serif" }}>
-      <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:4 }}>📄 Keep this on file{isInitiator ? " — your proof of records" : ""}</div>
+    <div style={{ marginTop:12, background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:8, padding:"12px 14px", fontFamily:FONT.sans }}>
+      <div style={{ fontSize:12.5, fontWeight:800, color:"#7a5500", marginBottom:4 }}>{emo("📄")} Keep this on file{isInitiator ? " — your proof of records" : ""}</div>
       <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
         {isInitiator
           ? "This rejection notice is your official record of why the deal ended and how the earnest-money deposit is returned. Save or print a copy now and keep it — you may need it for the deposit return or your records."
           : "Save or print a copy of this rejection notice for your records."}
       </div>
-      <button onClick={printNotice} style={{ ...S.btnBrass, fontSize:13, padding:"9px 18px" }}>🖨️ Print / Save Rejection Notice</button>
+      <button onClick={printNotice} style={{ ...S.btnBrass, fontSize:13, padding:"9px 18px" }}>{emo("🖨")} Print / Save Rejection Notice</button>
     </div>
     </div>
   );
@@ -4085,11 +4090,11 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
   const SectionHeader = ({icon, title, subtitle, open, onToggle, done}) => (
     <div onClick={onToggle} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"12px 0", borderBottom:`1px solid ${C.mist}`, userSelect:"none" }}>
       <div style={{ width:32, height:32, borderRadius:6, background:done?C.greenLight:C.sandDark, display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, flexShrink:0 }}>
-        {done ? "✓" : icon}
+        {done ? "✓" : emo(icon)}
       </div>
       <div style={{ flex:1 }}>
-        <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:done?C.green:C.navy }}>{title}</div>
-        {subtitle && <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>{subtitle}</div>}
+        <div style={{ fontSize:13, fontWeight:700, fontFamily:FONT.sans, color:done?C.green:C.navy }}>{title}</div>
+        {subtitle && <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate }}>{subtitle}</div>}
       </div>
       <div style={{ fontSize:12, color:C.slate }}>{open ? "▲" : "▼"}</div>
     </div>
@@ -4103,9 +4108,9 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           is verified. It contains the deposit action itself, so they finish it
           right here rather than hunting for it. Closes automatically once verified. */}
       {depositGateOpen && !decisionUnlocked && (
-        <div onClick={()=>setDepositGateOpen(false)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:4000, padding:"1rem", fontFamily:"sans-serif" }}>
+        <div onClick={()=>setDepositGateOpen(false)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:4000, padding:"1rem", fontFamily:FONT.sans }}>
           <div onClick={e=>e.stopPropagation()} style={{ background:"#fff", borderRadius:12, maxWidth:440, width:"100%", padding:"1.6rem", border:`2px solid ${C.brass}`, maxHeight:"90vh", overflowY:"auto" }}>
-            <div style={{ fontSize:26, textAlign:"center", marginBottom:6 }}>🔒</div>
+            <div style={{ fontSize:26, textAlign:"center", marginBottom:6 }}>{emo("🔒")}</div>
             <div style={{ fontSize:17, fontWeight:800, color:C.navy, textAlign:"center", marginBottom:5 }}>Finish the deposit to move forward</div>
             <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, textAlign:"center", marginBottom:16 }}>
               The vessel decision and the rest of the deal stay locked until the {fmt(dep.deposit)} earnest-money deposit is verified. Your survey and sea-trial planning stay open &mdash; but nothing moves forward until this is done.
@@ -4137,7 +4142,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 </div>
                 {(isBuyer ? !depBuyerConfirmed : !depSellerConfirmed) ? (
                   <button onClick={()=>{ setDepositGateOpen(false); setShowReceipt(true); }} style={{ ...S.btnBrass, width:"100%", fontSize:14, fontWeight:800, padding:"12px 20px", marginBottom:12 }}>
-                    📄 Sign the earnest-money receipt →
+                    {emo("📄")} Sign the earnest-money receipt →
                   </button>
                 ) : (
                   <div style={{ background:C.greenLight, border:`1px solid ${C.green}`, borderRadius:6, padding:"9px 12px", marginBottom:12, fontSize:12, color:C.navy }}>
@@ -4159,8 +4164,8 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
       <DealAssistant step="diligence" role={myRole} vessel={vessel} />
       {negotiate.vesselRejection && (
         <div style={{ background:C.redLight, border:`1px solid ${C.red}`, borderRadius:8, padding:"13px 16px", marginBottom:16 }}>
-          <div style={{ fontSize:13.5, fontWeight:800, fontFamily:"sans-serif", color:C.red, marginBottom:3 }}>🚫 This deal has ended</div>
-          <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>The buyer rejected the vessel after due diligence. The full notice and the deposit-return steps are below{myRole==="seller" ? "" : " and on the closing page"}. No further action moves this deal forward.</div>
+          <div style={{ fontSize:13.5, fontWeight:800, fontFamily:FONT.sans, color:C.red, marginBottom:3 }}>{emo("🚫")} This deal has ended</div>
+          <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>The buyer rejected the vessel after due diligence. The full notice and the deposit-return steps are below{myRole==="seller" ? "" : " and on the closing page"}. No further action moves this deal forward.</div>
         </div>
       )}
       {/* The buyer is the one deciding whether to accept the vessel, so this is
@@ -4172,7 +4177,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           the slip immediately, or a trailer boat someone is driving three days for.
           A question to ask, not a term to record. */}
       {myRole !== "seller" && (
-        <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderRadius:8, padding:"12px 14px", marginBottom:20, fontFamily:"sans-serif" }}>
+        <div style={{ background:C.white, border:`1px solid ${C.mist}`, borderRadius:8, padding:"12px 14px", marginBottom:20, fontFamily:FONT.sans }}>
           <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:4 }}>⏱ Ask when the boat needs to move</div>
           <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7 }}>
             Closing day is usually the day it moves, but that depends on the seller. Their dockage may be paid to the end of the month, or the marina may want the slip back as soon as it sells. If it is on a trailer, or you are arranging transport, you may need days rather than hours &mdash; and closing can happen on or before the agreed date if that helps.
@@ -4190,18 +4195,18 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           <div style={{ ...S.card, borderTop:`3px solid ${(depEnded || expired || depDisputed) ? C.red : depVerified ? C.green : C.brass}`, marginBottom:16 }}>
             <h3 style={S.h3}>Earnest Money Deposit</h3>
             {depEnded ? (
-              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700, lineHeight:1.5 }}>✗ Deal void — the deposit window passed without proof. The agreement, including the signed Purchase Agreement, is no longer binding.</div>
+              <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.red, fontWeight:700, lineHeight:1.5 }}>✗ Deal void — the deposit window passed without proof. The agreement, including the signed Purchase Agreement, is no longer binding.</div>
             ) : depVerified ? (
               <>
-                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.green, fontWeight:700 }}>✓ Deposit verified by the seller — this deal is secured</div>
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>Ref {dep.depositProof?.ref || "\u2014"}{dep.depositProof?.note ? ` · ${dep.depositProof.note}` : ""}{depVerif?.note ? ` · Seller's note: ${depVerif.note}` : ""}. The boat is held off the market while due diligence is completed.</div>
+                <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.green, fontWeight:700 }}>✓ Deposit verified by the seller — this deal is secured</div>
+                <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, marginTop:5, lineHeight:1.5 }}>Ref {dep.depositProof?.ref || "\u2014"}{dep.depositProof?.note ? ` · ${dep.depositProof.note}` : ""}{depVerif?.note ? ` · Seller's note: ${depVerif.note}` : ""}. The boat is held off the market while due diligence is completed.</div>
               </>
             ) : depDisputed ? (
               <>
-                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700, lineHeight:1.5 }}>⚠️ The seller could not verify this deposit — the deal is on hold</div>
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>The buyer submitted ref {dep.depositProof?.ref || "\u2014"}, but the seller reports the funds have not arrived.{depVerif?.note ? ` Seller's note: ${depVerif.note}` : ""} Nothing moves forward until this is sorted out.</div>
+                <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.red, fontWeight:700, lineHeight:1.5 }}>{emo("⚠")} The seller could not verify this deposit — the deal is on hold</div>
+                <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, marginTop:5, lineHeight:1.5 }}>The buyer submitted ref {dep.depositProof?.ref || "\u2014"}, but the seller reports the funds have not arrived.{depVerif?.note ? ` Seller's note: ${depVerif.note}` : ""} Nothing moves forward until this is sorted out.</div>
                 {isBuyer ? (
-                  <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginTop:8, lineHeight:1.6 }}>Check with your escrow agent or bank, then submit corrected proof below. Wires can take 1&ndash;2 business days to land, so this may simply be timing. Use the message thread to tell the seller what you find.</div>
+                  <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, marginTop:8, lineHeight:1.6 }}>Check with your escrow agent or bank, then submit corrected proof below. Wires can take 1&ndash;2 business days to land, so this may simply be timing. Use the message thread to tell the seller what you find.</div>
                 ) : (
                   <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:8 }}>
                     {[12,24,36].map(h => (<button key={h} style={{...S.btnOutline, fontSize:12, padding:"8px 12px"}} onClick={()=>extendDeposit(h)}>Give {h}h more</button>))}
@@ -4211,14 +4216,14 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
               </>
             ) : depAwaitingVerify ? (
               <>
-                <div style={{ fontSize:13, fontFamily:"sans-serif", color:"#7a5500", fontWeight:700, lineHeight:1.5 }}>⏸️ Deal on hold &mdash; waiting for the seller to verify the deposit</div>
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>The buyer submitted proof (ref {dep.depositProof?.ref || "\u2014"}{dep.depositProof?.note ? ` · ${dep.depositProof.note}` : ""}). This deal is <b>not secured yet</b> &mdash; it becomes secured once the seller confirms the money actually arrived.</div>
+                <div style={{ fontSize:13, fontFamily:FONT.sans, color:"#7a5500", fontWeight:700, lineHeight:1.5 }}>⏸️ Deal on hold &mdash; waiting for the seller to verify the deposit</div>
+                <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, marginTop:5, lineHeight:1.5 }}>The buyer submitted proof (ref {dep.depositProof?.ref || "\u2014"}{dep.depositProof?.note ? ` · ${dep.depositProof.note}` : ""}). This deal is <b>not secured yet</b> &mdash; it becomes secured once the seller confirms the money actually arrived.</div>
               </>
             ) : expired ? (
               <>
-                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.red, fontWeight:700, marginBottom:8, lineHeight:1.5 }}>⏰ Deposit window expired — no proof submitted. Without earnest money this deal can be declared <b>null and void, including the signed Purchase Agreement</b>, leaving the seller free to accept other offers.</div>
+                <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.red, fontWeight:700, marginBottom:8, lineHeight:1.5 }}>⏰ Deposit window expired — no proof submitted. Without earnest money this deal can be declared <b>null and void, including the signed Purchase Agreement</b>, leaving the seller free to accept other offers.</div>
                 {isBuyer ? (
-                  <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate }}>The seller can grant an extension or declare the deal void. If they extend, submit your proof below.</div>
+                  <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate }}>The seller can grant an extension or declare the deal void. If they extend, submit your proof below.</div>
                 ) : (
                   <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:4 }}>
                     {[12,24,36].map(h => (<button key={h} style={{...S.btnOutline, fontSize:12, padding:"8px 12px"}} onClick={()=>extendDeposit(h)}>Extend {h}h</button>))}
@@ -4228,11 +4233,11 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
               </>
             ) : depDeadline > 0 ? (
               <>
-                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.navy, fontWeight:700 }}>⏳ Proof of deposit due in {hoursLeft}h {minsLeft}m</div>
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:5, lineHeight:1.5 }}>Earnest money keeps this deal alive. If proof isn't provided before the timer runs out, the deal can be declared <b>null and void — including the signed Purchase Agreement</b>, and the <b>seller is then free to accept other offers</b>.</div>
+                <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.navy, fontWeight:700 }}>⏳ Proof of deposit due in {hoursLeft}h {minsLeft}m</div>
+                <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, marginTop:5, lineHeight:1.5 }}>Earnest money keeps this deal alive. If proof isn't provided before the timer runs out, the deal can be declared <b>null and void — including the signed Purchase Agreement</b>, and the <b>seller is then free to accept other offers</b>.</div>
               </>
             ) : (
-              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>The {fmt(dep.deposit)} earnest money secures this deal. Complete it below to unlock the vessel decision.</div>
+              <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>The {fmt(dep.deposit)} earnest money secures this deal. Complete it below to unlock the vessel decision.</div>
             )}
             {/* ── DEPOSIT: the app only VERIFIES ──────────────────────────────
                 Escrow.com verifies automatically (it's connected). Every other
@@ -4250,9 +4255,9 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                       const step = s.step || 1;
                       const steps = ["Agreement","Funded","In progress","Inspection","Closed"];
                       return (
-                        <div style={{ background: funded ? C.greenLight : "#eff6ff", border:`1px solid ${funded ? C.green : "#93c5fd"}`, borderLeft:`5px solid ${funded ? C.green : "#1d4ed8"}`, borderRadius:8, padding:"15px 17px", fontFamily:"sans-serif" }}>
+                        <div style={{ background: funded ? C.greenLight : "#eff6ff", border:`1px solid ${funded ? C.green : "#93c5fd"}`, borderLeft:`5px solid ${funded ? C.green : "#1d4ed8"}`, borderRadius:8, padding:"15px 17px", fontFamily:FONT.sans }}>
                           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:11 }}>
-                            <div style={{ fontSize:13.5, fontWeight:800, color: funded ? C.green : "#1d4ed8" }}>🏦 Escrow.com transaction #{dealTxId}</div>
+                            <div style={{ fontSize:13.5, fontWeight:800, color: funded ? C.green : "#1d4ed8" }}>{emo("🏦")} Escrow.com transaction #{dealTxId}</div>
                             <button onClick={refreshEscrow} disabled={escLoading} style={{ ...S.btnOutline, fontSize:11, padding:"5px 11px" }}>{escLoading ? "Checking…" : "Refresh"}</button>
                           </div>
                           <div style={{ display:"flex", gap:4, marginBottom:10 }}>
@@ -4280,20 +4285,20 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                     })()
                   ) : !isBuyer ? (
                     // Seller, no transaction yet — nothing for them to do.
-                    <div style={{ background:"#eff6ff", border:`1px solid #93c5fd`, borderRadius:8, padding:"14px 16px", fontFamily:"sans-serif" }}>
+                    <div style={{ background:"#eff6ff", border:`1px solid #93c5fd`, borderRadius:8, padding:"14px 16px", fontFamily:FONT.sans }}>
                       <div style={{ fontSize:13, fontWeight:800, color:"#1d4ed8", marginBottom:3 }}>The buyer is setting up the Escrow.com deposit</div>
                       <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7 }}>Once they create and fund the {fmt(dep.deposit)} transaction, BoatClosers verifies it automatically &mdash; nothing needed from you.</div>
                     </div>
                   ) : (
                     // ── BUYER, no transaction yet → THE 3 OPTIONS ──────────────────
-                    <div style={{ background:"#eff6ff", border:`1px solid #93c5fd`, borderLeft:`5px solid #1d4ed8`, borderRadius:8, padding:"15px 17px", fontFamily:"sans-serif" }}>
+                    <div style={{ background:"#eff6ff", border:`1px solid #93c5fd`, borderLeft:`5px solid #1d4ed8`, borderRadius:8, padding:"15px 17px", fontFamily:FONT.sans }}>
                       <div style={{ fontSize:13.5, fontWeight:800, color:"#1d4ed8", marginBottom:4 }}>Set up your {fmt(dep.deposit)} Escrow.com deposit</div>
                       <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:13 }}>
                         BoatClosers is connected to Escrow.com, so it can create the transaction for you &mdash; or you can set it up yourself and paste the ID. Either way, it then tracks live and verifies on its own.
                       </div>
                       <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
                         <button onClick={createEscrowTx} disabled={escCreating} style={{ ...S.btnBrass, width:"100%", fontSize:13.5, fontWeight:800, padding:"12px 16px", opacity:escCreating?0.6:1 }}>
-                          {escCreating ? "Creating your transaction…" : "⚡ Create the transaction for me"}
+                          {escCreating ? "Creating your transaction…" : emo("⚡ Create the transaction for me")}
                         </button>
                         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
                           <div style={{ flex:1, height:1, background:C.mist }} /><div style={{ fontSize:10.5, color:C.slate }}>OR</div><div style={{ flex:1, height:1, background:C.mist }} />
@@ -4307,7 +4312,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 ) : (
                   // Non-Escrow.com: both parties confirm. Shows the person their own
                   // action, plus the other side's status, in one box — no waiting loop.
-                  <div style={{ background:"#fffdf5", border:`1px solid ${C.brass}`, borderLeft:`5px solid ${C.brass}`, borderRadius:8, padding:"15px 17px", fontFamily:"sans-serif" }}>
+                  <div style={{ background:"#fffdf5", border:`1px solid ${C.brass}`, borderLeft:`5px solid ${C.brass}`, borderRadius:8, padding:"15px 17px", fontFamily:FONT.sans }}>
                     <div style={{ fontSize:13.5, fontWeight:800, color:"#7a5500", marginBottom:5 }}>The {fmt(dep.deposit)} earnest-money deposit</div>
                     <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:12 }}>
                       The deposit is sent {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "brokerage" ? "to the broker's trust account" : escMethod === "custom" ? "to the holder you agreed on" : "directly to the seller"}, outside BoatClosers. Once <b>both of you confirm</b> it's done, the deal moves forward. BoatClosers only records the confirmation &mdash; it doesn't hold the money.
@@ -4319,7 +4324,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                           Send the <b>{fmt(dep.deposit)}</b> {escMethod === "attorney" ? "to the attorney/title company" : escMethod === "brokerage" ? "to the broker's trust account" : escMethod === "custom" ? "to the agreed holder" : "to the seller"} using the payment details you arranged, then sign the earnest-money receipt below to record that you&rsquo;ve sent it.
                         </div>
                         <button onClick={()=>setShowReceipt(true)} style={{ ...S.btnBrass, width:"100%", maxWidth:360, fontSize:14, fontWeight:800, padding:"12px 20px", marginBottom:12 }}>
-                          📄 Sign the earnest-money receipt →
+                          {emo("📄")} Sign the earnest-money receipt →
                         </button>
                       </>
                     ) : !isBuyer && !depSellerConfirmed ? (
@@ -4328,7 +4333,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                           Check your {escMethod === "attorney" ? "attorney/title company" : escMethod === "brokerage" ? "broker's trust account" : "account"}. Once the <b>{fmt(dep.deposit)}</b> has actually arrived, sign the earnest-money receipt below to confirm you received it.
                         </div>
                         <button onClick={()=>setShowReceipt(true)} style={{ ...S.btnBrass, width:"100%", maxWidth:360, fontSize:14, fontWeight:800, padding:"12px 20px", marginBottom:12 }}>
-                          📄 Sign the earnest-money receipt →
+                          {emo("📄")} Sign the earnest-money receipt →
                         </button>
                       </>
                     ) : (
@@ -4361,7 +4366,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         if (!depTimerExpired) return null;
         // Expired and unresolved → PAUSED. Initiator decides.
         return (
-          <div style={{ background:"#fdecec", border:`1px solid ${C.red}`, borderRadius:8, padding:"13px 15px", marginBottom:14, fontFamily:"sans-serif" }}>
+          <div style={{ background:"#fdecec", border:`1px solid ${C.red}`, borderRadius:8, padding:"13px 15px", marginBottom:14, fontFamily:FONT.sans }}>
             <div style={{ fontSize:13, fontWeight:800, color:C.red, marginBottom:3 }}>⏸️ Deal paused — the deposit deadline passed without verification</div>
             <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, marginBottom:isInitiator?10:0 }}>
               {initiatorIsSeller
@@ -4401,7 +4406,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"1.5rem" }}>
         <div>
           <h1 style={S.h1}>Due Diligence</h1>
-          <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>
+          <p style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate }}>
             Period: <strong>{terms.dueDiligenceDays||"—"} days</strong> &nbsp;·&nbsp;
             Ends: <strong>{ddEnd||"TBD"}</strong> &nbsp;·&nbsp;
             Closing: <strong>{terms.closingDate||"TBD"}</strong>
@@ -4410,13 +4415,13 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         </div>
         {negotiate.deposit > 0 && depVerified && (
           <button onClick={()=>setShowReceipt(true)} style={{ ...S.btnOutline, fontSize:11, padding:"7px 14px", whiteSpace:"nowrap" }}>
-            📄 View receipt
+            {emo("📄")} View receipt
           </button>
         )}
       </div>
 
       {/* Role note — explains the lock-out to both parties */}
-      <div style={{ background:C.sandDark, borderRadius:6, padding:"9px 13px", marginBottom:16, fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.5 }}>
+      <div style={{ background:C.sandDark, borderRadius:6, padding:"9px 13px", marginBottom:16, fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.5 }}>
         {isBuyer ? "You handle the inspections below. The seller has their own checklist to prepare the vessel and paperwork — you won't see theirs, and they won't see yours." : "You prepare the vessel and paperwork below. The buyer runs the survey, sea trial, and title checks on their side — each of you only sees your own due-diligence list."}
       </div>
 
@@ -4452,15 +4457,15 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
 
             {/* Upload survey */}
             <div style={{ background:C.sandDark, borderRadius:5, padding:"12px 14px", marginBottom:12 }}>
-              <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>Upload Survey Report</div>
+              <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:8 }}>Upload Survey Report</div>
               {!surveyFile ? (
-                <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"8px 16px", fontSize:12, fontFamily:"sans-serif", fontWeight:600 }}>
-                  📎 Choose Survey PDF
+                <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"8px 16px", fontSize:12, fontFamily:FONT.sans, fontWeight:600 }}>
+                  {emo("📎")} Choose Survey PDF
                   <input type="file" accept=".pdf,.doc,.docx,.jpg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) setSurveyFile(e.target.files[0]); }}/>
                 </label>
               ) : (
                 <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ {surveyFile.name}</span>
+                  <span style={{ fontSize:12, fontFamily:FONT.sans, color:C.green }}>✓ {surveyFile.name}</span>
                   <button onClick={()=>setSurveyFile(null)} style={{ fontSize:11, background:"none", border:`1px solid ${C.mist}`, borderRadius:4, padding:"2px 8px", cursor:"pointer", color:C.slate }}>Remove</button>
                 </div>
               )}
@@ -4468,11 +4473,11 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
 
             {/* Send survey to lender / insurer */}
             <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:5, padding:"12px 14px", marginBottom:12 }}>
-              <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.teal, marginBottom:6 }}>📤 Send Survey to Lender / Insurance Company</div>
-              <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10 }}>Most marine lenders and insurers require a copy of the survey. Send it directly from here.</div>
+              <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.teal, marginBottom:6 }}>{emo("📤")} Send Survey to Lender / Insurance Company</div>
+              <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginBottom:10 }}>Most marine lenders and insurers require a copy of the survey. Send it directly from here.</div>
               <div style={{ display:"flex", gap:8, marginBottom:6 }}>
                 {[parties.buyer.email, parties.seller.email].filter(Boolean).map(e=>(
-                  <button key={e} onClick={()=>setSurveySendEmail(e)} style={{ fontSize:10, fontFamily:"sans-serif", padding:"3px 9px", borderRadius:12, border:`1px solid ${C.teal}`, background:"transparent", color:C.teal, cursor:"pointer" }}>{e}</button>
+                  <button key={e} onClick={()=>setSurveySendEmail(e)} style={{ fontSize:10, fontFamily:FONT.sans, padding:"3px 9px", borderRadius:12, border:`1px solid ${C.teal}`, background:"transparent", color:C.teal, cursor:"pointer" }}>{e}</button>
                 ))}
               </div>
               <div style={{ display:"flex", gap:8 }}>
@@ -4480,14 +4485,14 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 <button style={S.btnTeal} disabled={!surveySendEmail.trim()} onClick={()=>{ setSurveySentLog(l=>[...l,{to:surveySendEmail, time:new Date().toLocaleTimeString()}]); setSurveySendEmail(""); }}>Send</button>
               </div>
               {surveySentLog.length>0 && (
-                <div style={{ marginTop:8, fontSize:10, fontFamily:"sans-serif", color:C.slate }}>
+                <div style={{ marginTop:8, fontSize:10, fontFamily:FONT.sans, color:C.slate }}>
                   {surveySentLog.map((s,i)=><div key={i}>→ {s.to} · {s.time}</div>)}
                 </div>
               )}
             </div>
 
             <div style={{ display:"flex", justifyContent:"flex-end", gap:8 }}>
-              <label style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, fontFamily:"sans-serif", color:C.slate, cursor:"pointer" }}>
+              <label style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, fontFamily:FONT.sans, color:C.slate, cursor:"pointer" }}>
                 <input type="checkbox" checked={!!data.survey} onChange={e=>set("survey",e.target.checked)} style={{ accentColor:C.navy }} />
                 Mark survey complete
               </label>
@@ -4499,7 +4504,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         <SectionHeader icon="🛢️" title="Engine Oil Analysis &amp; Compression Test" subtitle={(oilResult||compResult)?`${oilResult?"Oil: "+oilResult:""}${oilResult&&compResult?" · ":""}${compResult?"Compression: "+compResult:""}`:"Optional lab oil analysis and cylinder compression readings"} open={engineTestsOpen} onToggle={()=>setEngineTestsOpen(v=>!v)} done={!!data.engineTests} />
         {engineTestsOpen && (
           <div style={{ paddingTop:14 }}>
-            <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>🛢️ Oil Analysis</div>
+            <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:8 }}>{emo("🛢")} Oil Analysis</div>
             <Grid2>
               <Field label="Lab / Provider"><input style={S.input} value={oilLab} onChange={e=>{setOilLab(e.target.value); set("oilLab",e.target.value);}} placeholder="Blackstone Labs, Polaris…" /></Field>
               <Field label="Sample Date"><input style={S.input} type="date" value={oilDate} onChange={e=>{setOilDate(e.target.value); set("oilDate",e.target.value);}} /></Field>
@@ -4514,17 +4519,17 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             </Field>
             <Field label="Oil Analysis Notes"><textarea style={{...S.textarea, minHeight:56}} value={oilNotes} onChange={e=>{setOilNotes(e.target.value); set("oilNotes",e.target.value);}} placeholder="Wear metals within normal range. No coolant intrusion. Slight fuel dilution on port engine…" /></Field>
             {!oilFile ? (
-              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"8px 14px", fontSize:12, fontFamily:"sans-serif", fontWeight:600, marginBottom:12 }}>
-                📎 Upload Oil Analysis Report
+              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"8px 14px", fontSize:12, fontFamily:FONT.sans, fontWeight:600, marginBottom:12 }}>
+                {emo("📎")} Upload Oil Analysis Report
                 <input type="file" accept=".pdf,.doc,.docx,.jpg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) setOilFile(e.target.files[0]); }}/>
               </label>
             ) : (
-              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green, marginBottom:12 }}>✓ {oilFile.name} <button onClick={()=>setOilFile(null)} style={{ marginLeft:8, fontSize:10, background:"none", border:`1px solid ${C.mist}`, borderRadius:3, padding:"1px 6px", cursor:"pointer", color:C.slate }}>Remove</button></div>
+              <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.green, marginBottom:12 }}>✓ {oilFile.name} <button onClick={()=>setOilFile(null)} style={{ marginLeft:8, fontSize:10, background:"none", border:`1px solid ${C.mist}`, borderRadius:3, padding:"1px 6px", cursor:"pointer", color:C.slate }}>Remove</button></div>
             )}
 
             <hr style={S.divider}/>
 
-            <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, margin:"6px 0 8px" }}>🔧 Compression Test</div>
+            <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.navy, margin:"6px 0 8px" }}>{emo("🔧")} Compression Test</div>
             <Grid2>
               <Field label="Test Date"><input style={S.input} type="date" value={compDate} onChange={e=>{setCompDate(e.target.value); set("compDate",e.target.value);}} /></Field>
               <Field label="Result">
@@ -4538,14 +4543,14 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             </Grid2>
             <Field label="Cylinder Readings / Notes"><textarea style={{...S.textarea, minHeight:56}} value={compNotes} onChange={e=>{setCompNotes(e.target.value); set("compNotes",e.target.value);}} placeholder="Port: 145/148/146/147 psi. Stbd: 150/149/151/148 psi. All within 10% — healthy." /></Field>
             {!compFile ? (
-              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"8px 14px", fontSize:12, fontFamily:"sans-serif", fontWeight:600, marginBottom:10 }}>
-                📎 Upload Compression Report
+              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"8px 14px", fontSize:12, fontFamily:FONT.sans, fontWeight:600, marginBottom:10 }}>
+                {emo("📎")} Upload Compression Report
                 <input type="file" accept=".pdf,.doc,.docx,.jpg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) setCompFile(e.target.files[0]); }}/>
               </label>
             ) : (
-              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green, marginBottom:10 }}>✓ {compFile.name} <button onClick={()=>setCompFile(null)} style={{ marginLeft:8, fontSize:10, background:"none", border:`1px solid ${C.mist}`, borderRadius:3, padding:"1px 6px", cursor:"pointer", color:C.slate }}>Remove</button></div>
+              <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.green, marginBottom:10 }}>✓ {compFile.name} <button onClick={()=>setCompFile(null)} style={{ marginLeft:8, fontSize:10, background:"none", border:`1px solid ${C.mist}`, borderRadius:3, padding:"1px 6px", cursor:"pointer", color:C.slate }}>Remove</button></div>
             )}
-            <label style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, fontFamily:"sans-serif", color:C.slate, cursor:"pointer" }}>
+            <label style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, fontFamily:FONT.sans, color:C.slate, cursor:"pointer" }}>
               <input type="checkbox" checked={!!data.engineTests} onChange={e=>set("engineTests",e.target.checked)} style={{ accentColor:C.navy }} />
               Mark engine tests complete
             </label>
@@ -4571,14 +4576,14 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
               <textarea style={{...S.textarea, minHeight:56}} value={titleNotes} onChange={e=>setTitleNotes(e.target.value)} placeholder="USCG abstract shows vessel free of recorded liens. State title clear." />
             </Field>
             {!titleFile ? (
-              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"8px 14px", fontSize:12, fontFamily:"sans-serif", fontWeight:600, marginBottom:10 }}>
-                📎 Upload Title Search Report
+              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"8px 14px", fontSize:12, fontFamily:FONT.sans, fontWeight:600, marginBottom:10 }}>
+                {emo("📎")} Upload Title Search Report
                 <input type="file" accept=".pdf,.doc,.docx" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) setTitleFile(e.target.files[0]); }}/>
               </label>
             ) : (
-              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green, marginBottom:10 }}>✓ {titleFile.name} <button onClick={()=>setTitleFile(null)} style={{ marginLeft:8, fontSize:10, background:"none", border:`1px solid ${C.mist}`, borderRadius:3, padding:"1px 6px", cursor:"pointer", color:C.slate }}>Remove</button></div>
+              <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.green, marginBottom:10 }}>✓ {titleFile.name} <button onClick={()=>setTitleFile(null)} style={{ marginLeft:8, fontSize:10, background:"none", border:`1px solid ${C.mist}`, borderRadius:3, padding:"1px 6px", cursor:"pointer", color:C.slate }}>Remove</button></div>
             )}
-            <label style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, fontFamily:"sans-serif", color:C.slate, cursor:"pointer" }}>
+            <label style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, fontFamily:FONT.sans, color:C.slate, cursor:"pointer" }}>
               <input type="checkbox" checked={!!data.title} onChange={e=>set("title",e.target.checked)} style={{ accentColor:C.navy }} />
               Mark title search complete
             </label>
@@ -4603,7 +4608,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             <Field label="Sea Trial Notes">
               <textarea style={{...S.textarea, minHeight:72}} value={seaTrialNotes} onChange={e=>setSeaTrialNotes(e.target.value)} placeholder="Both engines started immediately. Cruised at 3,500 RPM for 30 min. All gauges normal. Trim tabs responsive. Minor vibration at WOT — may be prop…" />
             </Field>
-            <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, margin:"10px 0 8px" }}>📈 Performance Numbers</div>
+            <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.navy, margin:"10px 0 8px" }}>{emo("📈")} Performance Numbers</div>
             <Grid2>
               <Field label="Wide-Open Throttle (WOT) Speed"><input style={S.input} value={stWotSpeed} onChange={e=>{setStWotSpeed(e.target.value); set("stWotSpeed",e.target.value);}} placeholder="42 kn / 48 mph" /></Field>
               <Field label="WOT RPM"><input style={S.input} value={stWotRpm} onChange={e=>{setStWotRpm(e.target.value); set("stWotRpm",e.target.value);}} placeholder="5800 rpm" /></Field>
@@ -4623,12 +4628,12 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
               {key:"seaSystems", label:"Bilge, pumps, blowers all functional"},
               {key:"seaHull", label:"No unusual water intrusion observed"},
             ].map(item=>(
-              <label key={item.key} style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, fontFamily:"sans-serif", color:C.slate, cursor:"pointer", marginBottom:7 }}>
+              <label key={item.key} style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, fontFamily:FONT.sans, color:C.slate, cursor:"pointer", marginBottom:7 }}>
                 <input type="checkbox" checked={!!data[item.key]} onChange={e=>set(item.key,e.target.checked)} style={{ accentColor:C.navy }} />
                 {item.label}
               </label>
             ))}
-            <label style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, fontFamily:"sans-serif", color:C.slate, cursor:"pointer", marginTop:4 }}>
+            <label style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, fontFamily:FONT.sans, color:C.slate, cursor:"pointer", marginTop:4 }}>
               <input type="checkbox" checked={!!data.seatrial} onChange={e=>set("seatrial",e.target.checked)} style={{ accentColor:C.navy }} />
               <strong>Mark sea trial complete</strong>
             </label>
@@ -4639,8 +4644,8 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         <SectionHeader icon="🛡️" title="Insurance" subtitle={insurancePolicyNum?`Policy: ${insurancePolicyNum}`:"Buyer to obtain marine insurance"} open={insuranceOpen} onToggle={()=>setInsuranceOpen(v=>!v)} done={!!data.insurance} />
         {insuranceOpen && (
           <div style={{ paddingTop:14 }}>
-            <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:5, padding:"9px 12px", marginBottom:12, fontSize:11, fontFamily:"sans-serif", color:C.teal, lineHeight:1.6 }}>
-              💡 Most marine lenders require an insurance binder before funding. Get coverage effective on or before closing date. Send the binder to your lender directly from here.
+            <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:5, padding:"9px 12px", marginBottom:12, fontSize:11, fontFamily:FONT.sans, color:C.teal, lineHeight:1.6 }}>
+              {emo("💡")} Most marine lenders require an insurance binder before funding. Get coverage effective on or before closing date. Send the binder to your lender directly from here.
             </div>
             <Grid2>
               <Field label="Insurance Company">
@@ -4651,23 +4656,23 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
               </Field>
             </Grid2>
             {!insuranceFile ? (
-              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"8px 14px", fontSize:12, fontFamily:"sans-serif", fontWeight:600, marginBottom:12 }}>
-                📎 Upload Insurance Binder
+              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"8px 14px", fontSize:12, fontFamily:FONT.sans, fontWeight:600, marginBottom:12 }}>
+                {emo("📎")} Upload Insurance Binder
                 <input type="file" accept=".pdf,.jpg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) setInsuranceFile(e.target.files[0]); }}/>
               </label>
             ) : (
-              <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green, marginBottom:12 }}>✓ {insuranceFile.name} <button onClick={()=>setInsuranceFile(null)} style={{ marginLeft:8, fontSize:10, background:"none", border:`1px solid ${C.mist}`, borderRadius:3, padding:"1px 6px", cursor:"pointer", color:C.slate }}>Remove</button></div>
+              <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.green, marginBottom:12 }}>✓ {insuranceFile.name} <button onClick={()=>setInsuranceFile(null)} style={{ marginLeft:8, fontSize:10, background:"none", border:`1px solid ${C.mist}`, borderRadius:3, padding:"1px 6px", cursor:"pointer", color:C.slate }}>Remove</button></div>
             )}
             {/* Send binder */}
             <div style={{ background:C.sandDark, borderRadius:5, padding:"10px 12px", marginBottom:12 }}>
-              <div style={{ fontSize:11, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:6 }}>📤 Send Binder to Lender</div>
+              <div style={{ fontSize:11, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:6 }}>{emo("📤")} Send Binder to Lender</div>
               <div style={{ display:"flex", gap:8 }}>
                 <input style={{...S.input, flex:1, fontSize:12}} type="email" placeholder="lender@bank.com" value={insuranceSendEmail} onChange={e=>setInsuranceSendEmail(e.target.value)} />
                 <button style={S.btn} disabled={!insuranceSendEmail.trim()} onClick={()=>{ setInsuranceSentLog(l=>[...l,{to:insuranceSendEmail, time:new Date().toLocaleTimeString()}]); setInsuranceSendEmail(""); }}>Send</button>
               </div>
-              {insuranceSentLog.length>0 && <div style={{ marginTop:6, fontSize:10, fontFamily:"sans-serif", color:C.slate }}>{insuranceSentLog.map((s,i)=><div key={i}>→ {s.to} · {s.time}</div>)}</div>}
+              {insuranceSentLog.length>0 && <div style={{ marginTop:6, fontSize:10, fontFamily:FONT.sans, color:C.slate }}>{insuranceSentLog.map((s,i)=><div key={i}>→ {s.to} · {s.time}</div>)}</div>}
             </div>
-            <label style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, fontFamily:"sans-serif", color:C.slate, cursor:"pointer" }}>
+            <label style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, fontFamily:FONT.sans, color:C.slate, cursor:"pointer" }}>
               <input type="checkbox" checked={!!data.insurance} onChange={e=>set("insurance",e.target.checked)} style={{ accentColor:C.navy }} />
               <strong>Mark insurance complete</strong>
             </label>
@@ -4676,14 +4681,14 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
 
         {/* ── OTHER ITEMS ── */}
         <div style={{ paddingTop:12 }}>
-          <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>Additional Due Diligence Items</div>
+          <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:8 }}>Additional Due Diligence Items</div>
           {[
             {key:"financeApproval", label:"Financing approved / commitment letter received"},
             {key:"lienConfirm",     label:"Lien search completed — no outstanding loans"},
             {key:"safetyGear",     label:"Safety equipment verified (flares, PFDs, fire extinguisher)"},
             {key:"trailerInspect", label:"Trailer inspected (if included)"},
           ].map(item=>(
-            <label key={item.key} style={{ display:"flex", gap:10, alignItems:"flex-start", fontSize:12, fontFamily:"sans-serif", color:C.slate, cursor:"pointer", marginBottom:9 }}>
+            <label key={item.key} style={{ display:"flex", gap:10, alignItems:"flex-start", fontSize:12, fontFamily:FONT.sans, color:C.slate, cursor:"pointer", marginBottom:9 }}>
               <input type="checkbox" checked={!!data[item.key]} onChange={e=>set(item.key,e.target.checked)} style={{ marginTop:2, accentColor:C.navy, flexShrink:0 }} />
               {item.label}
             </label>
@@ -4702,16 +4707,16 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
       {!isBuyer && (
         <div style={S.card}>
           <h2 style={{ ...S.h1, fontSize:21, marginBottom:6 }}>Prepare Your Vessel</h2>
-          <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:18 }}>
+          <p style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, marginBottom:18 }}>
             This is your side of due diligence. The buyer arranges the survey, sea trial, and title checks — your job is to have the paperwork ready and the vessel prepared so the inspection goes smoothly. Check items off as you complete them.
           </p>
           {SELLER_PREP.map(sec => (
             <div key={sec.section} style={{ marginBottom:20 }}>
-              <div style={{ fontSize:12.5, fontWeight:800, fontFamily:"sans-serif", color: sec.warn ? "#a23a14" : C.navy, textTransform:"uppercase", letterSpacing:0.4, marginBottom:8, display:"flex", alignItems:"center", gap:6 }}>
-                {sec.warn && <span>⚠️</span>}{sec.section}
+              <div style={{ fontSize:12.5, fontWeight:800, fontFamily:FONT.sans, color: sec.warn ? "#a23a14" : C.navy, textTransform:"uppercase", letterSpacing:0.4, marginBottom:8, display:"flex", alignItems:"center", gap:6 }}>
+                {sec.warn && <span>{emo("⚠")}</span>}{sec.section}
               </div>
               {sec.warn && (
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"#a23a14", background:"#fdf0e9", border:"1px solid #e8c3b0", borderRadius:6, padding:"8px 11px", marginBottom:10, lineHeight:1.5 }}>
+                <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:"#a23a14", background:"#fdf0e9", border:"1px solid #e8c3b0", borderRadius:6, padding:"8px 11px", marginBottom:10, lineHeight:1.5 }}>
                   These protect the deal and everyone's safety. A botched cold-start or a sea trial without safety gear can sink a survey day — and the deal.
                 </div>
               )}
@@ -4720,13 +4725,13 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 return (
                   <div key={it.key} onClick={()=>toggleSellerPrep(it.key)} style={{ display:"flex", gap:11, alignItems:"flex-start", padding:"9px 0", borderBottom:`1px solid ${C.mist}`, cursor:"pointer" }}>
                     <span style={{ width:19, height:19, borderRadius:5, flexShrink:0, marginTop:1, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:"#fff", background:on?C.green:"transparent", border:on?"none":`1.5px solid ${it.warn?"#c2611f":C.mist}` }}>{on?"✓":""}</span>
-                    <span style={{ flex:1, fontSize:13, fontFamily:"sans-serif", lineHeight:1.5, color: it.warn ? "#8a3a1a" : C.text, fontWeight: it.warn ? 600 : 400 }}>{it.label}</span>
+                    <span style={{ flex:1, fontSize:13, fontFamily:FONT.sans, lineHeight:1.5, color: it.warn ? "#8a3a1a" : C.text, fontWeight: it.warn ? 600 : 400 }}>{it.label}</span>
                   </div>
                 );
               })}
             </div>
           ))}
-          <div style={{ background:C.navy, borderRadius:8, padding:"13px 16px", marginTop:4, fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.85)", lineHeight:1.6 }}>
+          <div style={{ background:C.navy, borderRadius:8, padding:"13px 16px", marginTop:4, fontSize:12, fontFamily:FONT.sans, color:"rgba(255,255,255,0.85)", lineHeight:1.6 }}>
             <b style={{ color:C.brass }}>From the captain's chair:</b> a vessel that starts cold, runs clean, and has its papers in order builds buyer confidence and keeps the deal moving. Surprises during survey are where deals stall.
           </div>
         </div>
@@ -4741,8 +4746,8 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 committed and their deposit is now at risk if they walk. It was
                 reported in the same grey box as "awaiting a decision". */}
             {negotiate.vesselAcceptance && !negotiate.vesselRejection ? (
-              <div style={{ background:"#f0fdf4", border:`2px solid ${C.green}`, borderRadius:9, padding:"16px 18px", fontFamily:"sans-serif" }}>
-                <div style={{ fontSize:15.5, fontWeight:800, color:"#166534", marginBottom:5 }}>🎉 The buyer has accepted your boat</div>
+              <div style={{ background:"#f0fdf4", border:`2px solid ${C.green}`, borderRadius:9, padding:"16px 18px", fontFamily:FONT.sans }}>
+                <div style={{ fontSize:15.5, fontWeight:800, color:"#166534", marginBottom:5 }}>{emo("🎉")} The buyer has accepted your boat</div>
                 <div style={{ fontSize:12.5, color:"#176844", lineHeight:1.7 }}>
                   They have completed due diligence and committed to buying <b>{vessel.year} {vessel.make} {vessel.model}</b> as it stands. This is the big one &mdash; the boat is as good as sold.
                   <br /><br />
@@ -4750,14 +4755,14 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 </div>
               </div>
             ) : (
-            <div style={{ background:C.sandDark, borderRadius:6, padding:"14px 16px", fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:14 }}>
-              🔒 Only the buyer makes the vessel decision after due diligence. {negotiate.vesselRejection ? "The buyer has REJECTED the vessel — see the notice below." : negotiate.addendum ? `The buyer has PROPOSED A NEW PRICE: ${fmt(Number(negotiate.addendum.newPrice))}.` : "Awaiting the buyer's decision (accept as-is, reject, or propose a new figure)."}
+            <div style={{ background:C.sandDark, borderRadius:6, padding:"14px 16px", fontSize:12.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, marginBottom:14 }}>
+              {emo("🔒")} Only the buyer makes the vessel decision after due diligence. {negotiate.vesselRejection ? "The buyer has REJECTED the vessel — see the notice below." : negotiate.addendum ? `The buyer has PROPOSED A NEW PRICE: ${fmt(Number(negotiate.addendum.newPrice))}.` : "Awaiting the buyer's decision (accept as-is, reject, or propose a new figure)."}
             </div>
             )}
             {negotiate.addendum && !negotiate.vesselRejection && (
               <div style={{ border:`1px solid ${C.brass}`, borderRadius:8, overflow:"hidden" }}>
-                <div style={{ background:C.navy, color:"#fff", padding:"10px 14px", fontSize:12, fontWeight:700, fontFamily:"sans-serif", letterSpacing:0.5 }}>ADDENDUM TO PURCHASE AGREEMENT — Your Response Needed</div>
-                <div style={{ background:"#fff", padding:"14px 16px", fontFamily:"sans-serif" }}>
+                <div style={{ background:C.navy, color:"#fff", padding:"10px 14px", fontSize:12, fontWeight:700, fontFamily:FONT.sans, letterSpacing:0.5 }}>ADDENDUM TO PURCHASE AGREEMENT — Your Response Needed</div>
+                <div style={{ background:"#fff", padding:"14px 16px", fontFamily:FONT.sans }}>
                   <div style={{ fontSize:12, color:C.text, lineHeight:1.7 }}>
                     The buyer proposes amending the agreed price on <b>{vessel.year} {vessel.make} {vessel.model}</b>.
                   </div>
@@ -4765,7 +4770,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                   <div style={{ fontSize:12, color:C.text }}>Proposed price: <b>{fmt(Number(negotiate.addendum.newPrice))}</b></div>
                   {negotiate.addendum.reason && <div style={{ fontSize:12, color:C.slate, marginTop:6 }}>Basis: {negotiate.addendum.reason}</div>}
                   {negotiate.addendum.status ? (
-                    <div style={{ marginTop:12, fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", color: negotiate.addendum.status==="accepted"?C.green:C.red }}>
+                    <div style={{ marginTop:12, fontSize:12.5, fontWeight:700, fontFamily:FONT.sans, color: negotiate.addendum.status==="accepted"?C.green:C.red }}>
                       {negotiate.addendum.status==="accepted" ? "✓ You accepted this addendum — the amended price applies." : "✗ You declined this addendum — the original price stands."}
                     </div>
                   ) : (
@@ -4789,19 +4794,19 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 explains why the button at the bottom is disabled. */}
             {decisionUnlocked ? null : (
 
-              <div style={{ background:C.sandDark, border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", marginTop:16, fontFamily:"sans-serif", fontSize:12.5, color:C.slate, lineHeight:1.6 }}>
+              <div style={{ background:C.sandDark, border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 15px", marginTop:16, fontFamily:FONT.sans, fontSize:12.5, color:C.slate, lineHeight:1.6 }}>
                 Once the {fmt(dep.deposit)} deposit is confirmed by both sides, you&rsquo;ll continue to the documents here. Your paperwork prep above stays open in the meantime.
               </div>
             )}
           </div>
         ) : (
         <>
-        <p style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, marginBottom:14 }}>
+        <p style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, marginBottom:14 }}>
           After due diligence you may accept the vessel as-is, reject it (earnest money returned, reason recorded), or propose a new final price — which reopens negotiation. Only you, the buyer, can make this decision.
         </p>
         {!decisionUnlocked ? (
-          <div style={{ background:C.sandDark, border:`1px solid ${C.brass}`, borderRadius:8, padding:"16px 18px", marginBottom:16, textAlign:"center", fontFamily:"sans-serif" }}>
-            <div style={{ fontSize:24, marginBottom:6 }}>🔒</div>
+          <div style={{ background:C.sandDark, border:`1px solid ${C.brass}`, borderRadius:8, padding:"16px 18px", marginBottom:16, textAlign:"center", fontFamily:FONT.sans }}>
+            <div style={{ fontSize:24, marginBottom:6 }}>{emo("🔒")}</div>
             <div style={{ fontSize:13.5, fontWeight:800, color:C.navy, marginBottom:5 }}>The vessel decision unlocks once the deposit is verified</div>
             <div style={{ fontSize:12, color:C.slate, lineHeight:1.7, maxWidth:460, margin:"0 auto" }}>
               Go ahead and complete your survey and sea trial &mdash; all your planning stays open. You&rsquo;ll be able to accept, reject, or propose a new price for the {fmt(dep.deposit)} vessel the moment the deposit is confirmed{depTimerExpired ? ", or once the deal initiator resolves the paused deadline above" : ""}. This protects everyone: you don&rsquo;t finalize a purchase before the money that holds the boat is actually secured.
@@ -4809,13 +4814,13 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
           </div>
         ) : (
         <div className="bc-grid3" style={{ gap:10, marginBottom:16 }}>
-          <button onClick={requireDeposit(()=>{ setOutcome("accept"); setBuyerSigned(false); setVaSigned(false); setAcceptCommitAck(!!negotiate?.vesselAcceptance); set("outcome","accept"); })} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="accept"?C.green:"transparent", color:outcome==="accept"?"#fff":C.green, border:`2px solid ${C.green}` }}>
+          <button onClick={requireDeposit(()=>{ setOutcome("accept"); setBuyerSigned(false); setVaSigned(false); setAcceptCommitAck(!!negotiate?.vesselAcceptance); set("outcome","accept"); })} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:FONT.sans, fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="accept"?C.green:"transparent", color:outcome==="accept"?"#fff":C.green, border:`2px solid ${C.green}` }}>
             ✓ Accept As-Is
           </button>
-          <button onClick={requireDeposit(()=>{ setOutcome("propose_price"); set("outcome","propose_price"); })} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="propose_price"?C.brass:"transparent", color:outcome==="propose_price"?C.navy:C.brass, border:`2px solid ${C.brass}` }}>
+          <button onClick={requireDeposit(()=>{ setOutcome("propose_price"); set("outcome","propose_price"); })} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:FONT.sans, fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="propose_price"?C.brass:"transparent", color:outcome==="propose_price"?C.navy:C.brass, border:`2px solid ${C.brass}` }}>
             ↺ Propose New Price
           </button>
-          <button onClick={requireDeposit(()=>{ setOutcome("reject"); setBuyerSigned(false); setVaSigned(false); set("outcome","reject"); })} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="reject"?C.red:"transparent", color:outcome==="reject"?"#fff":C.red, border:`2px solid ${C.red}` }}>
+          <button onClick={requireDeposit(()=>{ setOutcome("reject"); setBuyerSigned(false); setVaSigned(false); set("outcome","reject"); })} style={{ padding:"14px 8px", textAlign:"center", fontSize:13, fontFamily:FONT.sans, fontWeight:700, cursor:"pointer", borderRadius:5, background:outcome==="reject"?C.red:"transparent", color:outcome==="reject"?"#fff":C.red, border:`2px solid ${C.red}` }}>
             ✗ Reject Vessel
           </button>
         </div>
@@ -4823,8 +4828,8 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
 
         {outcome==="propose_price" && (
           <div style={{ background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:6, padding:"14px 16px", marginBottom:14 }}>
-            <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:6 }}>Propose a New Final Price — Purchase Agreement Addendum</div>
-            <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginBottom:12, lineHeight:1.5 }}>
+            <div style={{ fontSize:13, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:6 }}>Propose a New Final Price — Purchase Agreement Addendum</div>
+            <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, marginBottom:12, lineHeight:1.5 }}>
               Due diligence turned up something that changes the value. This does <b>not</b> rewrite the signed Purchase Agreement — instead it creates an <b>addendum</b> proposing a price adjustment. The signed PA stays intact; the seller can accept or decline this addendum.
             </div>
             <label style={S.label}>New proposed final price</label>
@@ -4833,8 +4838,8 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             <textarea style={{...S.textarea, minHeight:60}} value={newPriceReason} onChange={e=>{ setNewPriceReason(e.target.value); set("proposedNewPriceReason", e.target.value); }} placeholder="e.g. Survey found soft transom requiring ~$8k repair; adjusting offer accordingly." />
             {newPrice && (
               <div style={{ marginTop:12, border:`1px solid ${C.mist}`, borderRadius:6, overflow:"hidden" }}>
-                <div style={{ background:C.navy, color:"#fff", padding:"8px 12px", fontSize:11, fontWeight:700, fontFamily:"sans-serif", letterSpacing:0.5 }}>ADDENDUM TO PURCHASE AGREEMENT</div>
-                <div style={{ background:"#fff", padding:"12px 14px", fontSize:11.5, fontFamily:"sans-serif", color:C.text, lineHeight:1.7 }}>
+                <div style={{ background:C.navy, color:"#fff", padding:"8px 12px", fontSize:11, fontWeight:700, fontFamily:FONT.sans, letterSpacing:0.5 }}>ADDENDUM TO PURCHASE AGREEMENT</div>
+                <div style={{ background:"#fff", padding:"12px 14px", fontSize:11.5, fontFamily:FONT.sans, color:C.text, lineHeight:1.7 }}>
                   <div>This addendum amends the executed Purchase Agreement for <b>{vessel.year} {vessel.make} {vessel.model}</b>.</div>
                   <div style={{ marginTop:6 }}>Original agreed price: <b>{fmt(_ddTerms.price)}</b></div>
                   <div>Proposed amended price: <b>{fmt(Number(newPrice))}</b></div>
@@ -4845,11 +4850,11 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             )}
             {newPrice && (
               (negotiate.addendum && negotiate.addendum.status) ? (
-                <div style={{ marginTop:12, padding:"12px 14px", borderRadius:6, background: negotiate.addendum.status==="accepted"?"#eaf6ee":C.redLight, border:`1px solid ${negotiate.addendum.status==="accepted"?"#a8d8b8":"#e8c0c0"}`, fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color: negotiate.addendum.status==="accepted"?C.green:C.red, lineHeight:1.6 }}>
+                <div style={{ marginTop:12, padding:"12px 14px", borderRadius:6, background: negotiate.addendum.status==="accepted"?"#eaf6ee":C.redLight, border:`1px solid ${negotiate.addendum.status==="accepted"?"#a8d8b8":"#e8c0c0"}`, fontSize:12.5, fontFamily:FONT.sans, fontWeight:700, color: negotiate.addendum.status==="accepted"?C.green:C.red, lineHeight:1.6 }}>
                   {negotiate.addendum.status==="accepted" ? "✓ The seller ACCEPTED your proposed price. The amended price applies — continue to the documents to finalize." : "✗ The seller DECLINED your proposed price. The original agreed price stands. You can accept the vessel as-is or reject it."}
                 </div>
               ) : negotiate.addendum ? (
-                <div style={{ marginTop:12, padding:"12px 14px", borderRadius:6, background:"#eef4fb", border:`1px solid ${C.navy}`, fontSize:12.5, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6 }}>
+                <div style={{ marginTop:12, padding:"12px 14px", borderRadius:6, background:"#eef4fb", border:`1px solid ${C.navy}`, fontSize:12.5, fontFamily:FONT.sans, color:C.navy, lineHeight:1.6 }}>
                   <b>✓ Proposed price sent to the seller.</b> They'll accept or decline this addendum, and we'll email you when they respond. You can wait here or move on — your proposal is saved.
                 </div>
               ) : (
@@ -4869,13 +4874,13 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
 
         {outcome==="reject" && (
           <div style={{ background:C.redLight, border:`1px solid #e8c0c0`, borderRadius:6, padding:"14px 16px", marginBottom:14 }}>
-            <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.red, marginBottom:10 }}>Reasons for Rejection — select all that apply (required for the Rejection Notice)</div>
+            <div style={{ fontSize:13, fontWeight:700, fontFamily:FONT.sans, color:C.red, marginBottom:10 }}>Reasons for Rejection — select all that apply (required for the Rejection Notice)</div>
             {REJECTION_REASONS.map(r => (
               <label key={r.id} style={{ display:"flex", gap:10, alignItems:"flex-start", marginBottom:10, cursor:"pointer" }}>
                 <input type="checkbox" checked={rejectionReasons.includes(r.id)} onChange={()=>toggleRejReason(r.id)} style={{ marginTop:2, accentColor:C.red, flexShrink:0 }} />
                 <div>
-                  <div style={{ fontSize:12, fontWeight:600, fontFamily:"sans-serif", color:C.text }}>{r.label}</div>
-                  <div style={{ fontSize:11, color:C.slate, fontFamily:"sans-serif" }}>{r.desc}</div>
+                  <div style={{ fontSize:12, fontWeight:600, fontFamily:FONT.sans, color:C.text }}>{r.label}</div>
+                  <div style={{ fontSize:11, color:C.slate, fontFamily:FONT.sans }}>{r.desc}</div>
                 </div>
               </label>
             ))}
@@ -4886,13 +4891,13 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
             <div style={{ marginTop:10 }}>
               <label style={S.label}>Propose a path forward to the seller (optional)</label>
               <textarea style={{...S.textarea, minHeight:55}} value={rejSolution} onChange={e=>setRejSolution(e.target.value)} placeholder="e.g. I'd still buy at $X given the survey findings, or: if you repair the transom I'll continue. This is sent to the seller with the rejection." />
-              <div style={{ fontSize:10.5, color:C.slate, fontFamily:"sans-serif", marginTop:4 }}>If you'd rather keep negotiating on price, use <b>Propose a New Price</b> above instead — that keeps the deal alive as an addendum. A rejection ends the deal.</div>
+              <div style={{ fontSize:10.5, color:C.slate, fontFamily:FONT.sans, marginTop:4 }}>If you'd rather keep negotiating on price, use <b>Propose a New Price</b> above instead — that keeps the deal alive as an addendum. A rejection ends the deal.</div>
             </div>
           </div>
         )}
 
         {outcome==="accept" && !acceptCommitAck && (
-          <div style={{ border:`2px solid ${C.green}`, borderRadius:8, overflow:"hidden", marginBottom:14, fontFamily:"sans-serif" }}>
+          <div style={{ border:`2px solid ${C.green}`, borderRadius:8, overflow:"hidden", marginBottom:14, fontFamily:FONT.sans }}>
             <div style={{ background:C.green, padding:"12px 16px", color:"#fff", fontSize:14, fontWeight:800 }}>Before you accept — this is a commitment</div>
             <div style={{ background:"#fff", padding:"18px 20px" }}>
               <div style={{ fontSize:13, color:C.navy, lineHeight:1.8, marginBottom:14 }}>
@@ -4917,8 +4922,8 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
         {outcome==="accept" && acceptCommitAck && (
           <div style={{ border:`1px solid #a8d8b8`, borderRadius:6, overflow:"hidden", marginBottom:14 }}>
             <div style={{ background:C.green, padding:"10px 14px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <div style={{ fontSize:13, fontWeight:700, color:"#fff", fontFamily:"sans-serif" }}>Vessel Acceptance Document — Required Before Proceeding</div>
-              {vaSigned && <span style={{ fontSize:11, background:"rgba(255,255,255,0.2)", color:"#fff", borderRadius:20, padding:"2px 10px", fontFamily:"sans-serif" }}>✓ Signed</span>}
+              <div style={{ fontSize:13, fontWeight:700, color:"#fff", fontFamily:FONT.sans }}>Vessel Acceptance Document — Required Before Proceeding</div>
+              {vaSigned && <span style={{ fontSize:11, background:"rgba(255,255,255,0.2)", color:"#fff", borderRadius:20, padding:"2px 10px", fontFamily:FONT.sans }}>✓ Signed</span>}
             </div>
             <div style={{ background:"#fff", padding:"16px 18px" }}>
               <style>{PA_DOC_CSS}</style>
@@ -4937,7 +4942,7 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                 By signing, Buyer acknowledges BoatClosers provides document facilitation only — not legal advice or brokerage services — and accepts full responsibility for this transaction.
               </div>
               <div style={{ background:C.sandDark, borderRadius:5, padding:"12px 14px" }}>
-                <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>Buyer: {parties.buyer.name||"Buyer"}</div>
+                <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:8 }}>Buyer: {parties.buyer.name||"Buyer"}</div>
                 <label style={{ display:"flex", gap:8, fontSize:11, color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
                   <input type="checkbox" checked={buyerDisc} onChange={e=>setBuyerDisc(e.target.checked)} style={{ marginTop:1, accentColor:C.navy, flexShrink:0 }} />
                   I agree to the liability disclaimer and accept responsibility for this transaction
@@ -4948,13 +4953,13 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
                       <label style={S.label}>Type your full legal name to sign</label>
                       <input style={S.input} placeholder="Buyer full legal name" value={vaSigName} onChange={e=>setVaSigName(e.target.value)} disabled={!buyerDisc} />
                       {parties.buyer?.name && vaSigName.trim() && !sigMatchesName(vaSigName, parties.buyer.name) && (
-                        <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the buyer name on this deal: <b>{parties.buyer.name}</b>.</div>
+                        <div style={{ fontSize:11.5, color:C.red, fontFamily:FONT.sans, fontWeight:700, marginTop:5, lineHeight:1.5 }}>Your signature must match the buyer name on this deal: <b>{parties.buyer.name}</b>.</div>
                       )}
                     </div>
                     <button style={{ ...S.btnBrass, whiteSpace:"nowrap", opacity:(!buyerDisc||!vaSigName.trim()||!sigMatchesName(vaSigName, parties.buyer?.name))?0.4:1 }} disabled={!buyerDisc||!vaSigName.trim()||!sigMatchesName(vaSigName, parties.buyer?.name)} onClick={()=>{ if(!sigMatchesName(vaSigName, parties.buyer?.name)) return; setVaSigned(true); setBuyerSigned(true); if(setNegotiate){ const _st=signedStamp(); setNegotiate(n=>({...n, vesselAcceptance:{ sig:vaSigName.trim(), date:today(), at:_st.at, when:_st.when }})); } }}>Sign Acceptance</button>
                   </div>
                 ) : (
-                  <div style={{ fontSize:12, color:C.green, fontFamily:"sans-serif" }}>✓ Signed by {vaSigName} on {today()}</div>
+                  <div style={{ fontSize:12, color:C.green, fontFamily:FONT.sans }}>✓ Signed by {vaSigName} on {today()}</div>
                 )}
               </div>
             </div>
@@ -4963,28 +4968,28 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
 
         {outcome==="reject" && rejectionReasons.length>0 && (
           <div style={{ background:C.sandDark, borderRadius:5, padding:"12px 14px", marginTop:8 }}>
-            <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>Full Rejection Notice — review before signing</div>
+            <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:8 }}>Full Rejection Notice — review before signing</div>
             <div style={{ background:"#fff", border:`1px solid ${C.mist}`, borderRadius:5, padding:"4px 10px", marginBottom:12 }}>
               <RejectionNotice rejection={{ reasons: rejectionReasons, notes: rejectionNotes, solution: rejSolution, sig: (rejSigName.trim()||parties.buyer.name||"Buyer"), date: today() }} escrowPath={(negotiate.offers||[]).find(o=>o.status==="accepted"||o.status==="agreed")?.escrowPath} viewerRole="buyer" vessel={vessel} isInitiator={amInitiator} />
             </div>
-            <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:8 }}>Buyer: {parties.buyer.name||"Buyer"} — Formal Rejection</div>
+            <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:8 }}>Buyer: {parties.buyer.name||"Buyer"} — Formal Rejection</div>
             <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:4, padding:"9px 12px", fontSize:10, color:"#7a5500", marginBottom:10 }}>
               BoatClosers is not a party to this transaction. By signing, you accept full responsibility for the rejection and for arranging the return of any earnest-money deposit.
             </div>
-            <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
+            <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:FONT.sans, color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
               <input type="checkbox" checked={buyerDisc} onChange={e=>setBuyerDisc(e.target.checked)} style={{ marginTop:1, accentColor:C.navy, flexShrink:0 }} />
               I agree to the disclaimer above
             </label>
-            <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
+            <label style={{ display:"flex", gap:8, fontSize:11, fontFamily:FONT.sans, color:C.slate, marginBottom:10, cursor:"pointer", alignItems:"flex-start" }}>
               <input type="checkbox" checked={buyerSigned} onChange={e=>setBuyerSigned(e.target.checked)} style={{ marginTop:1, accentColor:C.navy, flexShrink:0 }} />
               I formally reject this vessel for the reasons stated above
             </label>
             <label style={S.label}>Type your full legal name to sign the Rejection Notice</label>
             <input style={S.input} placeholder="Buyer full legal name" value={rejSigName} onChange={e=>setRejSigName(e.target.value)} disabled={!buyerDisc||!buyerSigned} />
             {parties.buyer?.name && rejSigName.trim() && !sigMatchesName(rejSigName, parties.buyer.name) && (
-              <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:6, lineHeight:1.5 }}>Your signature must match the buyer name on this deal: <b>{parties.buyer.name}</b>.</div>
+              <div style={{ fontSize:11.5, color:C.red, fontFamily:FONT.sans, fontWeight:700, marginTop:6, lineHeight:1.5 }}>Your signature must match the buyer name on this deal: <b>{parties.buyer.name}</b>.</div>
             )}
-            {rejSigName.trim() && buyerDisc && buyerSigned && sigMatchesName(rejSigName, parties.buyer?.name) && <div style={{ fontSize:11, color:C.green, fontFamily:"sans-serif", marginTop:8 }}>✓ Ready to sign — press "Proceed to Close (Rejected)" below to record the rejection and notify the seller.</div>}
+            {rejSigName.trim() && buyerDisc && buyerSigned && sigMatchesName(rejSigName, parties.buyer?.name) && <div style={{ fontSize:11, color:C.green, fontFamily:FONT.sans, marginTop:8 }}>✓ Ready to sign — press "Proceed to Close (Rejected)" below to record the rejection and notify the seller.</div>}
           </div>
         )}
         </>
@@ -5145,9 +5150,9 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
   if (cleared) return (
     <div style={S.page}>
       <div style={{...S.card, textAlign:"center", padding:"3rem"}}>
-        <div style={{ fontSize:48, marginBottom:16 }}>⚓</div>
+        <div style={{ fontSize:48, marginBottom:16 }}>{emo("⚓")}</div>
         <h2 style={S.h2}>Deal Cleared</h2>
-        <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, marginBottom:24 }}>This deal has been closed and cleared. You can start a new deal at any time.</p>
+        <p style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate, marginBottom:24 }}>This deal has been closed and cleared. You can start a new deal at any time.</p>
         <button style={S.btnBrass} onClick={()=>window.location.reload()}>Start a New Deal</button>
       </div>
     </div>
@@ -5233,7 +5238,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
       <div style={{ marginBottom:"1.5rem", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div>
           <h1 style={S.h1}>{isRejected ? "Closing — Deal Rejected" : "Final Closing"}</h1>
-          <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>
+          <p style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate }}>
             {isRejected
               ? `Rejected during due diligence · Earnest money ${fmt(negotiate.deposit||0)} to be returned`
               : `${vessel.year} ${vessel.make} ${vessel.model} · ${fmt(_clTerms.price)} · Closing ${terms.closingDate||"TBD"}`}
@@ -5260,10 +5265,10 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
         return (
           <div style={{ background: nothingLeft ? "#f4f7f5" : "#fffaf0", border:`1.5px solid ${nothingLeft ? C.green : C.brass}`, borderRadius:9, marginBottom:20, overflow:"hidden" }}>
             <div style={{ padding:"13px 16px", borderBottom:`1px solid ${nothingLeft ? "#d7e5dc" : "#f0e2c8"}` }}>
-              <div style={{ fontSize:13.5, fontFamily:"sans-serif", fontWeight:800, color: nothingLeft ? C.green : "#8a5a12" }}>
+              <div style={{ fontSize:13.5, fontFamily:FONT.sans, fontWeight:800, color: nothingLeft ? C.green : "#8a5a12" }}>
                 {nothingLeft ? "✓ Every step confirmed — you're ready to finalize" : `Before you finalize — ${stepsLeft.length} step${stepsLeft.length === 1 ? "" : "s"} left`}
               </div>
-              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginTop:3 }}>
+              <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, marginTop:3 }}>
                 {nothingLeft
                   ? "Every step is confirmed. Check your documents are all signed on the Documents step, then finalize to seal the record."
                   : "Confirm each step as it happens. And before you finalize, go back to the Documents step and make sure everything there is signed \u2014 once you finalize, nothing can be signed or changed again."}
@@ -5272,12 +5277,12 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
 
             {(stepsLeft.length > 0 || stepsDone.length > 0) && (
               <div>
-                <div style={{ padding:"11px 16px", background:"#f5f0e8", fontSize:11.5, fontFamily:"sans-serif", color:C.slate, letterSpacing:0.5, textTransform:"uppercase", fontWeight:700 }}>
+                <div style={{ padding:"11px 16px", background:"#f5f0e8", fontSize:11.5, fontFamily:FONT.sans, color:C.slate, letterSpacing:0.5, textTransform:"uppercase", fontWeight:700 }}>
                   Steps to confirm &mdash; {stepsDone.length} of {stepsDone.length + stepsLeft.length} done
                 </div>
                 {[...stepsLeft, ...stepsDone].map(d => (
                   <button key={d.id} onClick={()=>toggleStep(d.id)}
-                    style={{ display:"flex", alignItems:"flex-start", gap:10, width:"100%", textAlign:"left", padding:"11px 16px", borderTop:`1px solid ${C.sand}`, border:"none", borderTopWidth:1, borderTopStyle:"solid", background:"#fff", cursor:"pointer", fontFamily:"sans-serif" }}>
+                    style={{ display:"flex", alignItems:"flex-start", gap:10, width:"100%", textAlign:"left", padding:"11px 16px", borderTop:`1px solid ${C.sand}`, border:"none", borderTopWidth:1, borderTopStyle:"solid", background:"#fff", cursor:"pointer", fontFamily:FONT.sans }}>
                     <span style={{ width:21, height:21, borderRadius:5, flexShrink:0, marginTop:1, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:800,
                       background: d.signed ? C.green : "transparent", color:"#fff", border: d.signed ? "none" : `1.5px solid ${C.mist}` }}>{d.signed ? "✓" : ""}</span>
                     <span style={{ flex:1 }}>
@@ -5296,11 +5301,11 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
                 and look, at the moment it matters — once finalized nothing can be
                 signed. */}
             <div style={{ borderTop:`1px solid ${nothingLeft ? "#d7e5dc" : "#f0e2c8"}`, padding:"13px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap" }}>
-              <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, flex:1, minWidth:200 }}>
+              <span style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, flex:1, minWidth:200 }}>
                 <b style={{ color:C.navy }}>Have you both signed everything?</b> Finalizing is permanent &mdash; check the Documents step first.
               </span>
               <button onClick={onBack}
-                style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:C.white, border:`1.5px solid ${C.mist}`, borderRadius:16, padding:"8px 15px", cursor:"pointer", whiteSpace:"nowrap" }}>
+                style={{ fontSize:12, fontFamily:FONT.sans, fontWeight:700, color:C.navy, background:C.white, border:`1.5px solid ${C.mist}`, borderRadius:16, padding:"8px 15px", cursor:"pointer", whiteSpace:"nowrap" }}>
                 Check the documents &rarr;
               </button>
             </div>
@@ -5328,11 +5333,11 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
             style={{ display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer", background:C.navy, borderRadius: payMethodOpen ? "8px 8px 0 0" : 8, padding:"12px 16px" }}
           >
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <span style={{ fontSize:20 }}>💰</span>
+              <span style={{ fontSize:20 }}>{emo("💰")}</span>
               <div>
-                <div style={{ fontSize:14, fontWeight:700, color:C.brass, fontFamily:"sans-serif" }}>Final Payment — {fmt(balanceDue)}</div>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif" }}>
-                  {selectedMethod.icon} {selectedMethod.label} selected · Click to {payMethodOpen?"collapse":"expand"} instructions
+                <div style={{ fontSize:14, fontWeight:700, color:C.brass, fontFamily:FONT.sans }}>Final Payment — {fmt(balanceDue)}</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)", fontFamily:FONT.sans }}>
+                  {emo(selectedMethod.icon)} {selectedMethod.label} selected · Click to {payMethodOpen?"collapse":"expand"} instructions
                 </div>
               </div>
             </div>
@@ -5349,7 +5354,7 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
                   ["Balance Due", fmt(balanceDue)],
                 ].map(([l,v])=>(
                   <div key={l} style={{ background:"#fff", borderRadius:5, padding:"8px 12px" }}>
-                    <div style={{ fontSize:10, color:C.slate, fontFamily:"sans-serif" }}>{l}</div>
+                    <div style={{ fontSize:10, color:C.slate, fontFamily:FONT.sans }}>{l}</div>
                     <div style={{ fontSize:15, fontWeight:700, color: l==="Balance Due"?C.navy:C.slate }}>{v}</div>
                   </div>
                 ))}
@@ -5357,14 +5362,14 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
 
               {/* Method picker */}
               <div style={{ padding:"14px 16px", background:"#fff", borderBottom:`1px solid ${C.mist}` }}>
-                <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:10 }}>Select Payment Method</div>
+                <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:10 }}>Select Payment Method</div>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
                   {PAYMENT_METHODS.map(m=>(
                     <button key={m.id} onClick={()=>setPayMethod(m.id)}
-                      style={{ padding:"10px 6px", borderRadius:6, cursor:"pointer", textAlign:"center", fontFamily:"sans-serif", border:`2px solid ${payMethod===m.id?m.badgeColor:C.mist}`, background: payMethod===m.id ? `${m.badgeColor}14` : "transparent" }}>
-                      <div style={{ fontSize:18, marginBottom:3 }}>{m.icon}</div>
+                      style={{ padding:"10px 6px", borderRadius:6, cursor:"pointer", textAlign:"center", fontFamily:FONT.sans, border:`2px solid ${payMethod===m.id?m.badgeColor:C.mist}`, background: payMethod===m.id ? `${m.badgeColor}14` : "transparent" }}>
+                      <div style={{ fontSize:18, marginBottom:3 }}>{emo(m.icon)}</div>
                       <div style={{ fontSize:11, fontWeight:700, color: payMethod===m.id?m.badgeColor:C.navy, lineHeight:1.2 }}>{m.label}</div>
-                      <div style={{ fontSize:9, color:C.slate, marginTop:2, fontFamily:"sans-serif" }}>{m.badge}</div>
+                      <div style={{ fontSize:9, color:C.slate, marginTop:2, fontFamily:FONT.sans }}>{m.badge}</div>
                     </button>
                   ))}
                 </div>
@@ -5373,32 +5378,32 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
               {/* Selected method instructions */}
               <div style={{ padding:"16px", background:"#fff" }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
-                  <span style={{ fontSize:22 }}>{selectedMethod.icon}</span>
+                  <span style={{ fontSize:22 }}>{emo(selectedMethod.icon)}</span>
                   <div>
-                    <div style={{ fontSize:14, fontWeight:700, fontFamily:"sans-serif", color:C.navy }}>{selectedMethod.label}</div>
-                    <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate }}>{selectedMethod.shortDesc}</div>
+                    <div style={{ fontSize:14, fontWeight:700, fontFamily:FONT.sans, color:C.navy }}>{selectedMethod.label}</div>
+                    <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate }}>{selectedMethod.shortDesc}</div>
                   </div>
                   {selectedMethod.link && (
                     <a href={selectedMethod.link} target="_blank" rel="noopener noreferrer"
-                      style={{ marginLeft:"auto", background:C.green, color:"#fff", borderRadius:5, padding:"6px 14px", fontSize:11, fontFamily:"sans-serif", fontWeight:700, textDecoration:"none" }}>
+                      style={{ marginLeft:"auto", background:C.green, color:"#fff", borderRadius:5, padding:"6px 14px", fontSize:11, fontFamily:FONT.sans, fontWeight:700, textDecoration:"none" }}>
                       {selectedMethod.linkLabel}
                     </a>
                   )}
                 </div>
 
                 <div style={{ marginBottom:12 }}>
-                  <div style={{ fontSize:11, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:6 }}>Step-by-step instructions:</div>
+                  <div style={{ fontSize:11, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:6 }}>Step-by-step instructions:</div>
                   {selectedMethod.instructions.map((inst,i)=>(
                     <div key={i} style={{ display:"flex", gap:10, marginBottom:7, alignItems:"flex-start" }}>
-                      <div style={{ width:20, height:20, borderRadius:"50%", background:C.navy, color:C.brass, fontSize:10, fontWeight:700, fontFamily:"sans-serif", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginTop:1 }}>{i+1}</div>
-                      <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.text, lineHeight:1.6 }}>{inst}</div>
+                      <div style={{ width:20, height:20, borderRadius:"50%", background:C.navy, color:C.brass, fontSize:10, fontWeight:700, fontFamily:FONT.sans, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginTop:1 }}>{i+1}</div>
+                      <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.text, lineHeight:1.6 }}>{emo(inst)}</div>
                     </div>
                   ))}
                 </div>
 
                 {selectedMethod.warning && (
-                  <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:5, padding:"9px 12px", fontSize:11, fontFamily:"sans-serif", color:"#7a5500", lineHeight:1.6 }}>
-                    ⚠️ {selectedMethod.warning}
+                  <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:5, padding:"9px 12px", fontSize:11, fontFamily:FONT.sans, color:"#7a5500", lineHeight:1.6 }}>
+                    {emo("⚠")} {selectedMethod.warning}
                   </div>
                 )}
               </div>
@@ -5410,30 +5415,30 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
       {/* Summary card */}
       <div style={{...S.card, background:C.navy, color:"#fff", marginTop:4}}>
         <h3 style={{...S.h3, color:C.brass}}>Transaction Summary</h3>
-        <div style={{ fontSize:12, fontFamily:"sans-serif", lineHeight:2.2 }}>
-          <div>⚓ <strong>Vessel:</strong> {vessel.year} {vessel.make} {vessel.model} — HIN {vessel.hin||"Not entered"}</div>
-          <div>💰 <strong>Price:</strong> {fmt(_clTerms.price)}</div>
+        <div style={{ fontSize:12, fontFamily:FONT.sans, lineHeight:2.2 }}>
+          <div>{emo("⚓")} <strong>Vessel:</strong> {vessel.year} {vessel.make} {vessel.model} — HIN {vessel.hin||"Not entered"}</div>
+          <div>{emo("💰")} <strong>Price:</strong> {fmt(_clTerms.price)}</div>
           {/* The settlement figures — what the Closing Statement says, on the page
               where the money actually moves. */}
           {_clTerms.deposit > 0 && (
-            <div>💵 <strong>Deposit paid:</strong> {fmt(_clTerms.deposit)} &nbsp;·&nbsp; <strong>Balance due:</strong> {fmt(balanceDue)}</div>
+            <div>{emo("💵")} <strong>Deposit paid:</strong> {fmt(_clTerms.deposit)} &nbsp;·&nbsp; <strong>Balance due:</strong> {fmt(balanceDue)}</div>
           )}
-          <div>💳 <strong>Payment Method:</strong> {selectedMethod?.icon} {selectedMethod?.label}</div>
-          <div>👤 <strong>Buyer:</strong> {parties.buyer.name||"—"} · {parties.buyer.email||"—"}</div>
-          <div>👤 <strong>Seller:</strong> {parties.seller.name||"—"} · {parties.seller.email||"—"}</div>
-          <div>📅 <strong>Closing:</strong> {terms.closingDate||"TBD"}</div>
-          <div>📋 <strong>Status:</strong> {isRejected ? "Rejected — Earnest Money Return Pending" : dealFinalized ? "✓ Finalized — Deal Closed" : "In Progress"}</div>
+          <div>{emo("💳")} <strong>Payment Method:</strong> {emo(selectedMethod?.icon)} {selectedMethod?.label}</div>
+          <div>{emo("👤")} <strong>Buyer:</strong> {parties.buyer.name||"—"} · {parties.buyer.email||"—"}</div>
+          <div>{emo("👤")} <strong>Seller:</strong> {parties.seller.name||"—"} · {parties.seller.email||"—"}</div>
+          <div>{emo("📅")} <strong>Closing:</strong> {terms.closingDate||"TBD"}</div>
+          <div>{emo("📋")} <strong>Status:</strong> {isRejected ? "Rejected — Earnest Money Return Pending" : dealFinalized ? "✓ Finalized — Deal Closed" : "In Progress"}</div>
         </div>
       </div>
 
       {dealFinalized ? (
-        <div style={{ background:C.greenLight, border:`1px solid ${C.green}`, borderRadius:8, padding:"18px 20px", marginTop:"1.5rem", textAlign:"center", fontFamily:"sans-serif" }}>
-          <div style={{ fontSize:15, fontWeight:800, color:C.green, marginBottom:4 }}>🔒 Deal Finalized &amp; Closed</div>
+        <div style={{ background:C.greenLight, border:`1px solid ${C.green}`, borderRadius:8, padding:"18px 20px", marginTop:"1.5rem", textAlign:"center", fontFamily:FONT.sans }}>
+          <div style={{ fontSize:15, fontWeight:800, color:C.green, marginBottom:4 }}>{emo("🔒")} Deal Finalized &amp; Closed</div>
           <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7 }}>This deal is locked. All terms, documents, and signatures are final and can no longer be changed. Keep or print your copies for your records.</div>
         </div>
       ) : (
         <div style={{ marginTop:"1.5rem" }}>
-          <div style={{ background:C.sandDark, border:`1px solid ${C.brass}`, borderRadius:8, padding:"14px 16px", marginBottom:14, fontFamily:"sans-serif" }}>
+          <div style={{ background:C.sandDark, border:`1px solid ${C.brass}`, borderRadius:8, padding:"14px 16px", marginBottom:14, fontFamily:FONT.sans }}>
             <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:4 }}>{amInitiator ? "Ready to close this deal?" : "Waiting on the other party to finalize"}</div>
             <div style={{ fontSize:12, color:C.slate, lineHeight:1.7 }}>{!amInitiator && <><b>The person who started this deal finalizes it.</b> Everything above is still yours to complete &mdash; sign what is outstanding and tick off your steps, and they will close it when both sides are done.<br/><br/></>}Finalizing locks the entire deal &mdash; terms, documents, and signatures become permanent and can&rsquo;t be changed. Do this once the sale is fully complete and both sides have their copies.</div>
           </div>
@@ -5447,11 +5452,11 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
               <button style={{ ...S.btnBrass, fontSize:14, fontWeight:800, padding:"12px 22px" }} onClick={()=>setConfirmFinalize(true)}>✓ Finalize &mdash; Deal Closed</button>
             </div>
           ) : (
-            <div style={{ background:"#fff", border:`2px solid ${C.green}`, borderRadius:8, padding:"15px 17px", fontFamily:"sans-serif" }}>
+            <div style={{ background:"#fff", border:`2px solid ${C.green}`, borderRadius:8, padding:"15px 17px", fontFamily:FONT.sans }}>
               <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:8 }}>Lock this deal permanently?</div>
               <div style={{ fontSize:12, color:C.slate, lineHeight:1.7, marginBottom:12 }}>This can&rsquo;t be undone. The deal, its documents, and all signatures will be frozen as the final record of the sale.</div>
               <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-                <button style={{ ...S.btn, background:C.green, color:"#fff", fontSize:13.5, fontWeight:800, padding:"11px 20px", flex:1, minWidth:180 }} onClick={()=>{ setDealFinalized(true); setConfirmFinalize(false); if(setNegotiate) setNegotiate(n=>({ ...n, dealFinalized:{ at:Date.now(), by:myRole } })); if(typeof onFinalize==="function") onFinalize(); }}>🔒 Yes, finalize &amp; close the deal</button>
+                <button style={{ ...S.btn, background:C.green, color:"#fff", fontSize:13.5, fontWeight:800, padding:"11px 20px", flex:1, minWidth:180 }} onClick={()=>{ setDealFinalized(true); setConfirmFinalize(false); if(setNegotiate) setNegotiate(n=>({ ...n, dealFinalized:{ at:Date.now(), by:myRole } })); if(typeof onFinalize==="function") onFinalize(); }}>{emo("🔒")} Yes, finalize &amp; close the deal</button>
                 <button style={{ ...S.btnOutline, fontSize:13, padding:"11px 18px" }} onClick={()=>setConfirmFinalize(false)}>Not yet</button>
               </div>
             </div>
@@ -5480,27 +5485,27 @@ function Welcome({ name, onStart, onSignOut }) {
           <div style={{ ...S.logo, fontSize:20 }}>BOATCLOSERS<span style={{ color:C.brass }}>.COM</span></div>
           <div style={{ ...S.logoSub }}>PRIVATE VESSEL TRANSACTIONS</div>
         </div>
-        {onSignOut && <button onClick={onSignOut} style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }}>Sign Out</button>}
+        {onSignOut && <button onClick={onSignOut} style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:FONT.sans }}>Sign Out</button>}
       </div>
       <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:"2rem" }}>
         <div style={{ background:"#fff", borderRadius:10, padding:"2.5rem", width:"100%", maxWidth:520, border:"1px solid rgba(184,134,58,0.2)" }}>
-          <h1 style={{ fontFamily:"'Georgia',serif", fontSize:25, color:C.navy, margin:"0 0 6px" }}>Welcome{name ? `, ${String(name).split(" ")[0]}` : ""}.</h1>
-          <p style={{ fontFamily:"sans-serif", fontSize:14, color:C.slate, lineHeight:1.6, margin:"0 0 22px" }}>
+          <h1 style={{ fontFamily:FONT.serif, fontSize:25, color:C.navy, margin:"0 0 6px" }}>Welcome{name ? `, ${String(name).split(" ")[0]}` : ""}.</h1>
+          <p style={{ fontFamily:FONT.sans, fontSize:14, color:C.slate, lineHeight:1.6, margin:"0 0 22px" }}>
             BoatClosers walks you and the other party through a private boat sale — start to finish — for one flat fee. Here's the path:
           </p>
           <div style={{ display:"flex", flexDirection:"column", gap:14, marginBottom:26 }}>
             {steps.map(([n, title, desc]) => (
               <div key={n} style={{ display:"flex", gap:13, alignItems:"flex-start" }}>
-                <div style={{ flexShrink:0, width:26, height:26, borderRadius:"50%", background:C.navy, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontFamily:"sans-serif", fontWeight:700 }}>{n}</div>
+                <div style={{ flexShrink:0, width:26, height:26, borderRadius:"50%", background:C.navy, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontFamily:FONT.sans, fontWeight:700 }}>{n}</div>
                 <div>
-                  <div style={{ fontFamily:"sans-serif", fontSize:14, fontWeight:700, color:C.navy }}>{title}</div>
-                  <div style={{ fontFamily:"sans-serif", fontSize:12.5, color:C.slate, lineHeight:1.5 }}>{desc}</div>
+                  <div style={{ fontFamily:FONT.sans, fontSize:14, fontWeight:700, color:C.navy }}>{title}</div>
+                  <div style={{ fontFamily:FONT.sans, fontSize:12.5, color:C.slate, lineHeight:1.5 }}>{desc}</div>
                 </div>
               </div>
             ))}
           </div>
           <button onClick={onStart} style={{ ...S.btn, width:"100%", padding:"13px 0", fontSize:15, fontWeight:700 }}>Start your deal →</button>
-          <p style={{ fontFamily:"sans-serif", fontSize:11.5, color:C.slate, textAlign:"center", margin:"14px 0 0" }}>You can revisit any step at any time — nothing is locked until you sign.</p>
+          <p style={{ fontFamily:FONT.sans, fontSize:11.5, color:C.slate, textAlign:"center", margin:"14px 0 0" }}>You can revisit any step at any time — nothing is locked until you sign.</p>
         </div>
       </div>
     </div>
@@ -5563,24 +5568,24 @@ function AuthScreen({ onAuth, prefillEmail, notice, defaultMode, defaultRole, on
       <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:"2rem" }}>
         <div style={{ background:"#fff", borderRadius:10, padding:"2.5rem", width:"100%", maxWidth:420, border:`1px solid rgba(184,134,58,0.2)` }}>
           {notice && (
-            <div style={{ background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:8, padding:"11px 14px", marginBottom:18, fontSize:13, fontFamily:"sans-serif", color:"#7a5500", lineHeight:1.5 }}>
-              🔐 {notice}
+            <div style={{ background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:8, padding:"11px 14px", marginBottom:18, fontSize:13, fontFamily:FONT.sans, color:"#7a5500", lineHeight:1.5 }}>
+              {emo("🔐")} {notice}
             </div>
           )}
           <div style={{ display:"flex", borderRadius:6, overflow:"hidden", border:`1px solid ${C.mist}`, marginBottom:24 }}>
             {[["signup","Create Account"],["login","Sign In"]].map(([m,l])=>(
-              <button key={m} onClick={()=>{ setMode(m); setError(""); }} style={{ flex:1, padding:"9px", fontSize:13, fontFamily:"sans-serif", fontWeight:600, cursor:"pointer", background:mode===m?C.navy:"transparent", color:mode===m?"#fff":C.slate, border:"none" }}>{l}</button>
+              <button key={m} onClick={()=>{ setMode(m); setError(""); }} style={{ flex:1, padding:"9px", fontSize:13, fontFamily:FONT.sans, fontWeight:600, cursor:"pointer", background:mode===m?C.navy:"transparent", color:mode===m?"#fff":C.slate, border:"none" }}>{l}</button>
             ))}
           </div>
           {mode==="signup" && (
             <div style={{ marginBottom:20 }}>
-              <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:600, color:C.navy, marginBottom:10 }}>I am the...</div>
+              <div style={{ fontSize:13, fontFamily:FONT.sans, fontWeight:600, color:C.navy, marginBottom:10 }}>I am the...</div>
               {/* Three across: two roles and a way back. The third is styled as an
                   aside rather than a role, so nobody mistakes it for one. */}
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
                 {[["buyer","🛒 Buyer","I am purchasing a vessel"],["seller","⚓ Seller","I own the vessel being sold"],["__home","↩ Not yet","Take me back to read more first"]].map(([r,l,d])=>(
-                  <button key={r} onClick={()=>{ if (r === "__home") { onHome && onHome(); return; } setRole(r); }} style={{ padding:"14px 10px", borderRadius:6, cursor:"pointer", textAlign:"center", background:role===r?C.navy:"transparent", color: r==="__home" ? C.slate : (role===r?"#fff":C.navy), border: r==="__home" ? `1px dashed ${C.mist}` : `2px solid ${role===r?C.brass:C.mist}`, fontFamily:"sans-serif" }}>
-                    <div style={{ fontSize:18, marginBottom:4 }}>{l.split(" ")[0]}</div>
+                  <button key={r} onClick={()=>{ if (r === "__home") { onHome && onHome(); return; } setRole(r); }} style={{ padding:"14px 10px", borderRadius:6, cursor:"pointer", textAlign:"center", background:role===r?C.navy:"transparent", color: r==="__home" ? C.slate : (role===r?"#fff":C.navy), border: r==="__home" ? `1px dashed ${C.mist}` : `2px solid ${role===r?C.brass:C.mist}`, fontFamily:FONT.sans }}>
+                    <div style={{ fontSize:18, marginBottom:4 }}>{emo(l.split(" ")[0])}</div>
                     <div style={{ fontSize:13, fontWeight:700 }}>{l.split(" ").slice(1).join(" ")}</div>
                     <div style={{ fontSize:11, color:role===r?"rgba(255,255,255,0.65)":C.slate, marginTop:3 }}>{d}</div>
                   </button>
@@ -5602,16 +5607,16 @@ function AuthScreen({ onAuth, prefillEmail, notice, defaultMode, defaultRole, on
             <label style={S.label}>Password</label>
             <input style={S.input} type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="Minimum 6 characters" onKeyDown={e=>e.key==="Enter"&&submit()} />
           </div>
-          {error && <div style={{ fontSize:12, color:C.red, fontFamily:"sans-serif", marginBottom:10, marginTop:8 }}>{error}</div>}
+          {error && <div style={{ fontSize:12, color:C.red, fontFamily:FONT.sans, marginBottom:10, marginTop:8 }}>{error}</div>}
           <button style={{...S.btnBrass, width:"100%", marginTop:16, fontSize:14, padding:"12px", opacity:loading?0.6:1}} disabled={!canSubmit||loading} onClick={submit}>
             {loading ? "Please wait..." : mode==="signup" ? "Create Account & Start Deal" : "Sign In"}
           </button>
           {mode!=="signup" && (
-            <div style={{ marginTop:12, textAlign:"center", fontSize:12, fontFamily:"sans-serif" }}>
+            <div style={{ marginTop:12, textAlign:"center", fontSize:12, fontFamily:FONT.sans }}>
               <a href="/forgot-password" style={{ color:C.slate, textDecoration:"underline" }}>Forgot password?</a>
             </div>
           )}
-          <div style={{ marginTop:16, textAlign:"center", fontSize:12, fontFamily:"sans-serif", color:C.slate }}>
+          <div style={{ marginTop:16, textAlign:"center", fontSize:12, fontFamily:FONT.sans, color:C.slate }}>
             {mode==="signup" ? "Already have an account? " : "New here? "}
             <span style={{ color:C.teal, cursor:"pointer", fontWeight:600 }} onClick={()=>{ setMode(mode==="signup"?"login":"signup"); setError(""); }}>
               {mode==="signup"?"Sign in":"Create account"}
@@ -5741,7 +5746,7 @@ function ProductPreview({ F, X, isMobile, onStart }) {
           <Offer who="Buyer · Mark T." side="buyer" amt="$92,000" text="Deposit $9,200 (10%) · Escrow.com · Survey & sea trial" status="countered" time="Oct 18" />
           <Offer who="Seller · Dana R." side="seller" amt="$99,500" delta="▲ $7,500" text="Same terms · closing by Nov 15" status="countered" time="Oct 19" />
           <Offer who="Buyer · Mark T." side="buyer" amt="$96,000" delta="▼ $3,500" text="Deposit $9,600 (10%) · Escrow.com · Survey & sea trial · Close Nov 15" status="accepted" time="Oct 20" />
-          {note(<>🔒 <b>Deal locked.</b> Purchase agreement signed by both — the boat is off the market.</>)}
+          {note(<>{emo("🔒")} <b>Deal locked.</b> Purchase agreement signed by both — the boat is off the market.</>)}
         </div>
       ),
     },
@@ -5788,7 +5793,7 @@ function ProductPreview({ F, X, isMobile, onStart }) {
           ].map(([t,d,p])=>(
             <div key={t} style={row}>
               <div style={{ display:"flex", gap:10, alignItems:"center", minWidth:0 }}>
-                <span style={{ fontSize:15 }}>📄</span>
+                <span style={{ fontSize:15 }}>{emo("📄")}</span>
                 <div style={{ minWidth:0 }}><div style={label}>{t}</div><div style={sub}>{d}</div></div>
               </div>
               {p}
@@ -5815,7 +5820,7 @@ function ProductPreview({ F, X, isMobile, onStart }) {
             </div>
           ))}
           <div style={{ background:greenBg, border:`1px solid ${green}`, borderRadius:8, padding:"12px 14px", marginTop:14, fontFamily:sans }}>
-            <div style={{ fontSize:13, fontWeight:700, color:green }}>⚓ Deal closed — Nov 14</div>
+            <div style={{ fontSize:13, fontWeight:700, color:green }}>{emo("⚓")} Deal closed — Nov 14</div>
             <div style={{ ...sub, color:C.navy }}>Both sides received the full closing packet as a PDF. The buyer has 30 days to file the title.</div>
           </div>
         </div>
@@ -6279,15 +6284,15 @@ function LegalScreen({ page, onBack }) {
         <div style={{ cursor:"pointer" }} onClick={onBack}>
           <div style={S.logo}>BOATCLOSERS</div>
         </div>
-        <button style={{ fontSize:12, color:"#fff", background:C.brass, border:"none", borderRadius:16, padding:"6px 16px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={onBack}>← Back</button>
+        <button style={{ fontSize:12, color:"#fff", background:C.brass, border:"none", borderRadius:16, padding:"6px 16px", cursor:"pointer", fontFamily:FONT.sans, fontWeight:700 }} onClick={onBack}>← Back</button>
       </nav>
       <div style={{ maxWidth:760, margin:"0 auto", padding:"2.5rem 1.5rem 4rem" }}>
-        <h1 style={{ fontSize:30, color:C.navy, marginBottom:6, fontFamily:"'Georgia',serif" }}>{doc.title}</h1>
-        <div style={{ fontSize:12, color:C.slate, fontFamily:"sans-serif", marginBottom:20 }}>Last updated {LEGAL_UPDATED}</div>
+        <h1 style={{ fontSize:30, color:C.navy, marginBottom:6, fontFamily:FONT.serif }}>{doc.title}</h1>
+        <div style={{ fontSize:12, color:C.slate, fontFamily:FONT.sans, marginBottom:20 }}>Last updated {LEGAL_UPDATED}</div>
         {doc.sections.map(([h, paras], i) => (
           <div key={i} style={{ marginBottom:22 }}>
-            <h2 style={{ fontSize:16, color:C.navy, fontFamily:"sans-serif", fontWeight:700, marginBottom:8 }}>{i+1}. {h}</h2>
-            {paras.map((p, j) => <p key={j} style={{ fontSize:13.5, fontFamily:"sans-serif", color:C.text, lineHeight:1.75, marginBottom:8 }}>{p}</p>)}
+            <h2 style={{ fontSize:16, color:C.navy, fontFamily:FONT.sans, fontWeight:700, marginBottom:8 }}>{i+1}. {h}</h2>
+            {paras.map((p, j) => <p key={j} style={{ fontSize:13.5, fontFamily:FONT.sans, color:C.text, lineHeight:1.75, marginBottom:8 }}>{p}</p>)}
           </div>
         ))}
         <button style={{...S.btnBrass, marginTop:10}} onClick={onBack}>← Back to BoatClosers</button>
@@ -7146,14 +7151,14 @@ export default function BoatClosers() {
           <div style={{ ...S.logo, fontSize:22 }}>BOATCLOSERS</div>
           <div style={{ ...S.logoSub, color:"rgba(255,255,255,0.35)" }}>Loading…</div>
           {bootStuck && (
-            <div style={{ marginTop:22, fontFamily:"sans-serif" }}>
+            <div style={{ marginTop:22, fontFamily:FONT.sans }}>
               <div style={{ fontSize:12.5, color:"rgba(255,255,255,0.6)", lineHeight:1.6, maxWidth:300, margin:"0 auto 12px" }}>
                 This is taking longer than it should. Your connection may have dropped.
               </div>
               <button onClick={()=>window.location.reload()}
                 style={{ ...S.btnBrass, fontSize:13, padding:"10px 20px", marginRight:8 }}>Try again</button>
               <button onClick={()=>{ try { localStorage.removeItem("bc_session"); } catch (e) {} window.location.href = "/"; }}
-                style={{ fontSize:13, padding:"10px 20px", background:"transparent", color:"rgba(255,255,255,0.7)", border:"1px solid rgba(255,255,255,0.25)", borderRadius:8, cursor:"pointer", fontFamily:"sans-serif" }}>
+                style={{ fontSize:13, padding:"10px 20px", background:"transparent", color:"rgba(255,255,255,0.7)", border:"1px solid rgba(255,255,255,0.25)", borderRadius:8, cursor:"pointer", fontFamily:FONT.sans }}>
                 Start over
               </button>
             </div>
@@ -7178,14 +7183,18 @@ export default function BoatClosers() {
   if (screen==="deal" && showWelcome) return withFooter(<Welcome name={user?.name} onStart={()=>setShowWelcome(false)} onSignOut={handleSignOut} />);
 
   return (
-    <div style={S.app}>
+    <div className="bc-app" style={S.app}>
       {inviteError && (
-        <div style={{ background:"#fef2f2", borderBottom:"1px solid #fecaca", color:"#b91c1c", padding:"10px 16px", fontSize:13, fontFamily:"sans-serif", textAlign:"center" }}>
+        <div style={{ background:"#fef2f2", borderBottom:"1px solid #fecaca", color:"#b91c1c", padding:"10px 16px", fontSize:13, fontFamily:FONT.sans, textAlign:"center" }}>
           {inviteError} <span onClick={()=>setInviteError(null)} style={{ marginLeft:10, cursor:"pointer", fontWeight:700 }}>✕</span>
         </div>
       )}
       <style>{`
         .bc-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        .bc-app input:focus,.bc-app select:focus,.bc-app textarea:focus{outline:none;border-color:#b8863a !important;box-shadow:0 0 0 3px rgba(184,134,58,0.16)}
+        .bc-app button{transition:filter .15s ease, box-shadow .15s ease}
+        .bc-app button:not(:disabled):hover{filter:brightness(1.06)}
+        .bc-app ::placeholder{color:#9aa6b2}
         .bc-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
         @media(max-width:640px){
           .bc-grid2,.bc-grid3{grid-template-columns:1fr}
@@ -7212,9 +7221,9 @@ export default function BoatClosers() {
         </div>
         <div className="bc-navactions" style={{ display:"flex", alignItems:"center", gap:12 }}>
           {sessionExpired && (
-            <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:4000, padding:"1rem", fontFamily:"sans-serif" }}>
+            <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:4000, padding:"1rem", fontFamily:FONT.sans }}>
               <div style={{ background:"#fff", borderRadius:12, maxWidth:380, padding:"1.75rem", textAlign:"center", border:`2px solid ${C.brass}` }}>
-                <div style={{ fontSize:30, marginBottom:8 }}>🔐</div>
+                <div style={{ fontSize:30, marginBottom:8 }}>{emo("🔐")}</div>
                 <div style={{ fontSize:17, fontWeight:800, color:C.navy, marginBottom:6 }}>Your session timed out</div>
                 <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:16 }}>
                   For your security, you&rsquo;ve been signed out after a long period. Your deal is safe and saved &mdash; just sign in again to pick up exactly where you left off.
@@ -7224,28 +7233,28 @@ export default function BoatClosers() {
             </div>
           )}
           {saveError ? (
-            <button onClick={()=>{ setSaveError(false); scheduleSave(); }} title="Your last change didn't save. Click to try again — keep this tab open." style={{ fontSize:10.5, color:"#fff", background:C.red, border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }}>⚠️ Couldn't save — Retry</button>
+            <button onClick={()=>{ setSaveError(false); scheduleSave(); }} title="Your last change didn't save. Click to try again — keep this tab open." style={{ fontSize:10.5, color:"#fff", background:C.red, border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:FONT.sans, fontWeight:700 }}>{emo("⚠️")} Couldn't save — Retry</button>
           ) : saving ? (
-            <span style={{ fontSize:10, color:"rgba(255,255,255,0.45)", fontFamily:"sans-serif" }}>Saving…</span>
+            <span style={{ fontSize:10, color:"rgba(255,255,255,0.45)", fontFamily:FONT.sans }}>Saving…</span>
           ) : savedOk ? (
-            <span style={{ fontSize:10, color:"#8fd6a6", fontFamily:"sans-serif" }}>✓ Saved</span>
+            <span style={{ fontSize:10, color:"#8fd6a6", fontFamily:FONT.sans }}>✓ Saved</span>
           ) : null}
-          {user && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1 }}>{myDealRole || user.role}</span>}
-          {vessel.year && <span className="bc-navvessel" style={{ fontSize:11, color:C.brass, fontFamily:"sans-serif" }}>{vessel.year} {vessel.make} {vessel.model}</span>}
-          <button title="Messages with the other party" onClick={openMsgPanel} style={{ position:"relative", fontSize:11, color:"#fff", background: msgUnread>0 ? C.red : "rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }}>💬 Messages{msgUnread>0 && <span style={{ marginLeft:5, background:"#fff", color:C.red, borderRadius:10, padding:"0 6px", fontSize:10, fontWeight:800 }}>{msgUnread}</span>}</button>
+          {user && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:FONT.sans, textTransform:"uppercase", letterSpacing:1 }}>{myDealRole || user.role}</span>}
+          {vessel.year && <span className="bc-navvessel" style={{ fontSize:11, color:C.brass, fontFamily:FONT.sans }}>{vessel.year} {vessel.make} {vessel.model}</span>}
+          <button title="Messages with the other party" onClick={openMsgPanel} style={{ ...S.navBtn, position:"relative", ...(msgUnread>0 ? { borderColor:C.brass, color:"#fff" } : {}) }}>{emo("💬")} Messages{msgUnread>0 && <span style={{ marginLeft:2, background:C.brass, color:C.navyDeep, borderRadius:10, padding:"1px 6px", fontSize:10, fontWeight:700, lineHeight:1.4 }}>{msgUnread}</span>}</button>
           {(dealId || step>0) && !negotiate.canceled && (
-            <button title="End this deal and free yourself to start another" onClick={()=>setCancelModal(true)} style={{ fontSize:11, color:"rgba(255,255,255,0.85)", background:"rgba(255,255,255,0.07)", border:`1px solid rgba(214,110,110,0.5)`, borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }}>End deal</button>
+            <button title="End this deal and free yourself to start another" onClick={()=>setCancelModal(true)} style={{ ...S.navBtn, borderColor:"rgba(214,110,110,0.45)" }}>End deal</button>
           )}
           <button onClick={openMyDeals} title="All your deals, including closed ones"
-            style={{ fontSize:11, color:"rgba(255,255,255,0.85)", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.25)", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }}>My deals</button>
-          <button title="Reload to pull the other party's latest offers, messages, and updates" style={{ fontSize:11, color:"#fff", background:C.brass, border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={()=>window.location.reload()}>🔄 Check for updates</button>
-          <button title="Get help or report a problem or conflict" style={{ fontSize:11, color:"rgba(255,255,255,0.85)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 }} onClick={()=>{ setSupportSent(false); setSupportErr(""); setSupportModal(true); }}>help</button>
-          <button style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:"sans-serif" }} onClick={handleSignOut}>Sign Out</button>
+            style={S.navBtn}>My deals</button>
+          <button title="Reload to pull the other party's latest offers, messages, and updates" style={S.navBtn} onClick={()=>window.location.reload()}>{emo("🔄")} Check for updates</button>
+          <button title="Get help or report a problem or conflict" style={S.navBtn} onClick={()=>{ setSupportSent(false); setSupportErr(""); setSupportModal(true); }}>Help</button>
+          <button style={{ ...S.navBtn, border:"none", color:"rgba(255,255,255,0.55)", paddingLeft:6, paddingRight:6 }} onClick={handleSignOut}>Sign out</button>
         </div>
       </nav>
       {toast && (
-        <div onClick={()=>{ if(toast.text && toast.text.includes("message")) { openMsgPanel(); } setToast(null); }} style={{ position:"fixed", top:14, left:"50%", transform:"translateX(-50%)", zIndex:1000, background:C.navy, color:"#fff", padding:"11px 18px", borderRadius:10, boxShadow:"0 6px 22px rgba(0,0,0,0.22)", fontSize:13, fontFamily:"sans-serif", fontWeight:600, cursor:"pointer", maxWidth:"92%", textAlign:"center" }}>
-          {toast.text}
+        <div onClick={()=>{ if(toast.text && toast.text.includes("message")) { openMsgPanel(); } setToast(null); }} style={{ position:"fixed", top:14, left:"50%", transform:"translateX(-50%)", zIndex:1000, background:C.navy, color:"#fff", padding:"11px 18px", borderRadius:10, boxShadow:"0 6px 22px rgba(0,0,0,0.22)", fontSize:13, fontFamily:FONT.sans, fontWeight:600, cursor:"pointer", maxWidth:"92%", textAlign:"center" }}>
+          {emo(toast.text)}
           <span style={{ opacity:0.6, marginLeft:10, fontSize:11, fontWeight:400 }}>tap to dismiss</span>
         </div>
       )}
@@ -7255,24 +7264,24 @@ export default function BoatClosers() {
           <div onClick={e=>e.stopPropagation()} style={{ width:"min(420px, 94vw)", height:"100%", background:"#fff", display:"flex", flexDirection:"column", boxShadow:"-8px 0 30px rgba(0,0,0,0.2)" }}>
             <div style={{ background:C.navy, color:"#fff", padding:"15px 18px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <div>
-                <div style={{ fontSize:15, fontWeight:800, fontFamily:"sans-serif" }}>💬 Messages</div>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontFamily:"sans-serif", marginTop:2 }}>You &amp; the other party on this deal</div>
+                <div style={{ fontSize:15, fontWeight:800, fontFamily:FONT.sans }}>{emo("💬")} Messages</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontFamily:FONT.sans, marginTop:2 }}>You &amp; the other party on this deal</div>
               </div>
               <button onClick={()=>setMsgPanelOpen(false)} style={{ background:"none", border:"none", color:"#fff", fontSize:22, cursor:"pointer", lineHeight:1 }}>×</button>
             </div>
-            <div style={{ flex:1, overflowY:"auto", padding:"16px 18px", background:"#f8fafc", fontFamily:"sans-serif" }}>
+            <div style={{ flex:1, overflowY:"auto", padding:"16px 18px", background:"#f8fafc", fontFamily:FONT.sans }}>
               {_msgs.length === 0 ? (
                 <div style={{ textAlign:"center", color:C.slate, fontSize:13, marginTop:30, lineHeight:1.7 }}>No messages yet.<br/>Send one below to reach the other party.</div>
               ) : _msgs.map((m, i) => {
                 if (!m) return null;
                 const mine = m.from === _myRole || m.from === "me";
                 const sys = m.from === "system";
-                if (sys) return <div key={i} style={{ textAlign:"center", fontSize:11.5, color:C.slate, margin:"10px 0", fontStyle:"italic" }}>{m.text}</div>;
+                if (sys) return <div key={i} style={{ textAlign:"center", fontSize:11.5, color:C.slate, margin:"10px 0", fontStyle:"italic" }}>{emo(m.text)}</div>;
                 return (
                   <div key={i} style={{ display:"flex", justifyContent: mine ? "flex-end" : "flex-start", marginBottom:10 }}>
                     <div style={{ maxWidth:"78%", background: mine ? C.brass : "#fff", color: mine ? "#fff" : C.navy, border: mine ? "none" : `1px solid ${C.mist}`, borderRadius:12, padding:"9px 13px", fontSize:13, lineHeight:1.5 }}>
                       <div style={{ fontSize:10, fontWeight:800, opacity:0.7, marginBottom:3, textTransform:"uppercase", letterSpacing:0.5 }}>{mine ? "You" : (m.from || "Other party")}</div>
-                      {m.text}
+                      {emo(m.text)}
                       {m.time && <div style={{ fontSize:9.5, opacity:0.6, marginTop:4, textAlign:"right" }}>{m.time}</div>}
                     </div>
                   </div>
@@ -7280,8 +7289,8 @@ export default function BoatClosers() {
               })}
             </div>
             <div style={{ borderTop:`1px solid ${C.mist}`, padding:"12px 14px", background:"#fff", display:"flex", gap:8 }}>
-              <input value={msgDraft} onChange={e=>setMsgDraft(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter") sendDealMessage(); }} placeholder="Type a message…" style={{ flex:1, border:`1px solid ${C.mist}`, borderRadius:8, padding:"10px 12px", fontSize:13, fontFamily:"sans-serif", outline:"none" }} />
-              <button onClick={sendDealMessage} disabled={!msgDraft.trim()} style={{ background: msgDraft.trim() ? C.navy : C.mist, color:"#fff", border:"none", borderRadius:8, padding:"10px 16px", fontSize:13, fontWeight:800, fontFamily:"sans-serif", cursor: msgDraft.trim() ? "pointer" : "default" }}>Send</button>
+              <input value={msgDraft} onChange={e=>setMsgDraft(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter") sendDealMessage(); }} placeholder="Type a message…" style={{ flex:1, border:`1px solid ${C.mist}`, borderRadius:8, padding:"10px 12px", fontSize:13, fontFamily:FONT.sans, outline:"none" }} />
+              <button onClick={sendDealMessage} disabled={!msgDraft.trim()} style={{ background: msgDraft.trim() ? C.navy : C.mist, color:"#fff", border:"none", borderRadius:8, padding:"10px 16px", fontSize:13, fontWeight:800, fontFamily:FONT.sans, cursor: msgDraft.trim() ? "pointer" : "default" }}>Send</button>
             </div>
           </div>
         </div>
@@ -7289,8 +7298,8 @@ export default function BoatClosers() {
       <ProgressBar step={step} setStep={goToStep} maxStep={maxStep} dealPaid={dealPaid}/>
 
       {negotiate.dealFinalized && (
-        <div style={{ background:C.greenLight, borderBottom:`2px solid ${C.green}`, padding:"12px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
-          <div style={{ fontSize:14, fontWeight:800, color:"#0f6e56", marginBottom:3 }}>🔒 Deal Finalized &amp; Closed — permanent record</div>
+        <div style={{ background:C.greenLight, borderBottom:`2px solid ${C.green}`, padding:"12px 1.25rem", textAlign:"center", fontFamily:FONT.sans }}>
+          <div style={{ fontSize:14, fontWeight:800, color:"#0f6e56", marginBottom:3 }}>{emo("🔒")} Deal Finalized &amp; Closed — permanent record</div>
           <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, maxWidth:600, margin:"0 auto" }}>
             Everything here is frozen: terms, documents, and signatures are final and can no longer be changed, added, or deleted. You can view and print any part of it as your record of the sale, but nothing can be edited.
           
@@ -7306,7 +7315,7 @@ export default function BoatClosers() {
       )}
 
       {negotiate.canceled && !negotiate.dealFinalized && (
-        <div style={{ background:"#fdecec", borderBottom:`2px solid ${C.red}`, padding:"14px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
+        <div style={{ background:"#fdecec", borderBottom:`2px solid ${C.red}`, padding:"14px 1.25rem", textAlign:"center", fontFamily:FONT.sans }}>
           <div style={{ fontSize:14, fontWeight:800, color:C.red, marginBottom:4 }}>This deal was canceled</div>
           <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.6, maxWidth:600, margin:"0 auto 10px" }}>
             {negotiate.canceled.byName} canceled this deal on {negotiate.canceled.date}{negotiate.canceled.reason?` — “${negotiate.canceled.reason}”`:""}. It's now closed for both parties.
@@ -7338,7 +7347,7 @@ export default function BoatClosers() {
         // their money back — so both doors are here, with the better one first.
         const iPaid = dealPaid && amInitiator;
         return (
-          <div style={{ background:"#fdecec", borderBottom:`2px solid ${C.red}`, padding:"14px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
+          <div style={{ background:"#fdecec", borderBottom:`2px solid ${C.red}`, padding:"14px 1.25rem", textAlign:"center", fontFamily:FONT.sans }}>
             <div style={{ fontSize:14, fontWeight:800, color:C.red, marginBottom:4 }}>This deal ended — the earnest-money deposit was never funded</div>
             <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.6, maxWidth:640, margin:"0 auto 12px" }}>
               {iPaid
@@ -7351,7 +7360,7 @@ export default function BoatClosers() {
                 <div style={{ marginTop:11 }}>
                   <button
                     onClick={()=>{ setSupportType("Request a refund of my $249 fee"); setSupportMsg(`The earnest-money deposit was never funded on this deal, so it ended before closing.\n\nDeal ID: ${dealId || "—"}\n\nWhat happened: `); setSupportSent(false); setSupportErr(""); setSupportModal(true); }}
-                    style={{ background:"none", border:"none", color:C.slate, fontSize:12, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }}>
+                    style={{ background:"none", border:"none", color:C.slate, fontSize:12, fontFamily:FONT.sans, cursor:"pointer", textDecoration:"underline" }}>
                     I'd rather request a refund
                   </button>
                 </div>
@@ -7384,7 +7393,7 @@ export default function BoatClosers() {
         if (!stalled) return null;
         const isBuyer = (myDealRole || user?.role) === "buyer";
         return (
-          <div style={{ background:"#fff8e6", borderBottom:`2px solid ${C.brass}`, padding:"14px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
+          <div style={{ background:"#fff8e6", borderBottom:`2px solid ${C.brass}`, padding:"14px 1.25rem", textAlign:"center", fontFamily:FONT.sans }}>
             <div style={{ fontSize:13.5, fontWeight:800, color:"#7a5500", marginBottom:4 }}>No agreement yet — the last offer was rejected</div>
             <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.6, maxWidth:640, margin:"0 auto 12px" }}>
               {isBuyer
@@ -7405,7 +7414,7 @@ export default function BoatClosers() {
 
       {!negotiate.canceled && (dealId || step>0) && (
         <div style={{ maxWidth:880, margin:"0 auto", padding:"8px 1.25rem 0", textAlign:"right" }}>
-          <button onClick={()=>setCancelModal(true)} style={{ background:"none", border:"none", color:C.slate, fontSize:11.5, fontFamily:"sans-serif", cursor:"pointer", textDecoration:"underline" }}>End this deal</button>
+          <button onClick={()=>setCancelModal(true)} style={{ background:"none", border:"none", color:C.slate, fontSize:11.5, fontFamily:FONT.sans, cursor:"pointer", textDecoration:"underline" }}>End this deal</button>
         </div>
       )}
 
@@ -7425,9 +7434,9 @@ export default function BoatClosers() {
         const bar = verified ? C.green : (overdue || disputed) ? C.red : C.brass;
         const headColor = verified ? C.green : (overdue || disputed) ? C.red : "#7a5500";
         const head = verified ? "✓ Deal secured — deposit verified by the seller"
-          : disputed ? "⚠️ Deal on hold — the seller could not verify the deposit"
+          : disputed ? emo("⚠️ Deal on hold — the seller could not verify the deposit")
           : awaiting ? "⏸️ Deal on hold — waiting for the seller to verify the deposit"
-          : overdue ? "⚠️ Earnest-money deposit is overdue"
+          : overdue ? emo("⚠️ Earnest-money deposit is overdue")
           : `⏳ Earnest-money deposit due in ${left}`;
         const body = verified
           ? "The boat is held off the market while due diligence is completed. Both sides are protected: the buyer has the agreed time to inspect, and the seller has the buyer's committed deposit."
@@ -7448,7 +7457,7 @@ export default function BoatClosers() {
               : "Waiting for the buyer to submit their earnest-money deposit proof within the agreed window.");
         const showBtn = !verified && ((isBuyer && !awaiting) || (!isBuyer && (awaiting || disputed)));
         return (
-          <div style={{ background:bg, borderBottom:`2px solid ${bar}`, padding:"12px 1.25rem", textAlign:"center", fontFamily:"sans-serif" }}>
+          <div style={{ background:bg, borderBottom:`2px solid ${bar}`, padding:"12px 1.25rem", textAlign:"center", fontFamily:FONT.sans }}>
             <div style={{ fontSize:13, fontWeight:800, color:headColor, marginBottom:3 }}>{head}</div>
             <div style={{ fontSize:12, color:C.slate, lineHeight:1.6, maxWidth:620, margin:"0 auto" }}>{body}</div>
             {/* Same fault as the rejection banner: raw setStep never raises maxStep,
@@ -7461,7 +7470,7 @@ export default function BoatClosers() {
       {step >= 3 && step <= maxStep && (
         <div style={{ background:C.white, borderBottom:`1px solid ${C.mist}`, padding:"8px 2rem" }}>
           <div style={{ maxWidth:820, margin:"0 auto" }}>
-            <button onClick={()=>goToStep(2)} style={{ background:"transparent", border:`1px solid ${C.mist}`, borderRadius:6, padding:"6px 14px", fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, cursor:"pointer", display:"inline-flex", alignItems:"center", gap:6 }}>
+            <button onClick={()=>goToStep(2)} style={{ background:"transparent", border:`1px solid ${C.mist}`, borderRadius:6, padding:"6px 14px", fontSize:12, fontFamily:FONT.sans, fontWeight:700, color:C.navy, cursor:"pointer", display:"inline-flex", alignItems:"center", gap:6 }}>
               ← Back to Deal Room
             </button>
           </div>
@@ -7469,8 +7478,8 @@ export default function BoatClosers() {
       )}
       {dealFrozen && step <= 3 && (
         <div style={{ maxWidth:880, margin:"12px auto 0", padding:"0 1.25rem" }}>
-          <div style={{ background:"#f4f7f5", border:`1px solid ${C.green}`, borderRadius:8, padding:"12px 14px", fontFamily:"sans-serif", fontSize:12.5, color:C.slate, lineHeight:1.6 }}>
-            🔒 <b>Sealed.</b> This deal is finalized, so the vessel, parties, terms and due-diligence pages are read-only from here on. You can still open <b>Documents</b> to view, print or send anything from the sale. To sell another boat, or the same boat to someone else, start a new deal.
+          <div style={{ background:"#f4f7f5", border:`1px solid ${C.green}`, borderRadius:8, padding:"12px 14px", fontFamily:FONT.sans, fontSize:12.5, color:C.slate, lineHeight:1.6 }}>
+            {emo("🔒")} <b>Sealed.</b> This deal is finalized, so the vessel, parties, terms and due-diligence pages are read-only from here on. You can still open <b>Documents</b> to view, print or send anything from the sale. To sell another boat, or the same boat to someone else, start a new deal.
             <div style={{ marginTop:10 }}>
               <button onClick={()=>startNewDeal()} style={{ ...S.btnBrass, fontSize:12.5, padding:"8px 18px" }}>Start a new deal →</button>
             </div>
@@ -7491,8 +7500,8 @@ export default function BoatClosers() {
       {cancelModal && (
         <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.85)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem" }}>
           <div style={{ background:"#fff", borderRadius:12, padding:"1.75rem", maxWidth:440, width:"100%" }}>
-            <div style={{ fontSize:18, fontWeight:800, color:C.navy, fontFamily:"'Georgia',serif", marginBottom:8 }}>End this deal?</div>
-            <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, marginBottom:14 }}>
+            <div style={{ fontSize:18, fontWeight:800, color:C.navy, fontFamily:FONT.serif, marginBottom:8 }}>End this deal?</div>
+            <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate, lineHeight:1.7, marginBottom:14 }}>
               {dealPaid ? (
                 <>This deal is locked and the Purchase &amp; Sale Agreement is signed. Ending it closes the deal for both parties and no one can move it forward. Your offers, terms, and signed documents stay on record as evidence of what was agreed.
                 {" "}{amInitiator ? <b>Your $249 isn&rsquo;t lost — you have 60 days to start another deal, with a different buyer or a different boat, at no extra charge.</b> : "The party who paid keeps their fee as a 60-day credit toward another deal."}
@@ -7518,14 +7527,14 @@ export default function BoatClosers() {
           <div style={{ background:"#fff", borderRadius:12, padding:"1.75rem", maxWidth:480, width:"100%", maxHeight:"90vh", overflowY:"auto" }}>
             {supportSent ? (
               <>
-                <div style={{ fontSize:18, fontWeight:800, color:C.navy, fontFamily:"'Georgia',serif", marginBottom:8 }}>✓ Request sent</div>
-                <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, marginBottom:18 }}>Thanks — we've sent your request to the BoatClosers team and emailed you a confirmation. We'll review it and reply by email.</div>
+                <div style={{ fontSize:18, fontWeight:800, color:C.navy, fontFamily:FONT.serif, marginBottom:8 }}>✓ Request sent</div>
+                <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate, lineHeight:1.7, marginBottom:18 }}>Thanks — we've sent your request to the BoatClosers team and emailed you a confirmation. We'll review it and reply by email.</div>
                 <button onClick={()=>{ setSupportModal(false); setSupportSent(false); }} style={{ ...S.btnBrass }}>Close</button>
               </>
             ) : (
               <>
-                <div style={{ fontSize:18, fontWeight:800, color:C.navy, fontFamily:"'Georgia',serif", marginBottom:6 }}>Help &amp; Support</div>
-                <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65, marginBottom:16 }}>
+                <div style={{ fontSize:18, fontWeight:800, color:C.navy, fontFamily:FONT.serif, marginBottom:6 }}>Help &amp; Support</div>
+                <div style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.65, marginBottom:16 }}>
                   Having trouble, or a disagreement with the other party? Tell us what's going on and the BoatClosers team will help — we can explain the process, help both sides communicate, and review the issue. We're not a party to your deal and don't hold funds, and any refund request is reviewed case by case.
                 </div>
                 <label style={S.label}>What do you need help with?</label>
@@ -7539,7 +7548,7 @@ export default function BoatClosers() {
                 <div style={{ height:12 }}/>
                 <label style={S.label}>Tell us what's happening</label>
                 <textarea style={{...S.textarea, minHeight:110}} value={supportMsg} onChange={e=>setSupportMsg(e.target.value)} placeholder="Describe the problem and what you'd like to happen. Include any details that help us understand it." />
-                {supportErr && <div style={{ fontSize:12, color:C.red, fontFamily:"sans-serif", marginTop:8 }}>{supportErr}</div>}
+                {supportErr && <div style={{ fontSize:12, color:C.red, fontFamily:FONT.sans, marginTop:8 }}>{supportErr}</div>}
                 <div style={{ display:"flex", gap:10, marginTop:16 }}>
                   <button onClick={()=>setSupportModal(false)} style={{ ...S.btnOutline, flex:1 }}>Cancel</button>
                   <button onClick={submitSupport} disabled={supportSending} style={{ ...S.btnBrass, flex:1, opacity:supportSending?0.6:1 }}>{supportSending ? "Sending…" : "Send to BoatClosers"}</button>

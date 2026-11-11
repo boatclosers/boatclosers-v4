@@ -1,5 +1,7 @@
 'use client'
 import { useEffect } from "react";
+import { FONT } from "../lib/theme";
+import { emo } from "./Icon";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BOATCLOSERS — CONTINGENCY PICKER
@@ -72,26 +74,26 @@ export default function ContingencyPicker({ value, onChange, paymentType, ddEnd,
 
   return (
     <div style={{ marginBottom:16 }}>
-      <div style={{ fontSize:13, fontWeight:700, fontFamily:"sans-serif", color:C.navy, marginBottom:4 }}>
+      <div style={{ fontSize:13, fontWeight:700, fontFamily:FONT.sans, color:C.navy, marginBottom:4 }}>
         Buyer's Contingencies
       </div>
-      <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, lineHeight:1.6 }}>
+      <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginBottom:10, lineHeight:1.6 }}>
         Tap to choose what this offer is contingent on. Each one you select is added to the Purchase Agreement;
         anything you leave off is waived. Deadlines follow your due diligence window{ddEnd ? ` (by ${ddEnd})` : ""}.
       </div>
 
       {selected.length === 0 && !cashWaived && (
-        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:"#b91c1c", fontWeight:700, marginBottom:8, lineHeight:1.5 }}>
+        <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:"#b91c1c", fontWeight:700, marginBottom:8, lineHeight:1.5 }}>
           Nothing selected yet — choose what this offer depends on. Most private boat offers are contingent on a survey, a sea trial, and clear title. Buying as-is for cash? Use the <b>cash offer</b> option below.
         </div>
       )}
       {cashWaived && selected.length === 0 && (
-        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.navy, fontWeight:700, marginBottom:8, lineHeight:1.5, background:C.sandDark, borderRadius:6, padding:"9px 12px" }}>
-          💵 No-contingency cash offer. You're buying the boat as-is, with no survey, personal inspection, sea-trial, financing, insurance, or title contingency. You can add a contingency any time before sending by tapping one above.
+        <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.navy, fontWeight:700, marginBottom:8, lineHeight:1.5, background:C.sandDark, borderRadius:6, padding:"9px 12px" }}>
+          {emo("💵")} No-contingency cash offer. You're buying the boat as-is, with no survey, personal inspection, sea-trial, financing, insurance, or title contingency. You can add a contingency any time before sending by tapping one above.
         </div>
       )}
       {financed && !cashWaived && (
-        <div style={{ background:"#f7fbfd", border:`1px solid ${C.mist}`, borderRadius:7, padding:"11px 13px", marginBottom:11, fontFamily:"sans-serif" }}>
+        <div style={{ background:"#f7fbfd", border:`1px solid ${C.mist}`, borderRadius:7, padding:"11px 13px", marginBottom:11, fontFamily:FONT.sans }}>
           <div style={{ fontSize:12, fontWeight:800, color:C.navy, marginBottom:4 }}>Financing and Insurance added for you</div>
           <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65 }}>
             Your lender will not release funds without proof of insurance, so the two go together. You can remove either one, but do it deliberately.
@@ -100,7 +102,7 @@ export default function ContingencyPicker({ value, onChange, paymentType, ddEnd,
       )}
 
       {selected.includes("insurance") && (
-        <div style={{ background:"#fffaf0", border:"1px solid #e3c98f", borderRadius:7, padding:"11px 13px", marginBottom:11, fontFamily:"sans-serif" }}>
+        <div style={{ background:"#fffaf0", border:"1px solid #e3c98f", borderRadius:7, padding:"11px 13px", marginBottom:11, fontFamily:FONT.sans }}>
           <div style={{ fontSize:12, fontWeight:800, color:"#8a5a12", marginBottom:4 }}>Insurance is not a formality</div>
           <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.65 }}>
             Cover can be refused outright &mdash; an older or wooden hull, high performance, survey findings, or a buyer with little boating history are all common reasons. Confirm you can actually get a policy <b>during due diligence</b>, while this contingency still protects your deposit. Find out afterwards and the money is already at risk.
@@ -119,7 +121,7 @@ export default function ContingencyPicker({ value, onChange, paymentType, ddEnd,
               style={{
                 display:"flex", alignItems:"center", gap:7,
                 padding:"8px 14px", borderRadius:999, cursor:"pointer",
-                fontFamily:"sans-serif", fontSize:12, fontWeight:700,
+                fontFamily:FONT.sans, fontSize:12, fontWeight:700,
                 border:`1.5px solid ${on ? C.green : C.mist}`,
                 background: on ? C.green : "transparent",
                 color: on ? "#fff" : C.slate,
@@ -143,15 +145,15 @@ export default function ContingencyPicker({ value, onChange, paymentType, ddEnd,
         onClick={waiveAll}
         style={{
           marginTop:10, width:"100%", padding:"9px 14px", borderRadius:8, cursor:"pointer",
-          fontFamily:"sans-serif", fontSize:12, fontWeight:700,
+          fontFamily:FONT.sans, fontSize:12, fontWeight:700,
           border:`1.5px solid ${cashWaived ? C.brass : C.mist}`,
           background: cashWaived ? C.brass : "transparent",
           color: cashWaived ? C.navy : C.slate,
         }}>
-        💵 {cashWaived ? "Cash offer — all contingencies waived" : "Make this a cash offer (waive all contingencies)"}
+        {emo("💵")} {cashWaived ? "Cash offer — all contingencies waived" : "Make this a cash offer (waive all contingencies)"}
       </button>
 
-      <div style={{ marginTop:8, fontSize:11, fontFamily:"sans-serif", color:C.teal }}>
+      <div style={{ marginTop:8, fontSize:11, fontFamily:FONT.sans, color:C.teal }}>
         Contingent on: <strong>{selected.length ? OPTIONS.filter(o=>selected.includes(o.key)).map(o=>o.label).join(", ") : cashWaived ? "None — cash offer, buyer waives all contingencies" : "None selected yet"}</strong>
       </div>
     </div>

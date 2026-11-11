@@ -11,6 +11,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { DOCUMENTS, fillDocument } from "../data/documents";
+import { FONT } from "../lib/theme";
+import { emo } from "./Icon";
 
 // ── palette (matches the main app) ──
 const C = {
@@ -57,16 +59,16 @@ const S = {
   card:{ background:C.white, border:`0.5px solid ${C.mist}`, borderRadius:8, padding:"1.5rem" },
   cardGold:{ background:C.white, border:`2px solid ${C.brass}`, borderRadius:8, padding:"1.5rem" },
   h1:{ fontSize:24, fontWeight:700, color:C.navy, marginBottom:6 },
-  h3:{ fontSize:15, fontWeight:600, color:C.navy, marginBottom:10, fontFamily:"sans-serif" },
-  label:{ fontSize:12, color:C.slate, fontFamily:"sans-serif", marginBottom:4, display:"block", fontWeight:500 },
-  input:{ width:"100%", border:`1px solid ${C.mist}`, borderRadius:5, padding:"9px 11px", fontSize:13, fontFamily:"sans-serif", background:C.white, color:C.text, boxSizing:"border-box" },
-  btn:{ background:C.navy, color:"#fff", border:"none", borderRadius:5, padding:"10px 22px", fontSize:13, cursor:"pointer", fontFamily:"sans-serif", fontWeight:600 },
-  btnBrass:{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"10px 22px", fontSize:13, cursor:"pointer", fontFamily:"sans-serif", fontWeight:700 },
-  btnOutline:{ background:"transparent", color:C.navy, border:`1px solid ${C.mist}`, borderRadius:5, padding:"9px 20px", fontSize:13, cursor:"pointer", fontFamily:"sans-serif" },
-  btnTeal:{ background:C.teal, color:"#fff", border:"none", borderRadius:5, padding:"10px 22px", fontSize:13, cursor:"pointer", fontFamily:"sans-serif", fontWeight:600 },
+  h3:{ fontSize:15, fontWeight:600, color:C.navy, marginBottom:10, fontFamily:FONT.sans },
+  label:{ fontSize:12, color:C.slate, fontFamily:FONT.sans, marginBottom:4, display:"block", fontWeight:500 },
+  input:{ width:"100%", border:`1px solid ${C.mist}`, borderRadius:5, padding:"9px 11px", fontSize:13, fontFamily:FONT.sans, background:C.white, color:C.text, boxSizing:"border-box" },
+  btn:{ background:C.navy, color:"#fff", border:"none", borderRadius:5, padding:"10px 22px", fontSize:13, cursor:"pointer", fontFamily:FONT.sans, fontWeight:600 },
+  btnBrass:{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"10px 22px", fontSize:13, cursor:"pointer", fontFamily:FONT.sans, fontWeight:700 },
+  btnOutline:{ background:"transparent", color:C.navy, border:`1px solid ${C.mist}`, borderRadius:5, padding:"9px 20px", fontSize:13, cursor:"pointer", fontFamily:FONT.sans },
+  btnTeal:{ background:C.teal, color:"#fff", border:"none", borderRadius:5, padding:"10px 22px", fontSize:13, cursor:"pointer", fontFamily:FONT.sans, fontWeight:600 },
   divider:{ border:"none", borderTop:`1px solid ${C.mist}`, margin:"1.25rem 0" },
-  pill:{ display:"inline-block", fontSize:10, fontFamily:"sans-serif", fontWeight:700, padding:"3px 9px", borderRadius:20, letterSpacing:0.5, textTransform:"uppercase" },
-  tag:{ display:"inline-block", fontSize:10, fontFamily:"sans-serif", background:C.sandDark, color:C.slate, padding:"2px 7px", borderRadius:3, marginRight:4 },
+  pill:{ display:"inline-block", fontSize:10, fontFamily:FONT.sans, fontWeight:700, padding:"3px 9px", borderRadius:20, letterSpacing:0.5, textTransform:"uppercase" },
+  tag:{ display:"inline-block", fontSize:10, fontFamily:FONT.sans, background:C.sandDark, color:C.slate, padding:"2px 7px", borderRadius:3, marginRight:4 },
 };
 
 function Field({ label, children, span2 }) {
@@ -86,7 +88,7 @@ function DataWarning({ vessel, parties }) {
   if (missing.length === 0) return null;
   return (
     <div style={{ background:"#fff8e6", border:`1px solid ${C.brass}`, borderRadius:6, padding:"12px 14px", marginBottom:20 }}>
-      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.brass, marginBottom:6 }}>⚠ Some document fields will be blank without this info:</div>
+      <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.brass, marginBottom:6 }}>{emo("⚠")} Some document fields will be blank without this info:</div>
       <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
         {missing.map(m => <span key={m} style={{ ...S.tag, background:"#fdeab0", color:"#7a5500" }}>{m}</span>)}
       </div>
@@ -148,14 +150,14 @@ function FillInForm({ doc, blanks, initial, C, onKeep, onSave, onCancel }) {
   const answered = blanks.filter(b => (draft[b.fk] || "") !== "").length;
   return (
     <div style={{ marginTop:12, background:"#fffaf0", border:`1px solid ${C.brass}`, borderRadius:8, padding:"14px 14px 16px" }}>
-      <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:14 }}>
-        ✏️ <strong>Fill in {doc.title}</strong> — these are the only blanks on this document. Everything else fills itself from your deal and stays locked. Fill in what you need, then press <strong>Save</strong> at the bottom.
+      <div style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.navy, lineHeight:1.6, marginBottom:14 }}>
+        {emo("✏")} <strong>Fill in {doc.title}</strong> — these are the only blanks on this document. Everything else fills itself from your deal and stays locked. Fill in what you need, then press <strong>Save</strong> at the bottom.
       </div>
       {blanks.map((b, i) => (
         <div key={b.fk} style={{ marginBottom:12 }}>
-          <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:4, lineHeight:1.45 }}>{b.label}</div>
+          <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginBottom:4, lineHeight:1.45 }}>{b.label}</div>
           {b.kind === "check" ? (
-            <label style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, fontFamily:"sans-serif", color:C.navy, cursor:"pointer" }}>
+            <label style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, fontFamily:FONT.sans, color:C.navy, cursor:"pointer" }}>
               <input type="checkbox" checked={draft[b.fk]==="on"} onChange={e=>set(b.fk, e.target.checked ? "on" : "")} style={{ width:17, height:17 }} />
               <span>Yes</span>
             </label>
@@ -165,26 +167,26 @@ function FillInForm({ doc, blanks, initial, C, onKeep, onSave, onCancel }) {
               value={draft[b.fk] || ""}
               onChange={e=>set(b.fk, e.target.value)}
               placeholder={"Blank " + (i+1)}
-              style={{ width:"100%", boxSizing:"border-box", padding:"10px 12px", fontSize:16, fontFamily:"sans-serif", color:C.navy, border:`1px solid ${C.mist}`, borderRadius:6, outline:"none", background:"#fff" }}
+              style={{ width:"100%", boxSizing:"border-box", padding:"10px 12px", fontSize:16, fontFamily:FONT.sans, color:C.navy, border:`1px solid ${C.mist}`, borderRadius:6, outline:"none", background:"#fff" }}
             />
           )}
         </div>
       ))}
       {doc.checklist && (
-        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:4, marginBottom:12 }}>
+        <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, marginTop:4, marginBottom:12 }}>
           The tick-boxes on this document stay on the document itself — press Save, then tap <strong>View</strong> to check them off.
         </div>
       )}
       <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap", marginTop:4 }}>
         <button onClick={()=>{ onSave(draft); setSavedAt(Date.now()); }}
-          style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"11px 24px", fontSize:13.5, fontWeight:800, fontFamily:"sans-serif", cursor:"pointer" }}>
-          💾 Save {answered > 0 ? `(${answered} of ${blanks.length})` : ""}
+          style={{ background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"11px 24px", fontSize:13.5, fontWeight:800, fontFamily:FONT.sans, cursor:"pointer" }}>
+          {emo("💾")} Save {answered > 0 ? `(${answered} of ${blanks.length})` : ""}
         </button>
         <button onClick={()=>{ onSave(draft); onCancel(); }}
-          style={{ background:"transparent", color:C.slate, border:`1px solid ${C.mist}`, borderRadius:20, padding:"10px 18px", fontSize:12.5, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer" }}>
+          style={{ background:"transparent", color:C.slate, border:`1px solid ${C.mist}`, borderRadius:20, padding:"10px 18px", fontSize:12.5, fontWeight:700, fontFamily:FONT.sans, cursor:"pointer" }}>
           Save &amp; show the document
         </button>
-        {savedAt > 0 && <span style={{ fontSize:12, fontFamily:"sans-serif", color:C.green, fontWeight:800 }}>✓ Saved</span>}
+        {savedAt > 0 && <span style={{ fontSize:12, fontFamily:FONT.sans, color:C.green, fontWeight:800 }}>✓ Saved</span>}
       </div>
     </div>
   );
@@ -207,14 +209,14 @@ function DocsAssistant({ C, myRole, seen, onSeen }) {
       <div onClick={()=>setOpen(o=>!o)} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"11px 14px", background:C.navy }}>
         <span style={{ fontSize:18 }}>\ud83e\udded</span>
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:13, fontWeight:800, fontFamily:"sans-serif", color:"#fff" }}>Deal Assistant</div>
-          <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(255,255,255,0.6)" }}>Documents &mdash; what to do, and in what order</div>
+          <div style={{ fontSize:13, fontWeight:800, fontFamily:FONT.sans, color:"#fff" }}>Deal Assistant</div>
+          <div style={{ fontSize:11, fontFamily:FONT.sans, color:"rgba(255,255,255,0.6)" }}>Documents &mdash; what to do, and in what order</div>
         </div>
-        <span style={{ color:C.brass, fontSize:12, fontFamily:"sans-serif", fontWeight:700, whiteSpace:"nowrap" }}>{open ? "\u25b2 Hide" : "\u25bc Show"}</span>
+        <span style={{ color:C.brass, fontSize:12, fontFamily:FONT.sans, fontWeight:700, whiteSpace:"nowrap" }}>{open ? "\u25b2 Hide" : "\u25bc Show"}</span>
       </div>
 
       {open && (
-        <div style={{ padding:"14px 16px", fontFamily:"sans-serif" }}>
+        <div style={{ padding:"14px 16px", fontFamily:FONT.sans }}>
           <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.75 }}>
             Your price has been agreed on and payment has been made. Now it&rsquo;s time to turn your deal into legally binding paperwork.
           </div>
@@ -265,39 +267,39 @@ function FindDocument({ C, DOC_SET, onOpenDoc, signed }) {
   return (
     <div style={{ border:`1px solid ${C.mist}`, borderRadius:9, marginBottom:16, overflow:"hidden", background:C.white }}>
       <div style={{ padding:"14px 16px 12px" }}>
-        <div style={{ fontSize:13.5, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}>Looking for something else?</div>
-        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.55, marginTop:3, marginBottom:10 }}>
+        <div style={{ fontSize:13.5, fontFamily:FONT.sans, fontWeight:800, color:C.navy }}>Looking for something else?</div>
+        <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.55, marginTop:3, marginBottom:10 }}>
           Describe your situation in your own words &mdash; you don&rsquo;t need to know what the document is called.
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:9, border:`1.5px solid ${q ? C.brass : C.mist}`, borderRadius:20, padding:"8px 14px", background: q ? "#fffaf0" : C.white }}>
           <span style={{ color:C.brass, fontSize:13 }}>&#9906;</span>
           <input type="text" value={q} onChange={e=>setQ(e.target.value)}
             placeholder="owner died &middot; lost the title &middot; still owe money"
-            style={{ flex:1, border:"none", outline:"none", fontSize:13.5, fontFamily:"sans-serif", color:C.navy, background:"transparent", minWidth:0 }} />
+            style={{ flex:1, border:"none", outline:"none", fontSize:13.5, fontFamily:FONT.sans, color:C.navy, background:"transparent", minWidth:0 }} />
           {q && <button onClick={()=>setQ("")} title="Clear" style={{ border:"none", background:"transparent", color:C.slate, fontSize:16, cursor:"pointer", lineHeight:1 }}>&times;</button>}
         </div>
         {!q && (
           <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:10 }}>
             {SITUATIONS.map(sq => (
               <button key={sq} onClick={()=>setQ(sq)}
-                style={{ fontSize:11.5, background:C.sand, border:`1px solid ${C.mist}`, color:C.slate, padding:"5px 12px", borderRadius:14, cursor:"pointer", fontFamily:"sans-serif" }}>{sq}</button>
+                style={{ fontSize:11.5, background:C.sand, border:`1px solid ${C.mist}`, color:C.slate, padding:"5px 12px", borderRadius:14, cursor:"pointer", fontFamily:FONT.sans }}>{sq}</button>
             ))}
           </div>
         )}
       </div>
 
       {q && (results.length === 0 ? (
-        <div style={{ padding:"12px 16px", background:C.sand, fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6 }}>
+        <div style={{ padding:"12px 16px", background:C.sand, fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>
           Nothing matched that. Try fewer words, or open the groups below &mdash; every document is in one of them.
         </div>
       ) : (
         <div>
-          <div style={{ padding:"8px 16px", background:C.sand, fontSize:10.5, fontFamily:"sans-serif", color:C.slate, letterSpacing:0.5, textTransform:"uppercase" }}>
+          <div style={{ padding:"8px 16px", background:C.sand, fontSize:10.5, fontFamily:FONT.sans, color:C.slate, letterSpacing:0.5, textTransform:"uppercase" }}>
             {results.length} suggestion{results.length===1?"":"s"}
           </div>
           {results.map(({ d }) => (
             <button key={d.id} onClick={()=>{ setQ(""); onOpenDoc(d.id); }}
-              style={{ display:"block", width:"100%", textAlign:"left", background:C.white, border:"none", borderTop:`1px solid ${C.sand}`, padding:"11px 16px", cursor:"pointer", fontFamily:"sans-serif" }}>
+              style={{ display:"block", width:"100%", textAlign:"left", background:C.white, border:"none", borderTop:`1px solid ${C.sand}`, padding:"11px 16px", cursor:"pointer", fontFamily:FONT.sans }}>
               <div style={{ display:"flex", justifyContent:"space-between", gap:10, alignItems:"baseline" }}>
                 <span style={{ fontSize:13, color:C.navy, fontWeight:600 }}>{d.title}</span>
                 <span style={{ fontSize:11, color: signed[d.id] ? C.green : C.brass, whiteSpace:"nowrap" }}>{signed[d.id] ? "Signed \u2713" : "Open \u2192"}</span>
@@ -934,14 +936,14 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       <div style={S.page}>
         <div style={{ marginBottom:"1.5rem" }}>
           <h1 style={S.h1}>Unlock All Documents</h1>
-          <p style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate }}>Your deal is ready. Pay the flat $249 fee to unlock all documents, e-signatures, and your closing package.</p>
+          <p style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate }}>Your deal is ready. Pay the flat $249 fee to unlock all documents, e-signatures, and your closing package.</p>
         </div>
 
         <div style={{ background:C.navy, borderRadius:8, padding:"14px 18px", marginBottom:16, display:"flex", gap:12, alignItems:"flex-start" }}>
-          <div style={{ fontSize:22, flexShrink:0 }}>⚠️</div>
+          <div style={{ fontSize:22, flexShrink:0 }}>{emo("⚠")}</div>
           <div>
-            <div style={{ fontSize:13, fontWeight:700, color:C.brass, fontFamily:"sans-serif", marginBottom:4 }}>Important — Electronic Signatures Are Not Released Until Payment</div>
-            <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(255,255,255,0.8)", lineHeight:1.7 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:C.brass, fontFamily:FONT.sans, marginBottom:4 }}>Important — Electronic Signatures Are Not Released Until Payment</div>
+            <div style={{ fontSize:12, fontFamily:FONT.sans, color:"rgba(255,255,255,0.8)", lineHeight:1.7 }}>
               Any signatures collected before payment are <strong style={{ color:C.brass }}>previews only and are not legally binding</strong>. Once your $249 payment is confirmed, BoatClosers releases the fully executed document package to both parties. <strong style={{ color:"#fff" }}>Documents are only considered complete and delivered upon payment receipt by BoatClosers.</strong>
             </div>
           </div>
@@ -952,22 +954,22 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         <div style={S.cardGold}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
             <div>
-              <div style={{ fontSize:36, fontWeight:800, color:C.navy, fontFamily:"sans-serif", lineHeight:1 }}>$249</div>
-              <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.slate, marginTop:4 }}>One-time flat fee · One vessel · All documents</div>
+              <div style={{ fontSize:36, fontWeight:800, color:C.navy, fontFamily:FONT.sans, lineHeight:1 }}>$249</div>
+              <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.slate, marginTop:4 }}>One-time flat fee · One vessel · All documents</div>
             </div>
             <span style={{...S.pill, background:"#fff3cd", color:"#7a5500"}}>Flat Rate</span>
           </div>
           <hr style={S.divider}/>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
             {["Professional Legal Documents","Electronic Signatures","Closing Checklist","PDF Download Package","AI Deal Assistant Access","No recurring fees","One deal covered","Buyer & seller copies"].map(f=>(
-              <div key={f} style={{ fontSize:12, fontFamily:"sans-serif", color:C.navy }}>✓ {f}</div>
+              <div key={f} style={{ fontSize:12, fontFamily:FONT.sans, color:C.navy }}>✓ {f}</div>
             ))}
           </div>
         </div>
 
         <div style={{...S.card, marginTop:16}}>
           <h3 style={S.h3}>Deal Summary</h3>
-          <div style={{ fontSize:12, fontFamily:"sans-serif", lineHeight:2, color:C.slate }}>
+          <div style={{ fontSize:12, fontFamily:FONT.sans, lineHeight:2, color:C.slate }}>
             <div><strong>Vessel:</strong> {deal.vesselYear} {deal.vesselMake} {deal.vesselModel} · HIN: {deal.hin}</div>
             <div><strong>Agreed Price:</strong> {deal.salePrice}</div>
             <div><strong>Buyer:</strong> {parties.buyer.name||"[Buyer]"} ({parties.buyer.email||"[Email]"})</div>
@@ -977,14 +979,14 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         </div>
 
         <div style={{...S.card, marginTop:16}}>
-          <div style={{ background:C.sandDark, borderRadius:5, padding:"12px 14px", fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7, marginBottom:14 }}>
+          <div style={{ background:C.sandDark, borderRadius:5, padding:"12px 14px", fontSize:11, fontFamily:FONT.sans, color:C.slate, lineHeight:1.7, marginBottom:14 }}>
             <strong>Disclaimer:</strong> BoatClosers facilitates document generation and e-signature collection only. We are not an escrow agent, broker, attorney, or party to any transaction. Payment of $249 grants access to document templates for this specific transaction only. All legal responsibility for accuracy, enforceability, and the outcome rests solely with the buyer and seller.
           </div>
-          <label style={{ display:"flex", gap:10, alignItems:"flex-start", fontSize:12, fontFamily:"sans-serif", color:C.slate, marginBottom:10, cursor:"pointer" }}>
+          <label style={{ display:"flex", gap:10, alignItems:"flex-start", fontSize:12, fontFamily:FONT.sans, color:C.slate, marginBottom:10, cursor:"pointer" }}>
             <input type="checkbox" checked={payDisc} onChange={e=>setPayDisc(e.target.checked)} style={{ marginTop:1, accentColor:C.navy }} />
             I understand and agree to the disclaimer
           </label>
-          <label style={{ display:"flex", gap:10, alignItems:"flex-start", fontSize:12, fontFamily:"sans-serif", color:C.slate, marginBottom:18, cursor:"pointer" }}>
+          <label style={{ display:"flex", gap:10, alignItems:"flex-start", fontSize:12, fontFamily:FONT.sans, color:C.slate, marginBottom:18, cursor:"pointer" }}>
             <input type="checkbox" checked={agreedTos} onChange={e=>setAgreedTos(e.target.checked)} style={{ marginTop:1, accentColor:C.navy }} />
             I agree to the BoatClosers Terms of Service
           </label>
@@ -1252,8 +1254,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     const c = color || C.navy;
     return (
       <button onClick={() => setAction(docId, action)} title={ACTION_HELP[action] || label}
-        style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:`1.5px solid ${active ? c : "#e3ddd0"}`, background: active ? c : C.white, color: active ? "#fff" : c, whiteSpace:"nowrap", transition:"all .12s", boxShadow: active ? "0 1px 3px rgba(0,0,0,0.12)" : "none" }}>
-        <span style={{ fontSize:12 }}>{icon}</span> {label}
+        style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:FONT.sans, fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:`1.5px solid ${active ? c : "#e3ddd0"}`, background: active ? c : C.white, color: active ? "#fff" : c, whiteSpace:"nowrap", transition:"all .12s", boxShadow: active ? "0 1px 3px rgba(0,0,0,0.12)" : "none" }}>
+        <span style={{ fontSize:12 }}>{emo(icon)}</span> {label}
       </button>
     );
   };
@@ -1357,11 +1359,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       <div style={{ position:"sticky", top:0, zIndex:40, background:C.sand, borderBottom:`1px solid ${C.mist}`,
         margin:"-1rem -1rem 1rem", padding:"10px 1rem", display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
         <button onClick={onBack}
-          style={{ fontSize:12.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy, background:C.white,
+          style={{ fontSize:12.5, fontFamily:FONT.sans, fontWeight:700, color:C.navy, background:C.white,
             border:`1.5px solid ${C.mist}`, borderRadius:16, padding:"7px 15px", cursor:"pointer", whiteSpace:"nowrap" }}>
           &larr; Back to Due Diligence
         </button>
-        <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate }}>Documents</span>
+        <span style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate }}>Documents</span>
       </div>
       <div style={{ marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div>
@@ -1372,18 +1374,18 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
       {!frozen && <DocsAssistant C={C} myRole={myRole} seen={!!data.docsGuideSeen} onSeen={()=>setData(d => ({ ...d, docsGuideSeen: true }))} />}
       {frozen && (
-        <div style={{ background:"#f4f7f5", border:`1px solid ${C.green}`, borderRadius:8, padding:"12px 14px", marginBottom:18, fontFamily:"sans-serif", fontSize:12.5, color:C.slate, lineHeight:1.6 }}>
-          🔒 <b>This deal is finalized.</b> Your documents are a closed record and can no longer be signed, filled in, replaced or added to. You can still open, print, download and email any of them, for as long as you need them.
+        <div style={{ background:"#f4f7f5", border:`1px solid ${C.green}`, borderRadius:8, padding:"12px 14px", marginBottom:18, fontFamily:FONT.sans, fontSize:12.5, color:C.slate, lineHeight:1.6 }}>
+          {emo("🔒")} <b>This deal is finalized.</b> Your documents are a closed record and can no longer be signed, filled in, replaced or added to. You can still open, print, download and email any of them, for as long as you need them.
         </div>
       )}
 
-      <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"10px 14px", marginBottom:16, fontSize:11, fontFamily:"sans-serif", color:C.teal, lineHeight:1.8 }}>
+      <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"10px 14px", marginBottom:16, fontSize:11, fontFamily:FONT.sans, color:C.teal, lineHeight:1.8 }}>
         <strong>Each document has five options:</strong> &nbsp;
-        ✏️ <strong>E-Sign</strong> — type your name to sign in-app &nbsp;·&nbsp;
-        ✍️ <strong>Manual Sign</strong> — record wet ink signatures &nbsp;·&nbsp;
-        📤 <strong>Send</strong> — email the document &nbsp;·&nbsp;
-        📎 <strong>Upload</strong> — attach a signed PDF &nbsp;·&nbsp;
-        🖨️ <strong>Print</strong> — open print dialog
+        {emo("✏")} <strong>E-Sign</strong> — type your name to sign in-app &nbsp;·&nbsp;
+        {emo("✍")} <strong>Manual Sign</strong> — record wet ink signatures &nbsp;·&nbsp;
+        {emo("📤")} <strong>Send</strong> — email the document &nbsp;·&nbsp;
+        {emo("📎")} <strong>Upload</strong> — attach a signed PDF &nbsp;·&nbsp;
+        {emo("🖨")} <strong>Print</strong> — open print dialog
       </div>
 
       {/* ── OPTIONAL: which documents does your deal need? (skippable) ── */}
@@ -1391,14 +1393,14 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       {/* ── REQUIRED DOCUMENTS TRACKER ── */}
       <div style={{ border:`2px solid ${allRequiredSigned ? C.green : C.brass}`, borderRadius:8, padding:"13px 16px", marginBottom:22, background: allRequiredSigned ? C.greenLight : "#fff9ee" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-          <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, color:C.navy }}>
+          <div style={{ fontSize:13, fontFamily:FONT.sans, fontWeight:700, color:C.navy }}>
             {allRequiredSigned ? "✓ All required documents signed" : "Required documents to sign"}
           </div>
-          <span style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color: allRequiredSigned ? C.green : C.brass }}>
+          <span style={{ fontSize:12, fontFamily:FONT.sans, fontWeight:700, color: allRequiredSigned ? C.green : C.brass }}>
             {requiredDocs.filter(d=>_isMine(d) && _doneForMe(d)).length} of {requiredDocs.filter(_isMine).length} signed
           </span>
         </div>
-        <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:10, lineHeight:1.5 }}>
+        <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginBottom:10, lineHeight:1.5 }}>
           The core documents a sale needs. Tap any one to open it. Documents that require a notary must be printed, notarized, and uploaded — the app can't verify notarization, so those are completed offline.
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
@@ -1426,11 +1428,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             const rowNotary = wetInk || (doc.body||"").includes("Notary Acknowledgment");
             return (
               <button key={doc.id} onClick={()=>jumpToDoc(doc.id)}
-                style={{ display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left", background:"transparent", border:"none", borderBottom:`1px solid ${allRequiredSigned ? "#cfe6d8" : "#f0e2c4"}`, padding:"8px 2px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                style={{ display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left", background:"transparent", border:"none", borderBottom:`1px solid ${allRequiredSigned ? "#cfe6d8" : "#f0e2c4"}`, padding:"8px 2px", cursor:"pointer", fontFamily:FONT.sans }}>
                 <span style={{ width:18, height:18, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, background: done ? C.green : "transparent", color: done ? "#fff" : C.slate, border: done ? "none" : `1.5px solid ${C.mist}` }}>{done ? "✓" : ""}</span>
                 <span style={{ flex:1, minWidth:0 }}>
                   <span style={{ fontSize:12.5, color:C.navy, fontWeight: done ? 400 : 600, textDecoration: done ? "line-through" : "none", opacity: done ? 0.7 : 1 }}>{doc.title}{rowNotary && !done ? <span style={{ fontSize:10.5, color:"#8a6d1a", fontWeight:600 }}> · needs notary</span> : null}</span>
-                  {doc.addedWhy && <span style={{ fontSize:10.5, color:C.slate, display:"block", marginTop:1, fontFamily:"sans-serif" }}>added because of: {doc.addedWhy}</span>}
+                  {doc.addedWhy && <span style={{ fontSize:10.5, color:C.slate, display:"block", marginTop:1, fontFamily:FONT.sans }}>added because of: {doc.addedWhy}</span>}
                 </span>
                 <span style={{ fontSize:11, color: done ? C.green : notMine ? C.slate : C.brass, fontWeight:600, whiteSpace:"nowrap" }}>{
                   done ? "Done"
@@ -1450,7 +1452,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
           default before, pushing the documents themselves below the fold. */}
       {!frozen && (
         <button onClick={()=>setQuizOpen(true)}
-          style={{ display:"flex", alignItems:"center", gap:12, width:"100%", textAlign:"left", background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:8, padding:"13px 15px", marginBottom:20, cursor:"pointer", fontFamily:"sans-serif" }}>
+          style={{ display:"flex", alignItems:"center", gap:12, width:"100%", textAlign:"left", background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:8, padding:"13px 15px", marginBottom:20, cursor:"pointer", fontFamily:FONT.sans }}>
           <span style={{ fontSize:19, lineHeight:1 }}>\ud83e\udded</span>
           <span style={{ flex:1 }}>
             <span style={{ display:"block", fontSize:13.5, fontWeight:800, color:C.navy }}>Not sure which documents you need?</span>
@@ -1462,7 +1464,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
       {quizOpen && (
         <div onClick={()=>setQuizOpen(false)}
-          style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.7)", zIndex:3200, overflowY:"auto", padding:"20px 12px", fontFamily:"sans-serif" }}>
+          style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.7)", zIndex:3200, overflowY:"auto", padding:"20px 12px", fontFamily:FONT.sans }}>
           <div onClick={e=>e.stopPropagation()}
             style={{ maxWidth:560, margin:"4vh auto 0", background:"#fff", borderRadius:12, overflow:"hidden", border:`2px solid ${C.teal}` }}>
             <div style={{ background:C.navy, color:"#fff", padding:"13px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
@@ -1478,20 +1480,20 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     <div style={{ marginTop:12, display:"flex", flexDirection:"column", gap:10 }}>
     {/* Payment */}
     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
-    <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>How is the buyer paying?</span>
+    <span style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.navy, fontWeight:600 }}>How is the buyer paying?</span>
     <div style={{ display:"flex", gap:6 }}>
     {[["cash","Cash"],["finance","Financing"]].map(([v,l])=>(
-    <button key={v} onClick={()=>setQuiz(q=>({...q,pay:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", border:`2px solid ${quiz.pay===v?C.brass:C.mist}`, background:quiz.pay===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
+    <button key={v} onClick={()=>setQuiz(q=>({...q,pay:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:FONT.sans, cursor:"pointer", border:`2px solid ${quiz.pay===v?C.brass:C.mist}`, background:quiz.pay===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
     ))}
     </div>
     </div>
     {/* Yes/No toggles — most pertinent up front */}
     {[["trailer","Is a trailer included in the sale?"],["documented","Is the vessel U.S. Coast Guard documented?"],["florida","Is this transfer happening in Florida?"],["lien","Does the seller still owe money on the boat (a lien to pay off)?"],["estate","Is this an estate or inherited sale?"]].map(([k,label])=>(
     <div key={k} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
-    <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>{label}</span>
+    <span style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.navy, fontWeight:600 }}>{label}</span>
     <div style={{ display:"flex", gap:6 }}>
     {[[true,"Yes"],[false,"No"]].map(([v,l])=>(
-    <button key={String(v)} onClick={()=>setQuiz(q=>({...q,[k]:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", border:`2px solid ${quiz[k]===v?C.brass:C.mist}`, background:quiz[k]===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
+    <button key={String(v)} onClick={()=>setQuiz(q=>({...q,[k]:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:FONT.sans, cursor:"pointer", border:`2px solid ${quiz[k]===v?C.brass:C.mist}`, background:quiz[k]===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
     ))}
     </div>
     </div>
@@ -1500,22 +1502,22 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
     {/* Expandable — less common situations */}
     {quizMore && [["coowner","Are there co-owners on the current title?"],["entity","Is the buyer or seller a business or LLC?"],["poa","Is anyone signing with power of attorney?"],["tradein","Is a trade-in part of the deal?"],["gift","Is this a gift or family transfer?"],["sellerfin","Is the seller financing it (buyer pays over time)?"],["losttitle","Is the title lost or missing?"],["lostreg","Is the registration lost?"],["survey","Do you want a marine survey on record?"],["defects","Record engine hours / disclose known defects?"]].map(([k,label])=>(
     <div key={k} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, flexWrap:"wrap" }}>
-    <span style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>{label}</span>
+    <span style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.navy, fontWeight:600 }}>{label}</span>
     <div style={{ display:"flex", gap:6 }}>
     {[[true,"Yes"],[false,"No"]].map(([v,l])=>(
-    <button key={String(v)} onClick={()=>setQuiz(q=>({...q,[k]:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", border:`2px solid ${quiz[k]===v?C.brass:C.mist}`, background:quiz[k]===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
+    <button key={String(v)} onClick={()=>setQuiz(q=>({...q,[k]:v}))} style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:FONT.sans, cursor:"pointer", border:`2px solid ${quiz[k]===v?C.brass:C.mist}`, background:quiz[k]===v?"#fff8e6":"#fff", color:C.navy }}>{l}</button>
     ))}
     </div>
     </div>
     ))}
 
-    <button onClick={()=>setQuizMore(m=>!m)} style={{ alignSelf:"flex-start", background:"transparent", border:"none", color:C.teal, fontSize:12, fontWeight:700, fontFamily:"sans-serif", cursor:"pointer", padding:"2px 0", marginTop:2 }}>
+    <button onClick={()=>setQuizMore(m=>!m)} style={{ alignSelf:"flex-start", background:"transparent", border:"none", color:C.teal, fontSize:12, fontWeight:700, fontFamily:FONT.sans, cursor:"pointer", padding:"2px 0", marginTop:2 }}>
     {quizMore ? "▴ Fewer questions" : "▾ More questions (for less common situations)"}
     </button>
     </div>
 
               <button onClick={()=>setQuizOpen(false)}
-                style={{ width:"100%", marginTop:14, background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"11px 0", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"sans-serif" }}>Done &mdash; show my documents</button>
+                style={{ width:"100%", marginTop:14, background:C.brass, color:"#fff", border:"none", borderRadius:20, padding:"11px 0", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:FONT.sans }}>Done &mdash; show my documents</button>
             </div>
           </div>
         </div>
@@ -1529,10 +1531,10 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       {myRole !== "seller" ? (
         <div style={{ border:`2px solid ${bosSigned ? C.green : C.mist}`, borderRadius:8, padding:"13px 16px", marginBottom:16, background: bosSigned ? "#f4f7f5" : C.white }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6, gap:8, flexWrap:"wrap" }}>
-            <div style={{ fontSize:13.5, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}>
-              {bosSigned ? "✓ Bill of Sale complete" : "📜 Bill of Sale"}
+            <div style={{ fontSize:13.5, fontFamily:FONT.sans, fontWeight:800, color:C.navy }}>
+              {bosSigned ? "✓ Bill of Sale complete" : emo("📜 Bill of Sale")}
             </div>
-            <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:C.slate }}>the seller brings this</span>
+            <span style={{ fontSize:11, fontFamily:FONT.sans, fontWeight:700, color:C.slate }}>the seller brings this</span>
           </div>
           {(() => {
             // Whichever version the seller actually signed, or failing that the one
@@ -1543,24 +1545,24 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             const h = handover || {};
             return (
               <>
-                <div style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, lineHeight:1.6, marginBottom:8 }}>
+                <div style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.navy, lineHeight:1.6, marginBottom:8 }}>
                   {chosenIsSigned
                     ? <>The seller has prepared the <b>{chosen.title}</b>.</>
                     : chosen
                     ? <>For a sale like this the seller would normally bring the <b>{chosen.title}</b>. They choose the version and bring it to the handover.</>
                     : <>The seller brings the bill of sale &mdash; they choose whichever version their state requires.</>}
                 </div>
-                <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65 }}>
+                <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.65 }}>
                   This is the document that legally transfers the boat, and you&rsquo;ll both sign it at the handover &mdash; not in the app.
                 </div>
                 <div style={{ background:"#fffaf0", border:`1px solid ${C.brass}`, borderRadius:7, padding:"11px 13px", marginTop:10 }}>
-                  <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:800, color:"#8a5a12", marginBottom:4 }}>What to check when you sign</div>
-                  <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.7 }}>
+                  <div style={{ fontSize:12, fontFamily:FONT.sans, fontWeight:800, color:"#8a5a12", marginBottom:4 }}>What to check when you sign</div>
+                  <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.7 }}>
                     The names on the bill of sale match the names on the title <b>exactly</b>{h.mode === "distance" ? <>, and that it has been <b>notarised</b> &mdash; that matters more when you aren&rsquo;t meeting</> : null}. If something looks wrong, message the seller before you sign.
                   </div>
                 </div>
                 {h.mode && !h.done && (
-                  <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65, marginTop:9 }}>
+                  <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.65, marginTop:9 }}>
                     {h.mode === "person"
                       ? "You're closing in person — bring the balance in cleared funds and sign at the table."
                       : "You're closing by post — check the photo of the signed title and the tracking before you send the balance."}
@@ -1576,7 +1578,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                       style={{ ...S.btnBrass, fontSize:12.5, padding:"9px 16px", opacity:(!h.sellerSent || h.buyerGot) ? 0.55 : 1 }}>
                       {h.buyerGot ? "✓ Title received" : "✓ The title arrived"}
                     </button>
-                    <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, lineHeight:1.5 }}>
+                    <span style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.5 }}>
                       {h.sellerSent ? "The seller has posted it." : "Waiting for the seller to post the title."}
                     </span>
                   </div>
@@ -1589,25 +1591,25 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
 
       <div style={{ border:`2px solid ${bosSigned ? C.green : "#4a90d9"}`, borderRadius:8, padding:"13px 16px", marginBottom:16, background: bosSigned ? C.greenLight : "#eaf4ff" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-          <div style={{ fontSize:13.5, fontFamily:"sans-serif", fontWeight:800, color:C.navy }}>
-            {bosSigned ? "✓ Bill of Sale complete" : "📜 Bill of Sale — required"}
+          <div style={{ fontSize:13.5, fontFamily:FONT.sans, fontWeight:800, color:C.navy }}>
+            {bosSigned ? "✓ Bill of Sale complete" : emo("📜 Bill of Sale — required")}
           </div>
-          <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color: bosSigned ? C.green : "#2b6cb0" }}>transfers ownership</span>
+          <span style={{ fontSize:11, fontFamily:FONT.sans, fontWeight:700, color: bosSigned ? C.green : "#2b6cb0" }}>transfers ownership</span>
         </div>
-        <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginBottom:11, lineHeight:1.55 }}>
+        <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, marginBottom:11, lineHeight:1.55 }}>
           This is the document that legally transfers the boat. Choose the version that fits your sale — you only need <b>one</b>. {documentedActive ? "Your vessel is Coast Guard documented, so the CG-1340 applies." : floridaActive ? "Florida\u2019s official 82050 is included." : ""}
         </div>
         {/* Back here, next to the document it belongs to. It went to Closing for a
             day, and the box that carried it there has since been removed as
             clutter — leaving nobody able to choose a handover method at all. */}
         {!bosSigned && (
-          <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:7, padding:"11px 13px", marginBottom:11, fontFamily:"sans-serif" }}>
+          <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:7, padding:"11px 13px", marginBottom:11, fontFamily:FONT.sans }}>
             <div style={{ fontSize:12, fontWeight:800, color:C.navy, marginBottom:3 }}>How will you hand the boat over?</div>
             <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginBottom:9 }}>
               The title and the bill of sale are signed by hand, together, when the money changes hands &mdash; not in the app. Tell us how you&rsquo;re doing it and we&rsquo;ll set out the steps.
             </div>
             <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-              {[["person","🤝 Meeting in person"],["distance","📦 We won’t meet — by post"]].map(([v,lbl]) => (
+              {[["person",emo("🤝 Meeting in person")],["distance",emo("📦 We won’t meet — by post")]].map(([v,lbl]) => (
                 <button key={v} onClick={()=>setData(d => ({ ...d, handover: { ...(d.handover || {}), mode: v } }))}
                   style={{ fontSize:12.5, padding:"8px 14px", borderRadius:18, cursor:"pointer", fontWeight:700,
                     border:`1.5px solid ${(handover||{}).mode===v ? C.teal : C.mist}`,
@@ -1651,7 +1653,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
               <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                 {opts.map(([v, label]) => (
                   <button key={v} onClick={()=>setBosQ(b => ({ ...b, [k]: v }))}
-                    style={{ fontSize:12.5, padding:"9px 15px", borderRadius:18, cursor:"pointer", fontFamily:"sans-serif", fontWeight:700,
+                    style={{ fontSize:12.5, padding:"9px 15px", borderRadius:18, cursor:"pointer", fontFamily:FONT.sans, fontWeight:700,
                       border:`1.5px solid ${cur===v ? "#2b6cb0" : C.mist}`,
                       background: cur===v ? "#2b6cb0" : "#fff",
                       color: cur===v ? "#fff" : C.slate, boxShadow: cur===v ? "0 1px 3px rgba(43,108,176,0.3)" : "none" }}>
@@ -1698,7 +1700,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                         <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.55, marginTop:4 }}>{note}</div>
                         <button onClick={()=>jumpToDoc(d.id)}
                           style={{ marginTop:9, background: role==="use" ? "#2b6cb0" : "transparent", color: role==="use" ? "#fff" : C.navy,
-                            border: role==="use" ? "none" : `1px solid ${C.mist}`, borderRadius:16, padding:"7px 16px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif" }}>
+                            border: role==="use" ? "none" : `1px solid ${C.mist}`, borderRadius:16, padding:"7px 16px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:FONT.sans }}>
                           Open it &rarr;
                         </button>
                       </div>
@@ -1710,12 +1712,12 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                 </div>
               )}
               <button onClick={()=>{ setBosQOpen(false); setBosQ({}); }}
-                style={{ marginTop:12, background:"transparent", border:"none", color:C.slate, fontSize:11.5, textDecoration:"underline", cursor:"pointer", fontFamily:"sans-serif", padding:0 }}>Start over / close</button>
+                style={{ marginTop:12, background:"transparent", border:"none", color:C.slate, fontSize:11.5, textDecoration:"underline", cursor:"pointer", fontFamily:FONT.sans, padding:0 }}>Start over / close</button>
             </div>
           );
         })() : (
           <button onClick={()=>setBosQOpen(true)}
-            style={{ display:"flex", alignItems:"center", gap:12, width:"100%", textAlign:"left", background:"linear-gradient(180deg,#f4f9ff 0%,#eaf3fc 100%)", border:"1.5px solid #4a90d9", borderRadius:9, padding:"13px 15px", cursor:"pointer", fontFamily:"sans-serif" }}>
+            style={{ display:"flex", alignItems:"center", gap:12, width:"100%", textAlign:"left", background:"linear-gradient(180deg,#f4f9ff 0%,#eaf3fc 100%)", border:"1.5px solid #4a90d9", borderRadius:9, padding:"13px 15px", cursor:"pointer", fontFamily:FONT.sans }}>
             <span style={{ fontSize:20, lineHeight:1 }}>\ud83e\udded</span>
             <span style={{ flex:1 }}>
               <span style={{ display:"block", fontSize:13.5, fontWeight:800, color:C.navy }}>Which one do I need?</span>
@@ -1725,7 +1727,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
           </button>
         ))}
 
-        <div style={{ fontSize:10.5, fontFamily:"sans-serif", color:C.slate, letterSpacing:0.5, textTransform:"uppercase", margin:"18px 0 7px" }}>All versions</div>
+        <div style={{ fontSize:10.5, fontFamily:FONT.sans, color:C.slate, letterSpacing:0.5, textTransform:"uppercase", margin:"18px 0 7px" }}>All versions</div>
         <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
           {bosDocs.map(doc => {
             const done = !!signed[doc.id];
@@ -1733,7 +1735,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             const isPrimary = doc.id === bosLeadId;
             return (
               <button key={doc.id} onClick={()=>jumpToDoc(doc.id)}
-                style={{ display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left", background:"transparent", border:"none", borderBottom:`1px solid ${bosSigned ? "#cfe6d8" : "#cfe0f5"}`, padding:"9px 2px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                style={{ display:"flex", alignItems:"center", gap:9, width:"100%", textAlign:"left", background:"transparent", border:"none", borderBottom:`1px solid ${bosSigned ? "#cfe6d8" : "#cfe0f5"}`, padding:"9px 2px", cursor:"pointer", fontFamily:FONT.sans }}>
                 <span style={{ width:18, height:18, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, background: done ? C.green : "transparent", color: done ? "#fff" : C.slate, border: done ? "none" : `1.5px solid ${C.mist}` }}>{done ? "✓" : ""}</span>
                 <span style={{ flex:1, fontSize:12.5, color:C.navy, fontWeight: done ? 400 : (isPrimary?700:600), textDecoration: done ? "line-through" : "none", opacity: done ? 0.7 : 1 }}>
                   {doc.title}
@@ -1766,13 +1768,13 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
             <span style={{ fontSize:14, color:C.slate, marginTop:1, flexShrink:0, transform: open?"rotate(90deg)":"none", transition:"transform .15s" }}>▶</span>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-                <span style={{ fontSize:13.5, fontFamily:"sans-serif", fontWeight:700, color:C.navy }}>{g}</span>
-                <span style={{ fontSize:10, fontFamily:"sans-serif", fontWeight:700, color:C.slate, background:C.sandDark, borderRadius:20, padding:"2px 8px" }}>{groupDocs.length} doc{groupDocs.length>1?"s":""}</span>
-                {hasRequired && <span style={{ fontSize:10, fontFamily:"sans-serif", fontWeight:700, color:"#7a5500", background:"#fff3cd", borderRadius:20, padding:"2px 8px" }}>Required</span>}
-                {groupSigned>0 && <span style={{ fontSize:10, fontFamily:"sans-serif", fontWeight:700, color:C.green, background:C.greenLight, borderRadius:20, padding:"2px 8px" }}>{groupSigned} signed ✓</span>}
+                <span style={{ fontSize:13.5, fontFamily:FONT.sans, fontWeight:700, color:C.navy }}>{g}</span>
+                <span style={{ fontSize:10, fontFamily:FONT.sans, fontWeight:700, color:C.slate, background:C.sandDark, borderRadius:20, padding:"2px 8px" }}>{groupDocs.length} doc{groupDocs.length>1?"s":""}</span>
+                {hasRequired && <span style={{ fontSize:10, fontFamily:FONT.sans, fontWeight:700, color:"#7a5500", background:"#fff3cd", borderRadius:20, padding:"2px 8px" }}>Required</span>}
+                {groupSigned>0 && <span style={{ fontSize:10, fontFamily:FONT.sans, fontWeight:700, color:C.green, background:C.greenLight, borderRadius:20, padding:"2px 8px" }}>{groupSigned} signed ✓</span>}
               </div>
-              <div style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.slate, marginTop:4, lineHeight:1.55 }}>{GROUP_DESC[g]}</div>
-              {!open && <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.brass, marginTop:5, fontWeight:600 }}>Tap to open →</div>}
+              <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, marginTop:4, lineHeight:1.55 }}>{GROUP_DESC[g]}</div>
+              {!open && <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.brass, marginTop:5, fontWeight:600 }}>Tap to open →</div>}
             </div>
           </button>
           {open && (
@@ -1782,9 +1784,9 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
               return (
               <div key={doc.id} id={"bcdoc-"+doc.id}>
                 {activeDoc!==doc.id ? (
-                  <button onClick={()=>openDoc(doc.id)} className="bc-docrow" style={{ width:"100%", textAlign:"left", background:"transparent", border:"none", borderRadius:6, padding:"11px 4px", cursor:"pointer", fontFamily:"sans-serif" }}>
+                  <button onClick={()=>openDoc(doc.id)} className="bc-docrow" style={{ width:"100%", textAlign:"left", background:"transparent", border:"none", borderRadius:6, padding:"11px 4px", cursor:"pointer", fontFamily:FONT.sans }}>
                     <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
-                      <div style={{ width:28, height:28, borderRadius:5, flexShrink:0, background: signed[doc.id] ? C.greenLight : C.sandDark, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13 }}>{signed[doc.id] ? (signed[doc.id].uploaded ? "📎" : signed[doc.id].manual ? "✍️" : "✅") : "📄"}</div>
+                      <div style={{ width:28, height:28, borderRadius:5, flexShrink:0, background: signed[doc.id] ? C.greenLight : C.sandDark, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13 }}>{signed[doc.id] ? (signed[doc.id].uploaded ? emo("📎") : signed[doc.id].manual ? emo("✍️") : emo("✅")) : emo("📄")}</div>
                       <div style={{ minWidth:0 }}>
                         <div style={{ fontSize:12.5, fontWeight:600, color:C.navy }}>{doc.title}</div>
                         <div style={{ display:"flex", gap:5, marginTop:2, flexWrap:"wrap" }}>
@@ -1801,15 +1803,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                 <div style={{ background:"#fcfaf4", borderRadius:8, border:`1px solid ${C.mist}`, padding:"12px 14px" }}>
                   {/* Plain grey text was too easy to miss with a long document
                       filling the screen — people closed the tab instead. */}
-                  <button onClick={()=>setActiveDoc(null)} style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, background:C.white, border:`1.5px solid ${C.mist}`, borderRadius:16, cursor:"pointer", padding:"7px 15px", marginBottom:10, fontWeight:700 }}>&larr; Back to all documents</button>
+                  <button onClick={()=>setActiveDoc(null)} style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.navy, background:C.white, border:`1.5px solid ${C.mist}`, borderRadius:16, cursor:"pointer", padding:"7px 15px", marginBottom:10, fontWeight:700 }}>&larr; Back to all documents</button>
                   <div className="bc-docrow">
                     <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
                       <div style={{ width:30, height:30, borderRadius:5, flexShrink:0, background: signed[doc.id] ? C.greenLight : C.sandDark, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>
-                        {signed[doc.id] ? (signed[doc.id].uploaded ? "📎" : signed[doc.id].manual ? "✍️" : "✅") : "📄"}
+                        {signed[doc.id] ? (signed[doc.id].uploaded ? emo("📎") : signed[doc.id].manual ? emo("✍️") : emo("✅")) : emo("📄")}
                       </div>
                       <div style={{ minWidth:0 }}>
-                        <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:600, color:C.navy }}>{doc.title}</div>
-                        {doc.desc && <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:1, lineHeight:1.4 }}>{doc.desc}</div>}
+                        <div style={{ fontSize:13, fontFamily:FONT.sans, fontWeight:600, color:C.navy }}>{doc.title}</div>
+                        {doc.desc && <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginTop:1, lineHeight:1.4 }}>{doc.desc}</div>}
                         <div style={{ display:"flex", gap:5, marginTop:2, flexWrap:"wrap" }}>
                           {doc.required && <span style={{...S.tag, background:"#fff3cd", color:"#7a5500"}}>Required</span>}
                           {!doc.required && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Optional</span>}
@@ -1817,7 +1819,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                           {(doc.checklist || getDocHtml(doc).includes("bc-fill-in")) && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>{doc.editRole ? `Fill in app · ${doc.editRole} only` : "Fill in app"}</span>}
                           {signed[doc.id] && <span style={{...S.tag, background:C.greenLight, color:C.green}}>✓ {signed[doc.id].date} · {signed[doc.id].name}</span>}
                           {sentLog[doc.id]?.length > 0 && <span style={{...S.tag, background:C.tealLight, color:C.teal}}>Sent ×{sentLog[doc.id].length}</span>}
-                          {uploadedFile[doc.id] && !signed[doc.id]?.uploaded && <span style={{...S.tag}}>📎 {uploadedFile[doc.id]}</span>}
+                          {uploadedFile[doc.id] && !signed[doc.id]?.uploaded && <span style={{...S.tag}}>{emo("📎")} {uploadedFile[doc.id]}</span>}
                         </div>
                       </div>
                     </div>
@@ -1836,7 +1838,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                         const _who = (myRole === "seller" ? parties.seller?.name : parties.buyer?.name)
                           || (myRole === "seller" ? "the seller" : "the buyer");
                         return signed[doc.id]
-                          ? <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.green, fontWeight:700, padding:"7px 4px" }}>
+                          ? <span style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.green, fontWeight:700, padding:"7px 4px" }}>
                               ✓ Confirmed complete{signed[doc.id].by ? ` by ${signed[doc.id].by}` : ""}
                             </span>
                           : <button onClick={()=>setSigned(sg => ({ ...sg, [doc.id]: {
@@ -1844,7 +1846,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                                 date: today(), at: Date.now(), attested: true,
                                 by: _who, role: myRole,
                               } }))}
-                              style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:`1.5px solid ${C.mist}`, background:C.white, color:C.navy, whiteSpace:"nowrap" }}>
+                              style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:FONT.sans, fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:`1.5px solid ${C.mist}`, background:C.white, color:C.navy, whiteSpace:"nowrap" }}>
                               ✓ I&rsquo;ve completed this form
                             </button>;
                       })()}
@@ -1853,14 +1855,14 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                       {/* Read it in its own tab — a 23-section agreement is easier
                           to work through beside the deal than inside it. */}
                       <button onClick={()=>printDoc(doc.id, doc.title, false, false, true)} title="Open this document in a new tab so you can read it alongside the deal"
-                        style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:"1.5px solid #e3ddd0", background:C.white, color:C.navy, whiteSpace:"nowrap" }}>
+                        style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:FONT.sans, fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:"1.5px solid #e3ddd0", background:C.white, color:C.navy, whiteSpace:"nowrap" }}>
                         <span style={{ fontSize:12 }}>⧉</span> New tab
                       </button>
                       <button onClick={()=>printDoc(doc.id, doc.title, false, true)} title="Download a PDF copy to keep, email, or take to the closing"
-                        style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:"1.5px solid #e3ddd0", background:C.white, color:C.navy, whiteSpace:"nowrap" }}>
+                        style={{ display:"flex", alignItems:"center", gap:5, fontSize:11.5, fontFamily:FONT.sans, fontWeight:600, padding:"7px 13px", borderRadius:20, cursor:"pointer", border:"1.5px solid #e3ddd0", background:C.white, color:C.navy, whiteSpace:"nowrap" }}>
                         <span style={{ fontSize:12 }}>⬇</span> PDF
                       </button>
-                      <button onClick={()=>printDoc(doc.id, doc.title)} title="Print it — use this for anything signed by hand or in front of a notary" style={{ fontSize:13, padding:"7px 11px", borderRadius:20, cursor:"pointer", border:`1.5px solid #e3ddd0`, background:C.white, color:C.slate }}>🖨️</button>
+                      <button onClick={()=>printDoc(doc.id, doc.title)} title="Print it — use this for anything signed by hand or in front of a notary" style={{ fontSize:13, padding:"7px 11px", borderRadius:20, cursor:"pointer", border:`1.5px solid #e3ddd0`, background:C.white, color:C.slate }}>{emo("🖨️")}</button>
                     </div>
                   </div>
 
@@ -1871,38 +1873,38 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                         <div style={{ textAlign:"center", padding:"26px 22px", border:`2px dashed ${C.mist}`, borderRadius:8, background:"#fcfaf4" }}>
                           <div style={{ fontSize:32 }}>{doc.icon}</div>
                           <div style={{ fontFamily:"Georgia,serif", fontSize:17, fontWeight:700, color:C.navy, margin:"8px 0 4px" }}>{doc.title}</div>
-                          <div style={{ display:"inline-block", fontSize:10, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".08em", textTransform:"uppercase", color:C.teal, background:C.tealLight, padding:"3px 10px", borderRadius:20, marginBottom:12 }}>{doc.issued}</div>
-                          <div style={{ fontSize:13, fontFamily:"sans-serif", color:C.text, lineHeight:1.7, maxWidth:460, margin:"0 auto 14px", textAlign:"left" }} dangerouslySetInnerHTML={{ __html: doc.guide }} />
+                          <div style={{ display:"inline-block", fontSize:10, fontFamily:FONT.sans, fontWeight:700, letterSpacing:".08em", textTransform:"uppercase", color:C.teal, background:C.tealLight, padding:"3px 10px", borderRadius:20, marginBottom:12 }}>{doc.issued}</div>
+                          <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.text, lineHeight:1.7, maxWidth:460, margin:"0 auto 14px", textAlign:"left" }} dangerouslySetInnerHTML={{ __html: doc.guide }} />
                           {(() => {
                             const up = negotiate?.uploads?.[doc.id];
                             const localUrl = uploadedData[doc.id]?.dataURL;
                             const name = uploadedFile[doc.id] || up?.name;
                             const viewUrl = localUrl || up?.url;
                             const has = !!(uploadedFile[doc.id] || up);
-                            if (uploading[doc.id] && !up) return <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.navy, fontWeight:600 }}>Saving file…</div>;
+                            if (uploading[doc.id] && !up) return <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.navy, fontWeight:600 }}>Saving file…</div>;
                             return has ? (
                               <div>
-                                <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>✓ Uploaded: <strong>{name}</strong></div>
+                                <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.green }}>✓ Uploaded: <strong>{name}</strong></div>
                                 {viewUrl && (
                                   <div style={{ marginTop:10, display:"flex", gap:12, alignItems:"center", justifyContent:"center", flexWrap:"wrap" }}>
-                                    <a href={viewUrl} target="_blank" rel="noopener noreferrer" download={name} style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.navy, textDecoration:"underline" }}>⬇ View / download</a>
-                                    <label style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:C.slate, cursor:"pointer", textDecoration:"underline" }}>
+                                    <a href={viewUrl} target="_blank" rel="noopener noreferrer" download={name} style={{ fontSize:12, fontFamily:FONT.sans, fontWeight:700, color:C.navy, textDecoration:"underline" }}>⬇ View / download</a>
+                                    <label style={{ fontSize:12, fontFamily:FONT.sans, fontWeight:700, color:C.slate, cursor:"pointer", textDecoration:"underline" }}>
                                       ↻ Replace file
                                       <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
                                     </label>
                                   </div>
                                 )}
-                                <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:8 }}>{up ? "Stored on the deal — both parties can see it." : "Saved on your screen."} To email a copy, use the <strong>Send</strong> button.</div>
+                                <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginTop:8 }}>{up ? "Stored on the deal — both parties can see it." : "Saved on your screen."} To email a copy, use the <strong>Send</strong> button.</div>
                               </div>
                             ) : (
-                              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:6, padding:"10px 22px", fontSize:13, fontFamily:"sans-serif", fontWeight:700 }}>
-                                📎 Upload {doc.tab}
+                              <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:6, padding:"10px 22px", fontSize:13, fontFamily:FONT.sans, fontWeight:700 }}>
+                                {emo("📎")} Upload {doc.tab}
                                 <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
                               </label>
                             );
                           })()}
-                          {uploadErr[doc.id] && <div style={{ color:C.red, fontSize:11.5, fontFamily:"sans-serif", fontWeight:600, marginTop:10 }}>⚠️ {uploadErr[doc.id]}</div>}
-                          <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginTop:10 }}>Accepted: {doc.accept}</div>
+                          {uploadErr[doc.id] && <div style={{ color:C.red, fontSize:11.5, fontFamily:FONT.sans, fontWeight:600, marginTop:10 }}>{emo("⚠")} {uploadErr[doc.id]}</div>}
+                          <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginTop:10 }}>Accepted: {doc.accept}</div>
                         </div>
                       ) : (
                         <div className="bc-doc-paper" id={"bc-print-"+doc.id}>
@@ -1911,24 +1913,24 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                           <div className="bc-doc-ref">Ref {deal.dealRef} · {deal.vesselYear} {deal.vesselMake} {deal.vesselModel}</div>
                           {doc.externalUrl && (
                             <div style={{ textAlign:"center", margin:"10px 0 4px" }}>
-                              <a href={doc.externalUrl} target="_blank" rel="noopener noreferrer" style={{ display:"inline-block", background:C.navy, color:"#fff", textDecoration:"none", borderRadius:7, padding:"10px 18px", fontSize:13, fontWeight:800, fontFamily:"sans-serif" }}>↗ Open &amp; fill in the official form{doc.tab ? ` \u2014 ${doc.tab.replace(/^FL Official /,"").replace(/^USCG /,"")}` : ""}</a>
-                              <div style={{ fontSize:11, color:C.slate, marginTop:6, fontFamily:"sans-serif" }}>Opens the agency&rsquo;s own fillable form in a new tab. Type into it there, print, and sign.</div>
+                              <a href={doc.externalUrl} target="_blank" rel="noopener noreferrer" style={{ display:"inline-block", background:C.navy, color:"#fff", textDecoration:"none", borderRadius:7, padding:"10px 18px", fontSize:13, fontWeight:800, fontFamily:FONT.sans }}>↗ Open &amp; fill in the official form{doc.tab ? ` \u2014 ${doc.tab.replace(/^FL Official /,"").replace(/^USCG /,"")}` : ""}</a>
+                              <div style={{ fontSize:11, color:C.slate, marginTop:6, fontFamily:FONT.sans }}>Opens the agency&rsquo;s own fillable form in a new tab. Type into it there, print, and sign.</div>
                             </div>
                           )}
                           <div className="bc-doc-rule"></div>
                           {needsNotary && (
                             <div className="bc-notary-flag">
-                              ⚖ <strong>Must be notarized.</strong> A typed e-signature can't be notarized. Print this, sign it in front of a notary, then come back and mark it done below (optionally uploading the notarized copy as proof).
+                              {emo("⚖")} <strong>Must be notarized.</strong> A typed e-signature can't be notarized. Print this, sign it in front of a notary, then come back and mark it done below (optionally uploading the notarized copy as proof).
                               {!signed[doc.id] ? (
                                 <div style={{ marginTop:12, display:"flex", gap:8, flexWrap:"wrap" }}>
-                                  <button onClick={()=>setSigned(sg=>({ ...sg, [doc.id]: { name:"Completed offline (notarized)", date:today(), at:signedStamp().at, when:signedStamp().when, manual:true, notarizedOffline:true } }))} style={{ background:"#8a6d1a", color:"#fff", border:"none", borderRadius:6, padding:"9px 14px", fontSize:12, fontWeight:800, fontFamily:"sans-serif", cursor:"pointer" }}>✓ I've had this notarized — mark it done</button>
-                                  <label style={{ background:"#fff", color:"#8a6d1a", border:"1px solid #8a6d1a", borderRadius:6, padding:"9px 14px", fontSize:12, fontWeight:800, fontFamily:"sans-serif", cursor:"pointer" }}>
-                                    📎 Upload notarized copy (optional)
+                                  <button onClick={()=>setSigned(sg=>({ ...sg, [doc.id]: { name:"Completed offline (notarized)", date:today(), at:signedStamp().at, when:signedStamp().when, manual:true, notarizedOffline:true } }))} style={{ background:"#8a6d1a", color:"#fff", border:"none", borderRadius:6, padding:"9px 14px", fontSize:12, fontWeight:800, fontFamily:FONT.sans, cursor:"pointer" }}>✓ I've had this notarized — mark it done</button>
+                                  <label style={{ background:"#fff", color:"#8a6d1a", border:"1px solid #8a6d1a", borderRadius:6, padding:"9px 14px", fontSize:12, fontWeight:800, fontFamily:FONT.sans, cursor:"pointer" }}>
+                                    {emo("📎")} Upload notarized copy (optional)
                                     <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); }}/>
                                   </label>
                                 </div>
                               ) : (
-                                <div style={{ marginTop:10, fontSize:12, fontWeight:800, color:"#0f6e56", fontFamily:"sans-serif" }}>✓ {signed[doc.id].uploaded ? "Notarized copy uploaded" : "Marked notarized (completed offline)"} — {signed[doc.id].when || signed[doc.id].date}
+                                <div style={{ marginTop:10, fontSize:12, fontWeight:800, color:"#0f6e56", fontFamily:FONT.sans }}>✓ {signed[doc.id].uploaded ? "Notarized copy uploaded" : "Marked notarized (completed offline)"} — {signed[doc.id].when || signed[doc.id].date}
                                   <button onClick={()=>setSigned(sg=>{ const c={...sg}; delete c[doc.id]; return c; })} style={{ marginLeft:10, background:"none", border:"none", color:C.slate, fontSize:11, textDecoration:"underline", cursor:"pointer", fontWeight:400 }}>undo</button>
                                 </div>
                               )}
@@ -1941,11 +1943,11 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                             return (
                               <>
                                 {interactive ? (editable ? (
-                                  <div className="bc-fill-hint">✏️ <strong>This document has blanks to complete — tap “Fill In” above.</strong> Everything else comes straight from your <strong>Vessel</strong>, <strong>Parties</strong>, and agreed <strong>Terms</strong> and is locked, so it can never disagree with your deal. If any of that looks wrong, fix it at the source and every document updates.</div>
+                                  <div className="bc-fill-hint">{emo("✏")} <strong>This document has blanks to complete — tap “Fill In” above.</strong> Everything else comes straight from your <strong>Vessel</strong>, <strong>Parties</strong>, and agreed <strong>Terms</strong> and is locked, so it can never disagree with your deal. If any of that looks wrong, fix it at the source and every document updates.</div>
                                 ) : (
-                                  <div className="bc-lock-note">🔒 Only the {doc.editRole} fills this one in here. You can still view it, print it, and upload a signed copy.</div>
+                                  <div className="bc-lock-note">{emo("🔒")} Only the {doc.editRole} fills this one in here. You can still view it, print it, and upload a signed copy.</div>
                                 )) : (
-                                  <div className="bc-lock-note">🔒 <strong>Nothing to fill in on this one.</strong> It builds itself from your deal, and the signature and notary lines are left blank on purpose — those get completed at signing.</div>
+                                  <div className="bc-lock-note">{emo("🔒")} <strong>Nothing to fill in on this one.</strong> It builds itself from your deal, and the signature and notary lines are left blank on purpose — those get completed at signing.</div>
                                 )}
                                 <DocPaper
                                   doc={doc}
@@ -1982,7 +1984,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                   {/* E-SIGN */}
                   {docAction[doc.id]==="esign" && (
                     <div style={{ marginTop:12, background:C.greenLight, border:`1px solid #a8d8b8`, borderRadius:6, padding:"14px" }}>
-                      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.green, marginBottom:10 }}>✏️ Electronic Signature — {doc.title}</div>
+                      <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.green, marginBottom:10 }}>{emo("✏")} Electronic Signature — {doc.title}</div>
                       {(() => {
                         const _sg = signed[doc.id];
                         const _me = myRole === "seller" ? "seller" : "buyer";
@@ -1995,7 +1997,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                         <>
                           {/* E-Sign consent & disclosure */}
                           <div style={{ background:"#fffdf8", border:`1px solid ${C.mist}`, borderRadius:5, padding:"11px 13px", marginBottom:12 }}>
-                            <div style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, lineHeight:1.65 }}>
+                            <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, lineHeight:1.65 }}>
                               <strong style={{ color:C.navy }}>Before you sign electronically, please understand:</strong>
                               <ul style={{ margin:"6px 0 0", paddingLeft:18 }}>
                                 <li style={{ marginBottom:4 }}>By typing your name and signing, you agree to conduct this transaction electronically and that your electronic signature is intended to be your legal signature on this document.</li>
@@ -2007,7 +2009,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                             </div>
                             <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", marginTop:10 }}>
                               <input type="checkbox" checked={!!esignConsent[doc.id]} onChange={e=>setEsignConsent(c=>({...c,[doc.id]:e.target.checked}))} style={{ width:15, height:15, marginTop:1, accentColor:C.green, flexShrink:0 }} />
-                              <span style={{ fontSize:11.5, fontFamily:"sans-serif", color:C.navy, fontWeight:600, lineHeight:1.5 }}>I have read the above, I consent to sign electronically, and I understand BoatClosers does not verify or store my signature.</span>
+                              <span style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.navy, fontWeight:600, lineHeight:1.5 }}>I have read the above, I consent to sign electronically, and I understand BoatClosers does not verify or store my signature.</span>
                             </label>
                           </div>
                           {(() => {
@@ -2033,14 +2035,14 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                                     }); setAction(doc.id,"esign"); }}>Sign Document</button>
                                 </div>
                                 {myName && typed && !nameOk && (
-                                  <div style={{ fontSize:11.5, color:C.red, fontFamily:"sans-serif", fontWeight:700, marginTop:6, lineHeight:1.5 }}>Your signature must match your name on this deal: <b>{myName}</b>. To change it, update your name in the Parties step.</div>
+                                  <div style={{ fontSize:11.5, color:C.red, fontFamily:FONT.sans, fontWeight:700, marginTop:6, lineHeight:1.5 }}>Your signature must match your name on this deal: <b>{myName}</b>. To change it, update your name in the Parties step.</div>
                                 )}
                               </>
                             );
                           })()}
                         </>
                       ) : (
-                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>
+                        <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.green }}>
                           ✓ Signed by {signed[doc.id].name} on {signed[doc.id].when || signed[doc.id].date}
                           {signed[doc.id].role && !signed[doc.id].bothSigned && (
                             <div style={{ color:C.brass, marginTop:4, fontWeight:700 }}>
@@ -2055,8 +2057,8 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                   {/* MANUAL */}
                   {docAction[doc.id]==="manual" && (
                     <div style={{ marginTop:12, background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"14px" }}>
-                      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.teal, marginBottom:8 }}>✍️ Record Manual / Wet Ink Signatures</div>
-                      <p style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12, lineHeight:1.6 }}>
+                      <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.teal, marginBottom:8 }}>{emo("✍")} Record Manual / Wet Ink Signatures</div>
+                      <p style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginBottom:12, lineHeight:1.6 }}>
                         Print the document, have both parties sign by hand, then record the signed names here to mark it complete. Retain the original for your records.
                       </p>
                       {!manualSig[doc.id] ? (
@@ -2068,7 +2070,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                           <button style={S.btnTeal} disabled={!manualFields[doc.id]?.buyer?.trim()||!manualFields[doc.id]?.seller?.trim()} onClick={()=>{ confirmManualSig(doc.id); setAction(doc.id,"manual"); }}>✓ Confirm Both Parties Signed</button>
                         </>
                       ) : (
-                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.teal }}>✓ Manual signatures recorded — Buyer: {manualSig[doc.id].buyer} · Seller: {manualSig[doc.id].seller} · {manualSig[doc.id].date}</div>
+                        <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.teal }}>✓ Manual signatures recorded — Buyer: {manualSig[doc.id].buyer} · Seller: {manualSig[doc.id].seller} · {manualSig[doc.id].date}</div>
                       )}
                     </div>
                   )}
@@ -2076,21 +2078,21 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                   {/* SEND */}
                   {docAction[doc.id]==="send" && (
                     <div style={{ marginTop:12, background:"#fff9ee", border:`1px solid ${C.brass}`, borderRadius:6, padding:"14px" }}>
-                      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.brass, marginBottom:8 }}>📤 Send Document by Email</div>
+                      <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.brass, marginBottom:8 }}>{emo("📤")} Send Document by Email</div>
                       <div style={{ display:"flex", gap:8, marginBottom:8 }}>
                         {[parties.buyer.email, parties.seller.email].filter(Boolean).map(e=>(
-                          <button key={e} onClick={()=>setSendEmail(s=>({...s,[doc.id]:e}))} style={{ fontSize:11, fontFamily:"sans-serif", padding:"4px 10px", borderRadius:16, border:`1px solid ${C.brass}`, background:"transparent", color:C.brass, cursor:"pointer" }}>{e}</button>
+                          <button key={e} onClick={()=>setSendEmail(s=>({...s,[doc.id]:e}))} style={{ fontSize:11, fontFamily:FONT.sans, padding:"4px 10px", borderRadius:16, border:`1px solid ${C.brass}`, background:"transparent", color:C.brass, cursor:"pointer" }}>{e}</button>
                         ))}
-                        <span style={{ fontSize:10, fontFamily:"sans-serif", color:C.slate, alignSelf:"center" }}>or type below</span>
+                        <span style={{ fontSize:10, fontFamily:FONT.sans, color:C.slate, alignSelf:"center" }}>or type below</span>
                       </div>
                       <Grid2>
                         <Field label="Recipient email"><input style={S.input} type="email" placeholder="recipient@email.com" value={sendEmail[doc.id]||""} onChange={e=>setSendEmail(s=>({...s,[doc.id]:e.target.value}))}/></Field>
                         <Field label="Optional note"><input style={S.input} placeholder="Please review and sign…" value={sendNote[doc.id]||""} onChange={e=>setSendNote(n=>({...n,[doc.id]:e.target.value}))}/></Field>
                       </Grid2>
                       <button style={S.btnBrass} disabled={!sendEmail[doc.id]?.trim() || sending[doc.id]} onClick={()=>{ sendDoc(doc.id, doc.title); }}>{sending[doc.id] ? "Sending…" : "Send Document →"}</button>
-                      {sendErr[doc.id] && <div style={{ color:C.red, fontSize:12, marginTop:8, fontFamily:"sans-serif", fontWeight:600 }}>⚠️ {sendErr[doc.id]}</div>}
+                      {sendErr[doc.id] && <div style={{ color:C.red, fontSize:12, marginTop:8, fontFamily:FONT.sans, fontWeight:600 }}>{emo("⚠")} {sendErr[doc.id]}</div>}
                       {sentLog[doc.id]?.length > 0 && (
-                        <div style={{ marginTop:10, fontSize:11, fontFamily:"sans-serif", color:C.slate }}>
+                        <div style={{ marginTop:10, fontSize:11, fontFamily:FONT.sans, color:C.slate }}>
                           <strong>Sent log:</strong>
                           {sentLog[doc.id].map((s,i)=>(<div key={i}>→ {s.to} at {s.time}{s.note ? ` — "${s.note}"` : ""}</div>))}
                         </div>
@@ -2101,19 +2103,19 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                   {/* UPLOAD */}
                   {docAction[doc.id]==="upload" && (
                     <div style={{ marginTop:12, background:C.sandDark, border:`1px solid ${C.mist}`, borderRadius:6, padding:"14px" }}>
-                      <div style={{ fontSize:12, fontWeight:700, fontFamily:"sans-serif", color:C.slate, marginBottom:8 }}>📎 Upload Signed Document</div>
-                      <p style={{ fontSize:11, fontFamily:"sans-serif", color:C.slate, marginBottom:12, lineHeight:1.6 }}>
+                      <div style={{ fontSize:12, fontWeight:700, fontFamily:FONT.sans, color:C.slate, marginBottom:8 }}>{emo("📎")} Upload Signed Document</div>
+                      <p style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginBottom:12, lineHeight:1.6 }}>
                         If signed outside the platform (wet ink, notary, attorney, DocuSign), upload the signed PDF here to attach it to your deal file.
                       </p>
                       {!uploadedFile[doc.id] ? (
-                        <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"9px 18px", fontSize:12, fontFamily:"sans-serif", fontWeight:600 }}>
-                          <span>📎</span> Choose File to Upload
+                        <label style={{ display:"inline-flex", alignItems:"center", gap:8, cursor:"pointer", background:C.navy, color:"#fff", borderRadius:5, padding:"9px 18px", fontSize:12, fontFamily:FONT.sans, fontWeight:600 }}>
+                          <span>{emo("📎")}</span> Choose File to Upload
                           <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{ display:"none" }} onChange={e=>{ if(e.target.files[0]) handleUpload(doc.id, e.target.files[0]); setAction(doc.id,"upload"); }}/>
                         </label>
                       ) : (
-                        <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.green }}>
+                        <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.green }}>
                           ✓ Uploaded: <strong>{uploadedFile[doc.id]}</strong> — attached on {today()}
-                          <button onClick={()=>{ setUploadedFile(u=>({...u,[doc.id]:null})); setSigned(s=>{const n={...s}; delete n[doc.id]; return n;}); }} style={{ marginLeft:12, fontSize:11, fontFamily:"sans-serif", background:"none", border:`1px solid ${C.mist}`, borderRadius:4, padding:"2px 8px", cursor:"pointer", color:C.slate }}>Replace</button>
+                          <button onClick={()=>{ setUploadedFile(u=>({...u,[doc.id]:null})); setSigned(s=>{const n={...s}; delete n[doc.id]; return n;}); }} style={{ marginLeft:12, fontSize:11, fontFamily:FONT.sans, background:"none", border:`1px solid ${C.mist}`, borderRadius:4, padding:"2px 8px", cursor:"pointer", color:C.slate }}>Replace</button>
                         </div>
                       )}
                     </div>
@@ -2121,7 +2123,7 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
                   {/* A long document fills the screen and the only way back was at
                       the very top, scrolled out of sight — people closed the tab. */}
                   <button onClick={()=>setActiveDoc(null)}
-                    style={{ fontSize:12.5, fontFamily:"sans-serif", color:C.navy, background:C.white, border:`1.5px solid ${C.mist}`, borderRadius:16, cursor:"pointer", padding:"8px 16px", marginTop:14, fontWeight:700 }}>
+                    style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.navy, background:C.white, border:`1.5px solid ${C.mist}`, borderRadius:16, cursor:"pointer", padding:"8px 16px", marginTop:14, fontWeight:700 }}>
                     &larr; Back to all documents
                   </button>
                 </div>
@@ -2139,20 +2141,20 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
       <div style={{ marginTop:"1.5rem" }}>
         {!allRequiredSigned && (
           <div style={{ border:`1.5px solid ${docsOnlyBos ? C.teal : C.brass}`, background: docsOnlyBos ? "#f7fbfd" : "#fff9ee", borderRadius:8, padding:"14px 16px", marginBottom:14 }}>
-            <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, color: docsOnlyBos ? C.navy : "#7a5500", marginBottom:6 }}>{docsOnlyBos ? "📜 One thing to take with you" : "⚠️ A few documents still need finishing before this sale is truly closed"}</div>
-            <div style={{ fontSize:12, fontFamily:"sans-serif", color:C.slate, lineHeight:1.6, marginBottom:10 }}>
+            <div style={{ fontSize:13, fontFamily:FONT.sans, fontWeight:700, color: docsOnlyBos ? C.navy : "#7a5500", marginBottom:6 }}>{docsOnlyBos ? emo("📜 One thing to take with you") : emo("⚠️ A few documents still need finishing before this sale is truly closed")}</div>
+            <div style={{ fontSize:12, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6, marginBottom:10 }}>
               {!docsOnlyBos && <>Still outstanding: {[...reqMissing.map(d=>d.title)].join(", ")}.
               {reqNotaryMissing.length > 0 && <> Note that <b>{reqNotaryMissing.map(d=>d.title).join(", ")}</b> must be printed, signed in front of a notary, and uploaded. <b>BoatClosers can't verify notarization</b> — completing that correctly is your responsibility.</>}</>}
             </div>
             {!bosSigned && (
-              <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:7, padding:"11px 13px", marginBottom:10, fontFamily:"sans-serif" }}>
-                <div style={{ fontSize:12, fontWeight:800, color:C.navy, marginBottom:4 }}>📜 The Bill of Sale is signed at the handover, not here</div>
+              <div style={{ background:"#f7fbfd", border:`1px solid ${C.teal}`, borderRadius:7, padding:"11px 13px", marginBottom:10, fontFamily:FONT.sans }}>
+                <div style={{ fontSize:12, fontWeight:800, color:C.navy, marginBottom:4 }}>{emo("📜")} The Bill of Sale is signed at the handover, not here</div>
                 <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.7 }}>
                   This is normal &mdash; the title and the bill of sale are signed by hand, together, when the money changes hands. <b>Open the version you need in the Bill of Sale box above, print it, and take it with you</b> (or post it, if you are not meeting). If it has to be notarised, do that before the day. Nothing is missing from your deal.
                 </div>
               </div>
             )}
-            {!docsOnlyBos && <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", fontSize:12, fontFamily:"sans-serif", color:C.navy, lineHeight:1.5 }}>
+            {!docsOnlyBos && <label style={{ display:"flex", gap:9, alignItems:"flex-start", cursor:"pointer", fontSize:12, fontFamily:FONT.sans, color:C.navy, lineHeight:1.5 }}>
               <input type="checkbox" checked={closeAck} onChange={e=>setCloseAck(e.target.checked)} style={{ marginTop:1, accentColor:C.brass, flexShrink:0 }} />
               I understand these documents still need to be completed{reqNotaryMissing.length>0?" and notarized":""} outside the app, that BoatClosers does not verify or notarize them, and I'm choosing to proceed.
             </label>}
