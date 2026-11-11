@@ -24,6 +24,8 @@ const SLATE = '#475569'
 const MIST = '#e2e8f0'
 const ctlBtn: any = { fontSize: 11.5, fontWeight: 700, color: '#08152e', background: '#fff', border: '1px solid #cbd5e1', borderRadius: 6, padding: '6px 11px', cursor: 'pointer', fontFamily: 'sans-serif' }
 
+const testBadge: any = { marginLeft: 8, fontSize: 10, fontWeight: 800, letterSpacing: 1, color: '#7a5500', background: '#fff4dd', border: '1px solid #f0d9a8', borderRadius: 4, padding: '1px 6px', verticalAlign: 'middle' }
+
 const money = (n: number) =>
   Number(n || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 
@@ -40,7 +42,7 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   const [data, setData] = useState<any>(null)
   const [filter, setFilter] = useState('live')
-  const [view, setView] = useState<'full' | 'express'>('full')
+  const [view, setView] = useState<'full' | 'express' | 'mbi'>('full')
   const [exFilter, setExFilter] = useState('paid')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
@@ -58,6 +60,8 @@ export default function AdminPage() {
       adminResetRole: `Set the initiator role to ${extra.role}? (fixes an inverted buyer/seller)`,
       adminResendInvite: 'Re-arm the invite as pending?',
       adminExpressDelete: 'Permanently DELETE this Express purchase? This cannot be undone.',
+      adminTestUnlock: 'Unlock every step of this deal for free, as a TEST? It will be marked Test and never count as revenue.',
+      adminExpressTestUnlock: 'Unlock this Express purchase for free, as a TEST? It will be marked Test and never count as revenue.',
     }
     if (confirmText[action] && !window.confirm(confirmText[action])) return
     setActionBusy(action + dealId); setActionMsg(null)
@@ -222,7 +226,7 @@ export default function AdminPage() {
           )}
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-          {([['full', 'BoatClosers · $249'], ['express', `BoatClosers Express · $29.99 (${t.expressAll ?? 0})`]] as const).map(([k, l]) => (
+          {([['full', 'BoatClosers · $249'], ['express', `BoatClosers Express · $29.99 (${t.expressAll ?? 0})`], ['mbi', 'My Boat Inspector']] as const).map(([k, l]) => (
             <button key={k} onClick={() => { setView(k); setOpen(null) }}
               style={{ padding: '10px 16px', fontSize: 13.5, fontWeight: 800, borderRadius: 8, cursor: 'pointer',
                 border: `2px solid ${view === k ? BRASS : MIST}`, background: view === k ? '#fff' : '#f8fafc', color: NAVY }}>
@@ -230,6 +234,8 @@ export default function AdminPage() {
             </button>
           ))}
         </div>
+
+        {view === 'mbi' && <MbiPanel pw={pw} Stat={Stat} />}
 
         {view === 'express' && <ExpressPanel data={data} exFilter={exFilter} setExFilter={setExFilter} open={open} setOpen={setOpen} runAction={runAction} actionBusy={actionBusy} actionMsg={actionMsg} q={q} setQ={setQ} Stat={Stat} />}
 
@@ -270,7 +276,7 @@ export default function AdminPage() {
             <div key={d.id} style={{ background: '#fff', border: `1px solid ${MIST}`, borderLeft: `4px solid ${urgencyColor(d.urgency)}`, borderRadius: 8, overflow: 'hidden' }}>
               <div onClick={() => setOpen(open === d.id ? null : d.id)} style={{ padding: '12px 15px', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 200 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>{d.boat}{d.price ? ` · ${money(d.price)}` : ''}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{d.boat}{d.price ? ` · ${money(d.price)}` : ''}{d.test && <span style={testBadge}>TEST</span>}</div>
                   <div style={{ fontSize: 12, color: SLATE, marginTop: 2 }}>
                     {d.buyer.email || d.inviteEmail || '—'} ↔ {d.seller.email || '—'}
                   </div>
@@ -295,7 +301,7 @@ export default function AdminPage() {
                     <div><b>Seller:</b> {d.seller.name || '—'} · {d.seller.email || '—'}</div>
                     <div><b>Started by:</b> {d.initiatorRole || '—'}</div>
                     <div><b>Other party joined:</b> {d.joined ? 'yes' : 'no'}</div>
-                    <div><b>Fee paid:</b> {d.paid ? 'yes' : 'no'}</div>
+                    <div><b>Fee paid:</b> {d.test ? 'test unlock (free)' : d.paid ? 'yes' : 'no'}</div>
                     <div><b>Deposit:</b> {d.deposit ? money(d.deposit) : 'none'}</div>
                     <div><b>Escrow:</b> {d.escrow || '—'}</div>
                     <div><b>Offers exchanged:</b> {d.offers}</div>
@@ -308,6 +314,7 @@ export default function AdminPage() {
                     <b>Deal ID:</b> <code style={{ background: '#fff', padding: '2px 6px', borderRadius: 4 }}>{d.id}</code>
                   </div>
                   <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${MIST}`, display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                    {!d.paid && <button style={{ ...ctlBtn, color: '#fff', background: NAVY, borderColor: NAVY }} disabled={!!actionBusy} onClick={() => runAction('adminTestUnlock', d.id)}>Unlock as test deal</button>}
                     <button style={ctlBtn} disabled={!!actionBusy} onClick={() => { const n = window.prompt('Note to attach to this deal:'); if (n) runAction('adminAddNote', d.id, { note: n }) }}>Add note</button>
                     <button style={ctlBtn} disabled={!!actionBusy} onClick={() => runAction('adminResendInvite', d.id)}>Re-arm invite</button>
                     <button style={ctlBtn} disabled={!!actionBusy} onClick={() => runAction('adminClearJoin', d.id)}>Detach 2nd party</button>
@@ -384,7 +391,7 @@ function ExpressPanel({ data, exFilter, setExFilter, open, setOpen, runAction, a
           <div key={e.id} style={{ background: '#fff', border: `1px solid ${MIST}`, borderLeft: `4px solid ${tone(e)}`, borderRadius: 8, overflow: 'hidden' }}>
             <div onClick={() => setOpen(open === e.id ? null : e.id)} style={{ padding: '12px 15px', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>{e.items.map((i: string) => i.split(': ')[1]).join(' + ') || '—'}{e.price ? ` · ${money(e.price)}` : ''}</div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{e.items.map((i: string) => i.split(': ')[1]).join(' + ') || '—'}{e.price ? ` · ${money(e.price)}` : ''}{e.test && <span style={testBadge}>TEST</span>}</div>
                 <div style={{ fontSize: 12, color: SLATE, marginTop: 2 }}>{e.buyer.name} · {e.buyer.email}</div>
               </div>
               <div style={{ background: '#f8fafc', color: tone(e), borderRadius: 20, padding: '5px 12px', fontSize: 11.5, fontWeight: 800, whiteSpace: 'nowrap' }}>{e.stage}</div>
@@ -400,7 +407,7 @@ function ExpressPanel({ data, exFilter, setExFilter, open, setOpen, runAction, a
                   <div><b>Buyer:</b> {e.buyer.name} · {e.buyer.email}</div>
                   <div><b>Seller:</b> {e.seller || '—'}</div>
                   <div><b>Buying:</b> {e.items.join(' · ')}</div>
-                  <div><b>Paid:</b> {e.paid ? (e.paidAt ? new Date(e.paidAt).toLocaleDateString() : 'yes') : 'no'}</div>
+                  <div><b>Paid:</b> {e.test ? 'test unlock (free)' : e.paid ? (e.paidAt ? new Date(e.paidAt).toLocaleDateString() : 'yes') : 'no'}</div>
                   <div><b>Inspection:</b> {e.inspected} items · {e.photos} photos</div>
                   <div><b>Questions sent to seller:</b> {e.asked}</div>
                   <div><b>Seller sent papers:</b> {e.sellerSent ? `${e.sellerSent}x` : 'no'}</div>
@@ -411,6 +418,7 @@ function ExpressPanel({ data, exFilter, setExFilter, open, setOpen, runAction, a
                   <div><b>Quiet:</b> {e.idleDays ?? '—'}d</div>
                 </div>
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${MIST}`, display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                  {!e.paid && <button style={{ ...ctlBtn, color: '#fff', background: NAVY, borderColor: NAVY }} disabled={!!actionBusy} onClick={() => runAction('adminExpressTestUnlock', '', { expressId: e.id })}>Unlock as test</button>}
                   <a href={`/express/deal/${e.token}`} target="_blank" rel="noopener noreferrer" style={{ ...ctlBtn, textDecoration: 'none' }}>Open buyer&apos;s page</a>
                   <button style={ctlBtn} onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/express/deal/${e.token}`)}>Copy buyer&apos;s link</button>
                   <button style={{ ...ctlBtn, color: '#b91c1c', borderColor: '#f5b5b5' }} disabled={!!actionBusy} onClick={() => runAction('adminExpressDelete', '', { expressId: e.id })}>Delete</button>
@@ -423,6 +431,103 @@ function ExpressPanel({ data, exFilter, setExFilter, open, setOpen, runAction, a
       </div>
       <div style={{ marginTop: 14, fontSize: 11, color: SLATE, textAlign: 'center', lineHeight: 1.7 }}>
         The buyer&apos;s link opens their purchase exactly as they see it. Anything you change there changes it for them.
+      </div>
+    </>
+  )
+}
+
+// ---------- My Boat Inspector (separate app) ----------
+
+function MbiPanel({ pw, Stat }: any) {
+  const [d, setD] = useState<any>(null)
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState('')
+  const [msg, setMsg] = useState<any>(null)
+  const [open, setOpen] = useState<string | null>(null)
+  const [f, setF] = useState('all')
+  const call = async (action: string, boatId = '') => {
+    const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: sessionStorage.getItem('bc_admin') || pw, action, boatId }) })
+    return r.json().catch(() => ({ error: 'Bad response' }))
+  }
+  const load = async () => {
+    setBusy('load'); setErr('')
+    const j = await call('mbiList')
+    if (j.ok) setD(j); else setErr(j.error || 'Could not load My Boat Inspector.')
+    setBusy('')
+  }
+  useEffect(() => { load() }, [])
+  const act = async (action: string, id: string, confirmText: string) => {
+    if (!window.confirm(confirmText)) return
+    setBusy(action + id); setMsg(null)
+    const j = await call(action, id)
+    setMsg(j.ok ? { ok: true, text: j.done || 'Done' } : { ok: false, text: j.error || 'Failed' })
+    setBusy(''); if (j.ok) load()
+  }
+  const t = d?.totals || {}
+  const rows: any[] = (d?.inspections || []).filter((r: any) => f === 'paid' ? r.paid : f === 'unpaid' ? !r.unlocked : f === 'test' ? r.test : true)
+  const tone = (r: any) => r.report ? '#0f6e56' : r.unlocked ? '#1d4ed8' : '#64748b'
+  const Tab = ({ id, label }: any) => (
+    <button onClick={() => setF(id)} style={{ padding: '8px 14px', fontSize: 12.5, fontWeight: 700, borderRadius: 7, cursor: 'pointer',
+      border: `1px solid ${f === id ? NAVY : MIST}`, background: f === id ? NAVY : '#fff', color: f === id ? '#fff' : SLATE }}>{label}</button>
+  )
+  return (
+    <>
+      {d?.paywallOff && (
+        <div style={{ background: '#fff8e6', border: '1px solid #f0d9a8', borderRadius: 8, padding: '9px 12px', fontSize: 12.5, color: '#7a5500', marginBottom: 12 }}>
+          My Boat Inspector&apos;s paywall is currently <b>off for testing</b> (PAYWALL_OFF=true), so every inspection is open. Turn it off before launch.
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+        <Stat label="Inspections started" value={t.all ?? 0} />
+        <Stat label="Paid" value={t.paid ?? 0} />
+        <Stat label="Revenue" value={'$' + Number(t.revenue || 0).toFixed(2)} tone="#0f6e56" />
+        <Stat label="Reports finished" value={t.reports ?? 0} />
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+        <Tab id="all" label={`All (${t.all ?? 0})`} />
+        <Tab id="paid" label={`Paid (${t.paid ?? 0})`} />
+        <Tab id="unpaid" label="Not paid" />
+        <Tab id="test" label={`Test (${t.tests ?? 0})`} />
+        <button onClick={load} style={{ ...ctlBtn, marginLeft: 'auto' }} disabled={!!busy}>{busy === 'load' ? 'Loading…' : 'Reload'}</button>
+      </div>
+      {err && <div style={{ background: '#fdecec', border: '1px solid #f5b5b5', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, color: '#b91c1c', marginBottom: 12 }}>{err}</div>}
+      {d && rows.length === 0 && <div style={{ background: '#fff', border: `1px solid ${MIST}`, borderRadius: 10, padding: '2rem', textAlign: 'center', color: SLATE, fontSize: 13.5 }}>Nothing here.</div>}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {rows.map((r: any) => (
+          <div key={r.id} style={{ background: '#fff', border: `1px solid ${MIST}`, borderLeft: `4px solid ${tone(r)}`, borderRadius: 8, overflow: 'hidden' }}>
+            <div onClick={() => setOpen(open === r.id ? null : r.id)} style={{ padding: '12px 15px', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{r.boat}{r.test && <span style={testBadge}>TEST</span>}</div>
+                <div style={{ fontSize: 12, color: SLATE, marginTop: 2 }}>{r.role}{r.email ? ` · ${r.email}` : ' · guest'}{r.hin ? ` · HIN ${r.hin}` : ''}</div>
+              </div>
+              <div style={{ background: '#f8fafc', color: tone(r), borderRadius: 20, padding: '5px 12px', fontSize: 11.5, fontWeight: 800, whiteSpace: 'nowrap' }}>{r.stage}</div>
+              <div style={{ fontSize: 11.5, color: SLATE, minWidth: 110, textAlign: 'right' }}>started {r.createdDays ?? '—'}d ago<div>quiet {r.idleDays ?? '—'}d</div></div>
+            </div>
+            {open === r.id && (
+              <div style={{ borderTop: `1px solid ${MIST}`, background: '#f8fafc', padding: '13px 15px', fontSize: 12.5, lineHeight: 1.8, color: SLATE }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: '2px 20px' }}>
+                  <div><b>Who:</b> {r.role}</div>
+                  <div><b>Asking / price:</b> {r.price || '—'}</div>
+                  <div><b>Paid:</b> {r.test ? 'test unlock (free)' : r.paid ? 'yes' : 'no'}</div>
+                  <div><b>Areas checked:</b> {r.areas}</div>
+                  <div><b>Report:</b> {r.report ? 'finished' : 'not yet'}</div>
+                  <div><b>Comparable boats:</b> {r.comps ? 'found' : '—'}</div>
+                </div>
+                <div style={{ marginTop: 9, fontSize: 11.5 }}><b>ID:</b> <code style={{ background: '#fff', padding: '2px 6px', borderRadius: 4 }}>{r.id}</code></div>
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${MIST}`, display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                  {!r.unlocked && <button style={{ ...ctlBtn, color: '#fff', background: NAVY, borderColor: NAVY }} disabled={!!busy}
+                    onClick={() => act('mbiTestUnlock', r.id, 'Unlock this inspection for free, as a TEST? It will be marked Test and never count as revenue.')}>Unlock as test</button>}
+                  <a href={r.link} target="_blank" rel="noopener noreferrer" style={{ ...ctlBtn, textDecoration: 'none' }}>Open inspection</a>
+                  <button style={{ ...ctlBtn, color: '#b91c1c', borderColor: '#f5b5b5' }} disabled={!!busy}
+                    onClick={() => act('mbiDelete', r.id, 'Permanently DELETE this inspection, its photos and answers? This cannot be undone.')}>Delete</button>
+                </div>
+                <div style={{ marginTop: 6, fontSize: 11 }}>Inspections are tied to the device that started them, so &ldquo;Open inspection&rdquo; works on that device.</div>
+                {msg && <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: msg.ok ? '#0f6e56' : '#b91c1c' }}>{msg.text}</div>}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </>
   )

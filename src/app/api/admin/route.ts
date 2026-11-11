@@ -72,6 +72,7 @@ function assessExpress(e: any) {
     items: Object.entries(e.items || {}).map(([k, v]: any) => `${k}: ${v?.description || ''}`),
     price: Math.round((e.price_cents || 0) / 100),
     paid: e.status === 'paid',
+    test: !!p.testDeal,
     paidAt: e.paid_at,
     stage,
     inspected: insp,
@@ -144,6 +145,7 @@ function assess(d: any) {
     inviteStatus: d.invite_status || '',
     joined,
     paid,
+    test: !!neg.testDeal,
     state, waitingOn, urgency, note,
     offers: offers.length,
     escrow: neg.escrowPath || '',
@@ -212,6 +214,28 @@ export async function POST(req: Request) {
       }
     }
 
+    // ── My Boat Inspector (separate app and database) ─────────────────────────
+    // The owner's password is checked above; this server then calls My Boat
+    // Inspector's private owner endpoint with a shared key (MBI_ADMIN_KEY, set in
+    // both Vercel projects). No My Boat Inspector database keys live here.
+    if (body.action === 'mbiList' || body.action === 'mbiTestUnlock' || body.action === 'mbiDelete') {
+      const key = process.env.MBI_ADMIN_KEY || ''
+      const base = process.env.MBI_URL || 'https://myboatinspector.com'
+      if (!key) return NextResponse.json({ error: 'MBI_ADMIN_KEY is not set on the BoatClosers server.' }, { status: 500 })
+      const action = body.action === 'mbiTestUnlock' ? 'testUnlock' : body.action === 'mbiDelete' ? 'delete' : 'list'
+      try {
+        const r = await fetch(`${base}/api/admin`, {
+          method: 'POST', cache: 'no-store',
+          headers: { 'Content-Type': 'application/json', 'x-admin-key': key },
+          body: JSON.stringify({ action, boatId: body.boatId || '' }),
+        })
+        const j = await r.json().catch(() => ({ error: `My Boat Inspector returned ${r.status}.` }))
+        return NextResponse.json(j, { status: r.ok ? 200 : r.status })
+      } catch (e: any) {
+        return NextResponse.json({ error: 'Could not reach My Boat Inspector: ' + (e?.message || 'unknown') }, { status: 502 })
+      }
+    }
+
     // ── CONTROL ACTIONS ───────────────────────────────────────────────────────
     // Deliberate, single-purpose actions — never a free-form field editor. Each
     // requires the admin password (already checked above), targets one deal by id,
@@ -232,6 +256,22 @@ export async function POST(req: Request) {
         const { error } = await sb2.from('express_deals').delete().eq('id', id)
         if (error) return NextResponse.json({ error: error.message }, { status: 500 })
         return NextResponse.json({ ok: true, done: 'Express purchase deleted.' })
+      }
+
+      // BoatClosers Express: unlock a purchase for free as a TEST. Marked in
+      // progress.testDeal so it never counts toward revenue.
+      if (body.action === 'adminExpressTestUnlock') {
+        const id = String(body.expressId || '')
+        if (!id) return NextResponse.json({ error: 'Missing expressId.' }, { status: 400 })
+        const { data: ex, error: rErr } = await sb2.from('express_deals').select('id, status, progress').eq('id', id).single()
+        if (rErr || !ex) return NextResponse.json({ error: 'Express purchase not found.' }, { status: 404 })
+        if (ex.status === 'paid') return NextResponse.json({ ok: true, done: 'Already unlocked.' })
+        const now = new Date().toISOString()
+        const { error } = await sb2.from('express_deals')
+          .update({ status: 'paid', paid_at: now, updated_at: now, progress: { ...(ex.progress || {}), testDeal: true } })
+          .eq('id', id)
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+        return NextResponse.json({ ok: true, done: 'Unlocked as a test purchase (not counted as revenue).' })
       }
 
       // Delete a deal (test/spam cleanup). Hard delete — confirmed on the client.
@@ -287,6 +327,12 @@ export async function POST(req: Request) {
         patch.other_party_id = null
         patch.invite_status = 'pending'
         done = 'Second party detached — invite slot reopened'
+      }
+      else if (body.action === 'adminTestUnlock') {
+        // Open every step without the $249, for the owner's own test deals.
+        // Marked testDeal so it never counts as paid revenue.
+        negPatch = { ...neg, paid: true, testDeal: true }
+        done = 'Unlocked as a test deal (not counted as revenue)'
       }
       else if (body.action === 'adminResendInvite') {
         // Re-arm the invite so the notice can be re-sent from the app.
@@ -344,15 +390,15 @@ export async function POST(req: Request) {
       totals: {
         all: rows.length,
         live: live.length,
-        paid: rows.filter(r => r.paid).length,
-        revenue: rows.filter(r => r.paid).length * 249,
+        paid: rows.filter(r => r.paid && !r.test).length,
+        revenue: rows.filter(r => r.paid && !r.test).length * 249,
         needsAttention: rows.filter(r => r.urgency >= 4).length,
         stale: live.filter(r => (r.idleDays ?? 0) >= 7).length,
         closed: closed.length,
-        closedRevenue: closed.filter(r => r.paid).length * 249,
+        closedRevenue: closed.filter(r => r.paid && !r.test).length * 249,
         expressAll: express.length,
-        expressPaid: express.filter(e => e.paid).length,
-        expressRevenue: Math.round(express.filter(e => e.paid).length * 29.99 * 100) / 100,
+        expressPaid: express.filter(e => e.paid && !e.test).length,
+        expressRevenue: Math.round(express.filter(e => e.paid && !e.test).length * 29.99 * 100) / 100,
       },
       deals: rows,
       express,
