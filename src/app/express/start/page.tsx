@@ -4,7 +4,7 @@ import ExpressStart from './ExpressStart'
 
 // Not linked from anywhere until launch. noindex keeps Google off it meanwhile.
 export const metadata: Metadata = {
-  title: 'Start your BoatClosers Express purchase',
+  title: 'Start your purchase | My Boat Closing',
   robots: { index: false, follow: false },
 }
 
@@ -29,10 +29,10 @@ export default function Page() {
       >
         <Link href="/express" style={{ textDecoration: 'none' }}>
           <div style={{ color: gold, fontFamily: 'Georgia, serif', fontSize: 22, letterSpacing: 2, fontWeight: 700 }}>
-            BOATCLOSERS
+            MY BOAT CLOSING
           </div>
           <div style={{ color: cream, fontSize: 10, letterSpacing: 3, opacity: 0.75 }}>
-            EXPRESS · BUYER TOOLKIT
+            FROM BOATCLOSERS · ALL 50 STATES
           </div>
         </Link>
       </header>

@@ -2,7 +2,7 @@
 
 // Live HIN check shown under the HIN box on the deal's Vessel step.
 // Reuses the same decoder and Coast Guard lookups as the free /hin-check
-// tool and BoatClosers Express, styled for the app's light form.
+// tool and My Boat Closing, styled for the app's light form.
 
 import { useEffect, useState } from 'react'
 import { decodeHin, makeMatches } from '@/lib/hin'

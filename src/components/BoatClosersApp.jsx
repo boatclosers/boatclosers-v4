@@ -1,4 +1,5 @@
 'use client'
+import { stateInfo as stateInfoFor } from "@/lib/express/states";
 import DocumentsStepV2 from "./DocumentsStepV2";
 import ContingencyPicker from "./ContingencyPicker";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
@@ -53,7 +54,7 @@ const authHeaders = () => {
 };
 
 
-// Buyers entering a boat at or under this price see a note that BoatClosers Express
+// Buyers entering a boat at or under this price see a note that My Boat Closing
 // ($29.99, buyer-only) may fit a simple, already-agreed deal better.
 const EXPRESS_SUGGEST_MAX = 25000;
 // GUIDED MODE: false = only owner preview browsers (?preview=on) see it. true = everyone gets the choice.
@@ -1010,12 +1011,12 @@ function StepVessel({ data, setData, userRole, onNext }) {
       </div>
       {userRole==="buyer" && Number(data.askingPrice) > 0 && Number(data.askingPrice) <= EXPRESS_SUGGEST_MAX && (
         <div style={{ background:C.sand, border:`1px solid ${C.brass}`, borderRadius:8, padding:"13px 16px", marginBottom:18 }}>
-          <div style={{ fontSize:13, fontWeight:800, fontFamily:FONT.sans, color:C.navy, marginBottom:4 }}>Simple deal? BoatClosers Express may be all you need</div>
+          <div style={{ fontSize:13, fontWeight:800, fontFamily:FONT.sans, color:C.navy, marginBottom:4 }}>Simple deal? My Boat Closing may be all you need</div>
           <div style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>
-            If you and the seller already agree on the price, there's no deposit to hold, and the title is clear, <b>BoatClosers Express ($29.99)</b> covers it:
-            a Florida bill of sale and state forms filled in for you, and help titling the boat. The seller doesn't sign up.
+            If you and the seller already agree on the price, there's no deposit to hold, and the title is clear, <b>My Boat Closing ($29.99)</b> covers it:
+            a title photo check, your state's bill of sale (Florida forms filled in), and help titling the boat, in any state. The seller doesn't sign up.
             Stay here if you want to negotiate, put down a deposit, make the sale depend on a survey or sea trial, or have you both sign a purchase agreement.{" "}
-            <a href="/express" style={{ color:C.teal, fontWeight:700 }}>See BoatClosers Express</a>
+            <a href="/express" style={{ color:C.teal, fontWeight:700 }}>See My Boat Closing</a>
           </div>
         </div>
       )}
@@ -1616,7 +1617,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
 // STEP 2 — NEGOTIATE + TERMS (combined)
 // ─────────────────────────────────────────────────────────────────────────────
 function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiator, dealId, stripeReturn, onRefresh, refreshing, authedFetch, onNext, onBack }) {
-  // A paid BoatClosers Express purchase with this email takes $29.99 off the fee.
+  // A paid My Boat Closing purchase with this email takes $29.99 off the fee.
   const [expressCredit, setExpressCredit] = useState(0);
   useEffect(() => {
     if (!amInitiator) return;
@@ -2235,7 +2236,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
             <>
               <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.navy, lineHeight:1.6, marginBottom:12, fontWeight:600 }}>
                 The Purchase Agreement is fully signed. Pay the one-time <b>{feeLabel}</b> to make the deal binding and unlock Due Diligence, Documents, and Closing for both parties.
-                {expressCredit ? <> Your <b>$29.99 BoatClosers Express</b> purchase is credited.</> : null}
+                {expressCredit ? <> Your <b>$29.99 My Boat Closing</b> purchase is credited.</> : null}
               </div>
               <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
                 <button style={{ ...S.btnBrass, fontSize:15, padding:"13px 26px" }} onClick={()=>openCheckout("initiator",249)}>{emo("💳")} Pay {feeLabel} &amp; unlock the deal →</button>
@@ -5627,7 +5628,7 @@ function Welcome({ name, role, onStart, onSignOut }) {
             </button>
           </div>
           <p style={{ fontFamily:FONT.sans, fontSize:12.5, color:C.slate, lineHeight:1.55, margin:"14px 0 0" }}>
-            Guides open in a new tab, so you won&rsquo;t lose your place. Price already agreed and no deposit? <a href="/express" target="_blank" rel="noopener" style={{ color:C.navy, fontWeight:600 }}>BoatClosers Express ($29.99)</a> may be all you need.
+            Guides open in a new tab, so you won&rsquo;t lose your place. Price already agreed and no deposit? <a href="/express" target="_blank" rel="noopener" style={{ color:C.navy, fontWeight:600 }}>My Boat Closing ($29.99)</a> may be all you need.
           </p>
         </div>
       </div>
@@ -6064,45 +6065,38 @@ function ProductPreview({ F, X, isMobile, onStart }) {
   );
 }
 
-// ── "Florida today, more states coming" with a state-interest signup ─────────
+// ── "All 50 states": state lookup with each state's own bill of sale ─────────
 const US_STATES = [["AL","Alabama"],["AK","Alaska"],["AZ","Arizona"],["AR","Arkansas"],["CA","California"],["CO","Colorado"],["CT","Connecticut"],["DE","Delaware"],["DC","District of Columbia"],["GA","Georgia"],["HI","Hawaii"],["ID","Idaho"],["IL","Illinois"],["IN","Indiana"],["IA","Iowa"],["KS","Kansas"],["KY","Kentucky"],["LA","Louisiana"],["ME","Maine"],["MD","Maryland"],["MA","Massachusetts"],["MI","Michigan"],["MN","Minnesota"],["MS","Mississippi"],["MO","Missouri"],["MT","Montana"],["NE","Nebraska"],["NV","Nevada"],["NH","New Hampshire"],["NJ","New Jersey"],["NM","New Mexico"],["NY","New York"],["NC","North Carolina"],["ND","North Dakota"],["OH","Ohio"],["OK","Oklahoma"],["OR","Oregon"],["PA","Pennsylvania"],["RI","Rhode Island"],["SC","South Carolina"],["SD","South Dakota"],["TN","Tennessee"],["TX","Texas"],["UT","Utah"],["VT","Vermont"],["VA","Virginia"],["WA","Washington"],["WV","West Virginia"],["WI","Wisconsin"],["WY","Wyoming"],["PR","Puerto Rico"],["VI","U.S. Virgin Islands"]];
 function StatesBand({ F, X, isMobile }) {
-  const [email, setEmail] = useState("");
+  // Every state, with each state's own bill of sale where it publishes one.
   const [st, setSt] = useState("");
-  const [trap, setTrap] = useState("");
-  const [state, setState] = useState({ busy:false, ok:false, err:"" });
-  const submit = async (e) => {
-    e.preventDefault();
-    setState({ busy:true, ok:false, err:"" });
-    try {
-      const r = await fetch("/api/state-interest", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ email, state: st, website: trap }) });
-      const j = await r.json().catch(()=>({}));
-      setState(r.ok ? { busy:false, ok:true, err:"" } : { busy:false, ok:false, err: j.error || "Could not save." });
-    } catch { setState({ busy:false, ok:false, err:"Network error. Please try again." }); }
-  };
+  const info = st && st !== "FL" ? stateInfoFor(st) : null;
   const field = { fontFamily:F.sans, fontSize:14, padding:"11px 12px", border:`1px solid ${X.mist}`, borderRadius:6, background:"#fff", color:C.navy, minWidth:0 };
   return (
     <div style={{ background:X.sandWarm, borderBottom:`0.5px solid ${X.mist}`, padding:"2.75rem 1.25rem" }}>
       <div style={{ maxWidth:640, margin:"0 auto", textAlign:"center" }}>
         <div style={{ fontFamily:F.sans, fontSize:11, letterSpacing:3, color:C.brass, textTransform:"uppercase", fontWeight:600 }}>Where we work</div>
-        <h2 style={{ fontFamily:F.serif, fontWeight:500, fontSize:23, color:C.navy, margin:"10px 0 8px" }}>Florida today, more states coming</h2>
-        <p style={{ fontFamily:F.sans, fontSize:14, color:X.slate, lineHeight:1.7, margin:"0 auto 18px", maxWidth:540 }}>
-          The paperwork is built for Florida deals and Coast Guard documented boats. Buying or selling somewhere else? Tell us where, and we&rsquo;ll let you know when your state is ready.
+        <h2 style={{ fontFamily:F.serif, fontWeight:500, fontSize:23, color:C.navy, margin:"10px 0 8px" }}>All 50 states, with each state&rsquo;s own forms</h2>
+        <p style={{ fontFamily:F.sans, fontSize:14, color:X.slate, lineHeight:1.7, margin:"0 auto 18px", maxWidth:560 }}>
+          Florida&rsquo;s official forms are built in. Everywhere else you get that state&rsquo;s own bill of sale where it publishes one, our notarized bill of sale where it doesn&rsquo;t, and a link to the agency that titles boats there. Coast Guard documented boats work anywhere.
         </p>
-        {state.ok ? (
-          <div style={{ fontFamily:F.sans, fontSize:14, color:"#2e7d4f", fontWeight:600 }}>Thanks — we&rsquo;ll email you when your state is ready.</div>
-        ) : (
-          <form onSubmit={submit} style={{ display:"flex", gap:8, flexWrap:"wrap", justifyContent:"center" }}>
-            <input type="text" value={trap} onChange={e=>setTrap(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position:"absolute", left:-9999, width:1, height:1, opacity:0 }} />
-            <input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="Your email" aria-label="Your email" style={{ ...field, flex: isMobile ? "1 1 100%" : "1 1 220px" }} />
-            <select required value={st} onChange={e=>setSt(e.target.value)} aria-label="Your state" style={{ ...field, flex: isMobile ? "1 1 100%" : "0 1 190px" }}>
-              <option value="">Your state…</option>
-              {US_STATES.map(([c,n])=> <option key={c} value={c}>{n}</option>)}
-            </select>
-            <button type="submit" disabled={state.busy} style={{ fontFamily:F.sans, fontSize:14, fontWeight:600, background:C.navy, color:"#fff", border:"none", borderRadius:4, padding:"11px 20px", cursor:"pointer", flex: isMobile ? "1 1 100%" : "0 0 auto" }}>{state.busy ? "Saving…" : "Notify me"}</button>
-          </form>
+        <select value={st} onChange={e=>setSt(e.target.value)} aria-label="Check your state" style={{ ...field, width: isMobile ? "100%" : 280 }}>
+          <option value="">Check your state…</option>
+          {US_STATES.filter(([c]) => c !== "PR" && c !== "VI").concat([["FL","Florida"]]).sort((a,b)=>a[1].localeCompare(b[1])).map(([c,n])=> <option key={c} value={c}>{n}</option>)}
+        </select>
+        {st === "FL" && (
+          <div style={{ fontFamily:F.sans, fontSize:14, color:C.navy, marginTop:14, lineHeight:1.6 }}>
+            Florida: the state&rsquo;s bill of sale (HSMV 82050) and title application (HSMV 82040 VS) are built in.
+          </div>
         )}
-        {state.err && <div style={{ fontFamily:F.sans, fontSize:12.5, color:"#b3261e", marginTop:8 }}>{state.err}</div>}
+        {info && (
+          <div style={{ fontFamily:F.sans, fontSize:14, color:C.navy, marginTop:14, lineHeight:1.6, background:"#fff", border:`1px solid ${X.mist}`, borderRadius:8, padding:"12px 14px", textAlign:"left" }}>
+            <b>{info.name}</b> {info.titles ? "titles boats." : "registers boats but doesn\u2019t title them."}{" "}
+            {info.billOfSale ? <>Bill of sale: the state&rsquo;s own <a href={info.billOfSale.url} target="_blank" rel="noopener noreferrer" style={{ color:C.teal }}>{info.billOfSale.name}</a>.</> : <>No official bill of sale form, so you use ours, notarized.</>}
+            {info.notaryNote ? <> {info.notaryNote}</> : null}{" "}
+            Titles and registration: <a href={info.titleOffice?.url || info.url} target="_blank" rel="noopener noreferrer" style={{ color:C.teal }}>{info.titleOffice?.name || info.agency}</a>.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -6241,7 +6235,7 @@ function Landing({ onStart, onLegal }) {
             <div style={{ display:"flex", justifyContent:"space-between", gap:12, alignItems:"baseline", paddingTop:8 }}><span style={{ fontSize:14, color:X.brassLt, fontWeight:600 }}>You keep</span><span style={{ fontSize:isMobile?26:30, fontWeight:700, color:X.brassLt }}>{usd0(keep)}</span></div>
           </div>
         </div>
-        <div style={{ maxWidth:820, margin:"12px auto 0", fontFamily:F.sans, fontSize:11.5, color:"rgba(255,255,255,0.45)", lineHeight:1.5 }}>Commissions vary; 10% is a common listing rate for boats. Escrow fees, if you use escrow, are separate. Smaller deal with the price already agreed? <a href="/express" style={{ color:X.brassLt }}>BoatClosers Express is $29.99</a>.</div>
+        <div style={{ maxWidth:820, margin:"12px auto 0", fontFamily:F.sans, fontSize:11.5, color:"rgba(255,255,255,0.45)", lineHeight:1.5 }}>Commissions vary; 10% is a common listing rate for boats. Escrow fees, if you use escrow, are separate. Smaller deal with the price already agreed? <a href="/express" style={{ color:X.brassLt }}>My Boat Closing is $29.99</a>.</div>
       </section>
 
       <ProductPreview F={F} X={X} isMobile={isMobile} onStart={onStart} />
@@ -6491,7 +6485,7 @@ export default function BoatClosers() {
     if (typeof window === "undefined") return;
     try {
       const qs = new URLSearchParams(window.location.search);
-      // Moving up from BoatClosers Express: remember which purchase, then sign in.
+      // Moving up from My Boat Closing: remember which purchase, then sign in.
       const fx = qs.get("fromExpress");
       if (fx && /^[a-f0-9]{48}$/.test(fx)) {
         localStorage.setItem("bc_from_express", fx);
@@ -7282,9 +7276,9 @@ export default function BoatClosers() {
           return;
         }
         if (res.status !== 403) { try { localStorage.removeItem("bc_from_express"); } catch (e) {} }
-        setExpressMoveMsg(j.error || "We couldn't move your Express purchase. Email support@boatclosers.com and we'll do it for you.");
+        setExpressMoveMsg(j.error || "We couldn't move your My Boat Closing purchase. Email support@boatclosers.com and we'll do it for you.");
       } catch (e) {
-        setExpressMoveMsg("We couldn't move your Express purchase. Check your connection and refresh.");
+        setExpressMoveMsg("We couldn't move your My Boat Closing purchase. Check your connection and refresh.");
       }
     })();
   }, [user]); // eslint-disable-line

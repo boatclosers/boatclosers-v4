@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendEmail, emailLayout } from '@/lib/sendEmail'
 import { handoffProblems, whatToBring, addDays, type Handoff } from '@/lib/express/content'
 
-// BoatClosers Express title deadline reminders.
+// My Boat Closing title deadline reminders.
 //
 // Florida gives a buyer 30 days from the sale to title and register the boat,
 // and the bill of sale only works as temporary registration for those 30 days.
@@ -42,6 +42,8 @@ export async function GET(req: Request) {
     .from('express_deals')
     .select('id,access_token,buyer_name,buyer_email,items,progress')
     .eq('status', 'paid')
+    // The 30-day deadline and its reminders are Florida's rules.
+    .eq('state', 'FL')
     .gte('paid_at', since)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

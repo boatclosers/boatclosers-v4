@@ -63,7 +63,7 @@ function vesselQuestions(p) {
       placeholder: "85,000", value: v.askingPrice || "", onChange: (t) => set("askingPrice", String(t).replace(/[^0-9]/g, "")),
       required: true, valid: () => Number(digits(v.askingPrice)) > 0, error: "Add the asking price to continue.",
       note: (!seller && ask > 0 && ask <= (p.expressMax || 0))
-        ? { text: "Simple deal with the price already agreed and no deposit? BoatClosers Express ($29.99) may be all you need.", href: "/express", link: "See Express" } : null },
+        ? { text: "Simple deal with the price already agreed and no deposit? My Boat Closing ($29.99) may be all you need.", href: "/express", link: "See Express" } : null },
     { id: "hin", sec: "The boat", kind: "text", mono: true,
       title: "Do you have the Hull ID (HIN)?",
       help: "12 characters, usually on the back right corner of the hull. It goes on the bill of sale.",

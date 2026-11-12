@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { STATE_NAMES } from '@/lib/express/states'
 import crypto from 'crypto'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendEmail, emailLayout } from '@/lib/sendEmail'
@@ -7,7 +8,7 @@ import { sendEmail, emailLayout } from '@/lib/sendEmail'
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-// BoatClosers Express: create a new one-party buyer deal (no account needed).
+// My Boat Closing: create a new one-party buyer deal (no account needed).
 // The buyer's email gets a private link back into the deal. Payment happens
 // later, through /api/express/deal (action "pay"), right before the paperwork.
 // Express deals live in their own table, never in public.deals, so the $249
@@ -43,6 +44,7 @@ export async function POST(req: Request) {
   const sellerName = clean(body?.sellerName, 120)
   const priceDollars = Number(String(body?.price ?? '').replace(/[^0-9.]/g, ''))
   const picked = body?.items || {}
+  const stateCode = typeof body?.state === 'string' && STATE_NAMES[body.state] ? body.state : 'FL'
 
   const items: Record<string, Record<string, string>> = {}
   if (picked.boat) {
@@ -86,7 +88,7 @@ export async function POST(req: Request) {
     seller_name: sellerName,
     items,
     price_cents: Math.round(priceDollars * 100),
-    state: 'FL',
+    state: stateCode,
   })
   if (error) {
     console.error('express start insert failed:', error)
@@ -99,10 +101,10 @@ export async function POST(req: Request) {
   const list = Object.values(items).map((i) => `<li>${escapeHtml(i.description)}</li>`).join('')
   await sendEmail({
     to: buyerEmail,
-    subject: 'Your BoatClosers Express purchase link',
+    subject: 'Your My Boat Closing purchase link',
     html: emailLayout(`
       <p style="font-size:15px;color:#08152e;">Hi ${escapeHtml(buyerName.split(' ')[0])},</p>
-      <p style="font-size:15px;color:#08152e;line-height:1.6;">Here is your private link to your BoatClosers Express purchase. Your HIN check, lien check, and seller questions are free:</p>
+      <p style="font-size:15px;color:#08152e;line-height:1.6;">Here is your private link to your My Boat Closing purchase. Your HIN check, lien check, and seller questions are free:</p>
       <ul style="font-size:15px;color:#08152e;line-height:1.6;">${list}</ul>
       <p style="text-align:center;margin:28px 0;">
         <a href="${link}" style="background:#c9962e;color:#0f1b2d;padding:14px 28px;border-radius:4px;font-weight:700;text-decoration:none;display:inline-block;">Open my purchase</a>

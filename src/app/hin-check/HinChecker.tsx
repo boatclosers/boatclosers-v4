@@ -242,10 +242,10 @@ export default function HinChecker() {
               },
               {
                 label: '2 · CLOSE',
-                title: 'BoatClosers Express',
-                text: 'The bill of sale, Florida title forms, and title deadline reminders, filled in for you. Free to start, $29.99 when you’re ready for the paperwork. The seller doesn’t need to sign up.',
+                title: 'My Boat Closing',
+                text: 'A title photo check before you pay, your state’s bill of sale, and every paper in one Boat File. Any state. Free to start, $29.99 when you’re ready for the paperwork. The seller doesn’t need to sign up.',
                 href: '/express/start',
-                cta: 'Start BoatClosers Express →',
+                cta: 'Start My Boat Closing →',
                 external: false,
               },
             ].map((c) => (

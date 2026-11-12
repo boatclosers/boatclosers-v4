@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
 // Server to server, called only by My Boat Inspector. Redeems the walkthrough
-// code a buyer got with the BoatClosers Express + My Boat Inspector bundle.
+// code a buyer got with the My Boat Closing + My Boat Inspector bundle.
 // Protected by the same shared key the owner dashboard already uses
 // (MBI_ADMIN_KEY, set in both Vercel projects).
 //   POST { code, boatId, redeem } -> { ok: true } when the code is valid (and,

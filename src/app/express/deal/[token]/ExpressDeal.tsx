@@ -1,6 +1,6 @@
 'use client'
 
-// BoatClosers Express: the buyer's purchase page. It follows the same six steps
+// My Boat Closing (formerly My Boat Closing): the buyer's purchase page. It follows the same six steps
 // as full BoatClosers (Vessel, Parties, Price, Check, Documents, Closing), in a
 // simpler one-party form. Checking is free; the $29.99 unlocks the papers at the
 // Documents step. Inspections are My Boat Inspector's job, not Express's.
@@ -17,7 +17,8 @@ import {
   TITLED_OPTIONS,
   BRING_TO_HANDOFF,
   HANDOFF_CHECKS,
-  NEW_OWNER,
+  newOwnerFor,
+  titledOptions,
   titleSigningGuide,
   whatToBring,
   salesTaxEstimate,
@@ -52,6 +53,8 @@ import {
 } from './parts'
 import HinCard from './HinCard'
 import ExpressGuided, { type Question } from './ExpressGuided'
+import { WalkAround, TitleCheckCard } from './ExtraCards'
+import { STATE_NAMES, stateInfo, STATES_CHECKED } from '@/lib/express/states'
 
 const STEPS = [
   { title: 'Vessel', note: 'What you’re buying' },
@@ -127,7 +130,7 @@ function ProductCard({
 
 function CompareProducts({ token, paid }: { token: string; paid: boolean }) {
   const rows: [string, string, string, string, string][] = [
-    ['', 'Express', 'My Boat Inspector', 'BoatClosers', 'My Boat Logs'],
+    ['', 'My Boat Closing', 'My Boat Inspector', 'BoatClosers', 'My Boat Logs'],
     ['Price', '$29.99', MBI_PRICE, paid ? '$219.01 after credit' : '$249', '$39.99/yr'],
     ['Free HIN and lien check', '✓', '', '✓', ''],
     ['Bill of sale and Florida forms', '✓', '', '✓', ''],
@@ -222,7 +225,7 @@ export default function ExpressDeal({ token }: { token: string }) {
         setH({ saleDate: hand.saleDate || new Date().toISOString().slice(0, 10), ...hand })
         setStep((s) => {
           if (s !== null) return s
-          if (dl.status === 'paid') return back ? 4 : handoffProblems(hand, hasOf(dl)).length ? 4 : 5
+          if (dl.status === 'paid') return back ? 4 : handoffProblems(hand, hasOf(dl), dl.state || 'FL').length ? 4 : 5
           return 0
         })
         if (dl.status === 'unpaid' && back && tries < 4) {
@@ -368,7 +371,7 @@ export default function ExpressDeal({ token }: { token: string }) {
       <div style={boxStyle}>
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 26, margin: 0 }}>This link isn&apos;t working</h1>
         <p style={{ margin: 0, color: muted, lineHeight: 1.6 }}>
-          Check that you opened the full link from your BoatClosers Express email. If it still won&apos;t open, email support@boatclosers.com.
+          Check that you opened the full link from your My Boat Closing email. If it still won&apos;t open, email support@boatclosers.com.
         </p>
       </div>
     )
@@ -376,12 +379,17 @@ export default function ExpressDeal({ token }: { token: string }) {
   if (!deal || step === null || !basics) return <p style={{ color: muted }}>Loading your purchase...</p>
 
   const paid = deal.status === 'paid'
+  const stateCode: string = deal.state || 'FL'
+  const fl = stateCode === 'FL'
+  const st = stateInfo(stateCode)
+  const stateName = STATE_NAMES[stateCode] || 'Florida'
+  const titled = titledOptions(stateName, fl ? true : st?.titles ?? true)
   const has = hasOf(deal)
   const keys = (['boat', 'trailer', 'motor'] as ItemKey[]).filter((k) => has[k])
   const checks: Record<string, boolean> = deal.progress?.checks || {}
   const firstName = String(basics.buyerName || deal.buyer_name).split(' ')[0]
   const savedHand: Handoff = deal.progress?.handoff || {}
-  const problems = handoffProblems(savedHand, has)
+  const problems = handoffProblems(savedHand, has, stateCode)
   const ready = paid && problems.length === 0 && savedHand.lien !== 'open'
   const moveHref = `/?fromExpress=${token}`
   const sellerSent = Array.isArray(deal.progress?.sellerEmailed) && deal.progress.sellerEmailed.length > 0
@@ -429,11 +437,12 @@ export default function ExpressDeal({ token }: { token: string }) {
         kind: 'text',
         inputMode: 'decimal',
         title: 'How long is the boat, in feet?',
-        help: 'Florida requires it on the bill of sale.',
+        help: fl ? 'Florida requires it on the bill of sale.' : 'It goes on the bill of sale.',
         placeholder: '17',
         value: h.lengthFt || '',
         onChange: (v) => setHand({ lengthFt: v.replace(/[^0-9.' ]/g, '') }),
-        required: true,
+        required: fl,
+        skipLabel: fl ? undefined : 'Skip',
         error: 'Add the length to continue.',
       })
       qs.push({
@@ -443,7 +452,7 @@ export default function ExpressDeal({ token }: { token: string }) {
         options: PROPULSION.map((p) => [p, p] as [string, string]),
         value: h.propulsion,
         onChange: (v) => setHand({ propulsion: v }),
-        required: true,
+        required: fl,
       })
       qs.push({ id: 'hull', kind: 'choice', title: 'What is the hull made of?', options: HULLS.map((p) => [p, p] as [string, string]), value: h.hull, onChange: (v) => setHand({ hull: v }) })
       qs.push({ id: 'fuel', kind: 'choice', title: 'What fuel does it use?', options: FUELS.map((p) => [p, p] as [string, string]), value: h.fuel, onChange: (v) => setHand({ fuel: v }) })
@@ -454,13 +463,13 @@ export default function ExpressDeal({ token }: { token: string }) {
       title: has.boat ? 'How is the boat titled?' : 'How is it titled or registered?',
       help: 'Look at the seller’s paperwork or ask them.',
       why: 'It decides which papers you need and where the title goes. A documented boat transfers through the Coast Guard instead of the county.',
-      options: TITLED_OPTIONS.map((o) => [o.key, o.label, o.hint] as [string, string, string]),
+      options: titled.map((o) => [o.key, o.label, o.hint] as [string, string, string]),
       value: h.titledHow,
       onChange: (v) => setHand({ titledHow: v as any }),
       required: true,
     })
     if (h.titledHow === 'florida')
-      qs.push({ id: 'tnum', kind: 'text', title: 'What is the Florida title number?', help: 'On the front of the title. Optional.', value: h.titleNumber || '', onChange: (v) => setHand({ titleNumber: v }), skipLabel: 'Skip' })
+      qs.push({ id: 'tnum', kind: 'text', title: `What is the ${stateName} title number?`, help: 'On the front of the title. Optional.', value: h.titleNumber || '', onChange: (v) => setHand({ titleNumber: v }), skipLabel: 'Skip' })
     if (h.titledHow === 'documented')
       qs.push({ id: 'onum', kind: 'text', title: 'What is the Coast Guard official number?', help: 'On the Certificate of Documentation.', value: h.officialNumber || '', onChange: (v) => setHand({ officialNumber: v }), skipLabel: 'Skip' })
     qs.push({
@@ -473,7 +482,7 @@ export default function ExpressDeal({ token }: { token: string }) {
           [ID_FIELD[k][1], ids[k] || 'Add it at the boat', `id-${k}`] as [string, string, string],
         ]),
         ...(has.boat ? ([['Length', h.lengthFt ? `${h.lengthFt} ft` : '', 'len'], ['Power', h.propulsion || '', 'prop']] as [string, string, string][]) : []),
-        ['Titled', TITLED_OPTIONS.find((o) => o.key === h.titledHow)?.label || '', 'titled'],
+        ['Titled', titled.find((o) => o.key === h.titledHow)?.label || '', 'titled'],
       ],
       finishLabel: 'Continue to the people',
       onFinish: () => go(1),
@@ -485,7 +494,9 @@ export default function ExpressDeal({ token }: { token: string }) {
     const qs: Question[] = [
       { id: 'bname', kind: 'text', title: 'What is your full legal name?', help: 'Exactly as it will go on the title.', value: basics.buyerName, onChange: (v) => setBasic({ buyerName: v }), required: true },
       { id: 'baddr', kind: 'text', title: 'What is your address?', help: 'Street, city, state and ZIP.', value: h.buyerAddress || '', onChange: (v) => setHand({ buyerAddress: v }), required: true },
-      { id: 'county', kind: 'text', title: 'Which Florida county are you buying in?', placeholder: 'Palm Beach', value: h.county || '', onChange: (v) => setHand({ county: v }), required: true, chips: ['Palm Beach', 'Broward', 'Miami-Dade', 'Martin', 'Lee', 'Hillsborough'] },
+      fl
+        ? { id: 'county', kind: 'text', title: 'Which Florida county are you buying in?', placeholder: 'Palm Beach', value: h.county || '', onChange: (v) => setHand({ county: v }), required: true, chips: ['Palm Beach', 'Broward', 'Miami-Dade', 'Martin', 'Lee', 'Hillsborough'] }
+        : { id: 'county', kind: 'text', title: `Which ${stateName} county is the sale in?`, help: 'It goes on the bill of sale. Optional.', value: h.county || '', onChange: (v) => setHand({ county: v }), skipLabel: 'Skip' },
       { id: 'sname', kind: 'text', title: 'What is the seller’s full name?', help: 'As it appears on the title.', value: basics.sellerName, onChange: (v) => setBasic({ sellerName: v }), required: true },
       {
         id: 'two',
@@ -574,7 +585,7 @@ export default function ExpressDeal({ token }: { token: string }) {
         ['Paying by', h.paymentMethod || '', 'pay'],
         ['Included', h.inventory || 'Nothing extra', 'inv'],
       ],
-      note: 'Still haggling? Express is for a price you’ve already agreed. BoatClosers runs offers and counteroffers.',
+      note: 'Still haggling? My Boat Closing is for a price you’ve already agreed. BoatClosers runs offers and counteroffers.',
       finishLabel: 'Continue to the free checks',
       onFinish: () => go(3),
     },
@@ -592,14 +603,14 @@ export default function ExpressDeal({ token }: { token: string }) {
       ))}
       {has.boat && (
         <>
-          <Field id="len" label="Length in feet" hint="required on a Florida bill of sale" value={h.lengthFt || ''} onChange={(v) => setHand({ lengthFt: v.replace(/[^0-9.' ]/g, '') })} />
-          <Select id="prop" label="Propulsion" hint="required" value={h.propulsion || ''} options={PROPULSION} onChange={(v) => setHand({ propulsion: v })} />
+          <Field id="len" label="Length in feet" hint={fl ? 'required on a Florida bill of sale' : 'optional'} value={h.lengthFt || ''} onChange={(v) => setHand({ lengthFt: v.replace(/[^0-9.' ]/g, '') })} />
+          <Select id="prop" label="Propulsion" hint={fl ? 'required' : 'optional'} value={h.propulsion || ''} options={PROPULSION} onChange={(v) => setHand({ propulsion: v })} />
           <Select id="hull" label="Hull material" value={h.hull || ''} options={HULLS} onChange={(v) => setHand({ hull: v })} />
           <Select id="fuel" label="Fuel" value={h.fuel || ''} options={FUELS} onChange={(v) => setHand({ fuel: v })} />
         </>
       )}
-      <Choice label={has.boat ? 'How is the boat titled?' : 'How is it titled or registered?'} value={h.titledHow} options={TITLED_OPTIONS} onChange={(v) => setHand({ titledHow: v })} />
-      {h.titledHow === 'florida' && <Field id="tnum" label="Florida title number" hint="optional" value={h.titleNumber || ''} onChange={(v) => setHand({ titleNumber: v })} />}
+      <Choice label={has.boat ? 'How is the boat titled?' : 'How is it titled or registered?'} value={h.titledHow} options={titled} onChange={(v) => setHand({ titledHow: v })} />
+      {h.titledHow === 'florida' && <Field id="tnum" label={`${stateName} title number`} hint="optional" value={h.titleNumber || ''} onChange={(v) => setHand({ titleNumber: v })} />}
       {h.titledHow && h.titledHow !== 'documented' && has.boat && (
         <Field id="reg" label="Registration number" hint="optional, the FL 1234 AB on the bow" value={h.registrationNumber || ''} onChange={(v) => setHand({ registrationNumber: v })} />
       )}
@@ -612,7 +623,7 @@ export default function ExpressDeal({ token }: { token: string }) {
       <div style={eyebrow}>YOU</div>
       <Field id="bn" label="Your full legal name" value={basics.buyerName} onChange={(v) => setBasic({ buyerName: v })} />
       <Field id="ba" label="Your address" hint="street, city, state, ZIP" value={h.buyerAddress || ''} onChange={(v) => setHand({ buyerAddress: v })} />
-      <Field id="co" label="Florida county where you’re buying" value={h.county || ''} onChange={(v) => setHand({ county: v })} />
+      <Field id="co" label={fl ? 'Florida county where you’re buying' : `County of sale (optional)`} value={h.county || ''} onChange={(v) => setHand({ county: v })} />
       <div style={{ ...eyebrow, marginTop: 8 }}>THE SELLER</div>
       <Field id="sn" label="Seller’s full name, as on the title" value={basics.sellerName} onChange={(v) => setBasic({ sellerName: v })} />
       <label style={{ display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer', fontSize: 15 }}>
@@ -663,20 +674,32 @@ export default function ExpressDeal({ token }: { token: string }) {
   )
 
   // ---------- the $29.99 offer ----------
-  const docList = [
-    has.boat && 'Florida vessel bill of sale that doubles as your 30-day temporary registration',
-    has.trailer && 'Trailer bill of sale',
-    has.motor && !has.boat && 'Outboard motor bill of sale',
-    (has.boat || has.trailer) && 'Florida form HSMV 82050 filled in, with the seller’s notice of sale',
+  const docList = (
+    fl
+      ? [
+          has.boat && 'Florida vessel bill of sale that doubles as your 30-day temporary registration',
+          has.trailer && 'Trailer bill of sale',
+          has.motor && !has.boat && 'Outboard motor bill of sale',
+          (has.boat || has.trailer) && 'Florida form HSMV 82050 filled in, with the seller’s notice of sale',
+          has.boat && 'Your Florida title application (HSMV 82040 VS), pre-filled',
+          'What to bring to the tax collector, with a cost estimate',
+          'Email reminders before your 30-day title deadline, plus a calendar reminder',
+        ]
+      : [
+          st?.billOfSale ? `${stateName}’s official bill of sale (${st.billOfSale.name.replace(/^.*?(form [A-Z0-9-]+).*$/i, '$1')}), with every value printed for you to copy` : 'A bill of sale for the sale, with a notary section',
+          st?.billOfSale ? 'A terms sheet that adds the as-is terms and what’s included' : null,
+          has.trailer && 'Trailer bill of sale',
+          `Your ${stateName} guide: who titles boats, where to go, and what to bring`,
+        ]
+  ).concat([
+    'Title photo pre-check: catch the wrong name, an unreleased lien or a mismatched HIN before you pay',
     'A payment receipt for the seller to sign',
-    'A title signing guide for how your boat is titled',
-    has.boat && 'Your Florida title application (HSMV 82040 VS), pre-filled',
-    'What to bring to the tax collector, with a cost estimate',
-    'Email reminders before your 30-day title deadline, plus a calendar reminder',
-    'Handoff checklist and photos, saved as a dated record',
-    'The seller’s copy emailed to them, with their notice of sale',
-    'One closing packet with every paper, kept here for good',
-  ].filter(Boolean) as string[]
+    'A title signing guide for how the boat is titled',
+    has.boat ? 'Vessel history: builder, recalls and Coast Guard records from the HIN' : '',
+    'Walk-around record, handoff checklist and dated photos',
+    'The seller’s copy emailed to them',
+    'Your Boat File: every paper plus a starter boat log, in one download',
+  ]).filter(Boolean) as string[]
 
   const paywall = (
     <div style={{ ...boxStyle, border: `1.5px solid ${gold}`, background: 'rgba(201,150,46,0.07)' }}>
@@ -848,6 +871,15 @@ export default function ExpressDeal({ token }: { token: string }) {
           {sectionTitle('Check it before you pay')}
           <p style={{ margin: 0, color: muted, lineHeight: 1.6 }}>All free. Two minutes here can save you a wasted trip or a boat you can’t title.</p>
           {has.boat && <HinCard token={token} boat={deal.items.boat} onSaved={(items) => setDeal({ ...deal, items })} />}
+          <WalkAround token={token} has={has} walk={deal.progress?.walk} paid={paid} onSaved={(walk) => setDeal((d: any) => ({ ...d, progress: { ...(d.progress || {}), walk } }))} />
+          <TitleCheckCard
+            token={token}
+            paid={paid}
+            result={deal.progress?.titleCheck}
+            used={Number(deal.progress?.titleChecks || 0)}
+            onDone={(titleCheck, used) => setDeal((d: any) => ({ ...d, progress: { ...(d.progress || {}), titleCheck, titleChecks: used } }))}
+            onUnlock={() => go(4)}
+          />
           <div style={boxStyle}>
             <LienCheck sellerName={deal.seller_name} inExpress saved={checks} onToggle={toggle} />
             <Choice label="What did you find on the title?" value={h.lien} options={LIEN_OPTIONS} onChange={(v) => setHand({ lien: v })} />
@@ -875,7 +907,7 @@ export default function ExpressDeal({ token }: { token: string }) {
             label="LOOK IT OVER PROPERLY"
             name="My Boat Inspector"
             price={MBI_PRICE}
-            text="A guided walkthrough of the hull, engines, systems and a sea trial, with a written report to negotiate with or decide on a survey. Its own product, separate from Express. It doesn’t replace a professional marine survey."
+            text="A guided walkthrough of the hull, engines, systems and a sea trial, with a written report to negotiate with or decide on a survey. Its own product, separate from My Boat Closing. It doesn’t replace a professional marine survey."
             href="https://myboatinspector.com"
             cta="See My Boat Inspector"
             external
@@ -925,14 +957,27 @@ export default function ExpressDeal({ token }: { token: string }) {
             <>
               <div style={boxStyle}>
                 <div style={eyebrow}>SIGN THESE AT THE HANDOFF</div>
-                <DocRow token={token} doc="closing-packet" name="Everything in one file" note="Every paper in the order you’ll use them. Easiest to print." primary />
+                <DocRow token={token} doc="boat-file" name="Your Boat File" note="Every paper, your checks and a starter boat log, in one download." primary />
+                <DocRow token={token} doc="closing-packet" name="Just the papers to sign" note="In the order you’ll use them. Easiest to print." />
+                {!fl && st?.billOfSale && (
+                  <div style={{ border: `1px solid ${gold}`, borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ fontWeight: 700 }}>{stateName}’s official bill of sale</div>
+                    <div style={{ color: muted, fontSize: 14, lineHeight: 1.5 }}>
+                      {st.billOfSale.name}. Print it and sign it with the seller. Every value to copy onto it is in your {stateName} guide below.{st.billOfSale.note ? ` ${st.billOfSale.note}` : ''}
+                    </div>
+                    <a href={st.billOfSale.url} target="_blank" rel="noopener noreferrer" style={{ ...outlineButton, textAlign: 'center', textDecoration: 'none' }}>
+                      Open the official form
+                    </a>
+                  </div>
+                )}
                 {(
                   [
-                    has.boat && ['vessel-bill-of-sale', 'Vessel bill of sale', 'Both of you sign. Keep it aboard: it’s your temporary registration for 30 days.'],
+                    has.boat && ['vessel-bill-of-sale', !fl && st?.billOfSale ? 'Terms and inventory sheet' : 'Vessel bill of sale', fl ? 'Both of you sign. Keep it aboard: it’s your temporary registration for 30 days.' : st?.billOfSale ? 'Sign it with the official form. It adds the as-is terms and what’s included.' : 'Both of you sign. The seller signs in front of a notary.'],
                     has.motor && !has.boat && ['motor-bill-of-sale', 'Motor bill of sale', 'Both of you sign.'],
                     has.trailer && ['trailer-bill-of-sale', 'Trailer bill of sale', 'Both of you sign. The trailer is titled separately.'],
-                    has.boat && ['hsmv-82050-boat', 'Florida form HSMV 82050, boat', 'The state’s own bill of sale. Page 2 is the seller’s notice of sale.'],
-                    has.trailer && ['hsmv-82050-trailer', 'Florida form HSMV 82050, trailer', 'Page 2 is the seller’s notice of sale.'],
+                    fl && has.boat && ['hsmv-82050-boat', 'Florida form HSMV 82050, boat', 'The state’s own bill of sale. Page 2 is the seller’s notice of sale.'],
+                    fl && has.trailer && ['hsmv-82050-trailer', 'Florida form HSMV 82050, trailer', 'Page 2 is the seller’s notice of sale.'],
+                    !fl && ['state-guide', `Your ${stateName} guide`, 'Who titles boats, where to go, and the values to copy onto the official form.'],
                     ['payment-receipt', 'Payment receipt', 'The seller signs this when you pay.'],
                     ['closing-summary', 'Closing summary', 'One page with every number from the sale.'],
                   ].filter(Boolean) as [string, string, string][]
@@ -952,7 +997,7 @@ export default function ExpressDeal({ token }: { token: string }) {
                   </p>
                 )}
               </div>
-              <Checklist label="TITLE SIGNING GUIDE" title="Check each of these before you hand over payment" items={titleSigningGuide(savedHand)} checks={checks} onToggle={toggle} />
+              <Checklist label="TITLE SIGNING GUIDE" title="Check each of these before you hand over payment" items={titleSigningGuide(savedHand, stateCode)} checks={checks} onToggle={toggle} />
               {nextButton('Continue to the handoff and title', 5)}
             </>
           )}
@@ -984,7 +1029,22 @@ export default function ExpressDeal({ token }: { token: string }) {
                 <DocRow token={token} doc="handoff-record" name="Handoff record" note="Your ticks above and your dated photos, in one file. Keep it with the bill of sale." />
               </div>
               {ready && <SellerCopy token={token} deal={deal} saved={savedHand} onSaved={(progress) => setDeal({ ...deal, progress })} />}
-              {ready ? (
+              {ready && !fl && st ? (
+                <div style={{ ...boxStyle, border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.08)' }}>
+                  <div style={eyebrow}>TITLE AND REGISTER IN {stateName.toUpperCase()}</div>
+                  <h2 style={h2}>{st.titles ? `${stateName} titles boats` : `${stateName} registers boats but doesn’t title them`}</h2>
+                  {st.note && <p style={{ margin: 0, color: cream }}>{st.note}</p>}
+                  {st.notaryNote && <p style={{ margin: 0, color: gold }}>{st.notaryNote}</p>}
+                  <p style={{ margin: 0, color: muted, lineHeight: 1.6 }}>
+                    {st.titleOffice ? `${st.titleOffice.name} handles titles and registration.` : `Start with ${st.agency}; if another office handles titles, their site says so.`} Most states set a deadline after a sale and collect sales or use tax when you
+                    register, so check both early.
+                  </p>
+                  <a href={st.titleOffice?.url || st.url} target="_blank" rel="noopener noreferrer" style={{ ...outlineButton, textAlign: 'center', textDecoration: 'none' }}>
+                    {st.titleOffice ? `Go to ${st.titleOffice.name}` : `Go to ${st.agency}`}
+                  </a>
+                  <DocRow token={token} doc="state-guide" name={`Your ${stateName} guide`} note={`Checked ${STATES_CHECKED}, with links to the official sources.`} />
+                </div>
+              ) : ready ? (
                 <>
                   <div style={{ ...boxStyle, border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.08)' }}>
                     <div style={eyebrow}>YOUR DEADLINE</div>
@@ -1009,12 +1069,17 @@ export default function ExpressDeal({ token }: { token: string }) {
                   </button>
                 </div>
               )}
-              <Checklist label="NEW OWNER CHECKLIST" title="Get on the water the right way" items={forItems(NEW_OWNER, has)} checks={checks} onToggle={toggle} />
+              {ready && (
+                <div style={boxStyle}>
+                  <DocRow token={token} doc="boat-file" name="Your Boat File" note="Every paper, your checks, the vessel history and a starter boat log, in one download. Keep it for when you sell." primary />
+                </div>
+              )}
+              <Checklist label="NEW OWNER CHECKLIST" title="Get on the water the right way" items={forItems(newOwnerFor(stateCode), has)} checks={checks} onToggle={toggle} />
               <ProductCard
                 label="AFTER IT’S YOURS"
                 name="My Boat Logs"
                 price="$39.99/yr"
-                text="Keep this boat’s maintenance, receipts, documents and reminders in one place, and hand a full history to the next buyer when you sell. Free for 14 days."
+                text="Your Boat File starts the log. My Boat Logs keeps it going: maintenance, receipts, documents and reminders, and a full history to hand the next buyer when you sell. Free for 14 days."
                 href="https://myboatlogs.com"
                 cta="Start a 14-day free trial"
                 external

@@ -49,8 +49,8 @@ export default function Page() {
 
       <h2>How it works</h2>
       <ol>
-        <li>A user opens their own deal on BoatClosers or BoatClosers Express.</li>
-        <li>They select Text or Both and enter their own mobile number. On Express, the wording refers to texts about their purchase, like deadline reminders.</li>
+        <li>A user opens their own deal on BoatClosers or My Boat Closing.</li>
+        <li>They select Text or Both and enter their own mobile number. On My Boat Closing, the wording refers to texts about their purchase, like deadline reminders.</li>
         <li>Their choice is saved, and they then get texts about their own sale.</li>
       </ol>
       <p>

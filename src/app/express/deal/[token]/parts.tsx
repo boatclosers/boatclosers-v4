@@ -259,8 +259,8 @@ const FULL_REASONS = [
   { id: 'f-negotiate', label: 'We still need to agree on the price', why: 'Full BoatClosers runs offers and counteroffers in one place, with every round on record.' },
   { id: 'f-deposit', label: 'I’m putting down a deposit before the boat is mine', why: 'A deposit needs written terms for when you get it back. Full BoatClosers writes those terms and has a neutral third party hold the money.' },
   { id: 'f-survey', label: 'The sale should depend on a survey or sea trial', why: 'Full BoatClosers adds contingencies to a signed purchase agreement, so you can walk away or renegotiate if the survey finds problems.' },
-  { id: 'f-finance', label: 'I’m financing through a lender', why: 'Most lenders want a signed purchase agreement and a closing they can pay into. Express doesn’t create either.' },
-  { id: 'f-agreement', label: 'We both want a signed purchase agreement', why: 'Express is buyer-only. Full BoatClosers brings the seller in, and both of you sign the agreement and the closing papers.' },
+  { id: 'f-finance', label: 'I’m financing through a lender', why: 'Most lenders want a signed purchase agreement and a closing they can pay into. My Boat Closing doesn’t create either.' },
+  { id: 'f-agreement', label: 'We both want a signed purchase agreement', why: 'My Boat Closing is buyer-only. Full BoatClosers brings the seller in, and both of you sign the agreement and the closing papers.' },
 ]
 
 export function FullSuggest({ deal, checks, onToggle, moveHref = '/' }: { deal: any; checks: Record<string, boolean>; onToggle: (id: string, v: boolean) => void; moveHref?: string }) {
@@ -270,7 +270,7 @@ export function FullSuggest({ deal, checks, onToggle, moveHref = '/' }: { deal: 
   return (
     <div style={{ ...boxStyle, ...(hits.length || lienOpen ? { border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.08)' } : {}) }}>
       <div style={eyebrow}>IS EXPRESS RIGHT FOR THIS DEAL?</div>
-      <h2 style={h2}>Express is for a simple sale. Does yours need any of these?</h2>
+      <h2 style={h2}>My Boat Closing is for a simple sale. Does yours need any of these?</h2>
       <div>
         {FULL_REASONS.map((r, i) => (
           <label key={r.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '9px 0', borderTop: i ? `1px solid ${line}` : 'none', cursor: 'pointer' }}>
@@ -301,7 +301,7 @@ export function FullSuggest({ deal, checks, onToggle, moveHref = '/' }: { deal: 
           <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.6 }}>
             Full BoatClosers is $249, paid once both of you agree and sign. The seller joins the deal, and it handles negotiation, deposits, contingencies, and closing.
             {' '}Everything you entered here moves over with you.
-            {deal.status === 'paid' ? ' The $29.99 you paid here comes off the $249.' : ' If you’ve paid for Express, that $29.99 comes off the $249.'}
+            {deal.status === 'paid' ? ' The $29.99 you paid here comes off the $249.' : ' If you’ve paid for My Boat Closing, that $29.99 comes off the $249.'}
           </p>
           <a href={moveHref} style={{ ...goldButton, alignSelf: 'flex-start', textDecoration: 'none' }}>
             Move this purchase to BoatClosers
@@ -309,7 +309,7 @@ export function FullSuggest({ deal, checks, onToggle, moveHref = '/' }: { deal: 
         </div>
       )}
       {!hits.length && !lienOpen && !big && (
-        <p style={{ margin: 0, color: muted, fontSize: 13 }}>None of these? Express is the right tool. Keep going.</p>
+        <p style={{ margin: 0, color: muted, fontSize: 13 }}>None of these? My Boat Closing is the right tool. Keep going.</p>
       )}
     </div>
   )

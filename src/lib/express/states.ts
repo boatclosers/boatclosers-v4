@@ -7,6 +7,7 @@
 //   https://www.nasbla.org/about-nasbla/boating-contacts
 // The agency listed is the state's boating agency. In some states titles are
 // issued by another office (the DMV, a county office); the agency's site says so.
+// - Official bill of sale forms: each state agency's own site (links below).
 // Florida is fully built in (forms filled in), so it is handled separately.
 
 export const STATES_CHECKED = 'November 12, 2026'
@@ -20,6 +21,27 @@ export type StateInfo = {
   url: string
   // Where boats are titled or registered, when it's a different office than the boating agency.
   titleOffice?: { name: string; url: string }
+  // The state's own bill of sale form, when it has one. Where it doesn't, our
+  // bill of sale is the bill of sale.
+  billOfSale?: { name: string; url: string; notary?: boolean; note?: string }
+  notaryNote?: string
+}
+
+const BOS: Record<string, StateInfo['billOfSale']> = {
+  CA: { name: 'California DMV Bill of Sale, form REG 135', url: 'https://www.dmv.ca.gov/forms/reg/reg135.htm' },
+  CT: { name: 'Connecticut DMV Bill of Sale, form H-31', url: 'https://portal.ct.gov/-/media/dmv/20/29/h31pdf.pdf' },
+  GA: { name: 'Georgia Certified True Bill of Sale for Vessel (DNR LBRU)', url: 'https://gadnrle.org/sites/default/files/VESSEL%20BILL%20OF%20SALE%207-15-2022.pdf' },
+  MD: { name: 'Maryland DNR Bill of Sale for a Vessel, form B-118', url: 'https://dnr.maryland.gov/Documents/B118.pdf' },
+  MA: { name: 'Massachusetts Recreational Vessel/Vehicle Bill of Sale', url: 'https://www.mass.gov/doc/sample-bill-of-sale-for-boats/download' },
+  NC: { name: 'North Carolina Bill of Sale for a Vessel', url: 'https://ncwildlife.gov/bill-sale-form-6-2023pdf/open', notary: true, note: 'The seller’s signature must be notarized.' },
+  NY: { name: 'New York DMV Vehicle Bill of Sale, form MV-912', url: 'https://dmv.ny.gov/forms/mv912.pdf', note: 'New York DMV names this form for boats under its transferable registration rules.' },
+  OR: { name: 'Oregon Vessel Bill of Sale', url: 'https://www.oregon.gov/osmb/forms-library/Documents/Title%20Registration/BillOfSaleFillable.pdf' },
+  SC: { name: 'South Carolina Watercraft/Outboard Motor Application (bill of sale section)', url: 'https://dnr.sc.gov/boating/Titling_and_Registration/docs/WatercraftOutboardMotorApplication.pdf', note: 'South Carolina’s bill of sale is part of this application. Print it as two separate pages, not front and back.' },
+  TX: { name: 'Texas Vessel/Boat Application, form PWD 143 (seller section)', url: 'https://tpwd.texas.gov/publications/pwdforms/media/pwd_143_a0900_vessel_boat_application.pdf', note: 'Texas has no separate bill of sale form. The seller signs Section O of PWD 143; a signed bill of sale can replace the seller’s tax affidavit.' },
+  WA: { name: 'Washington Vehicle/Vessel Bill of Sale, form TD-420-065', url: 'https://dol.wa.gov/sites/default/files/2022-11/420065.pdf' },
+}
+const NOTARY: Record<string, string> = {
+  HI: 'Hawaii’s boating division requires a notarized bill of sale to transfer a vessel registration.',
 }
 
 export const STATES: StateInfo[] = [
@@ -74,6 +96,11 @@ export const STATES: StateInfo[] = [
   { code: 'WI', name: 'Wisconsin', titles: true, agency: 'Wisconsin DNR', url: 'http://dnr.wi.gov/topic/boat/' },
   { code: 'WY', name: 'Wyoming', titles: true, agency: 'Wyoming Game and Fish Department', url: 'https://wgfd.wyo.gov/fishing-boating/boating-watercraft' },
 ]
+
+for (const st of STATES) {
+  if (BOS[st.code]) st.billOfSale = BOS[st.code]
+  if (NOTARY[st.code]) st.notaryNote = NOTARY[st.code]
+}
 
 export const STATE_NAMES: Record<string, string> = Object.fromEntries([['FL', 'Florida'], ...STATES.map((s) => [s.code, s.name])])
 

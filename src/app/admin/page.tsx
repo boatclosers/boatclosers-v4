@@ -226,7 +226,7 @@ export default function AdminPage() {
           )}
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-          {([['full', 'BoatClosers · $249'], ['stats', 'Funnel & AI use'], ['express', `BoatClosers Express · $29.99 (${t.expressAll ?? 0})`], ['mbi', 'My Boat Inspector'], ['mbl', 'My Boat Logs']] as const).map(([k, l]) => (
+          {([['full', 'BoatClosers · $249'], ['stats', 'Funnel & AI use'], ['express', `My Boat Closing · $29.99 (${t.expressAll ?? 0})`], ['mbi', 'My Boat Inspector'], ['mbl', 'My Boat Logs']] as const).map(([k, l]) => (
             <button key={k} onClick={() => { setView(k); setOpen(null) }}
               style={{ padding: '10px 16px', fontSize: 13.5, fontWeight: 800, borderRadius: 8, cursor: 'pointer',
                 border: `2px solid ${view === k ? BRASS : MIST}`, background: view === k ? '#fff' : '#f8fafc', color: NAVY }}>
@@ -345,7 +345,7 @@ export default function AdminPage() {
   )
 }
 
-// ---------- BoatClosers Express purchases ----------
+// ---------- My Boat Closing purchases ----------
 
 function ExpressPanel({ data, exFilter, setExFilter, open, setOpen, runAction, actionBusy, actionMsg, q, setQ, Stat }: any) {
   const ex: any[] = data?.express || []

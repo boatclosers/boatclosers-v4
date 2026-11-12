@@ -48,7 +48,7 @@ export default function ExpressSignup() {
           lineHeight: 1.6,
         }}
       >
-        You are on the list. We will email you the day BoatClosers Express opens.
+        You are on the list. We will email you the day My Boat Closing opens.
       </div>
     )
   }
@@ -59,7 +59,7 @@ export default function ExpressSignup() {
         htmlFor="express-email"
         style={{ display: 'block', fontSize: 16, fontWeight: 700, marginBottom: 10 }}
       >
-        Get notified when BoatClosers Express opens
+        Get notified when My Boat Closing opens
       </label>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, maxWidth: 560 }}>
         <input

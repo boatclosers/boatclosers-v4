@@ -14,12 +14,12 @@ export async function GET(req: Request) {
   if (!/^[a-f0-9]{48}$/.test(stoken)) return NextResponse.json({ error: 'Link not valid.' }, { status: 404 })
   const { data: deal } = await supabaseAdmin
     .from('express_deals')
-    .select('buyer_name,seller_name,items,progress,status')
+    .select('buyer_name,seller_name,items,progress,status,state')
     .eq('progress->>sellerToken', stoken)
     .maybeSingle()
   if (!deal || deal.status !== 'paid') return NextResponse.json({ error: 'Link not valid.' }, { status: 404 })
   const h: Handoff = (deal.progress as any)?.handoff || {}
-  const docs = docsFor(deal.items as any, h)
+  const docs = docsFor(deal.items as any, h, (deal as any).state)
     .filter((k) => SELLER_DOCS.includes(k))
     .map((k) => ({ key: k, title: DOC_TITLES[k] }))
   const due = h.saleDate ? addDays(h.saleDate, 30) : null

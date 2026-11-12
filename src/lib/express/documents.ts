@@ -1,4 +1,4 @@
-// Server-only: BoatClosers Express PDF documents, built from the buyer's deal.
+// Server-only: My Boat Closing PDF documents, built from the buyer's deal.
 // Wording here is legal paperwork. Keep it reviewed by a licensed Florida
 // broker before changing it.
 
@@ -114,12 +114,12 @@ class Writer {
     const w = new Writer()
     w.pdf = await PDFDocument.create()
     w.pdf.setTitle(title)
-    w.pdf.setProducer('BoatClosers Express')
+    w.pdf.setProducer('My Boat Closing')
     w.font = await w.pdf.embedFont(StandardFonts.Helvetica)
     w.bold = await w.pdf.embedFont(StandardFonts.HelveticaBold)
     w.newPage()
-    w.page.drawText('BOATCLOSERS', { x: w.M, y: w.y, size: 10, font: w.bold, color: GOLD })
-    w.page.drawText('EXPRESS', { x: w.W - w.M - w.bold.widthOfTextAtSize('EXPRESS', 10), y: w.y, size: 10, font: w.bold, color: GOLD })
+    w.page.drawText('MY BOAT CLOSING', { x: w.M, y: w.y, size: 10, font: w.bold, color: GOLD })
+    w.page.drawText('FROM BOATCLOSERS', { x: w.W - w.M - w.bold.widthOfTextAtSize('FROM BOATCLOSERS', 10), y: w.y, size: 10, font: w.bold, color: GOLD })
     w.y -= 26
     w.page.drawText(safe(title), { x: w.M, y: w.y, size: 19, font: w.bold, color: NAVY })
     w.y -= 16
@@ -350,7 +350,15 @@ async function vesselBillOfSale(d: Deal, h: Handoff) {
   const boat = d.items.boat || {}
   const motor = d.items.motor
   const fl = isFl(d)
-  const w = await Writer.create('Vessel Bill of Sale', fl ? 'State of Florida. Temporary certificate of number under section 328.46, Florida Statutes.' : `Private sale, State of ${stateName(d)}`)
+  const official = fl ? null : stateInfo(d.state)?.billOfSale
+  const w = await Writer.create(
+    official ? 'Vessel Bill of Sale: Terms and Inventory' : 'Vessel Bill of Sale',
+    fl
+      ? 'State of Florida. Temporary certificate of number under section 328.46, Florida Statutes.'
+      : official
+        ? `Sign together with the state’s ${official.name}. This adds the as-is terms and what’s included.`
+        : `Private sale, State of ${stateName(d)}`
+  )
   parties(w, d, h)
   w.heading('Vessel')
   w.field('Year, make, and model', boat.description || '')
@@ -692,6 +700,35 @@ async function stateGuide(d: Deal, h: Handoff) {
   }
   if (h.titledHow === 'documented') w.bullet('Documented boat: ownership transfers through the U.S. Coast Guard (dco.uscg.mil/nvdc) using form CG-1340. Your state may still require registration.')
   if (d.items.trailer) w.bullet('The trailer is usually titled or registered with the state motor vehicle office, separately from the boat.')
+  if (st.notaryNote) w.bullet(st.notaryNote, '!')
+  if (st.billOfSale) {
+    const b = st.billOfSale
+    w.heading('The official bill of sale')
+    w.text(`${name} has its own form: ${b.name}. Print it and sign it with the seller, along with your My Boat Closing terms sheet.`)
+    w.text(b.url, { color: GREY, size: 9 })
+    if (b.note) w.bullet(b.note, '!')
+    w.heading('Copy these onto it')
+    const boat = d.items.boat || {}
+    const yr = (/\b(19|20)\d{2}\b/.exec(boat.description || '') || [''])[0]
+    w.field('Seller(s)', sellers(d, h))
+    w.field('Seller address', h.sellerAddress || '')
+    w.field('Buyer', d.buyer_name)
+    w.field('Buyer address', h.buyerAddress || '')
+    if (boat.description) {
+      w.field('Year', yr)
+      w.field('Make and model', (boat.description || '').replace(yr, '').replace(/\s+/g, ' ').trim())
+      w.field('Hull ID (HIN)', boat.hin || '')
+      if (h.lengthFt) w.field('Length', `${h.lengthFt} ft`)
+      if (h.hull) w.field('Hull material', h.hull)
+      if (h.propulsion) w.field('Propulsion', h.propulsion)
+      if (h.fuel) w.field('Fuel', h.fuel)
+      if (h.titleNumber || h.registrationNumber) w.field('Title / registration number', [h.titleNumber, h.registrationNumber].filter(Boolean).join(' / '))
+    }
+    if (d.items.motor) w.field('Motor', `${d.items.motor.description}${d.items.motor.serial ? `, serial ${d.items.motor.serial}` : ''}`)
+    if (d.items.trailer) w.field('Trailer', `${d.items.trailer.description}${d.items.trailer.vin ? `, VIN ${d.items.trailer.vin}` : ''}`)
+    w.field('Date of sale', longDate(h.saleDate))
+    w.field('Price', money(d.price_cents))
+  }
   w.bullet('Most states collect sales or use tax when you title or register, and set a deadline after the sale. Check both with the agency.')
   w.bullet('Ask the seller to report the sale to their state, so the boat is out of their name.')
   w.text(`Sources: NASBLA state boating contacts and Wisconsin DNR’s list of title states, checked ${STATES_CHECKED}. Rules change; the agency has the final word.`, { size: 8, color: GREY, gap: 8 })
@@ -779,8 +816,8 @@ async function closingPacket(d: Deal) {
   const h = d.progress?.handoff || {}
   const keys = PACKET_ORDER.filter((k) => docsFor(d.items, h, d.state, d.progress).includes(k))
   const out = await PDFDocument.create()
-  out.setTitle('BoatClosers Express Closing Packet')
-  out.setProducer('BoatClosers Express')
+  out.setTitle('My Boat Closing Closing Packet')
+  out.setProducer('My Boat Closing')
   for (const k of keys) {
     try {
       const bytes = k === 'hsmv-82040-vs' ? await buildHsmv82040vs(d, { flatten: true }) : await buildDocument(k, d)

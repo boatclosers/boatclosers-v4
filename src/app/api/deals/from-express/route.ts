@@ -5,7 +5,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-// Moving up from BoatClosers Express to full BoatClosers. Creates a full deal
+// Moving up from My Boat Closing to full BoatClosers. Creates a full deal
 // for the signed-in buyer with everything they entered in Express filled in.
 // The $29.99 they paid comes off the $249 at checkout (lib/expressCredit), by email.
 //   POST { token } with the BoatClosers sign-in token -> { dealId }

@@ -10,6 +10,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React, { useState, useRef, useEffect } from "react";
+import { stateInfo, STATES } from "@/lib/express/states";
 import { DOCUMENTS, fillDocument } from "../data/documents";
 import { FONT } from "../lib/theme";
 import { emo } from "./Icon";
@@ -510,6 +511,15 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
   // documentedActive / floridaActive computed after quiz so the quiz answers count.
   const documentedActive = docDetected || docOptIn || !!quiz.documented;
   const floridaActive = flDetected || flOptIn || !!quiz.florida;
+  // Outside Florida: the state where the boat is titled, and its own bill of
+  // sale form when it has one (official forms over home-made ones).
+  const _stCode = (() => {
+    const raw = String(vessel?.regState || "").trim();
+    if (/^[a-z]{2}$/i.test(raw)) return raw.toUpperCase();
+    const byName = STATES.find(x => x.name.toLowerCase() === raw.toLowerCase());
+    return byName ? byName.code : "";
+  })();
+  const otherState = !floridaActive && !documentedActive ? stateInfo(_stCode) : null;
   const [esignConsent, setEsignConsent] = useState({}); // per-doc consent before e-signing
   const toggleGroup = (g) => setOpenGroups(o => ({ ...o, [g]: !o[g] }));
   const [sendEmail, setSendEmail] = useState({});
@@ -1599,6 +1609,27 @@ export default function DocumentsStepV2({ data, setData, vessel, parties, terms,
         <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:C.slate, marginBottom:11, lineHeight:1.55 }}>
           This is the document that legally transfers the boat. Choose the version that fits your sale — you only need <b>one</b>. {documentedActive ? "Your vessel is Coast Guard documented, so the CG-1340 applies." : floridaActive ? "Florida\u2019s official 82050 is included." : ""}
         </div>
+        {otherState && (
+          <div style={{ background:"#fff", border:`1px solid ${C.brass}`, borderRadius:7, padding:"11px 13px", marginBottom:11, fontFamily:FONT.sans }}>
+            <div style={{ fontSize:12.5, fontWeight:800, color:C.navy, marginBottom:3 }}>
+              {otherState.billOfSale ? `${otherState.name} has its own bill of sale` : `${otherState.name} has no official bill of sale form`}
+            </div>
+            <div style={{ fontSize:11.5, color:C.slate, lineHeight:1.6, marginBottom: otherState.billOfSale ? 9 : 0 }}>
+              {otherState.billOfSale
+                ? <>Use the state&rsquo;s {otherState.billOfSale.name} as the bill of sale, and sign it with the BoatClosers version, which adds the as-is terms and inventory.{otherState.billOfSale.note ? ` ${otherState.billOfSale.note}` : ""}</>
+                : <>Use the BoatClosers Vessel Bill of Sale (Notarized). {otherState.titles ? `${otherState.name} titles boats, so the seller also signs the title over.` : `${otherState.name} doesn\u2019t title boats, so the notarized bill of sale and the seller\u2019s registration are the proof of ownership.`}</>}
+              {otherState.notaryNote ? <> <b>{otherState.notaryNote}</b></> : null}
+            </div>
+            {otherState.billOfSale && (
+              <a href={otherState.billOfSale.url} target="_blank" rel="noopener noreferrer" style={{ display:"inline-block", fontSize:12, fontWeight:700, color:C.navy, border:`1px solid ${C.navy}`, borderRadius:6, padding:"6px 12px", textDecoration:"none" }}>
+                Open the official {otherState.name} form
+              </a>
+            )}
+            <div style={{ fontSize:11, color:C.slate, marginTop:8 }}>
+              Titles and registration: <a href={otherState.titleOffice?.url || otherState.url} target="_blank" rel="noopener noreferrer" style={{ color:C.teal }}>{otherState.titleOffice?.name || otherState.agency}</a>
+            </div>
+          </div>
+        )}
         {/* Back here, next to the document it belongs to. It went to Closing for a
             day, and the box that carried it there has since been removed as
             clutter — leaving nobody able to choose a handover method at all. */}

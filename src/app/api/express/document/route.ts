@@ -5,6 +5,7 @@ import { handoffProblems, type Handoff } from '@/lib/express/content'
 // Always read live data: never let Next.js cache database or upstream fetches here.
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
+export const maxDuration = 60
 
 // GET /api/express/document?token=...&doc=vessel-bill-of-sale
 // Builds the PDF from the buyer's deal. Paid deals with complete sale details only.
@@ -19,18 +20,18 @@ export async function GET(req: Request) {
   if (!/^[a-f0-9]{48}$/.test(token) && !/^[a-f0-9]{48}$/.test(stoken)) return new Response('Link not valid.', { status: 404 })
   if (stoken && !SELLER_DOCS.includes(doc)) return new Response('Not available from this link.', { status: 403 })
 
-  const q = supabaseAdmin.from('express_deals').select('id,buyer_name,buyer_email,seller_name,items,price_cents,status,paid_at,progress')
+  const q = supabaseAdmin.from('express_deals').select('id,buyer_name,buyer_email,seller_name,items,price_cents,state,status,paid_at,progress')
   const { data: deal } = await (stoken ? q.eq('progress->>sellerToken', stoken) : q.eq('access_token', token)).maybeSingle()
   if (!deal) return new Response('Link not valid.', { status: 404 })
   if (deal.status !== 'paid') return new Response('Unlock the paperwork first.', { status: 402 })
 
   const h: Handoff = (deal.progress as any)?.handoff || {}
   const has = { boat: !!(deal.items as any)?.boat, trailer: !!(deal.items as any)?.trailer, motor: !!(deal.items as any)?.motor }
-  if (!docsFor(deal.items as any, h).includes(doc)) return new Response('Not a document for this purchase.', { status: 404 })
-  // The handoff record is just photos and ticks, so it doesn't wait on the sale details.
-  if (doc !== 'handoff-record') {
+  if (!docsFor(deal.items as any, h, (deal as any).state, deal.progress).includes(doc)) return new Response('Not a document for this purchase.', { status: 404 })
+  // Records and checks don't wait on the sale details.
+  if (!['handoff-record', 'walk-around', 'title-check', 'vessel-history', 'state-guide'].includes(doc)) {
     if (h.lien === 'open') return new Response('A lien on the title has to be released before the sale.', { status: 409 })
-    const problems = handoffProblems(h, has)
+    const problems = handoffProblems(h, has, (deal as any).state)
     if (problems.length) return new Response(problems[0], { status: 409 })
   }
 

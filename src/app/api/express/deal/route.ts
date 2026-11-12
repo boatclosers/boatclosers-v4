@@ -12,7 +12,7 @@ import crypto from 'crypto'
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-// BoatClosers Express deal access, by the private token in the buyer's link.
+// My Boat Closing deal access, by the private token in the buyer's link.
 //   GET  ?token=...                    -> the deal (confirms payment with Stripe if needed)
 //   POST { token, action: 'pay', bundle } -> a Stripe checkout URL for the $29.99 fee,
 //                                       or $79.99 with a My Boat Inspector code (bundle: true)
@@ -88,7 +88,7 @@ function docsReady(deal: any): { ok: boolean; reason?: string } {
   if (deal.status !== 'paid') return { ok: false, reason: 'Unlock the paperwork first.' }
   const h: Handoff = deal.progress?.handoff || {}
   if (h.lien === 'open') return { ok: false, reason: 'A lien on the title has to be released before the sale.' }
-  const p = handoffProblems(h, hasItems(deal))
+  const p = handoffProblems(h, hasItems(deal), deal.state)
   if (p.length) return { ok: false, reason: p[0] }
   return { ok: true }
 }
@@ -131,7 +131,7 @@ async function confirmPayment(deal: any) {
       if (flipped && flipped.length) {
         await sendEmail({
           to: deal.buyer_email,
-          subject: 'Your BoatClosers Express paperwork is unlocked',
+          subject: 'Your My Boat Closing paperwork is unlocked',
           html: emailLayout(`
             <p style="font-size:15px;color:#08152e;">Hi ${esc(String(deal.buyer_name).split(' ')[0])},</p>
             <p style="font-size:15px;color:#08152e;line-height:1.6;">Payment received. Your paperwork is unlocked: fill in the sale details once and your bill of sale, Florida forms, and title application are filled in for you.</p>${progress?.mbiCode ? `<p style="font-size:15px;color:#08152e;line-height:1.6;">Your My Boat Inspector code: <b style="font-family:monospace;font-size:17px;">${progress.mbiCode}</b><br/>Enter it when you start your walkthrough at <a href="https://myboatinspector.com">myboatinspector.com</a>.</p>` : ''}
@@ -192,6 +192,24 @@ export async function POST(req: Request) {
       .eq('id', deal.id)
     if (error) return NextResponse.json({ error: 'Could not save.' }, { status: 500 })
     return NextResponse.json({ items })
+  }
+
+  if (body?.action === 'walk') {
+    // The quick walk-around: { items: { [id]: { s: 'ok'|'flag', note } }, hours }. Free, any time.
+    const inc = body?.walk && typeof body.walk === 'object' ? body.walk : {}
+    const cur = deal.progress?.walk || { items: {} }
+    const items: Record<string, { s?: 'ok' | 'flag'; note?: string }> = { ...(cur.items || {}) }
+    for (const [k, v] of Object.entries(inc.items || {})) {
+      if (!/^w-[a-z-]{1,30}$/.test(k) || !v || typeof v !== 'object') continue
+      const s = (v as any).s === 'ok' || (v as any).s === 'flag' ? (v as any).s : undefined
+      const note = typeof (v as any).note === 'string' ? (v as any).note.replace(/\s+/g, ' ').trim().slice(0, 300) : undefined
+      items[k] = { ...(items[k] || {}), ...(s !== undefined || (v as any).s === null ? { s } : {}), ...(note !== undefined ? { note } : {}) }
+    }
+    const hours = typeof inc.hours === 'string' ? inc.hours.replace(/[^0-9.,]/g, '').slice(0, 10) : cur.hours
+    const progress = { ...(deal.progress || {}), walk: { items, hours } }
+    const { error } = await supabaseAdmin.from('express_deals').update({ progress, updated_at: new Date().toISOString() }).eq('id', deal.id)
+    if (error) return NextResponse.json({ error: 'Could not save.' }, { status: 500 })
+    return NextResponse.json({ progress })
   }
 
   if (body?.action === 'checks') {
@@ -271,7 +289,7 @@ export async function POST(req: Request) {
           <p style="font-size:15px;color:#08152e;line-height:1.6;">${esc(deal.buyer_name)} is interested in your <b>${esc(boat)}</b> and would like to ask a few questions before coming to see it:</p>
           <ol style="font-size:15px;color:#08152e;line-height:1.7;padding-left:22px;">${qs.map((q) => `<li>${esc(q.label)}</li>`).join('')}</ol>
           <p style="font-size:15px;color:#08152e;line-height:1.6;"><b>Just reply to this email</b> and your answers go straight to ${esc(buyerFirst)}.</p>
-          <p style="font-size:13px;color:#64748b;line-height:1.6;">${esc(buyerFirst)} is using BoatClosers Express to buy carefully and do the paperwork right. You don’t need an account.</p>
+          <p style="font-size:13px;color:#64748b;line-height:1.6;">${esc(buyerFirst)} is using My Boat Closing to buy carefully and do the paperwork right. You don’t need an account.</p>
         `),
       })
     if (r.optedOut) return NextResponse.json({ error: 'The seller has opted out of BoatClosers messages. Contact them directly.' }, { status: 409 })
@@ -341,7 +359,7 @@ export async function POST(req: Request) {
     const sent: string[] = Array.isArray(deal.progress?.sellerEmailed) ? deal.progress.sellerEmailed : []
     if (sent.length >= 3) return NextResponse.json({ error: 'Already sent 3 times. Forward your own copy instead.' }, { status: 429 })
 
-    const keys = docsFor(deal.items).filter((k) => k.endsWith('bill-of-sale') || k === 'payment-receipt') as DocKey[]
+    const keys = docsFor(deal.items, h, deal.state).filter((k) => k.endsWith('bill-of-sale') || k === 'payment-receipt') as DocKey[]
     const attachments = await Promise.all(
       keys.map(async (k) => ({
         filename: `${k}.pdf`,
@@ -350,7 +368,7 @@ export async function POST(req: Request) {
     )
     // The seller's notice of sale on the official state form, already filled in.
     for (const item of ['boat', 'trailer'] as const) {
-      if (!deal.items?.[item]) continue
+      if (!deal.items?.[item] || (deal.state && deal.state !== 'FL')) continue
       try {
         const bytes = await buildHsmv82050(deal, item, ['notice'])
         attachments.push({ filename: `notice-of-sale-hsmv-82050-${item}.pdf`, content: Buffer.from(bytes).toString('base64') })
@@ -398,7 +416,7 @@ export async function POST(req: Request) {
   params.append('mode', 'payment')
   params.append('customer_email', deal.buyer_email)
   params.append('line_items[0][price_data][currency]', 'usd')
-  params.append('line_items[0][price_data][product_data][name]', 'BoatClosers Express buyer toolkit')
+  params.append('line_items[0][price_data][product_data][name]', 'My Boat Closing buyer toolkit')
   params.append('line_items[0][price_data][product_data][description]', names.slice(0, 300) || 'Private boat purchase')
   params.append('line_items[0][price_data][unit_amount]', String(FEE_CENTS))
   params.append('line_items[0][quantity]', '1')

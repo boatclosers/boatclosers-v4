@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ALL_STATE_CODES, STATE_NAMES } from '@/lib/express/states'
 
 const navy = '#0f1b2d'
 const card = '#18283f'
@@ -111,6 +112,7 @@ export default function ExpressStart() {
   const [desc, setDesc] = useState<Record<ItemKey, string>>({ boat: '', trailer: '', motor: '' })
   const [ids, setIds] = useState<Record<ItemKey, string>>({ boat: '', trailer: '', motor: '' })
   const [price, setPrice] = useState('')
+  const [stateCode, setStateCode] = useState('FL')
   const [sellerName, setSellerName] = useState('')
   const [buyerName, setBuyerName] = useState('')
   const [buyerEmail, setBuyerEmail] = useState('')
@@ -145,7 +147,7 @@ export default function ExpressStart() {
       const start = await fetch('/api/express/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, price, sellerName, buyerName, buyerEmail, website }),
+        body: JSON.stringify({ items, price, sellerName, buyerName, buyerEmail, website, state: stateCode }),
       })
       const s = await start.json()
       if (!start.ok || !s.token) throw new Error(s.error || 'Could not start your deal.')
@@ -232,6 +234,19 @@ export default function ExpressStart() {
         </div>
       ))}
 
+      <label htmlFor="st" style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 15, fontWeight: 600 }}>
+        State where you’re buying
+        <select id="st" value={stateCode} onChange={(e) => setStateCode(e.target.value)} style={{ ...inputStyle, appearance: 'auto' as any }}>
+          {ALL_STATE_CODES.map((c) => (
+            <option key={c} value={c}>
+              {STATE_NAMES[c]}
+            </option>
+          ))}
+        </select>
+        <span style={{ fontSize: 13, fontWeight: 400, color: muted }}>
+          {stateCode === 'FL' ? 'Florida forms are filled in for you.' : `You’ll get ${STATE_NAMES[stateCode]}’s official bill of sale where it has one, plus a guide to titling there.`}
+        </span>
+      </label>
       <Field
         id="price"
         label="Total agreed price"
@@ -293,7 +308,6 @@ export default function ExpressStart() {
         <div style={{ fontSize: 14, lineHeight: 1.6, color: muted }}>
           Your HIN check, lien check, and seller questions for this sale ({summary}) are free. When
           you&apos;re ready for the paperwork, unlock it for $29.99, one price no matter what&apos;s included.
-          Florida purchases only for now.
         </div>
       </div>
 
