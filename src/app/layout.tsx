@@ -73,6 +73,10 @@ export default function RootLayout({
         {/* Landing-page fonts, loaded for every screen so the app matches it. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        {/* Before paint: if there's a saved session or link parameters, show the
+            loading screen instead of flashing the homepage (see BoatClosersApp). */}
+        <script dangerouslySetInnerHTML={{ __html: "try{if(location.pathname==='/'&&(localStorage.getItem('bc_session')||location.search.length>1)){document.documentElement.classList.add('bc-boot')}}catch(e){}" }} />
+        <style dangerouslySetInnerHTML={{ __html: ".bc-boot-overlay{display:none}html.bc-boot .bc-boot-overlay{display:flex}html.bc-boot .bc-boot-landing{visibility:hidden}" }} />
         <link id="bc-landing-fonts" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600;700&display=swap" />
       </head>
       <body>

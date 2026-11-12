@@ -102,6 +102,16 @@ export const FAQ_GROUPS: FaqGroup[] = [
         guide: { slug: 'boat-survey-came-back-bad', title: 'What to Do When a Boat Survey Comes Back Bad' },
       },
       {
+        id: 'which-states',
+        q: 'Does BoatClosers work outside Florida?',
+        a: 'BoatClosers is built for Florida deals and Coast Guard documented boats today, and more states are coming. If you are buying or selling somewhere else, add your email and state on the homepage and we will let you know when your state is ready.',
+      },
+      {
+        id: 'what-249-covers',
+        q: 'What does the $249 cover?',
+        a: 'The whole transaction, from the first offer to the signed closing: the deal room, offers and counters, contingencies, due diligence and closing checklists, and every document your deal needs, filled in and signed electronically. It is the same $249 whatever the boat costs. If you use Escrow.com to hold the money, its own fee is separate and paid to Escrow.com.',
+      },
+      {
         id: 'who-pays',
         q: 'Who pays the $249 fee?',
         a: 'Whoever starts the deal pays the flat fee and controls the vessel details and terms. The other party joins free to review, add their information, and sign.',

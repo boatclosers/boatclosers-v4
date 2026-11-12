@@ -4,22 +4,31 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'BoatClosers Express: Buy a Boat From a Private Seller the Right Way — $29.99 (Florida)',
   description:
-    'Everything you need to buy a boat, trailer, or motor from a private seller in Florida — a free HIN and lien check, a guided inspection, every state form filled in, and your title application pre-filled, for a flat $29.99. The seller never signs up.',
+    'Everything you need to buy a boat, trailer, or motor from a private seller in Florida — a free HIN and lien check, a guided inspection, every state form filled in, and your title application pre-filled, for a flat $29.99. The seller signs the papers but never needs an account.',
   alternates: {
     canonical: 'https://www.boatclosers.com/express',
   },
   openGraph: {
     type: 'website',
     url: 'https://www.boatclosers.com/express',
-    title: 'BoatClosers Express',
+    title: 'BoatClosers Express — $29.99',
     description:
-      'Everything you need to buy a boat from a private seller in Florida — inspection, paperwork, and title, for $29.99. The seller never has to sign up.',
+      'Everything you need to buy a boat from a private seller in Florida — inspection, paperwork, and title, for $29.99. The seller signs the papers but never needs an account.',
+    images: [{ url: '/og-express.png', width: 1200, height: 630, alt: 'BoatClosers Express — $29.99' }],
+  },
+  // Its own X/Twitter card, so shares don't inherit the homepage's $249 text.
+  twitter: {
+    card: 'summary_large_image',
+    title: 'BoatClosers Express — $29.99',
+    description:
+      'Buy a boat from a private seller in Florida: inspection, paperwork and title for $29.99. The seller signs the papers but never needs an account.',
+    images: ['/og-express.png'],
   },
 }
 
 const steps = [
   { title: 'Before you pay', price: 'Free', text: 'Free HIN check, a lien check, the right questions to ask, and how to pay safely — so you don’t waste a trip or get surprised.' },
-  { title: 'Inspect it', price: '$29.99', text: 'A guided phone walkthrough of the hull, engine, systems, trailer, and sea trial — with a condition report you can use to renegotiate.' },
+  { title: 'Inspect it', price: '$29.99', text: 'A guided phone walkthrough of the hull, engine, systems, trailer, and sea trial — with a condition report you can use to renegotiate. Not a replacement for a marine survey.' },
   { title: 'At the handoff', price: 'Included', text: 'Your Florida bill of sale and form HSMV 82050 filled in, plus a title-signing guide so nothing gets rejected at the counter.' },
   { title: "After it's yours", price: 'Included', text: 'A pre-filled Florida title application, exactly what to bring to the tax collector, and a reminder before your 30-day deadline.' },
 ]
@@ -32,7 +41,8 @@ const tips = [
 ]
 
 const faqs = [
-  { q: 'Does the seller have to sign up?', a: 'No. You handle everything. The seller just signs the papers at the handoff.' },
+  { q: 'Does the seller have to sign up?', a: 'No account needed. The seller signs the bill of sale and title at the handoff, and you handle everything else.' },
+  { q: 'Does the inspection replace a marine survey?', a: 'No. The guided inspection is a structured walkthrough you do yourself with your phone, to catch problems and give you facts to negotiate with. It is not a professional marine survey, and lenders and insurers may still require one. On a bigger or older boat, or if anything looks off, hire a surveyor.' },
   { q: 'What does it cost?', a: 'Checking is free — the HIN check, lien check, and seller questions. The guided inspection, condition report, and all the paperwork are $29.99, one price for a boat, a trailer, a motor, or all three.' },
   { q: 'Is this only for Florida?', a: 'For now, yes. Florida titling rules are built in, so your paperwork matches what the tax collector expects.' },
   { q: 'What if my deal needs more?', a: 'Express is for a simple sale: price agreed, nothing held in escrow, clear title. If you need to negotiate, hold a deposit, make the sale depend on a survey, finance it, or sign a purchase agreement, full BoatClosers ($249) handles all of it — and your $29.99 comes off the $249.' },
@@ -89,10 +99,10 @@ export default function Page() {
             Everything you need to buy a boat from a private seller — <span style={{ color: 'var(--brass-lt)' }}>inspection to title.</span>
           </h1>
           <p className="sans" style={{ fontSize: 16, color: 'rgba(255,255,255,0.76)', lineHeight: 1.75, marginTop: 16, maxWidth: 500, marginLeft: 'auto', marginRight: 'auto' }}>
-            You and the seller agreed on the price — Express handles the rest. Check the boat free, then get it inspected, signed, and titled right in Florida for a flat $29.99. No broker, no hassle, and the seller never signs up.
+            You and the seller agreed on the price — Express handles the rest. Check the boat free, then get it inspected, signed, and titled right in Florida for a flat $29.99. No broker, no hassle, and the seller signs the papers but never needs an account.
           </p>
           <div className="sans" style={{ display: 'inline-block', marginTop: 20, color: 'var(--brass-lt)', fontSize: 12, border: '0.5px solid rgba(184,134,58,0.45)', borderRadius: 20, padding: '6px 16px', letterSpacing: 0.5 }}>
-            Free to check · $29.99 to close · no seller sign-up
+            Free to check · $29.99 to close · no seller account
           </div>
           <div style={{ marginTop: 24 }}>
             <a href="/express/start" className="btn">Start free</a>

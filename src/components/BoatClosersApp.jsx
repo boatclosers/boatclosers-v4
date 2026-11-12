@@ -1,7 +1,9 @@
 'use client'
 import DocumentsStepV2 from "./DocumentsStepV2";
 import ContingencyPicker from "./ContingencyPicker";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+// useLayoutEffect on the client (runs before paint), a no-op on the server.
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 import { DOCUMENTS, fillDocument } from "../data/documents";
 import VesselLookup from "./VesselLookup";
 import DocFinder from "./DocFinder";
@@ -5699,9 +5701,10 @@ function ProductPreview({ F, X, isMobile, onStart }) {
   // moves while someone is reading.
   const SLIDE_MS = 7000;
   const boxRef = useRef(null);
-  const [auto, setAuto] = useState(() => {
-    try { return !window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return true; }
-  });
+  const [auto, setAuto] = useState(true);
+  useEffect(() => {
+    try { if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setAuto(false); } catch (e) {}
+  }, []);
   const [onScreen, setOnScreen] = useState(false);
   const [hover, setHover] = useState(false);
   useEffect(() => {
@@ -5989,15 +5992,62 @@ function ProductPreview({ F, X, isMobile, onStart }) {
   );
 }
 
+// ── "Florida today, more states coming" with a state-interest signup ─────────
+const US_STATES = [["AL","Alabama"],["AK","Alaska"],["AZ","Arizona"],["AR","Arkansas"],["CA","California"],["CO","Colorado"],["CT","Connecticut"],["DE","Delaware"],["DC","District of Columbia"],["GA","Georgia"],["HI","Hawaii"],["ID","Idaho"],["IL","Illinois"],["IN","Indiana"],["IA","Iowa"],["KS","Kansas"],["KY","Kentucky"],["LA","Louisiana"],["ME","Maine"],["MD","Maryland"],["MA","Massachusetts"],["MI","Michigan"],["MN","Minnesota"],["MS","Mississippi"],["MO","Missouri"],["MT","Montana"],["NE","Nebraska"],["NV","Nevada"],["NH","New Hampshire"],["NJ","New Jersey"],["NM","New Mexico"],["NY","New York"],["NC","North Carolina"],["ND","North Dakota"],["OH","Ohio"],["OK","Oklahoma"],["OR","Oregon"],["PA","Pennsylvania"],["RI","Rhode Island"],["SC","South Carolina"],["SD","South Dakota"],["TN","Tennessee"],["TX","Texas"],["UT","Utah"],["VT","Vermont"],["VA","Virginia"],["WA","Washington"],["WV","West Virginia"],["WI","Wisconsin"],["WY","Wyoming"],["PR","Puerto Rico"],["VI","U.S. Virgin Islands"]];
+function StatesBand({ F, X, isMobile }) {
+  const [email, setEmail] = useState("");
+  const [st, setSt] = useState("");
+  const [trap, setTrap] = useState("");
+  const [state, setState] = useState({ busy:false, ok:false, err:"" });
+  const submit = async (e) => {
+    e.preventDefault();
+    setState({ busy:true, ok:false, err:"" });
+    try {
+      const r = await fetch("/api/state-interest", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ email, state: st, website: trap }) });
+      const j = await r.json().catch(()=>({}));
+      setState(r.ok ? { busy:false, ok:true, err:"" } : { busy:false, ok:false, err: j.error || "Could not save." });
+    } catch { setState({ busy:false, ok:false, err:"Network error. Please try again." }); }
+  };
+  const field = { fontFamily:F.sans, fontSize:14, padding:"11px 12px", border:`1px solid ${X.mist}`, borderRadius:6, background:"#fff", color:C.navy, minWidth:0 };
+  return (
+    <div style={{ background:X.sandWarm, borderBottom:`0.5px solid ${X.mist}`, padding:"2.75rem 1.25rem" }}>
+      <div style={{ maxWidth:640, margin:"0 auto", textAlign:"center" }}>
+        <div style={{ fontFamily:F.sans, fontSize:11, letterSpacing:3, color:C.brass, textTransform:"uppercase", fontWeight:600 }}>Where we work</div>
+        <h2 style={{ fontFamily:F.serif, fontWeight:500, fontSize:23, color:C.navy, margin:"10px 0 8px" }}>Florida today, more states coming</h2>
+        <p style={{ fontFamily:F.sans, fontSize:14, color:X.slate, lineHeight:1.7, margin:"0 auto 18px", maxWidth:540 }}>
+          The paperwork is built for Florida deals and Coast Guard documented boats. Buying or selling somewhere else? Tell us where, and we&rsquo;ll let you know when your state is ready.
+        </p>
+        {state.ok ? (
+          <div style={{ fontFamily:F.sans, fontSize:14, color:"#2e7d4f", fontWeight:600 }}>Thanks — we&rsquo;ll email you when your state is ready.</div>
+        ) : (
+          <form onSubmit={submit} style={{ display:"flex", gap:8, flexWrap:"wrap", justifyContent:"center" }}>
+            <input type="text" value={trap} onChange={e=>setTrap(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position:"absolute", left:-9999, width:1, height:1, opacity:0 }} />
+            <input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="Your email" aria-label="Your email" style={{ ...field, flex: isMobile ? "1 1 100%" : "1 1 220px" }} />
+            <select required value={st} onChange={e=>setSt(e.target.value)} aria-label="Your state" style={{ ...field, flex: isMobile ? "1 1 100%" : "0 1 190px" }}>
+              <option value="">Your state…</option>
+              {US_STATES.map(([c,n])=> <option key={c} value={c}>{n}</option>)}
+            </select>
+            <button type="submit" disabled={state.busy} style={{ fontFamily:F.sans, fontSize:14, fontWeight:600, background:C.navy, color:"#fff", border:"none", borderRadius:4, padding:"11px 20px", cursor:"pointer", flex: isMobile ? "1 1 100%" : "0 0 auto" }}>{state.busy ? "Saving…" : "Notify me"}</button>
+          </form>
+        )}
+        {state.err && <div style={{ fontFamily:F.sans, fontSize:12.5, color:"#b3261e", marginTop:8 }}>{state.err}</div>}
+      </div>
+    </div>
+  );
+}
+
 function Landing({ onStart, onLegal }) {
   const [showDocFinder, setShowDocFinder] = useState(false);
   const groupOrder = [...new Set(DOCUMENTS.map(d=>d.group))];
   const DOC_COUNT = DOCUMENTS.length;
   const CAT_COUNT = groupOrder.length;
 
-  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 760 : false);
-  useEffect(() => {
+  // Start as desktop on both server and client so the first render matches the
+  // server HTML, then switch to the phone layout before the first paint.
+  const [isMobile, setIsMobile] = useState(false);
+  useIsoLayoutEffect(() => {
     const onR = () => setIsMobile(window.innerWidth < 760);
+    onR();
     window.addEventListener("resize", onR);
     return () => window.removeEventListener("resize", onR);
   }, []);
@@ -6128,6 +6178,7 @@ function Landing({ onStart, onLegal }) {
           {eyebrow("Built by someone who's closed these deals")}
           <h2 style={{ ...h2s, fontSize:24, color:C.navy, margin:"14px 0" }}>Not a template site — a working broker's process, put in your hands</h2>
           <p style={{ ...lead, maxWidth:620, margin:"0 auto 24px" }}>BoatClosers was built by a licensed Florida yacht broker and captain — from how real vessel transactions actually close, including the complicated ones. The documents follow recognized maritime and state-transfer standards, and the platform flags anything that needs a notary or an attorney. You get a professional's process; you stay in control of your own deal.</p>
+          <p style={{ ...lead, maxWidth:620, margin:"-8px auto 24px", fontSize:14, color:C.navy }}><b>What &ldquo;not a brokerage&rdquo; means:</b> BoatClosers isn&rsquo;t anyone&rsquo;s broker in your deal. You and the other party run it yourselves with our tools, and nobody takes a commission.</p>
           <div style={{ display:"flex", justifyContent:"center", flexWrap:"wrap", gap:"10px 12px" }}>
             {["Licensed FL yacht broker & captain","Maritime & state-transfer standards","We never hold or touch your money"].map(t=>(
               <div key={t} style={{ fontFamily:F.sans, fontSize:12, color:C.navy, background:X.paper, border:`0.5px solid ${X.mist}`, borderRadius:20, padding:"8px 16px" }}>{t}</div>
@@ -6240,17 +6291,22 @@ function Landing({ onStart, onLegal }) {
           <div style={{ background:"rgba(255,255,255,0.04)", border:`1.5px solid ${C.brass}`, borderRadius:12, padding:"2.25rem" }}>
             <div style={{ display:"inline-flex", alignItems:"center", gap:10, fontFamily:F.sans, fontSize:11, letterSpacing:3, color:X.brassLt, textTransform:"uppercase", fontWeight:500 }}>Per transaction</div>
             <div style={{ fontFamily:F.sans, fontSize:56, fontWeight:600, color:"#fff", lineHeight:1, marginTop:12 }}>$249</div>
-            <div style={{ fontFamily:F.sans, fontSize:12, color:"rgba(255,255,255,0.45)", marginBottom:22 }}>Flat fee · one vessel · one deal</div>
+            <div style={{ fontFamily:F.sans, fontSize:12, color:"rgba(255,255,255,0.45)", marginBottom:10 }}>Flat fee · one vessel · one deal</div>
+            <div style={{ fontFamily:F.sans, fontSize:13, color:"rgba(255,255,255,0.82)", lineHeight:1.6, marginBottom:20 }}>Covers the whole transaction, from the first offer to the signed closing — not just the paperwork.</div>
             <div style={{ textAlign:"left", fontFamily:F.sans, fontSize:13, lineHeight:2.15, color:"rgba(255,255,255,0.78)" }}>
               {[`All ${DOC_COUNT} documents, ${CAT_COUNT} categories`,"See only what your deal needs","Electronic signatures for both parties","Full negotiation, offers & contingencies","Five escrow options","Due-diligence & closing checklists","Financing & lender paperwork","One flat fee, no subscription, ever"].map(f=>(
                 <div key={f} style={{ display:"flex", gap:9, alignItems:"baseline" }}><span style={{ color:C.brass }}>✓</span><span>{f}</span></div>
               ))}
             </div>
             <button style={{ ...brassBtn, display:"block", width:"100%", marginTop:22, padding:13 }} onClick={onStart}>Start Free — Pay When Ready</button>
-            <div style={{ fontFamily:F.sans, fontSize:11, color:"rgba(255,255,255,0.3)", marginTop:12 }}>Same price whether the boat is $5,000 or $500,000</div>
+            <div style={{ fontFamily:F.sans, fontSize:12, color:"rgba(255,255,255,0.55)", marginTop:14, lineHeight:1.6 }}>Same $249 whether the boat is $5,000 or $500,000. Services that charge a percentage cost more the bigger the boat; this doesn&rsquo;t.</div>
+            <div style={{ fontFamily:F.sans, fontSize:11, color:"rgba(255,255,255,0.35)", marginTop:8, lineHeight:1.6 }}>If you use Escrow.com, its own fee is separate and paid to Escrow.com.</div>
           </div>
         </div>
       </div>
+
+      {/* Where we work */}
+      <StatesBand F={F} X={X} isMobile={isMobile} />
 
       {/* FAQ */}
       <div style={{ maxWidth:720, margin:"0 auto", padding:"3.75rem 1.25rem" }}>
@@ -6490,6 +6546,9 @@ export default function BoatClosers() {
   // After a few seconds of "Loading…", offer a way out rather than leaving
   // someone staring at a screen with no controls on it.
   const [bootStuck, setBootStuck] = useState(false);
+  useEffect(() => {
+    if (!booting) { try { document.documentElement.classList.remove("bc-boot"); } catch (e) {} }
+  }, [booting]);
   useEffect(() => {
     if (!booting) { setBootStuck(false); return; }
     const t = setTimeout(() => setBootStuck(true), 6000);
@@ -7200,9 +7259,18 @@ export default function BoatClosers() {
     setScreen("landing");
   };
 
+  // While the session check runs, render the real homepage underneath the
+  // loading screen. The server sends this HTML, so Google and link previews
+  // read the full homepage. A tiny script in layout.tsx adds "bc-boot" to
+  // <html> before paint when a session or link parameters exist, which shows
+  // the loading overlay and hides the homepage, so signed-in users never see
+  // it flash. Visitors with nothing to restore just see the homepage.
+  const landingEl = <Landing onStart={(r)=>{ if(r==="buyer"||r==="seller") setAuthRole(r); setScreen("auth"); }} onLegal={(p)=>setScreen(p)}/>;
   if (booting) {
     return (
-      <div style={{ minHeight:"100vh", background:C.navy, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <>
+        <div className="bc-boot-landing">{landingEl}<LegalFooter C={C} authedFetch={authedFetch} signedIn={false} /></div>
+        <div className="bc-boot-overlay" style={{ position:"fixed", inset:0, zIndex:1000, minHeight:"100vh", background:C.navy, alignItems:"center", justifyContent:"center" }}>
         <div style={{ textAlign:"center" }}>
           <div style={{ ...S.logo, fontSize:22 }}>BOATCLOSERS</div>
           <div style={{ ...S.logoSub, color:"rgba(255,255,255,0.35)" }}>Loading…</div>
@@ -7221,12 +7289,13 @@ export default function BoatClosers() {
           )}
         </div>
       </div>
+      </>
     );
   }
 
   // Every screen carries the legal footer — landing, sign-in, and the deal.
   const withFooter = (node) => (<>{node}<LegalFooter C={C} authedFetch={authedFetch} signedIn={!!user} /></>);
-  if (screen==="landing") return withFooter(<Landing onStart={(r)=>{ if(r==="buyer"||r==="seller") setAuthRole(r); setScreen("auth"); }} onLegal={(p)=>setScreen(p)}/>);
+  if (screen==="landing") return withFooter(landingEl);
   if (screen==="mydeals") return withFooter(
     <MyDeals C={C} S={S} deals={myDeals} loading={myDealsLoading}
       onOpen={(id)=>openDealById(id)}
