@@ -57,9 +57,9 @@ const authHeaders = () => {
 // ($29.99, buyer-only) may fit a simple, already-agreed deal better.
 const EXPRESS_SUGGEST_MAX = 25000;
 // GUIDED MODE: false = only owner preview browsers (?preview=on) see it. true = everyone gets the choice.
-const GUIDED_PUBLIC = false;
+const GUIDED_PUBLIC = true;
 // DEAL ASSISTANT: false = only owner preview browsers get the new bar + AI drawer.
-const ASSISTANT_PUBLIC = false;
+const ASSISTANT_PUBLIC = true;
 
 // Dates arrive from HTML date inputs as YYYY-MM-DD, which is unreadable on a
 // contract. Documents get longhand — "August 10, 2026" — which cannot be misread
@@ -6622,7 +6622,7 @@ export default function BoatClosers() {
   // Sea Yachts escrow option) on in this browser only; ?preview=off turns it off.
   // Customers see it only once GUIDED_PUBLIC is true.
   const [previewOn, setPreviewOn] = useState(false);
-  const [guidedPref, setGuidedPref] = useState(true);
+  const [guidedPref, setGuidedPref] = useState(false);
   // After the guided offer questions, the full offer screen opens (pre-filled) so
   // the offer is sent with the exact same Send button and checks as always.
   const [offerFormOpen, setOfferFormOpen] = useState(false);
@@ -6639,7 +6639,7 @@ export default function BoatClosers() {
         window.history.replaceState(null, "", window.location.pathname + (rest ? `?${rest}` : "") + window.location.hash);
       }
       setPreviewOn(localStorage.getItem(PREVIEW_KEY) === "1");
-      setGuidedPref(localStorage.getItem("bc_guided") !== "0");
+      setGuidedPref(localStorage.getItem("bc_guided") === "1");
     } catch (e) {}
   }, []);
   const guidedAvailable = GUIDED_PUBLIC || previewOn;
