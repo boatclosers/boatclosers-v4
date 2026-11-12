@@ -5540,44 +5540,104 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
 // ─────────────────────────────────────────────────────────────────────────────
 // AUTH SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
-function Welcome({ name, onStart, onSignOut }) {
-  const steps = [
-    ["1", "Describe the boat", "Add the vessel details — make, model, year, hull number."],
-    ["2", "Invite the other party", "Send the buyer or seller a link to join the deal."],
-    ["3", "Negotiate", "Trade offers and counters in the Deal Room until you agree."],
-    ["4", "Sign", "Both parties e-sign the Purchase Agreement and required documents."],
-    ["5", "Close", "Handle the deposit, balance, and title transfer — deal done."],
+// Introduction to BoatClosers — shown once, to brand-new sign-ups only.
+function Welcome({ name, role, onStart, onSignOut }) {
+  const [docFinder, setDocFinder] = useState(false);
+  const r = role === "seller" ? "seller" : "buyer";
+  const first = name ? String(name).split(" ")[0] : "";
+  const ico = (d) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" style={{ fill:"none", stroke:C.brass, strokeWidth:1.6, strokeLinecap:"round", strokeLinejoin:"round", flexShrink:0, marginTop:1 }}>{d}</svg>
+  );
+  const helps = [
+    [ico(<><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></>), "Nobody is left guessing", "You and the other party share one deal room. Every offer, counter, deadline and next step is in front of both of you."],
+    [ico(<><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></>), "Your money stays protected", "Deposits go to the escrow holder you both choose, never to us, and the boat is locked once you agree."],
+    [ico(<><path d="M9 3h6l4 4v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M15 3v4h4"/><path d="M9 13h6M9 17h4"/></>), "The paperwork is done right", `All ${DOCUMENTS.length} documents fill themselves in from your deal, and anything that needs a notary or an attorney is flagged.`],
   ];
+  const path = [
+    ["Describe the boat", "Year, make, model and HIN"],
+    ["Invite the other party", "They join free"],
+    ["Negotiate", "Offers and counters in the Deal Room"],
+    ["Sign", "Purchase agreement and documents, online"],
+    ["Close", "Money released, title transferred"],
+  ];
+  const guide = r === "seller"
+    ? [["/sellers-guide", "The Seller's Guide", "How to sell your boat privately, step by step"], ["/buyers-guide", "The Buyer's Guide", "What the buyer will be doing on their side"]]
+    : [["/buyers-guide", "The Buyer's Guide", "How to buy a boat privately, step by step"], ["/sellers-guide", "The Seller's Guide", "What the seller will be doing on their side"]];
+  const learn = [...guide, ["/faq", "Common questions", "Fees, escrow, documents, title and more"]];
+  const linkCard = { display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, textDecoration:"none", background:"#fff", border:`1px solid ${C.mist}`, borderRadius:10, padding:"11px 14px", color:C.navy, fontFamily:FONT.sans, textAlign:"left", cursor:"pointer", width:"100%", boxSizing:"border-box" };
+  const arrow = <span aria-hidden="true" style={{ color:C.brass, fontWeight:700, flexShrink:0 }}>&rarr;</span>;
+
   return (
     <div style={{ minHeight:"100vh", background:C.navy, display:"flex", flexDirection:"column" }}>
-      <div style={{ padding:"1.5rem 2rem", display:"flex", alignItems:"center", justifyContent:"space-between", borderBottom:"1px solid rgba(184,134,58,0.2)" }}>
+      <div style={{ padding:"1.25rem 1.5rem", display:"flex", alignItems:"center", justifyContent:"space-between", borderBottom:"1px solid rgba(184,134,58,0.2)" }}>
         <div>
           <div style={{ ...S.logo, fontSize:20 }}>BOATCLOSERS<span style={{ color:C.brass }}>.COM</span></div>
           <div style={{ ...S.logoSub }}>PRIVATE VESSEL TRANSACTIONS</div>
         </div>
-        {onSignOut && <button onClick={onSignOut} style={{ fontSize:11, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:FONT.sans }}>Sign Out</button>}
+        {onSignOut && <button onClick={onSignOut} style={{ fontSize:12, color:"rgba(255,255,255,0.6)", background:"rgba(255,255,255,0.07)", border:"none", borderRadius:6, padding:"7px 12px", cursor:"pointer", fontFamily:FONT.sans }}>Sign out</button>}
       </div>
-      <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:"2rem" }}>
-        <div style={{ background:"#fff", borderRadius:10, padding:"2.5rem", width:"100%", maxWidth:520, border:"1px solid rgba(184,134,58,0.2)" }}>
-          <h1 style={{ fontFamily:FONT.serif, fontSize:25, color:C.navy, margin:"0 0 6px" }}>Welcome{name ? `, ${String(name).split(" ")[0]}` : ""}.</h1>
-          <p style={{ fontFamily:FONT.sans, fontSize:14, color:C.slate, lineHeight:1.6, margin:"0 0 22px" }}>
-            BoatClosers walks you and the other party through a private boat sale — start to finish — for one flat fee. Here's the path:
+      <div style={{ flex:1, display:"flex", justifyContent:"center", padding:"2rem 1rem 3rem" }}>
+        <div style={{ background:"#fffdf9", borderRadius:14, padding:"2.25rem clamp(1.25rem, 4vw, 2.5rem)", width:"100%", maxWidth:640, border:"1px solid rgba(184,134,58,0.25)", boxSizing:"border-box" }}>
+          <div style={{ fontFamily:FONT.sans, fontSize:11, letterSpacing:3, textTransform:"uppercase", color:C.brass, fontWeight:600 }}>Welcome aboard</div>
+          <h1 style={{ fontFamily:FONT.serif, fontWeight:500, fontSize:"clamp(28px, 5vw, 36px)", lineHeight:1.12, color:C.navy, margin:"8px 0 12px" }}>{first ? `Welcome, ${first}.` : "Welcome."}</h1>
+          <p style={{ fontFamily:FONT.sans, fontSize:15.5, color:C.slate, lineHeight:1.65, margin:0 }}>
+            BoatClosers exists to make a private boat sale as safe and organized as a broker-run deal, without the commission. You and the {r === "buyer" ? "seller" : "buyer"} work in one shared deal room, from the first offer to the signed title, for one flat $249.
           </p>
-          <div style={{ display:"flex", flexDirection:"column", gap:14, marginBottom:26 }}>
-            {steps.map(([n, title, desc]) => (
-              <div key={n} style={{ display:"flex", gap:13, alignItems:"flex-start" }}>
-                <div style={{ flexShrink:0, width:26, height:26, borderRadius:"50%", background:C.navy, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontFamily:FONT.sans, fontWeight:700 }}>{n}</div>
+
+          <h2 style={{ fontFamily:FONT.sans, fontSize:12, letterSpacing:1.2, textTransform:"uppercase", color:C.navy, fontWeight:700, margin:"26px 0 12px" }}>How it helps you</h2>
+          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            {helps.map(([i, t, d]) => (
+              <div key={t} style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
+                {i}
                 <div>
-                  <div style={{ fontFamily:FONT.sans, fontSize:14, fontWeight:700, color:C.navy }}>{title}</div>
-                  <div style={{ fontFamily:FONT.sans, fontSize:12.5, color:C.slate, lineHeight:1.5 }}>{desc}</div>
+                  <div style={{ fontFamily:FONT.sans, fontSize:15, fontWeight:600, color:C.navy }}>{t}</div>
+                  <div style={{ fontFamily:FONT.sans, fontSize:13.5, color:C.slate, lineHeight:1.55, marginTop:2 }}>{d}</div>
                 </div>
               </div>
             ))}
           </div>
-          <button onClick={onStart} style={{ ...S.btn, width:"100%", padding:"13px 0", fontSize:15, fontWeight:700 }}>Start your deal →</button>
-          <p style={{ fontFamily:FONT.sans, fontSize:11.5, color:C.slate, textAlign:"center", margin:"14px 0 0" }}>You can revisit any step at any time — nothing is locked until you sign.</p>
+
+          <h2 style={{ fontFamily:FONT.sans, fontSize:12, letterSpacing:1.2, textTransform:"uppercase", color:C.navy, fontWeight:700, margin:"26px 0 12px" }}>Your path</h2>
+          <ol style={{ listStyle:"none", padding:0, margin:0, display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(105px, 1fr))", gap:8 }}>
+            {path.map(([t, d], i) => (
+              <li key={t} style={{ background:C.sand, borderRadius:10, padding:"10px 11px" }}>
+                <div style={{ width:24, height:24, borderRadius:"50%", background: i === 4 ? C.brass : C.navy, color: i === 4 ? C.navy : "#fff", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:FONT.sans, fontSize:12, fontWeight:700 }}>{i + 1}</div>
+                <div style={{ fontFamily:FONT.sans, fontSize:13, fontWeight:600, color:C.navy, marginTop:7 }}>{t}</div>
+                <div style={{ fontFamily:FONT.sans, fontSize:12, color:C.slate, lineHeight:1.4, marginTop:2 }}>{d}</div>
+              </li>
+            ))}
+          </ol>
+
+          <button onClick={onStart} style={{ ...S.btn, width:"100%", padding:"15px 0", fontSize:16, fontWeight:700, marginTop:26 }}>Start my deal &rarr;</button>
+          <p style={{ fontFamily:FONT.sans, fontSize:12.5, color:C.slate, textAlign:"center", margin:"10px 0 0" }}>Free until you&rsquo;re ready to sign. You can come back to any step.</p>
+
+          <div style={{ display:"flex", alignItems:"center", gap:12, margin:"28px 0 14px" }}>
+            <span style={{ flex:1, height:1, background:C.mist }} />
+            <span style={{ fontFamily:FONT.sans, fontSize:12.5, color:C.slate, fontWeight:600 }}>Want to learn more first?</span>
+            <span style={{ flex:1, height:1, background:C.mist }} />
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {learn.map(([href, t, d]) => (
+              <a key={href} href={href} target="_blank" rel="noopener" style={linkCard}>
+                <span><span style={{ display:"block", fontSize:14, fontWeight:600 }}>{t}</span><span style={{ display:"block", fontSize:12.5, color:C.slate, marginTop:1 }}>{d}</span></span>{arrow}
+              </a>
+            ))}
+            <button type="button" onClick={() => setDocFinder(true)} style={{ ...linkCard }}>
+              <span><span style={{ display:"block", fontSize:14, fontWeight:600 }}>What will my deal need?</span><span style={{ display:"block", fontSize:12.5, color:C.slate, marginTop:1 }}>A few questions: loan on the boat, lost title, estate sale</span></span>{arrow}
+            </button>
+          </div>
+          <p style={{ fontFamily:FONT.sans, fontSize:12.5, color:C.slate, lineHeight:1.55, margin:"14px 0 0" }}>
+            Guides open in a new tab, so you won&rsquo;t lose your place. Price already agreed and no deposit? <a href="/express" target="_blank" rel="noopener" style={{ color:C.navy, fontWeight:600 }}>BoatClosers Express ($29.99)</a> may be all you need.
+          </p>
         </div>
       </div>
+      {docFinder && (
+        <div onClick={() => setDocFinder(false)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:5000, padding:"3vh 1rem", overflowY:"auto" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:"#fff", borderRadius:12, maxWidth:600, width:"100%", padding:"1.6rem", border:`2px solid ${C.brass}` }}>
+            <DocFinder DOCUMENTS={DOCUMENTS} C={C} S={S} onClose={() => setDocFinder(false)} onOpenDoc={() => { setDocFinder(false); onStart(); }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -6703,7 +6763,10 @@ export default function BoatClosers() {
                 }
                 setShowWelcome(false);
               } else {
-                setShowWelcome(true);
+                // Signed in with no deal yet: show the introduction only if they never saw it.
+                let seen = false;
+                try { seen = localStorage.getItem("bc_intro_seen_" + session.userId) === "1"; } catch (e) {}
+                setShowWelcome(!seen);
               }
               setScreen("deal");
               setBooting(false);
@@ -6889,7 +6952,8 @@ export default function BoatClosers() {
     forgetStoredDeal();
     clearOtherParty();
     setVessel(emptyVessel); setParties(emptyParties); setNegotiate(emptyNeg); setDdData(emptyDD); setDocsData(emptyDocs);
-    setStep(0); setMaxStep(0); setShowWelcome(true);
+    // Existing customers starting another deal skip the introduction.
+    setStep(0); setMaxStep(0); setShowWelcome(false);
   };
   // Same boat, next buyer. When a deal dies at the deposit stage the vessel hasn't
   // changed — making someone re-type the year, make, model, HIN and specs is the
@@ -7338,7 +7402,7 @@ export default function BoatClosers() {
   if (screen==="terms") return withFooter(<LegalScreen page="terms" onBack={()=>setScreen("landing")} />);
   if (screen==="privacy") return withFooter(<LegalScreen page="privacy" onBack={()=>setScreen("landing")} />);
   if (screen==="auth") return withFooter(<AuthScreen onAuth={handleAuth} onHome={()=>setScreen("landing")} prefillEmail={deepLink?.email} notice={deepLink ? `Sign in as ${deepLink.email} to review this deal.` : null} defaultMode={deepLink ? "login" : "signup"} defaultRole={authRole} />);
-  if (screen==="deal" && showWelcome) return withFooter(<Welcome name={user?.name} onStart={()=>setShowWelcome(false)} onSignOut={handleSignOut} />);
+  if (screen==="deal" && showWelcome) return withFooter(<Welcome name={user?.name} role={myDealRole || user?.role} onStart={()=>{ try { if (user?.userId) localStorage.setItem("bc_intro_seen_" + user.userId, "1"); } catch (e) {} setShowWelcome(false); try { window.scrollTo({ top:0 }); } catch (e) {} }} onSignOut={handleSignOut} />);
 
   return (
     <div className="bc-app" style={S.app}>
