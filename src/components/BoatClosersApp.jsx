@@ -11,6 +11,7 @@ import HinInlineCheck from "./HinInlineCheck";
 import { emo, Icon } from "./Icon";
 import { SEA_YACHTS, seaYachtsTierPrice, seaYachtsTierCost, seaYachtsVisible, PREVIEW_KEY } from "../lib/seaYachts";
 import GuidedStep from "./GuidedMode"; // GUIDED MODE
+import { DealCtx, useDealCtx, AssistantBar, AssistantDock } from "./DealAssistantAI"; // DEAL ASSISTANT
 import { FAQS } from "../lib/faqs";
 import { FONT } from "../lib/theme";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -57,6 +58,8 @@ const authHeaders = () => {
 const EXPRESS_SUGGEST_MAX = 25000;
 // GUIDED MODE: false = only owner preview browsers (?preview=on) see it. true = everyone gets the choice.
 const GUIDED_PUBLIC = false;
+// DEAL ASSISTANT: false = only owner preview browsers get the new bar + AI drawer.
+const ASSISTANT_PUBLIC = false;
 
 // Dates arrive from HTML date inputs as YYYY-MM-DD, which is unreadable on a
 // contract. Documents get longhand — "August 10, 2026" — which cannot be misread
@@ -327,10 +330,13 @@ function OfferSection({ icon, title, desc, checked, onToggle, children }) {
 // ── TIP BOX ───────────────────────────────────────────────────────────────────
 function TipBox({ tips }) {
   const [idx, setIdx] = useState(0);
+  const dealCtx = useDealCtx();
   useEffect(() => {
     const t = setInterval(() => setIdx(i => (i+1) % tips.length), 6000);
     return () => clearInterval(t);
   }, [tips.length]);
+  // With the new Deal Assistant these tips move into its Step guide tab.
+  if (dealCtx?.assistantOn) return null;
   return (
     <div style={{ background:C.tealLight, border:`1px solid ${C.teal}`, borderRadius:6, padding:"10px 14px", marginBottom:20, display:"flex", alignItems:"flex-start", gap:10 }}>
       <div style={{ fontSize:13, fontFamily:FONT.sans, color:C.teal, lineHeight:1.6, flex:1 }}>{emo(tips[idx])}</div>
@@ -746,11 +752,14 @@ function DealAssistant({ step, role, vessel, seen, onSeen }) {
   const [open, setOpen] = useState(() => seen !== undefined ? !seen : !["diligence", "documents"].includes(step));
   useEffect(() => { if (seen === false && onSeen) onSeen(); }, []); // eslint-disable-line
   const [faqOpen, setFaqOpen] = useState(null);
+  const dealCtx = useDealCtx();
   const c = ASSISTANT[step];
   if (!c) return null;
   const r = role === "seller" ? "seller" : "buyer";
   const g = c[r] || c;
   const faqs = g.faqs || c.faqs || [];
+  // New assistant: one "Next" line + Ask / Step guide (components/DealAssistantAI.jsx).
+  if (dealCtx?.assistantOn) return <AssistantBar step={step} guide={{ title: c.title, summary: g.summary, todo: g.todo, next: g.next, faqs }} />;
   return (
     <div style={{ border:`1px solid ${C.navy}`, borderRadius:8, marginBottom:20, overflow:"hidden", background:"#fff" }}>
       <div onClick={()=>setOpen(o=>!o)} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"11px 14px", background:C.navy }}>
@@ -6593,6 +6602,14 @@ export default function BoatClosers() {
     } catch (e) {}
   }, []);
   const guidedAvailable = GUIDED_PUBLIC || previewOn;
+  // DEAL ASSISTANT: the drawer registers how to open it; the bar calls it.
+  const assistantOpenerRef = useRef(null);
+  const registerAssistantOpener = useCallback((fn) => { assistantOpenerRef.current = fn; }, []);
+  const assistantGuide = useCallback((stepKey, role) => {
+    const c = ASSISTANT[stepKey]; if (!c) return null;
+    const g = c[role === "seller" ? "seller" : "buyer"] || c;
+    return { title: c.title, summary: g.summary, todo: g.todo, next: g.next, faqs: g.faqs || c.faqs || [], tips: TIPS[stepKey] || [] };
+  }, []);
   const setGuided = (on) => {
     setGuidedPref(on);
     setOfferFormOpen(false);
@@ -7646,6 +7663,12 @@ export default function BoatClosers() {
           </div>
         </div>
       )}
+      {/* DEAL ASSISTANT context: lets the bar and drawer see the deal */}
+      <DealCtx.Provider value={{
+        assistantOn: ASSISTANT_PUBLIC || previewOn, step, role: myDealRole || user?.role || "buyer", amInitiator, partyBJoined, dealPaid,
+        dealId, token: tokenRef.current?.token, vessel, parties, negotiate, ddData, docsData,
+        registerOpener: registerAssistantOpener, openAssistant: (o) => { try { assistantOpenerRef.current && assistantOpenerRef.current(o); } catch (e) {} },
+      }}>
       <div style={dealFrozen && step <= 3 ? { pointerEvents:"none", opacity:0.6, userSelect:"text" } : undefined} aria-disabled={dealFrozen && step <= 3 ? "true" : undefined}>
       {/* GUIDED MODE */}
       {(() => {
@@ -7699,6 +7722,8 @@ export default function BoatClosers() {
       {step===5 && (dealPaid ? <StepClosing vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} setNegotiate={setNegotiateAndSave} ddData={ddData} docsData={docsData} setDocsData={setDocsDataAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator}  onBack={()=>setStep(4)}
                     onOpenDoc={(id)=>{ setDocsDataAndSave(d => ({ ...d, openDocId: id })); setStep(4); }}
                     onFinalize={()=>{ setTimeout(()=>{ finalizedRef.current = true; }, 2500); }}/> : <LockedStep stepName={STEPS[5]} onBack={()=>setStep(2)}/>)}
+      {(ASSISTANT_PUBLIC || previewOn) && <AssistantDock guides={assistantGuide} />}
+      </DealCtx.Provider>
 
       {cancelModal && (
         <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.85)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem" }}>
