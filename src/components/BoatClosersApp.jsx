@@ -6622,7 +6622,7 @@ export default function BoatClosers() {
   // Sea Yachts escrow option) on in this browser only; ?preview=off turns it off.
   // Customers see it only once GUIDED_PUBLIC is true.
   const [previewOn, setPreviewOn] = useState(false);
-  const [guidedPref, setGuidedPref] = useState(false);
+  const [guidedPref, setGuidedPref] = useState(true);
   // After the guided offer questions, the full offer screen opens (pre-filled) so
   // the offer is sent with the exact same Send button and checks as always.
   const [offerFormOpen, setOfferFormOpen] = useState(false);
@@ -6639,7 +6639,7 @@ export default function BoatClosers() {
         window.history.replaceState(null, "", window.location.pathname + (rest ? `?${rest}` : "") + window.location.hash);
       }
       setPreviewOn(localStorage.getItem(PREVIEW_KEY) === "1");
-      setGuidedPref(localStorage.getItem("bc_guided") === "1");
+      setGuidedPref(localStorage.getItem("bc_guided") !== "0"); // guided first unless they chose the full form
     } catch (e) {}
   }, []);
   const guidedAvailable = GUIDED_PUBLIC || previewOn;
