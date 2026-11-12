@@ -9,7 +9,8 @@ import VesselLookup from "./VesselLookup";
 import DocFinder from "./DocFinder";
 import HinInlineCheck from "./HinInlineCheck";
 import { emo, Icon } from "./Icon";
-import { SEA_YACHTS, seaYachtsTierPrice, seaYachtsTierCost } from "../lib/seaYachts";
+import { SEA_YACHTS, seaYachtsTierPrice, seaYachtsTierCost, seaYachtsVisible, PREVIEW_KEY } from "../lib/seaYachts";
+import GuidedStep from "./GuidedMode"; // GUIDED MODE
 import { FAQS } from "../lib/faqs";
 import { FONT } from "../lib/theme";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,6 +55,8 @@ const authHeaders = () => {
 // Buyers entering a boat at or under this price see a note that BoatClosers Express
 // ($29.99, buyer-only) may fit a simple, already-agreed deal better.
 const EXPRESS_SUGGEST_MAX = 25000;
+// GUIDED MODE: false = only owner preview browsers (?preview=on) see it. true = everyone gets the choice.
+const GUIDED_PUBLIC = false;
 
 // Dates arrive from HTML date inputs as YYYY-MM-DD, which is unreadable on a
 // contract. Documents get longhand — "August 10, 2026" — which cannot be misread
@@ -3430,7 +3433,7 @@ function EscrowSelector({ value, onChange, depositAmt, price }) {
       detail:"Both parties agree on an attorney or title company to act as escrow agent. Many charge a flat fee for holding a deposit rather than a percentage, which on a larger deposit is often cheaper than an online escrow service — worth asking for a quote before you decide. Their fees and terms are outside BoatClosers. Our documents support the transaction but we are not involved in fund handling.",
       warn:"Agree on the attorney or title company in writing before transferring any funds. BoatClosers documents (Escrow Instructions, Closing Statement) can be shared with them to support their work.",
     },
-    ...(SEA_YACHTS.ENABLED ? [{
+    ...(seaYachtsVisible() ? [{
       id:"sea_yachts", icon:"⚓", label:"Sea Yachts", badge:"Licensed · real person", badgeColor:C.navy,
       tint:"#eef2f7", line:C.navy,
       desc:"A licensed Florida yacht brokerage holds your money in a state-regulated trust account, and a real broker you can call runs the closing.",
@@ -3438,7 +3441,7 @@ function EscrowSelector({ value, onChange, depositAmt, price }) {
       warn:"Send money only after both of you have signed the Sea Yachts agreement, and always confirm wiring instructions by phone with Sea Yachts. Sea Yachts never changes wiring instructions by email.",
     }] : []),
     {
-      id:"brokerage", icon:"🛥️", label: SEA_YACHTS.ENABLED ? "Other Licensed Broker" : "Licensed Broker", badge:"Brokerage", badgeColor:C.navy,
+      id:"brokerage", icon:"🛥️", label: seaYachtsVisible() ? "Other Licensed Broker" : "Licensed Broker", badge:"Brokerage", badgeColor:C.navy,
       tint:"#eef2f7", line:C.navy,
       desc:"A state-licensed yacht brokerage holds the deposit in their trust account.",
       detail:"If the boat is listed with a broker — or you're using a buyer's broker — a state-licensed brokerage can hold the deposit in their trust/escrow account per state law. Brokerage trust accounts are regulated by the state and often carry little or no separate holding fee, since it's part of the brokerage's normal business. Any commission and terms are between you and the broker.",
@@ -6564,6 +6567,37 @@ export default function BoatClosers() {
   // True if the current user started this deal (party A). Only the initiator
   // is prompted to pay the $249; the invited party sees a waiting message.
   const [amInitiator, setAmInitiator] = useState(true);
+  // ── GUIDED MODE ── one question at a time (components/GuidedMode.jsx).
+  // Owner preview: boatclosers.com/?preview=on turns guided mode (and the
+  // Sea Yachts escrow option) on in this browser only; ?preview=off turns it off.
+  // Customers see it only once GUIDED_PUBLIC is true.
+  const [previewOn, setPreviewOn] = useState(false);
+  const [guidedPref, setGuidedPref] = useState(true);
+  // After the guided offer questions, the full offer screen opens (pre-filled) so
+  // the offer is sent with the exact same Send button and checks as always.
+  const [offerFormOpen, setOfferFormOpen] = useState(false);
+  useEffect(() => {
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      const pv = qs.get("preview");
+      if (pv === "on") localStorage.setItem(PREVIEW_KEY, "1");
+      if (pv === "off") localStorage.removeItem(PREVIEW_KEY);
+      if (pv) {
+        qs.delete("preview");
+        const rest = qs.toString();
+        window.history.replaceState(null, "", window.location.pathname + (rest ? `?${rest}` : "") + window.location.hash);
+      }
+      setPreviewOn(localStorage.getItem(PREVIEW_KEY) === "1");
+      setGuidedPref(localStorage.getItem("bc_guided") !== "0");
+    } catch (e) {}
+  }, []);
+  const guidedAvailable = GUIDED_PUBLIC || previewOn;
+  const setGuided = (on) => {
+    setGuidedPref(on);
+    setOfferFormOpen(false);
+    try { localStorage.setItem("bc_guided", on ? "1" : "0"); } catch (e) {}
+    try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) {}
+  };
   // Holds a human-readable reason if claiming an invite fails, so the user
   // (and we) aren't left staring at a blank deal with no explanation.
   const [inviteError, setInviteError] = useState(null);
@@ -7612,9 +7646,52 @@ export default function BoatClosers() {
         </div>
       )}
       <div style={dealFrozen && step <= 3 ? { pointerEvents:"none", opacity:0.6, userSelect:"text" } : undefined} aria-disabled={dealFrozen && step <= 3 ? "true" : undefined}>
+      {/* GUIDED MODE */}
+      {(() => {
+        const role = myDealRole || user?.role || "buyer";
+        const offerGuided = step === 2 && amInitiator && role === "buyer" && !((negotiate?.offers || []).length);
+        const offerForm = step === 2 && offerFormOpen;
+        const canGuide = guidedAvailable && !dealFrozen && (step === 0 || step === 1 || offerGuided);
+        if (!canGuide) return null;
+        return (
+          <div style={{ maxWidth:600, margin:"14px auto 0", padding:"0 18px" }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap", background:C.white, border:`1px solid ${C.mist}`, borderRadius:12, padding:"8px 10px 8px 14px", fontFamily:FONT.sans }}>
+              <span style={{ fontSize:13, color:C.slate }}>{previewOn && !GUIDED_PUBLIC ? "Owner preview · " : ""}How do you want to fill this in?</span>
+              <div role="group" aria-label="Guided mode" style={{ display:"flex", background:C.sand, borderRadius:9, padding:3 }}>
+                {[[true,"One question at a time"],[false,"Full form"]].map(([on,lbl]) => (
+                  <button key={lbl} type="button" aria-pressed={(guidedPref && !offerForm)===on} onClick={()=>setGuided(on)}
+                    style={{ border:0, borderRadius:7, padding:"8px 12px", fontSize:12.5, fontWeight:600, cursor:"pointer", fontFamily:FONT.sans,
+                      background: (guidedPref && !offerForm)===on ? C.navy : "transparent", color: (guidedPref && !offerForm)===on ? "#fff" : C.navy }}>{lbl}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+      {(() => {
+        const role = myDealRole || user?.role || "buyer";
+        const offerGuided = step === 2 && amInitiator && role === "buyer" && !((negotiate?.offers || []).length);
+        const offerForm = step === 2 && offerFormOpen;
+        if (!(guidedAvailable && guidedPref && !offerForm && !dealFrozen && (step === 0 || step === 1 || offerGuided))) return null;
+        return (
+          <GuidedStep key={"guided-" + step} step={step} role={role} isInitiator={amInitiator}
+            vessel={vessel} setVessel={setVesselAndSave} parties={parties} setParties={setPartiesAndSave}
+            negotiate={negotiate} setNegotiate={setNegotiateAndSave} user={user} dealId={dealId}
+            ensureSaved={ensureDealSaved} authToken={tokenRef.current?.token} authHeaders={authHeaders}
+            partyBJoined={partyBJoined} expressMax={EXPRESS_SUGGEST_MAX} seaYachtsOn={seaYachtsVisible()}
+            contactPrefsEl={<MyContactPrefs authToken={tokenRef.current?.token} defaultPhone={parties?.[role]?.phone} />}
+            onNext={()=>goToStep(step + 1)} onShowForm={()=>{ if (step === 2) { setOfferFormOpen(true); setTimeout(() => { try {
+              // Land on the offer summary and its Send button, not the top of the long form.
+              const btn = Array.from(document.querySelectorAll("button")).find(b => /Offer to the/i.test(b.textContent || ""));
+              if (btn) btn.scrollIntoView({ block: "center" }); else window.scrollTo({ top: 0 });
+            } catch (e) {} }, 150); } else setGuided(false); }} />
+        );
+      })()}
+      {!(guidedAvailable && guidedPref && !(step === 2 && offerFormOpen) && !dealFrozen && (step === 0 || step === 1 || (step === 2 && amInitiator && (myDealRole || user?.role || "buyer") === "buyer" && !((negotiate?.offers || []).length)))) && <>
       {step===0 && <StepVessel data={vessel} setData={setVesselAndSave} userRole={myDealRole || user?.role || "seller"} onNext={()=>goToStep(1)}/>}
       {step===1 && <StepParties data={parties} setData={setPartiesAndSave} userRole={myDealRole || user?.role || "buyer"} partyBJoined={partyBJoined} vessel={vessel} offers={negotiate?.offers} onNext={()=>goToStep(2)} onBack={()=>setStep(0)} dealId={dealId} user={user} ensureSaved={ensureDealSaved} authToken={tokenRef.current?.token}/>}
       {step===2 && <StepNegotiateTerms vessel={vessel} parties={parties} data={negotiate} setData={setNegotiateAndSave} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} stripeReturn={stripeReturn} authedFetch={authedFetch} onRefresh={()=>window.location.reload()} refreshing={refreshing} onNext={()=>goToStep(3)} onBack={()=>setStep(1)}/>}
+      </>}
       {step===3 && (dealPaid ? <StepDueDiligence data={ddData} setData={setDdDataAndSave} setNegotiate={setNegotiateAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} authToken={tokenRef.current?.token} onNext={()=>goToStep(4)} onBack={()=>setStep(2)}/> : <LockedStep stepName={STEPS[3]} onBack={()=>setStep(2)}/>)}
       {step===4 && (dealPaid ? <DocumentsStepV2 authToken={tokenRef.current?.token} data={docsData} setData={setDocsDataAndSave} vessel={vessel} parties={parties} terms={negotiate} negotiate={negotiate} myRole={myDealRole || user?.role || "buyer"} amInitiator={amInitiator} dealId={dealId} onNext={()=>goToStep(5)} onBack={()=>setStep(3)}/> : <LockedStep stepName={STEPS[4]} onBack={()=>setStep(2)}/>)}
       </div>

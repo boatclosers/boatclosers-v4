@@ -97,3 +97,11 @@ export function seaYachtsTierCost(t, price) {
   if (t.cap != null) c = Math.min(c, t.cap);
   return c;
 }
+
+// Owner preview: boatclosers.com/?preview=on shows Sea Yachts (and guided mode)
+// in that one browser while ENABLED is still false for everyone else.
+export const PREVIEW_KEY = "bc_preview";
+export function seaYachtsVisible() {
+  if (SEA_YACHTS.ENABLED) return true;
+  try { return typeof window !== "undefined" && window.localStorage.getItem(PREVIEW_KEY) === "1"; } catch (e) { return false; }
+}
