@@ -43,6 +43,41 @@ export const TITLED_OPTIONS: { key: TitledHow; label: string; hint: string }[] =
   { key: 'other-no-title', label: 'Registration only', hint: 'From a state that doesn’t title boats' },
 ]
 
+// The same choices, worded for the state where the sale happens. The key
+// 'florida' means "titled in the state of sale" for every state.
+export function titledOptions(stateName: string, stateTitles = true): { key: TitledHow; label: string; hint: string }[] {
+  if (stateName === 'Florida') return TITLED_OPTIONS
+  return [
+    ...(stateTitles ? [{ key: 'florida' as const, label: `${stateName} title`, hint: `Seller has a ${stateName} certificate of title` }] : []),
+    { key: 'documented', label: 'Coast Guard documented', hint: 'Federal Certificate of Documentation' },
+    { key: 'other-title', label: stateTitles ? 'Another state’s title' : 'A state title', hint: stateTitles ? 'Titled in a different state' : 'Seller has a certificate of title from a state that titles boats' },
+    { key: 'other-no-title', label: 'Registration only', hint: stateTitles ? 'From a state that doesn’t title boats' : `Registered in ${stateName} or another state that doesn’t title boats` },
+  ]
+}
+
+// ---------- Quick walk-around (free) ----------
+// Deal-breakers a buyer can check in a few minutes at the boat. A record of what
+// they saw, not an inspection: the full walkthrough is My Boat Inspector's job.
+export type WalkItem = { id: string; label: string; detail?: string; for: 'boat' | 'engine' | 'trailer' | 'any' }
+export type WalkProgress = { items: Record<string, { s?: 'ok' | 'flag'; note?: string }>; hours?: string }
+export const WALK_ITEMS: WalkItem[] = [
+  { id: 'w-hin', for: 'boat', label: 'The HIN on the hull matches the title and your paperwork', detail: 'Back right corner of the transom. Any sign it was ground off or altered is a hard stop.' },
+  { id: 'w-owner', for: 'any', label: 'The seller’s ID matches the name on the title or registration' },
+  { id: 'w-deck', for: 'boat', label: 'Deck and floor feel solid, with no soft spots', detail: 'Walk it and press with your heel, especially around seats, hatches and the helm.' },
+  { id: 'w-transom', for: 'boat', label: 'Transom is solid around the motor', detail: 'Push and pull the lower unit. The transom shouldn’t flex, and there should be no cracks around the bolts.' },
+  { id: 'w-hull', for: 'boat', label: 'No cracks, deep gouges or fresh patches on the hull', detail: 'Look along the keel and chines. Fresh paint in one spot can hide a repair.' },
+  { id: 'w-sunk', for: 'boat', label: 'No signs it has sunk or flooded', detail: 'Water lines inside lockers, silt, green corroded wiring, or a strong musty smell.' },
+  { id: 'w-bilge', for: 'boat', label: 'Bilge has no fuel smell and the bilge pump runs' },
+  { id: 'w-start', for: 'engine', label: 'Engine starts cold and idles smoothly', detail: 'Ask that it not be run before you arrive. A warm engine hides starting problems.' },
+  { id: 'w-telltale', for: 'engine', label: 'A steady stream of cooling water comes out while it runs', detail: 'On an outboard it’s the small “tell-tale” stream. Weak or none means the water pump needs work.' },
+  { id: 'w-hours', for: 'engine', label: 'Engine hours match what the seller told you', detail: 'Take a photo of the hour meter.' },
+  { id: 'w-power', for: 'boat', label: 'Lights, horn and electronics power on' },
+  { id: 'w-trailer', for: 'trailer', label: 'Trailer tires, lights, winch and frame are roadworthy', detail: 'Check for dry-rotted tires, rusted-through frame members and rotten bunks.' },
+]
+export function walkItems(has: Record<ItemKey, boolean>): WalkItem[] {
+  return WALK_ITEMS.filter((w) => w.for === 'any' || (w.for === 'boat' && has.boat) || (w.for === 'engine' && (has.boat || has.motor)) || (w.for === 'trailer' && has.trailer))
+}
+
 // ---------- Step 1: before you pay ----------
 
 // The walk-around inspection list itself is server-only (lib/express/inspection.ts)
@@ -93,12 +128,13 @@ export const PAYMENT_TIPS: string[] = [
 
 // ---------- Step 2: at the handoff ----------
 
-export function titleSigningGuide(h: Handoff): CheckItem[] {
+export function titleSigningGuide(h: Handoff, state = 'FL'): CheckItem[] {
+  const fl = state === 'FL'
   const out: CheckItem[] = []
   if (h.titledHow === 'florida' || h.titledHow === 'other-title') {
     out.push(
-      { id: 't-seller', label: 'Seller signs the transfer section of the title, as seller', detail: 'On a Florida title it’s the “Transfer of Title by Seller” section on the back. The name must match the front exactly.' },
-      { id: 't-price', label: 'Selling price, date of sale, and your name are filled in on the title', detail: 'Florida requires the price on the title for a private sale. Use your full name exactly as on your ID.' },
+      { id: 't-seller', label: 'Seller signs the transfer section of the title, as seller', detail: fl ? 'On a Florida title it’s the “Transfer of Title by Seller” section on the back. The name must match the front exactly.' : 'Usually on the back of the title. The name must match the front exactly.' },
+      { id: 't-price', label: 'Selling price, date of sale, and your name are filled in on the title', detail: fl ? 'Florida requires the price on the title for a private sale. Use your full name exactly as on your ID.' : 'Fill in every buyer line the title has. Use your full name exactly as on your ID.' },
       { id: 't-clean', label: 'No white-out, cross-outs, or erasures anywhere on the title', detail: 'A corrected title can be rejected. If a mistake happens, stop and ask the tax collector’s office before going further.' },
       { id: 't-original', label: 'You get the original title, not a copy' },
     )
@@ -116,7 +152,7 @@ export function titleSigningGuide(h: Handoff): CheckItem[] {
   if (h.titledHow === 'other-no-title') {
     out.push(
       { id: 't-reg', label: 'You get the seller’s current registration', detail: 'From a state that doesn’t title boats, the registration is the proof of ownership.' },
-      { id: 't-notary', label: 'The seller signs the bill of sale in front of a notary', detail: 'Florida tax collectors require a notarized bill of sale with an out-of-state registration. Your bill of sale includes the notary section.' },
+      { id: 't-notary', label: 'The seller signs the bill of sale in front of a notary', detail: fl ? 'Florida tax collectors require a notarized bill of sale with an out-of-state registration. Your bill of sale includes the notary section.' : 'Without a title, a notarized bill of sale is the strongest proof of ownership. Your bill of sale includes the notary section.' },
     )
   }
   if (h.lien === 'released') {
@@ -126,12 +162,31 @@ export function titleSigningGuide(h: Handoff): CheckItem[] {
     { id: 't-bos', label: 'Both of you sign the bill of sale, and you each keep a copy' },
     { id: 't-82050', label: 'Both of you sign Florida form HSMV 82050', detail: 'Page 1 is your copy of the state’s bill of sale. The seller keeps page 2, the notice of sale, and files it within 30 days.' },
     { id: 't-receipt', label: 'Seller signs the payment receipt when you pay' },
+  )
+  if (!fl) {
+    const i = out.findIndex((x) => x.id === 't-82050')
+    if (i >= 0) out.splice(i, 1)
+  }
+  out.push(
     { id: 't-keys', label: 'You get all keys, manuals, and service records' },
   )
   return out
 }
 
 // ---------- Step 3: after it's yours ----------
+
+export function newOwnerFor(state = 'FL'): CheckItem[] {
+  if (state === 'FL') return NEW_OWNER
+  return [
+    { id: 'n-insure', label: 'Insure it before the first trip', detail: 'Many marinas and lenders require proof of insurance before you can even dock or launch.' },
+    { id: 'n-title', label: 'Title or register it with your state as soon as you can', detail: 'Most states set a deadline after a sale. Your state guide links to the right office.' },
+    { id: 'n-trailer', only: 'trailer', label: 'Title or register the trailer', detail: 'Trailers usually go through the state motor vehicle office, separately from the boat.' },
+    { id: 'n-numbers', only: 'boat', label: 'Put the registration numbers and decal on the bow', detail: 'Required once registered.' },
+    { id: 'n-safety', only: 'boat', label: 'Check safety gear before your first launch' },
+    { id: 'n-service', only: 'motor', label: 'Schedule a service: impeller, fuel filters, lower unit oil', detail: 'Unless the seller had it done recently and has the receipt.' },
+    { id: 'n-notice', label: 'Ask the seller to report the sale to their state', detail: 'Many states have a notice-of-sale or transfer form, so the boat is out of the seller’s name.' },
+  ]
+}
 
 export const NEW_OWNER: CheckItem[] = [
   { id: 'n-insure', label: 'Insure it before the first trip', detail: 'Many marinas and lenders require proof of insurance before you can even dock or launch.' },
@@ -221,17 +276,18 @@ export function addDays(isoDate: string, days: number): Date | null {
   return d
 }
 
-export function handoffProblems(h: Handoff, has: Record<ItemKey, boolean>): string[] {
+export function handoffProblems(h: Handoff, has: Record<ItemKey, boolean>, state = 'FL'): string[] {
+  const fl = state === 'FL'
   const p: string[] = []
   if (!h.saleDate) p.push('Add the date of sale.')
-  if (!h.county) p.push('Add the Florida county where you’re buying.')
+  if (fl && !h.county) p.push('Add the Florida county where you’re buying.')
   if (!h.buyerAddress) p.push('Add your address, including ZIP code.')
   if (!h.sellerAddress) p.push('Add the seller’s address.')
   if (!h.paymentMethod) p.push('Pick how you’re paying.')
   if (!h.titledHow) p.push('Pick how the boat is titled.')
   if (!h.lien) p.push('Answer the lienholder question.')
-  if (has.boat && !h.lengthFt) p.push('Add the boat’s length. Florida requires it on the bill of sale.')
-  if (has.boat && !h.propulsion) p.push('Pick the boat’s propulsion. Florida requires it on the bill of sale.')
+  if (fl && has.boat && !h.lengthFt) p.push('Add the boat’s length. Florida requires it on the bill of sale.')
+  if (fl && has.boat && !h.propulsion) p.push('Pick the boat’s propulsion. Florida requires it on the bill of sale.')
   if (h.twoSellers && !h.secondSeller) p.push('Add the second owner’s name.')
   return p
 }
