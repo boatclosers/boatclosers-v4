@@ -17,10 +17,6 @@ import {
   salesTaxEstimate,
   addDays,
   NEW_OWNER,
-  type InspectItem,
-  type InspectionProgress,
-  type InspectionPreview,
-  type InspectStatus,
   type Photo,
   PHOTO_SHOTS,
   MAX_PHOTOS,
@@ -43,13 +39,13 @@ export const boxStyle = {
   gap: 10,
 }
 export const eyebrow = { fontSize: 11, letterSpacing: 2, color: gold, fontWeight: 700 }
-const h2 = { fontFamily: 'Georgia, serif', fontSize: 20, color: cream, lineHeight: 1.3, margin: 0 }
+export const h2 = { fontFamily: 'Georgia, serif', fontSize: 20, color: cream, lineHeight: 1.3, margin: 0 }
 
 export function money(cents: number) {
   return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 }
 
-const goldButton = {
+export const goldButton = {
   background: gold,
   color: navy,
   fontWeight: 700,
@@ -62,7 +58,7 @@ const goldButton = {
   textAlign: 'center' as const,
   display: 'inline-block',
 }
-const outlineButton = {
+export const outlineButton = {
   ...goldButton,
   background: 'transparent',
   color: cream,
@@ -267,7 +263,7 @@ const FULL_REASONS = [
   { id: 'f-agreement', label: 'We both want a signed purchase agreement', why: 'Express is buyer-only. Full BoatClosers brings the seller in, and both of you sign the agreement and the closing papers.' },
 ]
 
-export function FullSuggest({ deal, checks, onToggle }: { deal: any; checks: Record<string, boolean>; onToggle: (id: string, v: boolean) => void }) {
+export function FullSuggest({ deal, checks, onToggle, moveHref = '/' }: { deal: any; checks: Record<string, boolean>; onToggle: (id: string, v: boolean) => void; moveHref?: string }) {
   const hits = FULL_REASONS.filter((r) => checks[r.id])
   const big = deal.price_cents > 2500000
   const lienOpen = deal.progress?.handoff?.lien === 'open'
@@ -304,10 +300,11 @@ export function FullSuggest({ deal, checks, onToggle }: { deal: any; checks: Rec
           </ul>
           <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.6 }}>
             Full BoatClosers is $249, paid once both of you agree and sign. The seller joins the deal, and it handles negotiation, deposits, contingencies, and closing.
-            {deal.status === 'paid' ? ` Start it with ${deal.buyer_email} and the $29.99 you paid here comes off the $249.` : ' If you pay for Express first, that $29.99 comes off the $249 later.'}
+            {' '}Everything you entered here moves over with you.
+            {deal.status === 'paid' ? ' The $29.99 you paid here comes off the $249.' : ' If you’ve paid for Express, that $29.99 comes off the $249.'}
           </p>
-          <a href="/" style={{ ...goldButton, alignSelf: 'flex-start' }}>
-            See full BoatClosers
+          <a href={moveHref} style={{ ...goldButton, alignSelf: 'flex-start', textDecoration: 'none' }}>
+            Move this purchase to BoatClosers
           </a>
         </div>
       )}
@@ -459,219 +456,6 @@ export function PhotosCard({ token, photos, has, onSaved }: { token: string; pho
   )
 }
 
-// ---------- Step 2: the paid inspection ----------
-
-const STATUS_OPTS: { key: InspectStatus; label: string }[] = [
-  { key: 'ok', label: 'Looks good' },
-  { key: 'issue', label: 'Problem' },
-  { key: 'skip', label: 'Skip' },
-]
-
-export function InspectionLocked({ preview }: { preview: InspectionPreview | null }) {
-  if (!preview) return null
-  return (
-    <div style={{ ...boxStyle, position: 'relative' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
-        <div style={eyebrow}>GUIDED INSPECTION</div>
-        <div style={{ fontSize: 11, letterSpacing: 1, fontWeight: 700, color: gold }}>🔒 $29.99</div>
-      </div>
-      <h2 style={h2}>A {preview.count}-point inspection to take with you</h2>
-      <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
-        {preview.sections.join(' · ')}. Mark each item Looks good or Problem on your phone, add notes, and get a condition report to
-        negotiate with. {preview.redFlags} red-flag checks tell you when to walk away.
-      </p>
-      <ul style={{ margin: 0, paddingLeft: 20, color: cream, fontSize: 15, lineHeight: 1.7 }}>
-        {preview.sample.map((t) => (
-          <li key={t}>{t}</li>
-        ))}
-        <li style={{ color: muted, listStyle: 'none', marginLeft: -20 }}>+ {preview.count - preview.sample.length} more, unlocked with the paperwork</li>
-      </ul>
-    </div>
-  )
-}
-
-export function InspectionStep({
-  token,
-  list,
-  inspection,
-  onChange,
-  onNext,
-  photos,
-  has,
-  onPhotos,
-}: {
-  photos: Photo[]
-  has: Record<ItemKey, boolean>
-  onPhotos: (progress: any) => void
-  token: string
-  list: InspectItem[]
-  inspection: InspectionProgress
-  onChange: (patch: { items?: InspectionProgress['items']; hours?: string; notes?: string }) => void
-  onNext: () => void
-}) {
-  const [openNote, setOpenNote] = useState<Record<string, boolean>>({})
-  const items = inspection.items || {}
-  const sections = Array.from(new Set(list.map((i) => i.section)))
-  const done = list.filter((i) => items[i.id]?.s).length
-  const problems = list.filter((i) => items[i.id]?.s === 'issue')
-  const redHits = problems.filter((i) => i.redFlag)
-
-  function setStatus(id: string, s: InspectStatus) {
-    const cur = items[id] || {}
-    const next = cur.s === s ? { ...cur, s: undefined } : { ...cur, s }
-    onChange({ items: { [id]: next } })
-    if (s === 'issue' && cur.s !== 'issue') setOpenNote((o) => ({ ...o, [id]: true }))
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={boxStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
-          <div style={eyebrow}>GUIDED INSPECTION</div>
-          <div style={{ fontSize: 13, color: muted }}>
-            {done} of {list.length} checked
-          </div>
-        </div>
-        <h2 style={h2}>Inspect it before you hand over a dollar</h2>
-        <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
-          Open this on your phone at the boat. Bring a flashlight, a rag, and someone to help on the sea trial. Items marked 🚩 are
-          red flags: a problem there is a reason to walk away. Everything saves as you go.
-        </p>
-        <div style={{ height: 6, background: 'rgba(245,241,232,0.1)', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{ width: `${list.length ? (done / list.length) * 100 : 0}%`, height: '100%', background: gold }} />
-        </div>
-      </div>
-
-      {sections.map((section) => (
-        <div key={section} style={boxStyle}>
-          <div style={eyebrow}>{section.toUpperCase()}</div>
-          {list
-            .filter((i) => i.section === section)
-            .map((it, idx) => {
-              const r = items[it.id] || {}
-              const noteOpen = openNote[it.id] || !!r.note
-              return (
-                <div key={it.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 0', borderTop: idx ? `1px solid ${line}` : 'none' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <span style={{ fontSize: 16, fontWeight: 600, color: cream }}>
-                      {it.redFlag && <span aria-label="Red flag">🚩 </span>}
-                      {it.label}
-                    </span>
-                    {it.detail && <span style={{ fontSize: 14, lineHeight: 1.55, color: muted }}>{it.detail}</span>}
-                  </div>
-                  <div role="radiogroup" aria-label={it.label} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {STATUS_OPTS.map((o) => {
-                      const on = r.s === o.key
-                      const bad = o.key === 'issue'
-                      return (
-                        <button
-                          key={o.key}
-                          type="button"
-                          role="radio"
-                          aria-checked={on}
-                          onClick={() => setStatus(it.id, o.key)}
-                          style={{
-                            padding: '8px 14px',
-                            borderRadius: 18,
-                            fontSize: 14,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            border: `1px solid ${on ? (bad ? '#e07a5f' : gold) : 'rgba(245,241,232,0.3)'}`,
-                            background: on ? (bad ? 'rgba(224,122,95,0.2)' : 'rgba(201,150,46,0.2)') : 'transparent',
-                            color: on && bad ? '#f2b8a6' : cream,
-                          }}
-                        >
-                          {on && o.key === 'ok' ? '✓ ' : ''}
-                          {o.label}
-                        </button>
-                      )
-                    })}
-                    {!noteOpen && (
-                      <button
-                        type="button"
-                        onClick={() => setOpenNote((o) => ({ ...o, [it.id]: true }))}
-                        style={{ padding: '8px 10px', fontSize: 13, background: 'transparent', border: 'none', color: muted, cursor: 'pointer', textDecoration: 'underline' }}
-                      >
-                        Add a note
-                      </button>
-                    )}
-                  </div>
-                  {noteOpen && (
-                    <textarea
-                      aria-label={`Note: ${it.label}`}
-                      placeholder={r.s === 'issue' ? 'What did you find? e.g. soft spot left of the console, about the size of a hand' : 'Note'}
-                      value={r.note || ''}
-                      maxLength={400}
-                      onChange={(e) => onChange({ items: { [it.id]: { ...r, note: e.target.value } } })}
-                      rows={2}
-                      style={inputStyle}
-                    />
-                  )}
-                  {r.s === 'issue' && it.redFlag && (
-                    <p style={{ margin: 0, color: '#f2b8a6', fontSize: 14, lineHeight: 1.5 }}>
-                      Red flag. Don’t pay until this is explained, fixed, or you’ve decided to walk away.
-                    </p>
-                  )}
-                </div>
-              )
-            })}
-        </div>
-      ))}
-
-      <PhotosCard token={token} photos={photos} has={has} onSaved={onPhotos} />
-
-      <div style={boxStyle}>
-        <div style={eyebrow}>YOUR NOTES</div>
-        <Field id="i-hours" label="Engine hours you saw" hint="optional" placeholder="412" value={inspection.hours || ''} onChange={(v) => onChange({ hours: v.replace(/[^0-9.,]/g, '') })} />
-        <Field
-          id="i-notes"
-          label="Anything else"
-          hint="optional"
-          placeholder="Seller agreed to replace the trailer tires before pickup"
-          textarea
-          value={inspection.notes || ''}
-          onChange={(v) => onChange({ notes: v })}
-        />
-      </div>
-
-      <div style={{ ...boxStyle, ...(problems.length ? { border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.08)' } : {}) }}>
-        <div style={eyebrow}>CONDITION REPORT</div>
-        <h2 style={h2}>
-          {problems.length
-            ? `${problems.length} problem${problems.length > 1 ? 's' : ''} found${redHits.length ? `, ${redHits.length} red flag${redHits.length > 1 ? 's' : ''}` : ''}`
-            : done
-              ? 'No problems marked so far'
-              : 'Your report builds as you inspect'}
-        </h2>
-        {problems.length > 0 && (
-          <>
-            <ul style={{ margin: 0, paddingLeft: 20, color: cream, fontSize: 15, lineHeight: 1.6 }}>
-              {problems.map((i) => (
-                <li key={i.id}>
-                  {i.label}
-                  {items[i.id]?.note ? <span style={{ color: muted }}> · {items[i.id].note}</span> : null}
-                </li>
-              ))}
-            </ul>
-            <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
-              Show the seller the report and ask them to fix these, lower the price, or both. Get any agreement in writing. If the price
-              changes, ask for the new price on the bill of sale and the title.
-            </p>
-          </>
-        )}
-        <DocRow token={token} doc="condition-report" name="Condition report" note="Every item, your notes, and the problems up top. Share it with a mechanic or the seller." primary />
-        <p style={{ margin: 0, color: muted, fontSize: 12, lineHeight: 1.5 }}>
-          This records what you saw. It isn’t a marine survey. For a bigger purchase, hire an accredited surveyor and a marine mechanic.
-        </p>
-      </div>
-
-      <button type="button" onClick={onNext} style={goldButton}>
-        Go to the handoff
-      </button>
-    </div>
-  )
-}
-
 // ---------- Seller questions: send in writing, note the answers ----------
 
 export function SellerQuestions({
@@ -818,7 +602,7 @@ const inputStyle = {
   boxSizing: 'border-box' as const,
 }
 
-function Field({
+export function Field({
   id,
   label,
   hint,
@@ -858,7 +642,7 @@ function Field({
   )
 }
 
-function Select({
+export function Select({
   id,
   label,
   hint,
@@ -890,7 +674,7 @@ function Select({
   )
 }
 
-function Choice<T extends string>({
+export function Choice<T extends string>({
   label,
   value,
   options,
@@ -937,380 +721,8 @@ function Choice<T extends string>({
   )
 }
 
-const LIEN_OPTIONS = [
+export const LIEN_OPTIONS = [
   { key: 'none' as const, label: 'No lienholder on the title' },
   { key: 'released' as const, label: 'A lienholder is listed, and I have the signed lien release' },
   { key: 'open' as const, label: 'A lienholder is listed, and there’s no release yet' },
 ]
-
-// ---------- Step 3: at the handoff ----------
-
-export function HandoffStep({
-  token,
-  deal,
-  has,
-  checks,
-  onToggle,
-  onSaved,
-}: {
-  token: string
-  deal: any
-  has: Record<ItemKey, boolean>
-  checks: Record<string, boolean>
-  onToggle: (id: string, v: boolean) => void
-  onSaved: (progress: any) => void
-}) {
-  const saved: Handoff = deal.progress?.handoff || {}
-  const [h, setH] = useState<Handoff>({ saleDate: new Date().toISOString().slice(0, 10), ...saved })
-  const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState('')
-  const [emailing, setEmailing] = useState(false)
-  const [emailMsg, setEmailMsg] = useState('')
-  const set = (patch: Partial<Handoff>) => setH({ ...h, ...patch })
-
-  const savedProblems = handoffProblems(saved, has)
-  const ready = savedProblems.length === 0 && saved.lien !== 'open'
-  const dirty = JSON.stringify(h) !== JSON.stringify(saved)
-
-  async function save() {
-    setSaving(true)
-    setMsg('')
-    try {
-      const res = await fetch('/api/express/deal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action: 'handoff', handoff: h }),
-      })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error || 'Could not save.')
-      onSaved(d.progress)
-      const p = handoffProblems(d.progress.handoff, has)
-      setMsg(p.length ? `Saved. Still needed: ${p[0]}` : 'Saved. Your papers are filled in below.')
-    } catch (e: any) {
-      setMsg(e?.message || 'Could not save.')
-    }
-    setSaving(false)
-  }
-
-  async function emailSeller() {
-    setEmailing(true)
-    setEmailMsg('')
-    try {
-      const res = await fetch('/api/express/deal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action: 'email-seller' }),
-      })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error || 'Could not send.')
-      onSaved(d.progress)
-      setEmailMsg(`Sent to ${saved.sellerEmail}.`)
-    } catch (e: any) {
-      setEmailMsg(e?.message || 'Could not send.')
-    }
-    setEmailing(false)
-  }
-
-  const docs = [
-    has.boat && ['vessel-bill-of-sale', 'Vessel bill of sale', 'Both of you sign. Keep it aboard: it’s your temporary registration for 30 days.'],
-    has.motor && !has.boat && ['motor-bill-of-sale', 'Motor bill of sale', 'Both of you sign.'],
-    has.trailer && ['trailer-bill-of-sale', 'Trailer bill of sale', 'Both of you sign. The trailer is titled separately.'],
-    has.boat && ['hsmv-82050-boat', 'Florida form HSMV 82050, boat', 'The state’s own bill of sale, filled in. Page 1 is yours. Page 2 is the seller’s notice of sale to sign and file.'],
-    has.trailer && ['hsmv-82050-trailer', 'Florida form HSMV 82050, trailer', 'Same state form for the trailer. Page 2 is the seller’s notice of sale.'],
-    ['payment-receipt', 'Payment receipt', 'The seller signs this when you pay.'],
-  ].filter(Boolean) as [string, string, string][]
-
-  const smsBody = encodeURIComponent(
-    `Hi ${String(deal.seller_name).split(' ')[0]}, thanks again. One thing for you: within 30 days, fill out the notice of sale on the back of the title or form HSMV 82050 and file it with the tax collector, so the boat's out of your name.`
-  )
-  const sentCount = Array.isArray(deal.progress?.sellerEmailed) ? deal.progress.sellerEmailed.length : 0
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={boxStyle}>
-        <div style={eyebrow}>SALE DETAILS</div>
-        <h2 style={h2}>Fill these in once. Every paper is filled in for you.</h2>
-        <Field id="h-date" label="Date of sale" type="date" value={h.saleDate || ''} onChange={(v) => set({ saleDate: v })} />
-        <Field id="h-county" label="Florida county where you’re buying" placeholder="Palm Beach" value={h.county || ''} onChange={(v) => set({ county: v })} />
-        <Field id="h-baddr" label="Your address" hint="street, city, state, ZIP" value={h.buyerAddress || ''} onChange={(v) => set({ buyerAddress: v })} />
-        <Field id="h-saddr" label="Seller’s address" value={h.sellerAddress || ''} onChange={(v) => set({ sellerAddress: v })} />
-        <Field
-          id="h-semail"
-          label="Seller’s email"
-          hint="optional, to send them their copy"
-          type="email"
-          value={h.sellerEmail || ''}
-          onChange={(v) => set({ sellerEmail: v })}
-        />
-        <Field
-          id="h-sphone"
-          label="Seller’s mobile number"
-          hint="optional"
-          type="tel"
-          value={h.sellerPhone || ''}
-          onChange={(v) => set({ sellerPhone: v })}
-        />
-        <Select id="h-pay" label="How you’re paying" value={h.paymentMethod || ''} options={PAYMENT_METHODS} onChange={(v) => set({ paymentMethod: v })} />
-        <Field
-          id="h-inv"
-          label="What’s included besides the items above"
-          hint="optional"
-          placeholder="Garmin fishfinder, bimini top, 4 life jackets, spare prop, 2 keys"
-          textarea
-          value={h.inventory || ''}
-          onChange={(v) => set({ inventory: v })}
-        />
-
-        {has.boat && (
-          <>
-            <div style={{ ...eyebrow, marginTop: 8 }}>THE BOAT</div>
-            <Field id="h-len" label="Length in feet" hint="required on a Florida bill of sale" placeholder="17" value={h.lengthFt || ''} onChange={(v) => set({ lengthFt: v.replace(/[^0-9.' ]/g, '') })} />
-            <Select id="h-prop" label="Propulsion" hint="required" value={h.propulsion || ''} options={PROPULSION} onChange={(v) => set({ propulsion: v })} />
-            <Select id="h-hull" label="Hull material" hint="for the title application" value={h.hull || ''} options={HULLS} onChange={(v) => set({ hull: v })} />
-            <Select id="h-fuel" label="Fuel" hint="for the title application" value={h.fuel || ''} options={FUELS} onChange={(v) => set({ fuel: v })} />
-          </>
-        )}
-
-        <div style={{ ...eyebrow, marginTop: 8 }}>THE TITLE</div>
-        <Choice label={has.boat ? 'How is the boat titled?' : 'How is it titled or registered?'} value={h.titledHow} options={TITLED_OPTIONS} onChange={(v) => set({ titledHow: v })} />
-        {h.titledHow === 'florida' && (
-          <Field id="h-tnum" label="Florida title number" hint="optional, on the front of the title" value={h.titleNumber || ''} onChange={(v) => set({ titleNumber: v })} />
-        )}
-        {(h.titledHow === 'florida' || h.titledHow === 'other-title' || h.titledHow === 'other-no-title') && has.boat && (
-          <Field id="h-reg" label="Registration number" hint="optional, the FL 1234 AB number on the bow" value={h.registrationNumber || ''} onChange={(v) => set({ registrationNumber: v })} />
-        )}
-        {h.titledHow === 'documented' && (
-          <Field id="h-on" label="Coast Guard official number" hint="on the Certificate of Documentation" value={h.officialNumber || ''} onChange={(v) => set({ officialNumber: v })} />
-        )}
-        <label style={{ display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer', color: cream, fontSize: 15 }}>
-          <input
-            type="checkbox"
-            checked={!!h.twoSellers}
-            onChange={(e) => set({ twoSellers: e.target.checked })}
-            style={{ width: 20, height: 20, accentColor: gold }}
-          />
-          There are two owners on the title
-        </label>
-        {h.twoSellers && <Field id="h-s2" label="Second owner’s full name" value={h.secondSeller || ''} onChange={(v) => set({ secondSeller: v })} />}
-        <Choice label="Does the title show a lienholder?" value={h.lien} options={LIEN_OPTIONS} onChange={(v) => set({ lien: v })} />
-
-        {msg && <p style={{ margin: 0, color: gold, fontSize: 15 }}>{msg}</p>}
-        <button type="button" onClick={save} disabled={saving || !dirty} style={{ ...goldButton, opacity: saving || !dirty ? 0.6 : 1 }}>
-          {saving ? 'Saving...' : 'Save and fill in my papers'}
-        </button>
-      </div>
-
-      {saved.lien === 'open' && (
-        <div style={{ ...boxStyle, border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.1)' }}>
-          <div style={eyebrow}>STOP BEFORE YOU PAY</div>
-          <h2 style={h2}>There’s an open lien on this title</h2>
-          <p style={{ margin: 0, color: cream, lineHeight: 1.6 }}>
-            Until that lender releases the lien, it has a claim on the boat, even after you pay the seller. Don’t hand over
-            money yet. Your options:
-          </p>
-          <ul style={{ margin: 0, paddingLeft: 20, color: cream, lineHeight: 1.7 }}>
-            <li>The seller pays off the loan first and gives you the signed lien release.</li>
-            <li>You pay the lender directly, using a written payoff letter, and the release comes to you.</li>
-            <li>
-              Use full BoatClosers with escrow, so no money is released until the lien is cleared.{' '}
-              <a href="/" style={{ color: gold }}>
-                See full BoatClosers
-              </a>
-            </li>
-          </ul>
-          <p style={{ margin: 0, color: muted, fontSize: 14 }}>Once you have the release, change your answer above and your papers unlock.</p>
-        </div>
-      )}
-
-      {ready && (
-        <div style={boxStyle}>
-          <div style={eyebrow}>YOUR PAPERS</div>
-          <h2 style={h2}>Print these, or open them on your phone, for the handoff</h2>
-          <DocRow
-            token={token}
-            doc="closing-packet"
-            name="Everything in one file"
-            note="Every paper below plus your title application, worksheet, and condition report, in the order you’ll use them. Easiest to print."
-            primary
-          />
-          {docs.map(([key, name, note]) => (
-            <DocRow key={key} token={token} doc={key} name={name} note={note} />
-          ))}
-          {saved.titledHow === 'other-no-title' && (
-            <p style={{ margin: 0, color: gold, fontSize: 14, lineHeight: 1.6 }}>
-              Because the boat comes from a state that doesn’t title boats, the seller must sign the bill of sale in front of a
-              notary. The notary section is on the last page.
-            </p>
-          )}
-          {saved.titledHow === 'documented' && (
-            <p style={{ margin: 0, color: gold, fontSize: 14, lineHeight: 1.6 }}>
-              Documented boat: also have the seller sign the Coast Guard bill of sale,{' '}
-              <a href="https://www.dco.uscg.mil/nvdc/" target="_blank" rel="noopener noreferrer" style={{ color: gold }}>
-                form CG-1340 from the Vessel Documentation Center
-              </a>
-              .
-            </p>
-          )}
-        </div>
-      )}
-
-      {ready && (
-        <Checklist
-          label="TITLE SIGNING GUIDE"
-          title="Check each of these before you hand over payment"
-          items={titleSigningGuide(saved)}
-          checks={checks}
-          onToggle={onToggle}
-        />
-      )}
-
-      {ready && (
-        <div style={boxStyle}>
-          <div style={eyebrow}>THE SELLER’S COPY</div>
-          <h2 style={h2}>Send the seller their papers</h2>
-          <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
-            We send them their copies plus their notice of sale on the state form, already filled in, so all they do is sign
-            and file it. They don’t need an account.
-          </p>
-          {!saved.sellerEmail ? (
-            <p style={{ margin: 0, color: cream, fontSize: 14 }}>
-              Add the seller’s email in the sale details above, then save.
-            </p>
-          ) : (
-            <button type="button" onClick={emailSeller} disabled={emailing || sentCount >= 3} style={{ ...goldButton, opacity: emailing || sentCount >= 3 ? 0.6 : 1 }}>
-              {emailing ? 'Sending...' : `${sentCount ? 'Send again' : 'Email the seller their papers'}`}
-            </button>
-          )}
-          {emailMsg && <p style={{ margin: 0, color: gold, fontSize: 14 }}>{emailMsg}</p>}
-          <a href={`sms:?&body=${smsBody}`} style={{ color: muted, fontSize: 13 }}>
-            Or text the reminder from your own phone
-          </a>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ---------- Step 4: after it's yours ----------
-
-export function AfterStep({
-  token,
-  deal,
-  has,
-  checks,
-  onToggle,
-}: {
-  token: string
-  deal: any
-  has: Record<ItemKey, boolean>
-  checks: Record<string, boolean>
-  onToggle: (id: string, v: boolean) => void
-}) {
-  const h: Handoff = deal.progress?.handoff || {}
-  const ready = handoffProblems(h, has).length === 0 && h.lien !== 'open'
-  const due = h.saleDate ? addDays(h.saleDate, 30) : null
-  const tax = salesTaxEstimate(deal.price_cents)
-  const bring = whatToBring(h, has)
-
-  if (!ready) {
-    return (
-      <div style={boxStyle}>
-        <div style={eyebrow}>AFTER IT’S YOURS</div>
-        <h2 style={h2}>Fill in the sale details in step 3 first</h2>
-        <p style={{ margin: 0, color: muted, lineHeight: 1.6 }}>Your title worksheet, deadline, and checklist are built from them.</p>
-      </div>
-    )
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ ...boxStyle, border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.08)' }}>
-        <div style={eyebrow}>YOUR DEADLINE</div>
-        <h2 style={{ ...h2, fontSize: 24 }}>
-          Title and register by {due ? due.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : '30 days after the sale'}
-        </h2>
-        <p style={{ margin: 0, color: muted, lineHeight: 1.6 }}>
-          Any Florida county tax collector’s office can do it. Florida charges a late penalty after 30 days, and your bill of
-          sale stops working as temporary registration.
-        </p>
-      </div>
-
-      <div style={boxStyle}>
-        <div style={eyebrow}>WHAT TO BRING</div>
-        <h2 style={h2}>Take all of this to the tax collector</h2>
-        <ul style={{ margin: 0, paddingLeft: 20, color: cream, lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {bring.map((b) => (
-            <li key={b.label}>
-              {b.href ? (
-                <a href={b.href} target="_blank" rel="noopener noreferrer" style={{ color: cream }}>
-                  {b.label}
-                </a>
-              ) : (
-                b.label
-              )}
-              {b.detail && <div style={{ color: muted, fontSize: 14 }}>{b.detail}</div>}
-            </li>
-          ))}
-        </ul>
-        {has.boat && h.titledHow !== 'documented' && (
-          <DocRow
-            token={token}
-            doc="hsmv-82040-vs"
-            name="Title application, HSMV 82040 VS"
-            note="Florida’s official form, pre-filled with your sale. Add your driver license number, date of birth, vessel type, and county, then sign. You can type into it or print it."
-            primary
-          />
-        )}
-        <DocRow token={token} doc="title-worksheet" name="Title worksheet" note="Every value from your sale, plus this list to check off at the counter." />
-      </div>
-
-      <div style={boxStyle}>
-        <div style={eyebrow}>WHAT IT WILL COST</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', color: cream, fontSize: 15 }}>
-          <span>Florida sales tax (6%)</span>
-          <b>about {money(Math.round(tax.state * 100))}</b>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', color: cream, fontSize: 15 }}>
-          <span>County surtax, first $5,000 only</span>
-          <b>up to {money(Math.round(tax.surtaxMax * 100))}</b>
-        </div>
-        <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.5 }}>
-          Plus title and registration fees. In a private sale you pay the sales tax when you title the boat. The tax
-          collector calculates the exact amount.
-        </p>
-      </div>
-
-      <Checklist
-        label="NEW OWNER CHECKLIST"
-        title="Get on the water the right way"
-        items={forItems(NEW_OWNER, has)}
-        checks={checks}
-        onToggle={onToggle}
-      />
-
-      <div style={boxStyle}>
-        <div style={eyebrow}>DOCUMENTS</div>
-        <h2 style={h2}>Everything from this sale, any time</h2>
-        {[
-          has.boat && ['vessel-bill-of-sale', 'Vessel bill of sale'],
-          has.motor && !has.boat && ['motor-bill-of-sale', 'Motor bill of sale'],
-          has.trailer && ['trailer-bill-of-sale', 'Trailer bill of sale'],
-          has.boat && ['hsmv-82050-boat', 'Florida form HSMV 82050, boat'],
-          has.trailer && ['hsmv-82050-trailer', 'Florida form HSMV 82050, trailer'],
-          ['payment-receipt', 'Payment receipt'],
-          ['closing-summary', 'Closing summary'],
-          ['title-worksheet', 'Title & registration worksheet'],
-          has.boat && h.titledHow !== 'documented' && ['hsmv-82040-vs', 'Title application, HSMV 82040 VS'],
-          ['condition-report', 'Condition report'],
-          ['closing-packet', 'Closing packet (everything in one file)'],
-        ]
-          .filter(Boolean)
-          .map((d) => {
-            const [key, name] = d as [string, string]
-            return <DocRow key={key} token={token} doc={key} name={name} />
-          })}
-        <p style={{ margin: 0, color: muted, fontSize: 13 }}>Keep these with your boat records. Your private link brings you back here from any device.</p>
-      </div>
-    </div>
-  )
-}

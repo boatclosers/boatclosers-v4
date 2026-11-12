@@ -6,8 +6,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf
 import { type Handoff, whatToBring, salesTaxEstimate, addDays, type ItemKey } from '@/lib/express/content'
 import { buildHsmv82050 } from '@/lib/express/hsmv82050'
 import { buildHsmv82040vs } from '@/lib/express/hsmv82040vs'
-import { inspectionFor, INSPECTION_SECTIONS } from '@/lib/express/inspection'
-import type { InspectionProgress, Photo } from '@/lib/express/content'
+import { HANDOFF_CHECKS, type Photo } from '@/lib/express/content'
 import { photoBytes } from '@/lib/express/photos'
 
 export type DocKey =
@@ -20,7 +19,7 @@ export type DocKey =
   | 'closing-summary'
   | 'title-worksheet'
   | 'hsmv-82040-vs'
-  | 'condition-report'
+  | 'handoff-record'
   | 'closing-packet'
 
 export const DOC_TITLES: Record<DocKey, string> = {
@@ -33,7 +32,7 @@ export const DOC_TITLES: Record<DocKey, string> = {
   'closing-summary': 'Closing Summary',
   'title-worksheet': 'Title & Registration Worksheet',
   'hsmv-82040-vs': 'Florida title application, HSMV 82040 VS (pre-filled)',
-  'condition-report': 'Condition Report (your inspection)',
+  'handoff-record': 'Handoff Record (photos and checklist)',
   'closing-packet': 'Closing Packet (every paper, in order)',
 }
 
@@ -41,7 +40,7 @@ export const DOC_TITLES: Record<DocKey, string> = {
 export const SELLER_DOCS: DocKey[] = ['vessel-bill-of-sale', 'motor-bill-of-sale', 'trailer-bill-of-sale', 'hsmv-82050-boat', 'hsmv-82050-trailer', 'payment-receipt']
 
 export function docsFor(items: Record<string, any>, h: Handoff = {}): DocKey[] {
-  const out: DocKey[] = ['condition-report']
+  const out: DocKey[] = []
   if (items.boat) out.push('vessel-bill-of-sale')
   if (items.motor && !items.boat) out.push('motor-bill-of-sale')
   if (items.trailer) out.push('trailer-bill-of-sale')
@@ -49,7 +48,7 @@ export function docsFor(items: Record<string, any>, h: Handoff = {}): DocKey[] {
   if (items.trailer) out.push('hsmv-82050-trailer')
   out.push('payment-receipt', 'closing-summary', 'title-worksheet')
   if (items.boat && h.titledHow !== 'documented') out.push('hsmv-82040-vs')
-  out.push('closing-packet')
+  out.push('handoff-record', 'closing-packet')
   return out
 }
 
@@ -269,7 +268,7 @@ type Deal = {
   items: Record<string, any>
   price_cents: number
   paid_at?: string
-  progress?: { handoff?: Handoff; inspection?: InspectionProgress; photos?: Photo[] }
+  progress?: { handoff?: Handoff; checks?: Record<string, boolean>; photos?: Photo[] }
 }
 
 const FOOTER = 'Prepared with BoatClosers Express (boatclosers.com). BoatClosers is not a party to this sale and does not give legal advice.'
@@ -490,50 +489,27 @@ async function titleWorksheet(d: Deal, h: Handoff) {
   return w.finish(FOOTER)
 }
 
-const STATUS_LABEL = { ok: 'Looks good', issue: 'PROBLEM', skip: 'Not checked' } as const
-
-async function conditionReport(d: Deal) {
-  const ins: InspectionProgress = d.progress?.inspection || { items: {} }
-  const list = inspectionFor(has(d))
-  const done = list.filter((i) => ins.items[i.id]?.s)
-  const problems = list.filter((i) => ins.items[i.id]?.s === 'issue')
+// What changed hands at the handoff: the checklist the buyer ticked, the
+// inventory, and the dated photos. A record of the handoff, not an inspection.
+async function handoffRecord(d: Deal) {
+  const h: Handoff = d.progress?.handoff || {}
+  const checks: Record<string, boolean> = (d.progress as any)?.checks || {}
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' })
-  const w = await Writer.create('Condition Report', `Buyer's walk-around inspection, recorded ${today}`)
-  w.heading('What was inspected')
+  const w = await Writer.create('Handoff Record', `What changed hands, recorded ${today}`)
+  w.heading('The sale')
   for (const l of itemLines(d)) w.bullet(l)
   w.field('Seller', d.seller_name)
-  w.field('Buyer and inspector', d.buyer_name)
-  w.field('Asking / agreed price', money(d.price_cents))
-  if (ins.hours) w.field('Engine hours seen', ins.hours)
-  w.field('Items checked', `${done.length} of ${list.length}`)
-
-  w.heading(problems.length ? `Problems found (${problems.length})` : 'Problems found')
-  if (!problems.length) w.text('None recorded.', { color: GREY })
-  for (const i of problems) {
-    w.bullet(`${i.section}: ${i.label}${i.redFlag ? '  [RED FLAG]' : ''}`, '!')
-    if (ins.items[i.id]?.note) w.text(`Note: ${ins.items[i.id].note}`, { indent: 14, color: GREY })
+  w.field('Buyer', d.buyer_name)
+  w.field('Price', money(d.price_cents))
+  if (h.saleDate) w.field('Date of sale', h.saleDate)
+  if (h.paymentMethod) w.field('Paid by', h.paymentMethod)
+  if (h.inventory) {
+    w.heading('Included in the sale')
+    w.text(h.inventory)
   }
-  if (problems.length) {
-    w.text(
-      'Before you pay: use these findings to ask the seller to fix them, lower the price, or both. Get any agreed repair or price change in writing. Your bill of sale is filled in with the final price you enter.',
-      { size: 9, gap: 6 }
-    )
-  }
-
-  for (const section of INSPECTION_SECTIONS) {
-    const rows = list.filter((i) => i.section === section)
-    if (!rows.length) continue
-    w.heading(section)
-    for (const i of rows) {
-      const r = ins.items[i.id]
-      const tag = r?.s ? STATUS_LABEL[r.s] : 'Not checked'
-      w.bullet(`${tag}: ${i.label}`, r?.s === 'ok' ? '+' : r?.s === 'issue' ? '!' : '-')
-      if (r?.note && r.s !== 'issue') w.text(`Note: ${r.note}`, { indent: 14, color: GREY })
-    }
-  }
-  if (ins.notes) {
-    w.heading('Other notes')
-    w.text(ins.notes)
+  w.heading('Handed over')
+  for (const c of HANDOFF_CHECKS.filter((c) => !c.only || has(d)[c.only])) {
+    w.bullet(`${checks[c.id] ? 'Yes' : 'Not marked'}: ${c.label}`, checks[c.id] ? '+' : '-')
   }
   const photos = d.progress?.photos || []
   if (photos.length && d.id) {
@@ -552,12 +528,12 @@ async function conditionReport(d: Deal) {
         w.page.drawImage(img, { x: w.M, y: w.y - ih, width: iw, height: ih })
         w.y -= ih + 14
       } catch (e) {
-        console.error('condition report photo skipped', e)
+        console.error('handoff record photo skipped', e)
       }
     }
   }
   w.text(
-    'This report records what the buyer saw. It is not a marine survey or a mechanical inspection, and it does not change the as-is terms of the sale. For a larger purchase, hire an accredited marine surveyor (SAMS or NAMS) and a marine mechanic.',
+    'This record shows what the buyer marked and photographed at the handoff. It is not a marine survey or an inspection, and it does not change the as-is terms of the sale.',
     { size: 8, color: GREY, gap: 8 }
   )
   return w.finish(FOOTER)
@@ -565,7 +541,7 @@ async function conditionReport(d: Deal) {
 
 // Every paper for the sale in one file, in the order you use them: the summary on
 // top, then what gets signed at the handoff, then what goes to the tax collector,
-// then the inspection record.
+// then the handoff record.
 const PACKET_ORDER: DocKey[] = [
   'closing-summary',
   'vessel-bill-of-sale',
@@ -576,7 +552,7 @@ const PACKET_ORDER: DocKey[] = [
   'payment-receipt',
   'hsmv-82040-vs',
   'title-worksheet',
-  'condition-report',
+  'handoff-record',
 ]
 
 async function closingPacket(d: Deal) {
@@ -620,8 +596,8 @@ export async function buildDocument(key: DocKey, d: Deal): Promise<Uint8Array> {
       return titleWorksheet(d, h)
     case 'hsmv-82040-vs':
       return buildHsmv82040vs(d)
-    case 'condition-report':
-      return conditionReport(d)
+    case 'handoff-record':
+      return handoffRecord(d)
     case 'closing-packet':
       return closingPacket(d)
   }

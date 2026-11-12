@@ -1013,7 +1013,7 @@ function StepVessel({ data, setData, userRole, onNext }) {
           <div style={{ fontSize:13, fontWeight:800, fontFamily:FONT.sans, color:C.navy, marginBottom:4 }}>Simple deal? BoatClosers Express may be all you need</div>
           <div style={{ fontSize:12.5, fontFamily:FONT.sans, color:C.slate, lineHeight:1.6 }}>
             If you and the seller already agree on the price, there's no deposit to hold, and the title is clear, <b>BoatClosers Express ($29.99)</b> covers it:
-            a Florida bill of sale and state forms filled in for you, a guided inspection, and help titling the boat. The seller doesn't sign up.
+            a Florida bill of sale and state forms filled in for you, and help titling the boat. The seller doesn't sign up.
             Stay here if you want to negotiate, put down a deposit, make the sale depend on a survey or sea trial, or have you both sign a purchase agreement.{" "}
             <a href="/express" style={{ color:C.teal, fontWeight:700 }}>See BoatClosers Express</a>
           </div>
@@ -6491,6 +6491,16 @@ export default function BoatClosers() {
     if (typeof window === "undefined") return;
     try {
       const qs = new URLSearchParams(window.location.search);
+      // Moving up from BoatClosers Express: remember which purchase, then sign in.
+      const fx = qs.get("fromExpress");
+      if (fx && /^[a-f0-9]{48}$/.test(fx)) {
+        localStorage.setItem("bc_from_express", fx);
+        qs.delete("fromExpress");
+        const left = qs.toString();
+        window.history.replaceState(null, "", window.location.pathname + (left ? `?${left}` : "") + window.location.hash);
+        if (!localStorage.getItem("bc_session")) { setAuthRole("buyer"); setScreen("auth"); }
+        return;
+      }
       const r = qs.get("start");
       if (r !== "buyer" && r !== "seller") return;
       qs.delete("start");
@@ -7254,6 +7264,31 @@ export default function BoatClosers() {
     return res;
   };
 
+  // ── EXPRESS MOVE-UP ── once signed in, turn the remembered Express purchase
+  // into a full deal with everything filled in, then open it.
+  const [expressMoveMsg, setExpressMoveMsg] = useState("");
+  useEffect(() => {
+    if (!user) return;
+    let fx = null;
+    try { fx = localStorage.getItem("bc_from_express"); } catch (e) {}
+    if (!fx) return;
+    (async () => {
+      try {
+        const res = await authedFetch("/api/deals/from-express", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: fx }) });
+        const j = await res.json().catch(() => ({}));
+        if (res.ok && j.dealId) {
+          try { localStorage.removeItem("bc_from_express"); } catch (e) {}
+          window.location.replace(`/?dealId=${encodeURIComponent(j.dealId)}&step=1`);
+          return;
+        }
+        if (res.status !== 403) { try { localStorage.removeItem("bc_from_express"); } catch (e) {} }
+        setExpressMoveMsg(j.error || "We couldn't move your Express purchase. Email support@boatclosers.com and we'll do it for you.");
+      } catch (e) {
+        setExpressMoveMsg("We couldn't move your Express purchase. Check your connection and refresh.");
+      }
+    })();
+  }, [user]); // eslint-disable-line
+
   const handleAuth = async (authData) => {
     setUser(authData);
     tokenRef.current = { token: authData.token, refreshToken: authData.refreshToken || null };
@@ -7442,6 +7477,12 @@ export default function BoatClosers() {
           <div className="bc-brandsub" style={S.logoSub}>Private Vessel Transactions</div>
         </div>
         <div className="bc-navactions" style={{ display:"flex", alignItems:"center", gap:12 }}>
+          {expressMoveMsg && (
+            <div role="alert" style={{ position:"fixed", left:12, right:12, bottom:16, zIndex:3900, maxWidth:560, margin:"0 auto", background:"#fff", border:`2px solid ${C.brass}`, borderRadius:12, padding:"14px 16px", fontFamily:FONT.sans, fontSize:14, color:C.navy, lineHeight:1.5, display:"flex", gap:12, alignItems:"flex-start" }}>
+              <span style={{ flex:1 }}>{expressMoveMsg}</span>
+              <button type="button" onClick={()=>setExpressMoveMsg("")} style={{ border:0, background:"transparent", fontWeight:700, cursor:"pointer", color:C.navy }}>Close</button>
+            </div>
+          )}
           {sessionExpired && (
             <div style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:4000, padding:"1rem", fontFamily:FONT.sans }}>
               <div style={{ background:"#fff", borderRadius:12, maxWidth:380, padding:"1.75rem", textAlign:"center", border:`2px solid ${C.brass}` }}>

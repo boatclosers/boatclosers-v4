@@ -194,9 +194,9 @@ export default function Page() {
           </h3>
           <p style={{ marginBottom: 26 }}>
             Start free with the HIN check, lien check, and seller questions. For $29.99 you
-            get a guided inspection with photos and a condition report, a Florida bill of
-            sale and state forms filled in for your deal, a pre-filled title application,
-            and deadline reminders. Boat, trailer, motor, or all three. The seller never
+            get a Florida bill of sale and state forms filled in for your deal, a title
+            signing guide, a pre-filled title application, and deadline reminders. Want to
+            look the boat over first? My Boat Inspector walks you through it. Boat, trailer, motor, or all three. The seller never
             has to sign up.
           </p>
           <Link

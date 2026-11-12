@@ -144,6 +144,29 @@ export const NEW_OWNER: CheckItem[] = [
   { id: 'n-notice', label: 'Make sure the seller files a notice of sale', detail: 'Florida sellers complete the notice of sale on the title or form HSMV 82050 within 30 days, so the boat is out of their name.' },
 ]
 
+// What the buyer brings to the meeting with the seller.
+export const BRING_TO_HANDOFF: CheckItem[] = [
+  { id: 'b-id', label: 'Your driver license', detail: 'The seller should see it too, and you should see theirs. The names must match the title.' },
+  { id: 'b-pay', label: 'The payment, ready to hand over', detail: 'A cashier’s check made out to the name on the title, or a bank transfer you can confirm on the spot. Call the issuing bank yourself to confirm a check is real.' },
+  { id: 'b-papers', label: 'Your papers from Express, printed or on your phone', detail: 'Two copies of the bill of sale so you each keep a signed original.' },
+  { id: 'b-pen', label: 'A pen with blue or black ink', detail: 'The tax collector can reject a title signed in any other color.' },
+  { id: 'b-tow', only: 'trailer', label: 'Tow gear for the trip home', detail: 'Hitch ball in the right size, safety chains, and working trailer lights. The seller’s trailer plate stays with the seller.' },
+  { id: 'b-insure', label: 'Proof of insurance, if you’re taking it on the water or a marina asks', detail: 'Get it bound before you drive away. Most insurers can do it by phone the same day.' },
+]
+
+// What should change hands at the meeting. Ticks go on the handoff record.
+export const HANDOFF_CHECKS: CheckItem[] = [
+  { id: 'h-title', label: 'The original title, signed by every owner listed on it' },
+  { id: 'h-release', label: 'The signed lien release, if the title shows a lienholder' },
+  { id: 'h-bos', label: 'The bill of sale, signed by both of you, one original each' },
+  { id: 'h-hin', only: 'boat', label: 'The HIN on the hull matches the title and the bill of sale' },
+  { id: 'h-vin', only: 'trailer', label: 'The trailer VIN matches its title or registration' },
+  { id: 'h-keys', label: 'All keys, including spares and the kill-switch lanyard' },
+  { id: 'h-manuals', label: 'Manuals, service records, and receipts the seller has' },
+  { id: 'h-items', label: 'Everything listed as included in the sale' },
+  { id: 'h-reg', only: 'boat', label: 'The current registration card, if the seller has it' },
+]
+
 export type BringItem = { label: string; detail?: string; href?: string }
 
 export function whatToBring(h: Handoff, has: Record<ItemKey, boolean>): BringItem[] {

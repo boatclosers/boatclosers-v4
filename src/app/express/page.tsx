@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'BoatClosers Express: Buy a Boat From a Private Seller the Right Way — $29.99 (Florida)',
+  title: 'BoatClosers Express: Private Boat Sale Paperwork and Title, Done Right — $29.99 (Florida)',
   description:
-    'Everything you need to buy a boat, trailer, or motor from a private seller in Florida — a free HIN and lien check, a guided inspection, every state form filled in, and your title application pre-filled, for a flat $29.99. The seller signs the papers but never needs an account.',
+    'You agreed on a price with a private seller in Florida. Express does the rest: a free HIN and lien check, then your bill of sale, every state form, and your title application filled in, for a flat $29.99. The seller never needs an account.',
   alternates: {
     canonical: 'https://www.boatclosers.com/express',
   },
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     url: 'https://www.boatclosers.com/express',
     title: 'BoatClosers Express — $29.99',
     description:
-      'Everything you need to buy a boat from a private seller in Florida — inspection, paperwork, and title, for $29.99. The seller signs the papers but never needs an account.',
+      'The paperwork and title for a private boat sale in Florida, done right, for $29.99. The seller never needs an account.',
     images: [{ url: '/og-express.png', width: 1200, height: 630, alt: 'BoatClosers Express — $29.99' }],
   },
   // Its own X/Twitter card, so shares don't inherit the homepage's $249 text.
@@ -21,16 +21,18 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'BoatClosers Express — $29.99',
     description:
-      'Buy a boat from a private seller in Florida: inspection, paperwork and title for $29.99. The seller signs the papers but never needs an account.',
+      'Private boat sale paperwork and title in Florida for $29.99. The seller never needs an account.',
     images: ['/og-express.png'],
   },
 }
 
 const steps = [
-  { title: 'Before you pay', price: 'Free', text: 'Free HIN check, a lien check, the right questions to ask, and how to pay safely — so you don’t waste a trip or get surprised.' },
-  { title: 'Inspect it', price: '$29.99', text: 'A guided phone walkthrough of the hull, engine, systems, trailer, and sea trial — with a condition report you can use to renegotiate. Not a replacement for a marine survey.' },
-  { title: 'At the handoff', price: 'Included', text: 'Your Florida bill of sale and form HSMV 82050 filled in, plus a title-signing guide so nothing gets rejected at the counter.' },
-  { title: "After it's yours", price: 'Included', text: 'A pre-filled Florida title application, exactly what to bring to the tax collector, and a reminder before your 30-day deadline.' },
+  { title: 'Vessel', price: 'Free', text: 'Tell us what you’re buying: boat, trailer, motor, or all three. We check the HIN against the Coast Guard for free.' },
+  { title: 'Parties', price: 'Free', text: 'You and the seller, exactly as you’ll appear on the title. The seller never signs up.' },
+  { title: 'Price', price: 'Free', text: 'The price you agreed, the sale date, how you’re paying, and what comes with it.' },
+  { title: 'Check', price: 'Free', text: 'A lien check, the questions to ask the seller, and how to pay without getting scammed.' },
+  { title: 'Documents', price: '$29.99', text: 'Your bill of sale and Florida form HSMV 82050, filled in, plus a payment receipt and a title signing guide.' },
+  { title: 'Closing', price: 'Included', text: 'Handoff checklist and photos, the seller’s copy, your pre-filled title application, and reminders before your 30-day deadline.' },
 ]
 
 const tips = [
@@ -38,14 +40,38 @@ const tips = [
   'Sign the title and the bill of sale at the same moment you hand over payment. Doing it all at once is what keeps a simple sale clean.',
   'Don’t wire a deposit to hold a boat on a cash deal. Pay in full, in person, at the handoff — once the papers are signed.',
   'In Florida the clock starts at the sale: you have 30 days to title it. Express reminds you before it runs out.',
+  'Bring a blue or black pen. A title signed in any other color can be rejected at the counter.',
 ]
 
 const faqs = [
-  { q: 'Does the seller have to sign up?', a: 'No account needed. The seller signs the bill of sale and title at the handoff, and you handle everything else.' },
-  { q: 'Does the inspection replace a marine survey?', a: 'No. The guided inspection is a structured walkthrough you do yourself with your phone, to catch problems and give you facts to negotiate with. It is not a professional marine survey, and lenders and insurers may still require one. On a bigger or older boat, or if anything looks off, hire a surveyor.' },
-  { q: 'What does it cost?', a: 'Checking is free — the HIN check, lien check, and seller questions. The guided inspection, condition report, and all the paperwork are $29.99, one price for a boat, a trailer, a motor, or all three.' },
+  { q: 'What do I get for $29.99?', a: 'Every paper for the sale, filled in from what you enter once: the bill of sale (which works as your 30-day temporary registration), Florida form HSMV 82050 with the seller’s notice of sale, a payment receipt, a title signing guide, your pre-filled title application, what to bring to the tax collector with a cost estimate, a handoff checklist and photo record, the seller’s copy emailed to them, and reminders before your deadline. One price for a boat, a trailer, a motor, or all three.' },
+  { q: 'What’s free?', a: 'Everything before the papers: entering your deal, the HIN check, the lien check, the questions to ask the seller, and safe-payment tips. You pay only when you’re ready for the documents.' },
+  { q: 'Does Express include an inspection?', a: 'No. Looking the boat over is My Boat Inspector’s job: a guided walkthrough and sea trial with a written report ($59.99, or $79.99 together with Express). Neither one replaces a professional marine survey.' },
+  { q: 'Does the seller have to sign up?', a: 'No account needed. The seller signs the bill of sale and title in person at the handoff, and we can email them their copy.' },
+  { q: 'What if my deal needs more?', a: 'Express is for a simple sale: price agreed, nothing held in escrow, clear title. If you need to negotiate, hold a deposit, make the sale depend on a survey, or finance it, move to full BoatClosers. Everything you entered moves with you, and your $29.99 comes off the $249.' },
   { q: 'Is this only for Florida?', a: 'For now, yes. Florida titling rules are built in, so your paperwork matches what the tax collector expects.' },
-  { q: 'What if my deal needs more?', a: 'Express is for a simple sale: price agreed, nothing held in escrow, clear title. If you need to negotiate, hold a deposit, make the sale depend on a survey, finance it, or sign a purchase agreement, full BoatClosers ($249) handles all of it — and your $29.99 comes off the $249.' },
+]
+
+const gets = [
+  'Florida bill of sale that doubles as your 30-day temporary registration',
+  'Florida form HSMV 82050 filled in, with the seller’s notice of sale',
+  'Trailer and motor bills of sale when they’re part of the sale',
+  'A payment receipt for the seller to sign',
+  'A title signing guide built for how the boat is titled',
+  'Your title application (HSMV 82040 VS), pre-filled',
+  'What to bring to the tax collector, with a sales tax estimate',
+  'Email and calendar reminders before your 30-day deadline',
+  'A handoff checklist and dated photo record',
+  'The seller’s copy emailed to them, no account needed',
+  'One closing packet, kept here for good',
+  'Answer one question at a time, or fill in the full form',
+]
+
+const products = [
+  { name: 'BoatClosers Express', price: '$29.99', when: 'Price agreed, simple sale', text: 'The paperwork and title for a private sale. Buyer only; the seller just signs at the handoff.', href: '/express/start', cta: 'Start free' },
+  { name: 'My Boat Inspector', price: '$59.99', when: 'Before you buy', text: 'A guided walkthrough of the boat and a sea trial, with a written report to negotiate with. Doesn’t replace a marine survey.', href: 'https://myboatinspector.com', cta: 'See My Boat Inspector' },
+  { name: 'BoatClosers', price: '$249', when: 'Negotiating, deposit, survey, financing', text: 'Offers, a signed purchase agreement, a deposit held by a neutral party, survey and sea trial conditions, and closing, with the seller in the deal.', href: '/', cta: 'See BoatClosers' },
+  { name: 'My Boat Logs', price: '$39.99/yr', when: 'After it’s yours', text: 'Maintenance, receipts, documents and reminders for your boat, and a history to hand the next buyer. 14-day free trial.', href: 'https://myboatlogs.com', cta: 'See My Boat Logs' },
 ]
 
 const css = `
@@ -96,13 +122,13 @@ export default function Page() {
         <div style={{ position: 'relative', maxWidth: 600, margin: '0 auto', padding: '3.25rem 1.25rem 3.5rem' }}>
           <div className="eyebrow" style={{ marginBottom: 18 }}>BoatClosers Express · Florida</div>
           <h1 style={{ fontSize: 'clamp(29px,6vw,40px)', lineHeight: 1.16, color: '#fff' }}>
-            Everything you need to buy a boat from a private seller — <span style={{ color: 'var(--brass-lt)' }}>inspection to title.</span>
+            You agreed on a price. <span style={{ color: 'var(--brass-lt)' }}>We do the paperwork and title.</span>
           </h1>
           <p className="sans" style={{ fontSize: 16, color: 'rgba(255,255,255,0.76)', lineHeight: 1.75, marginTop: 16, maxWidth: 500, marginLeft: 'auto', marginRight: 'auto' }}>
-            You and the seller agreed on the price — Express handles the rest. Check the boat free, then get it inspected, signed, and titled right in Florida for a flat $29.99. No broker, no hassle, and the seller signs the papers but never needs an account.
-          </p>
+            Buying from a private seller in Florida? Enter the deal once and Express fills in your bill of sale, the state forms, and your title application, then keeps you on track until it’s titled. Free to check. $29.99 for the paperwork. The seller never needs an account.
+            </p>
           <div className="sans" style={{ display: 'inline-block', marginTop: 20, color: 'var(--brass-lt)', fontSize: 12, border: '0.5px solid rgba(184,134,58,0.45)', borderRadius: 20, padding: '6px 16px', letterSpacing: 0.5 }}>
-            Free to check · $29.99 to close · no seller account
+            Free to check · $29.99 for your paperwork · no seller account
           </div>
           <div style={{ marginTop: 24 }}>
             <a href="/express/start" className="btn">Start free</a>
@@ -114,16 +140,16 @@ export default function Page() {
       {/* How it works — compact */}
       <section className="section" style={{ background: 'var(--sand)' }}>
         <div className="wrap">
-          <div style={{ textAlign: 'center' }}><span className="eyebrow">Four quick steps</span></div>
+          <div style={{ textAlign: 'center' }}><span className="eyebrow">Six steps, the same as BoatClosers</span></div>
           <h2 style={{ textAlign: 'center', fontSize: 26, color: 'var(--navy)', margin: '14px 0 32px' }}>From handshake to clean title — without the hassle</h2>
           <div className="grid g2">
             {steps.map((s, i) => (
-              <div key={s.title} className="card" style={{ borderLeft: `2.5px solid ${i < 2 ? 'var(--brass)' : 'var(--navy)'}`, borderRadius: 3 }}>
+              <div key={s.title} className="card" style={{ borderLeft: `2.5px solid ${i === 4 ? 'var(--brass)' : 'var(--navy)'}`, borderRadius: 3 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
                   <h3 className="sans" style={{ color: 'var(--navy)', fontSize: 15.5, fontWeight: 600 }}>
                     <span style={{ color: 'var(--brass)', fontFamily: 'var(--serif)', marginRight: 7 }}>{i + 1}.</span>{s.title}
                   </h3>
-                  <span className="sans" style={{ fontSize: 11, letterSpacing: 1.5, fontWeight: 600, textTransform: 'uppercase', color: i < 2 ? 'var(--brass)' : 'var(--slate)', whiteSpace: 'nowrap' }}>{s.price}</span>
+                  <span className="sans" style={{ fontSize: 11, letterSpacing: 1.5, fontWeight: 600, textTransform: 'uppercase', color: i === 4 ? 'var(--brass)' : 'var(--slate)', whiteSpace: 'nowrap' }}>{s.price}</span>
                 </div>
                 <p className="sans" style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--slate)', margin: 0 }}>{s.text}</p>
               </div>
@@ -158,7 +184,7 @@ export default function Page() {
       <section className="section" style={{ background: 'var(--navy)' }}>
         <div className="wrap" style={{ maxWidth: 620, textAlign: 'center' }}>
           <div className="eyebrow lt">One flat price</div>
-          <h2 style={{ fontSize: 26, color: '#fff', margin: '14px 0 32px' }}>Check it free. Close it for $29.99.</h2>
+          <h2 style={{ fontSize: 26, color: '#fff', margin: '14px 0 32px' }}>Check it free. Paperwork for $29.99.</h2>
           <div className="grid g2">
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(184,134,58,0.3)', borderRadius: 10, padding: 26 }}>
               <div className="sans" style={{ fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--brass-lt)', fontWeight: 500 }}>Check it</div>
@@ -168,13 +194,45 @@ export default function Page() {
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1.5px solid var(--brass)', borderRadius: 10, padding: 26 }}>
               <div className="sans" style={{ fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--brass-lt)', fontWeight: 500 }}>Close it</div>
               <div className="sans" style={{ fontSize: 40, color: '#fff', fontWeight: 600, margin: '8px 0' }}>$29.99</div>
-              <div className="sans" style={{ fontSize: 13, lineHeight: 1.65, color: 'rgba(255,255,255,0.6)' }}>Guided inspection, condition report, and every document to buy and title your boat, trailer, or motor.</div>
+              <div className="sans" style={{ fontSize: 13, lineHeight: 1.65, color: 'rgba(255,255,255,0.6)' }}>Every paper to buy and title your boat, trailer, or motor, filled in, plus your handoff checklist, the seller’s copy, and deadline reminders.</div>
             </div>
           </div>
           <div style={{ marginTop: 28 }}><a href="/express/start" className="btn">Start free</a></div>
           <p className="sans" style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', marginTop: 20, lineHeight: 1.7, maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>
-            Still negotiating, or need escrow, a survey period, or financing? <Link href="/" style={{ color: 'var(--brass-lt)', fontWeight: 500 }}>Use full BoatClosers for $249</Link> — and your $29.99 comes off it.
+            Still negotiating, or need escrow, a survey period, or financing? <Link href="/" style={{ color: 'var(--brass-lt)', fontWeight: 500 }}>Move up to full BoatClosers</Link>. Everything you entered moves with you, and your $29.99 comes off the $249.
           </p>
+        </div>
+      </section>
+
+      {/* What you get, and the other products */}
+      <section className="section" style={{ background: 'var(--paper)' }}>
+        <div className="wrap" style={{ maxWidth: 760 }}>
+          <div style={{ textAlign: 'center' }}><span className="eyebrow">What you get for $29.99</span></div>
+          <h2 style={{ textAlign: 'center', fontSize: 25, color: 'var(--navy)', margin: '14px 0 22px' }}>Every paper, filled in once</h2>
+          <div className="grid g2" style={{ marginBottom: 40 }}>
+            {gets.map((g) => (
+              <div key={g} className="sans" style={{ display: 'flex', gap: 10, fontSize: 13.5, lineHeight: 1.6, color: 'var(--text)' }}>
+                <span style={{ color: 'var(--brass)', fontWeight: 700 }}>✓</span>
+                <span>{g}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: 'center' }}><span className="eyebrow">Pick what your deal needs</span></div>
+          <h2 style={{ textAlign: 'center', fontSize: 25, color: 'var(--navy)', margin: '14px 0 22px' }}>Four tools, each with its own job</h2>
+          <div className="grid g2">
+            {products.map((p) => (
+              <div key={p.name} className="card" style={{ borderTop: `2.5px solid ${p.name === 'BoatClosers Express' ? 'var(--brass)' : 'var(--mist)'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                  <h3 className="sans" style={{ color: 'var(--navy)', fontSize: 16, fontWeight: 600 }}>{p.name}</h3>
+                  <span className="sans" style={{ color: 'var(--brass)', fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap' }}>{p.price}</span>
+                </div>
+                <div className="sans" style={{ fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--slate)', margin: '4px 0 8px' }}>{p.when}</div>
+                <p className="sans" style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--slate)', margin: '0 0 10px' }}>{p.text}</p>
+                {p.href && <a href={p.href} className="sans" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600 }}>{p.cta}</a>}
+              </div>
+            ))}
+          </div>
+          <p className="sans" style={{ textAlign: 'center', fontSize: 13, color: 'var(--slate)', marginTop: 18 }}>Bundle: Express + My Boat Inspector for $79.99, at checkout.</p>
         </div>
       </section>
 
@@ -195,7 +253,7 @@ export default function Page() {
       <section style={{ background: 'var(--teal)', padding: '3.25rem 1.25rem', textAlign: 'center' }}>
         <h2 style={{ fontSize: 25, color: '#fff', marginBottom: 10 }}>Got the boat lined up? Start now.</h2>
         <p className="sans" style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', marginBottom: 22, maxWidth: 480, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.7 }}>
-          Check it free today. Unlock the inspection and paperwork when you’re ready to buy.
+          Check it free today. Unlock your paperwork when you’re ready to buy.
         </p>
         <a href="/express/start" className="btn" style={{ background: '#fff', color: 'var(--teal)' }}>Start free</a>
       </section>

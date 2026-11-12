@@ -4,7 +4,6 @@ import { sendEmail, emailLayout } from '@/lib/sendEmail'
 import { handoffProblems, type Handoff } from '@/lib/express/content'
 import { buildDocument, docsFor, DOC_TITLES, type DocKey } from '@/lib/express/documents'
 import { buildHsmv82050 } from '@/lib/express/hsmv82050'
-import { inspectionFor, inspectionPreview, cleanInspection } from '@/lib/express/inspection'
 import { SELLER_QUESTIONS } from '@/lib/express/content'
 import { setPrefs, getPrefs, normalizePhone, cleanChannels, smsConfigured, optIn, type Channel } from '@/lib/comm'
 import crypto from 'crypto'
@@ -15,18 +14,29 @@ export const fetchCache = 'force-no-store'
 
 // BoatClosers Express deal access, by the private token in the buyer's link.
 //   GET  ?token=...                    -> the deal (confirms payment with Stripe if needed)
-//   POST { token, action: 'pay' }      -> a Stripe checkout URL for the $29.99 fee
+//   POST { token, action: 'pay', bundle } -> a Stripe checkout URL for the $29.99 fee,
+//                                       or $79.99 with a My Boat Inspector code (bundle: true)
 //   POST { token, action: 'ids', ids } -> save the HIN / VIN / motor serial
 //   POST { token, action: 'checks', checks } -> save checklist progress (free)
 //   POST { token, action: 'answers', answers } -> save the seller's answers (free)
-//   POST { token, action: 'inspection', inspection } -> save the walk-around inspection (paid only)
-//   POST { token, action: 'handoff', handoff } -> save sale details (paid only)
+//   POST { token, action: 'basics', ... } -> edit the items, price, and names (free)
+//   POST { token, action: 'handoff', handoff } -> save sale details (free; papers still need payment)
 //   POST { token, action: 'email-seller' } -> send the seller their copies (paid only)
 //   POST { token, action: 'ask-seller', email } -> send the seller the questions (free, 3 max)
 //   POST { token, action: 'prefs', channels, phone } -> how the buyer wants reminders
 // The fee is a server constant. Only express_deals is ever touched here.
 
 const FEE_CENTS = 2999 // $29.99
+// Bundle: Express plus one My Boat Inspector walkthrough, $79.99 in total.
+const BUNDLE_MBI_CENTS = 5000
+
+function makeMbiCode() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+  const b = crypto.randomBytes(8)
+  let s = ''
+  for (let i = 0; i < 8; i++) s += chars[b[i] % chars.length]
+  return `MBI-${s.slice(0, 4)}-${s.slice(4)}`
+}
 const SITE = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.boatclosers.com').replace(/\/$/, '')
 const FIELDS = 'id,access_token,buyer_name,buyer_email,seller_name,items,price_cents,state,status,stripe_session_id,paid_at,progress,created_at'
 
@@ -107,9 +117,13 @@ async function confirmPayment(deal: any) {
     const s = await res.json()
     if (res.ok && s.payment_status === 'paid' && s.metadata?.expressDealId === deal.id) {
       const paidAt = new Date().toISOString()
+      const bundle = s.metadata?.bundle === 'mbi'
+      const progress = bundle && !deal.progress?.mbiCode
+        ? { ...(deal.progress || {}), mbiCode: makeMbiCode(), mbiCodeUsed: false }
+        : deal.progress
       const { data: flipped } = await supabaseAdmin
         .from('express_deals')
-        .update({ status: 'paid', paid_at: paidAt, updated_at: paidAt })
+        .update({ status: 'paid', paid_at: paidAt, updated_at: paidAt, progress })
         .eq('id', deal.id)
         .eq('status', 'unpaid')
         .select('id')
@@ -120,12 +134,12 @@ async function confirmPayment(deal: any) {
           subject: 'Your BoatClosers Express paperwork is unlocked',
           html: emailLayout(`
             <p style="font-size:15px;color:#08152e;">Hi ${esc(String(deal.buyer_name).split(' ')[0])},</p>
-            <p style="font-size:15px;color:#08152e;line-height:1.6;">Payment received. Your guided inspection is unlocked: take it with you when you see the boat, and it builds a condition report as you go. When you're ready to buy, add the sale details and your bill of sale, state forms, and title application are filled in for you.</p>
+            <p style="font-size:15px;color:#08152e;line-height:1.6;">Payment received. Your paperwork is unlocked: fill in the sale details once and your bill of sale, Florida forms, and title application are filled in for you.</p>${progress?.mbiCode ? `<p style="font-size:15px;color:#08152e;line-height:1.6;">Your My Boat Inspector code: <b style="font-family:monospace;font-size:17px;">${progress.mbiCode}</b><br/>Enter it when you start your walkthrough at <a href="https://myboatinspector.com">myboatinspector.com</a>.</p>` : ''}
             <p style="text-align:center;margin:28px 0;"><a href="${SITE}/express/deal/${deal.access_token}" style="background:#c9962e;color:#0f1b2d;padding:14px 28px;border-radius:4px;font-weight:700;text-decoration:none;display:inline-block;">Open my purchase</a></p>
           `),
         })
       }
-      return { ...deal, status: 'paid', paid_at: paidAt }
+      return { ...deal, status: 'paid', paid_at: paidAt, progress }
     }
   } catch (e) {
     console.error('express payment check failed:', e)
@@ -144,12 +158,9 @@ export async function GET(req: Request) {
   let deal = await loadDeal(token)
   if (!deal) return NextResponse.json({ error: 'Link not valid.' }, { status: 404 })
   deal = await confirmPayment(deal)
-  // The full inspection is part of what the buyer pays for; unpaid deals get a preview.
-  const has = hasItems(deal)
-  const inspection = deal.status === 'paid' ? { list: inspectionFor(has) } : { preview: inspectionPreview(has) }
   const p = await getPrefs(deal.buyer_email)
   const contact = { channels: p?.channels || ['email'], phone: p?.phone || '', smsReady: smsConfigured() }
-  return NextResponse.json({ deal: publicView(deal), inspection, contact })
+  return NextResponse.json({ deal: publicView(deal), contact })
 }
 
 export async function POST(req: Request) {
@@ -270,23 +281,46 @@ export async function POST(req: Request) {
     return NextResponse.json({ progress, emailSent: !r.sentSms, textSent: !!r.sentSms })
   }
 
-  if (body?.action === 'inspection') {
-    deal = await confirmPayment(deal)
-    if (deal.status !== 'paid') return NextResponse.json({ error: 'Unlock the inspection first.' }, { status: 402 })
-    const inspection = cleanInspection(deal.progress?.inspection, body?.inspection)
-    const progress = { ...(deal.progress || {}), inspection }
-    const { error } = await supabaseAdmin
-      .from('express_deals')
-      .update({ progress, updated_at: new Date().toISOString() })
-      .eq('id', deal.id)
+  if (body?.action === 'basics') {
+    // The buyer corrects what they're buying, the price, or the names. Free, until
+    // the papers have gone to the seller.
+    if (Array.isArray(deal.progress?.sellerEmailed) && deal.progress.sellerEmailed.length) {
+      return NextResponse.json({ error: 'The seller already has their papers, so these are locked.' }, { status: 409 })
+    }
+    const clean = (v: unknown, max = 120) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '')
+    const patch: any = {}
+    if (typeof body?.buyerName === 'string') {
+      if (!clean(body.buyerName, 80)) return NextResponse.json({ error: 'Add your full name.' }, { status: 400 })
+      patch.buyer_name = clean(body.buyerName, 80)
+    }
+    if (typeof body?.sellerName === 'string') {
+      if (!clean(body.sellerName)) return NextResponse.json({ error: "Add the seller's name." }, { status: 400 })
+      patch.seller_name = clean(body.sellerName)
+    }
+    if (body?.price !== undefined) {
+      const dollars = Number(String(body.price).replace(/[^0-9.]/g, ''))
+      if (!Number.isFinite(dollars) || dollars < 1 || dollars > 1000000) return NextResponse.json({ error: 'Add the agreed price.' }, { status: 400 })
+      patch.price_cents = Math.round(dollars * 100)
+    }
+    if (body?.descriptions && typeof body.descriptions === 'object') {
+      const items = { ...(deal.items || {}) }
+      for (const k of ['boat', 'trailer', 'motor']) {
+        const v = body.descriptions[k]
+        if (items[k] && typeof v === 'string' && clean(v)) items[k] = { ...items[k], description: clean(v) }
+      }
+      patch.items = items
+    }
+    if (!Object.keys(patch).length) return NextResponse.json({ error: 'Nothing to save.' }, { status: 400 })
+    patch.updated_at = new Date().toISOString()
+    const { data, error } = await supabaseAdmin.from('express_deals').update(patch).eq('id', deal.id).select(FIELDS).single()
     if (error) return NextResponse.json({ error: 'Could not save.' }, { status: 500 })
-    return NextResponse.json({ progress })
+    return NextResponse.json({ deal: publicView(data) })
   }
 
   if (body?.action === 'handoff') {
-    deal = await confirmPayment(deal)
-    if (deal.status !== 'paid') return NextResponse.json({ error: 'Unlock the paperwork first.' }, { status: 402 })
-    const progress = { ...(deal.progress || {}), handoff: cleanHandoff(body?.handoff) }
+    // Sale details are free to fill in. Only producing the papers needs payment.
+    const merged = { ...(deal.progress?.handoff || {}), ...(body?.handoff || {}) }
+    const progress = { ...(deal.progress || {}), handoff: cleanHandoff(merged) }
     const { error } = await supabaseAdmin
       .from('express_deals')
       .update({ progress, updated_at: new Date().toISOString() })
@@ -368,6 +402,14 @@ export async function POST(req: Request) {
   params.append('line_items[0][price_data][product_data][description]', names.slice(0, 300) || 'Private boat purchase')
   params.append('line_items[0][price_data][unit_amount]', String(FEE_CENTS))
   params.append('line_items[0][quantity]', '1')
+  if (body?.bundle === true) {
+    params.append('line_items[1][price_data][currency]', 'usd')
+    params.append('line_items[1][price_data][product_data][name]', 'My Boat Inspector walkthrough (bundle price)')
+    params.append('line_items[1][price_data][product_data][description]', 'A code for one My Boat Inspector walkthrough, emailed with your receipt')
+    params.append('line_items[1][price_data][unit_amount]', String(BUNDLE_MBI_CENTS))
+    params.append('line_items[1][quantity]', '1')
+    params.append('metadata[bundle]', 'mbi')
+  }
   params.append('success_url', `${SITE}/express/deal/${token}?paid=1`)
   params.append('cancel_url', `${SITE}/express/deal/${token}`)
   params.append('metadata[kind]', 'express')
