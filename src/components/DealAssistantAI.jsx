@@ -10,6 +10,8 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { FONT } from "../lib/theme";
 import { useVoice } from "./useVoice";
+import { nextStepFor } from "../lib/nextStep";
+export { nextStepFor };
 
 export const DealCtx = createContext(null);
 export const useDealCtx = () => useContext(DealCtx);
@@ -28,63 +30,6 @@ const Compass = ({ size = 18, color = K.brass }) => (
   </svg>
 );
 
-// ── What should this person do next? Worked out from the deal, not the AI.
-export function nextStepFor(step, d) {
-  if (!d) return null;
-  const role = d.role === "seller" ? "seller" : "buyer";
-  const other = role === "buyer" ? "seller" : "buyer";
-  const v = d.vessel || {}, p = d.parties || {}, n = d.negotiate || {}, dd = d.ddData || {};
-  const me = p[role] || {};
-  const offers = Array.isArray(n.offers) ? n.offers.filter(Boolean) : [];
-  const last = offers[offers.length - 1];
-  if (n.dealFinalized) return { text: "This deal is finalized. Everything is saved as a permanent record you can view, print or email.", tone: "done" };
-
-  if (step === "vessel") {
-    if (role === "seller" && !d.amInitiator) return { text: "Check the details the buyer entered for your boat and fix anything that's wrong. The documents depend on it." };
-    const miss = [!v.year && "year", !v.make && "make", !v.model && "model", !digits(v.askingPrice) && "asking price"].filter(Boolean);
-    if (miss.length) return { text: `Add the ${miss.join(", ").replace(/, ([^,]*)$/, " and $1")} to continue.` };
-    if (!v.hin) return { text: role === "buyer" ? "Add the HIN if you have it. If not, move on: the seller can add it when they join." : "Add the HIN. It goes on the bill of sale and title paperwork." };
-    return { text: "The boat details look good. Next: who's buying and who's selling.", tone: "ok" };
-  }
-  if (step === "parties") {
-    if (!me.name || !validEmail(me.email)) return { text: "Add your full legal name and email to continue." };
-    if (!d.partyBJoined) return { text: `Invite the ${other} so they can join and respond. They join free.` };
-    return { text: `The ${other} has joined. Next: ${role === "buyer" ? "build your offer" : "the Deal Room"}.`, tone: "ok" };
-  }
-  if (step === "negotiate") {
-    if (!last) return role === "buyer"
-      ? { text: "Build your offer below: price, deposit and what it depends on. It's free to send." }
-      : { text: "Waiting on the buyer's offer. We'll email you the moment it lands." };
-    const from = last.from || last.by;
-    const amt = last.amount ? usd(last.amount) : "an offer";
-    if (last.status === "accepted" || last.status === "agreed" || d.dealPaid) {
-      if (!d.dealPaid) return d.amInitiator ? { text: `${amt} is agreed. Pay the $249 to unlock the purchase agreement and signing.` } : { text: `${amt} is agreed. Waiting on the other side to unlock signing.` };
-      return { text: "Price agreed and signed. Next: due diligence, the survey and sea trial window.", tone: "ok" };
-    }
-    if (last.status === "declined" || last.status === "withdrawn") return { text: "The last offer is off the table. Send a new one or message the other side." };
-    if (last.expiresAt && Date.now() > last.expiresAt) return { text: `The ${amt} offer expired. ${from === role ? "Send it again or revise it." : "Ask them to resend, or make your own."}` };
-    if (from === role) return { text: `Waiting on the ${other} to respond to your ${amt}. We'll let you know.` };
-    return { text: `The ${other} sent ${amt}. Your move: accept, counter, or ask a question.`, tone: "action" };
-  }
-  if (step === "diligence") {
-    if (dd.outcome === "accepted" || dd.outcome === "accept") return { text: "Inspection done and accepted. Next: sign the documents.", tone: "ok" };
-    if (dd.outcome === "rejected" || dd.outcome === "reject") return { text: "The boat was rejected in due diligence. The Rejection Notice records why and the deposit goes back." };
-    const start = n.ddStartDate || (last && last.ddStart);
-    const days = Number(n.dueDiligenceDays || (last && last.ddDays) || 0);
-    if (start && days) {
-      const end = new Date(start); end.setDate(end.getDate() + days);
-      const left = Math.ceil((end.getTime() - Date.now()) / 86400000);
-      if (left < 0) return { text: "The inspection window has ended. Record your decision so the deal can move on.", tone: "action" };
-      const todo = !dd.survey ? "book the survey" : !dd.seatrial ? "schedule the sea trial" : "record your decision";
-      return { text: `${left} day${left === 1 ? "" : "s"} left to inspect. Next: ${role === "buyer" ? todo : "make the boat available for the survey and sea trial"}.`, tone: left <= 2 ? "action" : undefined };
-    }
-    return { text: role === "buyer" ? "Book the survey and sea trial, then record your decision before the window closes." : "Make the boat available for the buyer's survey and sea trial." };
-  }
-  if (step === "documents") return { text: "Sign the documents marked for you. Each one opens with a short summary first." };
-  if (step === "closing") return { text: role === "buyer" ? "Send the balance, take the boat, file the title, then finalize." : "Confirm the money arrived, hand over the boat and keys, sign the title, then finalize." };
-  return null;
-}
-
 // ── The slim bar that sits where the old panel was.
 export function AssistantBar({ step, guide }) {
   const d = useDealCtx();
@@ -102,6 +47,130 @@ export function AssistantBar({ step, guide }) {
         <button type="button" onClick={() => d?.openAssistant?.({ step, guide, tab: "ask" })}
           style={{ border: 0, background: K.navy, color: K.white, borderRadius: 9, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT.sans }}>Ask a question</button>
       </div>
+    </div>
+  );
+}
+
+// ── "Use your own AI": open ChatGPT or Claude with this step and the deal's
+// key facts already filled in (no names, emails or addresses).
+const STEP_TITLES = { vessel: "describing the boat", parties: "setting up the buyer and seller", negotiate: "the offer and negotiation", diligence: "due diligence (survey, sea trial, title checks)", documents: "reviewing and signing the documents", closing: "closing" };
+const ESCROW_NAMES = { escrow_com: "Escrow.com", sea_yachts: "Sea Yachts (a licensed Florida yacht brokerage)", attorney: "an attorney or title company", brokerage: "a licensed broker", direct: "straight to the seller", custom: "a custom arrangement", none: "no deposit" };
+const CONT_NAMES = { survey: "survey", seaTrial: "sea trial", financing: "financing", insurance: "insurance", title: "clear title", personalInspection: "personal inspection" };
+
+export function ownAIPrompt(d, step, guide, question) {
+  if (!d) return "";
+  const role = d.role === "seller" ? "seller" : "buyer";
+  const v = d.vessel || {}, n = d.negotiate || {};
+  const boat = [v.year, v.make, v.model].filter(Boolean).join(" ") || "a boat";
+  const offers = (Array.isArray(n.offers) ? n.offers : []).filter(Boolean).slice(-4);
+  const nx = nextStepFor(step, d);
+  const lines = [
+    `I'm the ${role} in a private boat sale of a ${boat}${digits(v.askingPrice) ? `, asking ${usd(v.askingPrice)}` : ""}. We're using the BoatClosers app, which walks both of us through the deal: offers, deposit and escrow, due diligence, documents, signing and closing. I'd like a second opinion.`,
+    `Where we are: ${STEP_TITLES[step] || step}.${nx ? " The app says next: " + nx.text : ""}`,
+    v.isDocumented === "yes" ? "The boat is Coast Guard documented." : v.isDocumented === "no" ? "The boat has a state title (Florida)." : "",
+    v.brokerListed === "yes" ? "The boat is listed with a broker; I'm representing myself." : "",
+    offers.length ? "Offers so far (oldest first):\n" + offers.map((o) => `- ${o.from || o.by} offered ${usd(o.amount)}${Number(o.escrowPct) ? `, ${o.escrowPct}% deposit held by ${ESCROW_NAMES[o.escrowPath] || "not chosen"}` : ", no deposit"}${o.cashWaived ? ", as-is" : (o.contingencies || []).length ? ", contingent on " + o.contingencies.map((c) => CONT_NAMES[c] || c).join(", ") : ""}${o.ddDays ? `, ${o.ddDays}-day inspection` : ""} (${o.status || "pending"})`).join("\n") : "",
+    n.sellerHasLien === "yes" ? "The seller still has a loan on the boat that gets paid off at closing." : "",
+    question ? `My question: ${question}` : "Explain where this deal stands, what I should do next and why, what risks to watch for, and what to ask the other side.",
+    "Answer like an experienced yacht broker would, in plain words and short steps. Remind me that this is general guidance, not legal or tax advice, and to confirm any wiring instructions by phone.",
+    "At the end, remind me to go back to the BoatClosers app to act on it, since that's where offers are sent, documents are signed and the deal is recorded.",
+  ];
+  return lines.filter(Boolean).join("\n");
+}
+
+function OwnAI({ d, step, guide, question, onConnect }) {
+  const [show, setShow] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const prompt = ownAIPrompt(d, step, guide, question);
+  const q = encodeURIComponent(prompt);
+  const btn = { display: "flex", alignItems: "center", justifyContent: "center", minHeight: 44, borderRadius: 11, border: `1.5px solid ${K.navy}`, background: K.white, color: K.navy, fontSize: 13.5, fontWeight: 600, textDecoration: "none", cursor: "pointer", fontFamily: FONT.sans, textAlign: "center", padding: "0 6px" };
+  return (
+    <div style={{ marginTop: 16, border: `1px solid ${K.mist}`, borderRadius: 14, background: K.white, padding: "12px 13px" }}>
+      <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: K.brassText }}>Second opinion</div>
+      <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>Ask your own AI</div>
+      <div style={{ fontSize: 13.5, color: K.slate, lineHeight: 1.5, marginTop: 4 }}>
+        Opens ChatGPT or Claude with this step and your deal's key numbers filled in{question ? ", plus your question" : ""}. No names, emails or addresses are sent.
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6, marginTop: 10 }}>
+        <a href={`https://chatgpt.com/?q=${q}`} target="_blank" rel="noopener noreferrer" style={btn}>ChatGPT</a>
+        <a href={`https://claude.ai/new?q=${q}`} target="_blank" rel="noopener noreferrer" style={btn}>Claude</a>
+        <button type="button" style={btn} onClick={async () => { try { await navigator.clipboard.writeText(prompt); setCopied(true); setTimeout(() => setCopied(false), 2200); } catch (e) {} }}>{copied ? "Copied" : "Copy"}</button>
+      </div>
+      <div style={{ fontSize: 12.5, color: K.navy, background: K.cream, borderRadius: 10, padding: "8px 10px", marginTop: 10, lineHeight: 1.45 }}>
+        <b>Then come back here to act.</b> Your AI only gives advice. Offers, signatures and payments happen in BoatClosers.
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 8, fontSize: 12.5 }}>
+        <button type="button" onClick={() => setShow(!show)} style={{ border: 0, background: "transparent", padding: "6px 0", color: K.navy, fontWeight: 600, textDecoration: "underline", cursor: "pointer", fontFamily: FONT.sans, fontSize: 12.5 }}>{show ? "Hide what gets sent" : "See what gets sent"}</button>
+        <button type="button" onClick={onConnect} style={{ border: 0, background: "transparent", padding: "6px 0", color: K.slate, fontWeight: 600, cursor: "pointer", fontFamily: FONT.sans, fontSize: 12.5 }}>Connect your AI (advanced)</button>
+      </div>
+      {show && <pre style={{ whiteSpace: "pre-wrap", fontFamily: FONT.sans, fontSize: 12.5, lineHeight: 1.5, background: K.paper, borderRadius: 10, padding: 10, margin: "6px 0 0" }}>{prompt}</pre>}
+    </div>
+  );
+}
+
+// ── Advanced: a private connector link for their own AI (read-only).
+function ConnectAI({ token }) {
+  const [state, setState] = useState({ loading: true, on: false, lastUsed: null, unavailable: false });
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [copied, setCopied] = useState(false);
+  const H = token ? { Authorization: "Bearer " + token } : {};
+  useEffect(() => {
+    fetch("/api/ai-links", { headers: H }).then((r) => r.json()).then((j) => setState({ loading: false, on: !!j.on, lastUsed: j.lastUsed || null, unavailable: !!j.unavailable })).catch(() => setState((s) => ({ ...s, loading: false })));
+  }, []); // eslint-disable-line
+  const make = async () => {
+    setBusy(true); setErr("");
+    try {
+      const r = await fetch("/api/ai-links", { method: "POST", headers: H });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "That didn't work.");
+      setUrl(j.url); setState((s) => ({ ...s, on: true })); setCopied(false);
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+  const off = async () => {
+    setBusy(true);
+    const r = await fetch("/api/ai-links", { method: "DELETE", headers: H }).catch(() => null);
+    if (r && r.ok) { setState((s) => ({ ...s, on: false })); setUrl(""); }
+    setBusy(false);
+  };
+  const box = { background: K.white, border: `1px solid ${K.line}`, borderRadius: 14, padding: "12px 14px", marginBottom: 12 };
+  const primary = { width: "100%", minHeight: 46, border: 0, borderRadius: 12, background: K.navy, color: K.white, fontWeight: 600, fontSize: 14.5, cursor: "pointer", fontFamily: FONT.sans };
+  return (
+    <div style={{ fontSize: 14, lineHeight: 1.55 }}>
+      <h3 style={{ margin: "0 0 6px", fontFamily: FONT.serif, fontWeight: 500, fontSize: 22 }}>Connect your own AI</h3>
+      <p style={{ margin: "0 0 12px", color: K.slate }}>
+        Most people don't need this: the Ask tab and the ChatGPT and Claude buttons cover it. This is for people who want their own assistant to look up their deals any time, from their own chats or by voice.
+      </p>
+      <div style={box}>
+        <div>Your AI can <b>read</b> your deals (the boat, every offer and counter, deadlines and what's next) and explain them. It <b>can't</b> send offers, sign, pay or change anything. Those happen in BoatClosers, where both sides see them.</div>
+      </div>
+      {url ? (
+        <div style={box}>
+          <b>Your private connector link</b>
+          <div style={{ color: K.slate, fontSize: 13 }}>Copy it now. For your security it won't be shown again.</div>
+          <code style={{ display: "block", wordBreak: "break-all", background: K.paper, borderRadius: 8, padding: 8, margin: "8px 0", fontSize: 12.5 }}>{url}</code>
+          <button type="button" style={primary} onClick={async () => { try { await navigator.clipboard.writeText(url); setCopied(true); } catch (e) {} }}>{copied ? "Copied" : "Copy link"}</button>
+        </div>
+      ) : (
+        <div style={box}>
+          {state.on && <div style={{ color: K.slate, fontSize: 13, marginBottom: 8 }}>An AI link is on{state.lastUsed ? `, last used ${new Date(state.lastUsed).toLocaleDateString()}` : ", not used yet"}. Making a new one turns the old one off.</div>}
+          <button type="button" disabled={busy || state.loading} style={primary} onClick={make}>{busy ? "One moment…" : state.on ? "Make a new link" : "Make my AI link"}</button>
+        </div>
+      )}
+      {err && <div role="alert" style={{ color: K.red, fontSize: 13.5, marginBottom: 10 }}>{err}</div>}
+      <div style={box}>
+        <b>Add it to your AI</b>
+        <div style={{ marginTop: 6 }}><b style={{ fontWeight: 600 }}>ChatGPT:</b> on the website, open Settings, then Apps. Under Advanced settings, turn on Developer mode, create a new app named BoatClosers, paste your link, choose No authentication and save.</div>
+        <div style={{ marginTop: 6 }}><b style={{ fontWeight: 600 }}>Claude:</b> open Settings, then Connectors, choose Add custom connector, name it BoatClosers and paste your link.</div>
+        <div style={{ marginTop: 6 }}><b style={{ fontWeight: 600 }}>Others:</b> any assistant that supports MCP connectors (remote servers) can use the same link.</div>
+        <div style={{ marginTop: 6, color: K.slate, fontSize: 13 }}>Menu names change from time to time. Then start a chat with it on and say: "Where does my boat deal stand?"</div>
+      </div>
+      <div style={{ ...box, color: K.slate, fontSize: 13 }}>
+        Anyone with the link can read your deals, so keep it private. Make a new link any time and the old one stops working. Your AI handles what you tell it under its own privacy terms, and it's a guide, not a lawyer or broker.
+      </div>
+      {state.on && !url && <button type="button" disabled={busy} onClick={off} style={{ border: 0, background: "transparent", color: K.red, fontWeight: 600, cursor: "pointer", fontFamily: FONT.sans, fontSize: 14, padding: "8px 0" }}>Turn off AI access</button>}
     </div>
   );
 }
@@ -210,7 +279,7 @@ export function AssistantDock({ guides }) {
                 style={{ border: 0, background: "rgba(255,255,255,0.1)", color: K.white, width: 36, height: 36, borderRadius: 10, cursor: "pointer", fontSize: 18, lineHeight: 1 }}>×</button>
             </div>
             <div role="tablist" style={{ display: "flex", gap: 4, marginTop: 12 }}>
-              {[["ask", "Ask"], ["guide", "Step guide"]].map(([k, l]) => (
+              {[["ask", "Ask"], ["guide", "Step guide"], ["connect", "Your AI"]].map(([k, l]) => (
                 <button key={k} role="tab" type="button" aria-selected={tab === k} onClick={() => setTab(k)}
                   style={{ border: 0, background: tab === k ? K.paper : "transparent", color: tab === k ? K.navy : "rgba(255,255,255,0.8)", borderRadius: "10px 10px 0 0",
                     padding: "9px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: FONT.sans }}>{l}</button>
@@ -218,7 +287,9 @@ export function AssistantDock({ guides }) {
             </div>
           </div>
 
-          {tab === "ask" ? (
+          {tab === "connect" ? (
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 20px" }}><ConnectAI token={d.token} /></div>
+          ) : tab === "ask" ? (
             <>
               <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: "16px 16px 8px" }}>
                 {msgs.length === 0 && (
@@ -241,6 +312,9 @@ export function AssistantDock({ guides }) {
                   </div>
                 ))}
                 {busy && <div style={{ fontSize: 13.5, color: K.slate, margin: "10px 2px" }}>Thinking…</div>}
+                {!busy && (msgs.length === 0 || err || msgs.length >= 2) && (
+                  <OwnAI d={d} step={curStep} guide={guide} question={input.trim() || [...msgs].reverse().find((m) => m.role === "user")?.content || ""} onConnect={() => setTab("connect")} />
+                )}
                 {err && <div role="alert" style={{ fontSize: 13.5, color: K.red, margin: "10px 2px", lineHeight: 1.5 }}>{err} The step guide still has the answers to common questions.</div>}
               </div>
               <form onSubmit={(e) => { e.preventDefault(); ask(input); }} style={{ display: "flex", gap: 8, padding: "10px 12px", borderTop: `1px solid ${K.line}`, background: K.white }}>
