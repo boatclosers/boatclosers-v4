@@ -42,7 +42,7 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   const [data, setData] = useState<any>(null)
   const [filter, setFilter] = useState('live')
-  const [view, setView] = useState<'full' | 'express' | 'mbi'>('full')
+  const [view, setView] = useState<'full' | 'express' | 'mbi' | 'stats' | 'mbl'>('full')
   const [exFilter, setExFilter] = useState('paid')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
@@ -225,8 +225,8 @@ export default function AdminPage() {
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-          {([['full', 'BoatClosers · $249'], ['express', `BoatClosers Express · $29.99 (${t.expressAll ?? 0})`], ['mbi', 'My Boat Inspector']] as const).map(([k, l]) => (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+          {([['full', 'BoatClosers · $249'], ['stats', 'Funnel & AI use'], ['express', `BoatClosers Express · $29.99 (${t.expressAll ?? 0})`], ['mbi', 'My Boat Inspector'], ['mbl', 'My Boat Logs']] as const).map(([k, l]) => (
             <button key={k} onClick={() => { setView(k); setOpen(null) }}
               style={{ padding: '10px 16px', fontSize: 13.5, fontWeight: 800, borderRadius: 8, cursor: 'pointer',
                 border: `2px solid ${view === k ? BRASS : MIST}`, background: view === k ? '#fff' : '#f8fafc', color: NAVY }}>
@@ -236,6 +236,8 @@ export default function AdminPage() {
         </div>
 
         {view === 'mbi' && <MbiPanel pw={pw} Stat={Stat} />}
+        {view === 'stats' && <StatsPanel pw={pw} Stat={Stat} />}
+        {view === 'mbl' && <MblPanel pw={pw} Stat={Stat} />}
 
         {view === 'express' && <ExpressPanel data={data} exFilter={exFilter} setExFilter={setExFilter} open={open} setOpen={setOpen} runAction={runAction} actionBusy={actionBusy} actionMsg={actionMsg} q={q} setQ={setQ} Stat={Stat} />}
 
@@ -529,6 +531,254 @@ function MbiPanel({ pw, Stat }: any) {
           </div>
         ))}
       </div>
+    </>
+  )
+}
+
+async function adminCall(pw: string, action: string, extra: any = {}) {
+  const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: sessionStorage.getItem('bc_admin') || pw, action, ...extra }) })
+  return r.json().catch(() => ({ error: 'Bad response' }))
+}
+const ago = (iso?: string | null) => {
+  if (!iso) return '—'
+  const m = Math.round((Date.now() - Date.parse(iso)) / 60000)
+  if (m < 60) return `${m}m ago`
+  const h = Math.round(m / 60)
+  if (h < 48) return `${h}h ago`
+  return `${Math.round(h / 24)}d ago`
+}
+const STEP_NAME: Record<string, string> = { vessel: 'Boat', parties: 'People', negotiate: 'Deal Room', diligence: 'Due diligence', documents: 'Documents', closing: 'Closing' }
+const card: any = { background: '#fff', border: `1px solid ${MIST}`, borderRadius: 10, padding: '14px 16px', marginBottom: 16 }
+const h3: any = { fontSize: 14, fontWeight: 800, color: NAVY, margin: '0 0 4px' }
+const sub: any = { fontSize: 11.5, color: SLATE, marginBottom: 12, lineHeight: 1.55 }
+
+function StatsPanel({ pw, Stat }: any) {
+  const [d, setD] = useState<any>(null)
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [win, setWin] = useState<'d7' | 'd30' | 'all'>('d30')
+  const [openQ, setOpenQ] = useState<number | null>(null)
+  const load = async () => {
+    setBusy(true); setErr('')
+    const j = await adminCall(pw, 'stats')
+    if (j.ok) setD(j); else setErr(j.error || 'Could not load.')
+    setBusy(false)
+  }
+  useEffect(() => { load() }, [])
+  const f: any[] = d?.funnel?.[win] || []
+  const top = f[0]?.count || 0
+  const ai = d?.ai || {}
+  const at = ai.totals || {}
+  return (
+    <>
+      {err && <div style={{ background: '#fdecec', border: '1px solid #f5b5b5', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, color: '#b91c1c', marginBottom: 12 }}>{err}</div>}
+      <div style={card}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <div>
+            <div style={h3}>Where new deals drop off</div>
+            <div style={sub}>How many deals reached each step, by when they were started. Test deals are left out. Compare a couple of weeks against earlier ones to see what guided mode changed.</div>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {([['d7', 'Last 7 days'], ['d30', 'Last 30 days'], ['all', 'All time']] as const).map(([k, l]) => (
+              <button key={k} onClick={() => setWin(k)} style={{ ...ctlBtn, background: win === k ? NAVY : '#fff', color: win === k ? '#fff' : NAVY, borderColor: win === k ? NAVY : MIST }}>{l}</button>
+            ))}
+            <button onClick={load} style={ctlBtn} disabled={busy}>{busy ? 'Loading…' : 'Reload'}</button>
+          </div>
+        </div>
+        {d && top === 0 && <div style={{ fontSize: 13, color: SLATE, padding: '8px 0' }}>No deals started in this period.</div>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {f.map((row: any, i: number) => {
+            const pct = top ? Math.round((row.count / top) * 100) : 0
+            const prev = i ? f[i - 1].count : row.count
+            const lost = prev - row.count
+            return (
+              <div key={row.label} style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 190px) 1fr 120px', gap: 10, alignItems: 'center', fontSize: 12.5 }}>
+                <div style={{ fontWeight: 700, color: NAVY }}>{row.label}</div>
+                <div style={{ background: '#eef2f7', borderRadius: 6, height: 22, overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.max(pct, row.count ? 2 : 0)}%`, height: '100%', background: i === f.length - 1 ? '#0f6e56' : NAVY, borderRadius: 6 }} />
+                </div>
+                <div style={{ color: SLATE, textAlign: 'right' }}><b style={{ color: NAVY }}>{row.count}</b> · {pct}%{i > 0 && lost > 0 ? <span style={{ color: '#b45309' }}> · −{lost}</span> : null}</div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div style={card}>
+        <div style={h3}>Virtual Broker use</div>
+        <div style={sub}>
+          Questions customers asked the AI. {ai.keySet === false ? <b style={{ color: '#b91c1c' }}>The AI key is not set, so it can&apos;t answer. </b> : null}
+          Model: {ai.model || '—'} · limit {ai.dailyLimit || 40} questions per person per day.
+          {ai.available === false ? ' The question log table is missing.' : ''}
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+          <Stat label="Questions today" value={at.today ?? 0} />
+          <Stat label="Last 7 days" value={at.week ?? 0} />
+          <Stat label="Last 30 days" value={at.month ?? 0} />
+          <Stat label="People who asked" value={at.people ?? 0} />
+          <Stat label="Hit the limit today" value={at.atLimitToday ?? 0} tone={(at.atLimitToday ?? 0) > 0 ? '#b45309' : undefined} />
+        </div>
+        {ai.byStep && Object.keys(ai.byStep).length > 0 && (
+          <div style={{ fontSize: 12, color: SLATE, marginBottom: 12 }}>
+            <b style={{ color: NAVY }}>Where they ask:</b>{' '}
+            {Object.entries(ai.byStep).sort((a: any, b: any) => b[1] - a[1]).map(([k, v]: any) => `${STEP_NAME[k] || k} ${v}`).join(' · ')}
+          </div>
+        )}
+        <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, margin: '6px 0 6px' }}>Per customer</div>
+        {(ai.users || []).length === 0 && <div style={{ fontSize: 12.5, color: SLATE }}>Nobody has asked yet.</div>}
+        {(ai.users || []).length > 0 && (
+          <div style={{ overflowX: 'auto', border: `1px solid ${MIST}`, borderRadius: 8 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+              <thead><tr style={{ background: '#f8fafc', color: SLATE, textAlign: 'left' }}>
+                {['Customer', 'Today', '7 days', '30 days', 'All', 'Deals', 'Last asked', 'Last question'].map(h => <th key={h} style={{ padding: '8px 10px', fontWeight: 700, whiteSpace: 'nowrap' }}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {ai.users.map((u: any) => (
+                  <tr key={u.userId} style={{ borderTop: `1px solid ${MIST}` }}>
+                    <td style={{ padding: '8px 10px', color: NAVY, fontWeight: 600, whiteSpace: 'nowrap' }}>{u.email || u.userId.slice(0, 8)}<div style={{ fontWeight: 400, color: SLATE, fontSize: 11 }}>{u.role}</div></td>
+                    <td style={{ padding: '8px 10px', color: u.today >= (ai.dailyLimit || 40) ? '#b45309' : NAVY, fontWeight: 700 }}>{u.today}</td>
+                    <td style={{ padding: '8px 10px' }}>{u.week}</td>
+                    <td style={{ padding: '8px 10px' }}>{u.month}</td>
+                    <td style={{ padding: '8px 10px' }}>{u.total}</td>
+                    <td style={{ padding: '8px 10px' }}>{u.deals}</td>
+                    <td style={{ padding: '8px 10px', whiteSpace: 'nowrap', color: SLATE }}>{ago(u.lastAt)}</td>
+                    <td style={{ padding: '8px 10px', color: SLATE, minWidth: 220 }}>{String(u.lastQuestion || '').slice(0, 90)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {(ai.recent || []).length > 0 && (
+          <>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, margin: '16px 0 6px' }}>Latest questions and answers</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {ai.recent.map((m: any, i: number) => (
+                <div key={i} style={{ border: `1px solid ${MIST}`, borderRadius: 8, background: '#f8fafc' }}>
+                  <div onClick={() => setOpenQ(openQ === i ? null : i)} style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 12.5, display: 'flex', gap: 10, justifyContent: 'space-between' }}>
+                    <span style={{ color: NAVY }}><b>{m.question}</b></span>
+                    <span style={{ color: SLATE, whiteSpace: 'nowrap', fontSize: 11.5 }}>{STEP_NAME[m.step] || m.step} · {m.email || '—'} · {ago(m.at)}</span>
+                  </div>
+                  {openQ === i && <div style={{ padding: '0 12px 10px', fontSize: 12.5, color: SLATE, whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{m.answer}</div>}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  )
+}
+
+function MblPanel({ pw, Stat }: any) {
+  const [d, setD] = useState<any>(null)
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [f, setF] = useState('all')
+  const [q, setQ] = useState('')
+  const [open, setOpen] = useState<string | null>(null)
+  const load = async () => {
+    setBusy(true); setErr('')
+    const j = await adminCall(pw, 'mblOverview')
+    if (j.ok) setD(j); else setErr(j.error || 'Could not load My Boat Logs.')
+    setBusy(false)
+  }
+  useEffect(() => { load() }, [])
+  const t = d?.totals || {}
+  const PRICE = 39.99
+  const PLAN: Record<string, [string, string]> = {
+    setup: ['Not started', '#64748b'], trialing: ['Free trial', '#1d4ed8'], active: ['Paying', '#0f6e56'], past_due: ['Payment issue', '#b45309'], lapsed: ['Locked', '#b91c1c'],
+  }
+  const mb = (n: number) => n >= 1e9 ? (n / 1e9).toFixed(1) + ' GB' : n >= 1e6 ? (n / 1e6).toFixed(1) + ' MB' : n >= 1e3 ? Math.round(n / 1e3) + ' KB' : (n || 0) + ' B'
+  const rows: any[] = (d?.boats || []).filter((b: any) => (f === 'all' || b.plan === f || (f === 'ending' && b.plan === 'trialing' && b.trialEndsAt && Date.parse(b.trialEndsAt) - Date.now() < 7 * 86400000)))
+    .filter((b: any) => !q.trim() || `${b.name} ${b.make} ${b.model} ${b.hin} ${b.email}`.toLowerCase().includes(q.trim().toLowerCase()))
+  const Tab = ({ id, label }: any) => (
+    <button onClick={() => setF(id)} style={{ padding: '8px 14px', fontSize: 12.5, fontWeight: 700, borderRadius: 7, cursor: 'pointer',
+      border: `1px solid ${f === id ? NAVY : MIST}`, background: f === id ? NAVY : '#fff', color: f === id ? '#fff' : SLATE }}>{label}</button>
+  )
+  return (
+    <>
+      {err && <div style={{ background: '#fdecec', border: '1px solid #f5b5b5', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, color: '#b91c1c', marginBottom: 12 }}>{err}</div>}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+        <Stat label="Owners" value={t.owners ?? 0} />
+        <Stat label="New owners (7d / 30d)" value={`${t.ownersNew7 ?? 0} / ${t.ownersNew30 ?? 0}`} />
+        <Stat label="Boats" value={t.boats ?? 0} />
+        <Stat label="Paying boats" value={t.active ?? 0} tone="#0f6e56" />
+        <Stat label="Yearly revenue (paying × $39.99)" value={'$' + ((t.active || 0) * PRICE).toFixed(2)} tone="#0f6e56" />
+      </div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+        <Stat label="On free trial" value={t.trialing ?? 0} />
+        <Stat label="Trials ending in 7 days" value={t.trialsEnding7 ?? 0} tone={(t.trialsEnding7 ?? 0) > 0 ? '#b45309' : undefined} />
+        <Stat label="Not started (no card)" value={t.setup ?? 0} />
+        <Stat label="Payment issue" value={t.pastDue ?? 0} tone={(t.pastDue ?? 0) > 0 ? '#b45309' : undefined} />
+        <Stat label="Locked (lapsed)" value={t.lapsed ?? 0} tone={(t.lapsed ?? 0) > 0 ? '#b91c1c' : undefined} />
+      </div>
+      <div style={card}>
+        <div style={h3}>What owners are logging</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '6px 18px', fontSize: 12.5, color: SLATE, marginTop: 8 }}>
+          <div>Maintenance entries: <b style={{ color: NAVY }}>{t.logs ?? 0}</b></div>
+          <div>Documents: <b style={{ color: NAVY }}>{t.documents ?? 0}</b> ({mb(t.docBytes || 0)})</div>
+          <div>Reminders open: <b style={{ color: NAVY }}>{t.remindersOpen ?? 0}</b>{(t.remindersOverdue ?? 0) > 0 ? <span style={{ color: '#b45309' }}> · {t.remindersOverdue} overdue</span> : null}</div>
+          <div>Trips: <b style={{ color: NAVY }}>{t.trips ?? 0}</b></div>
+          <div>Expenses: <b style={{ color: NAVY }}>{t.expenses ?? 0}</b></div>
+          <div>History report links: <b style={{ color: NAVY }}>{t.shares ?? 0}</b> · {t.shareViews ?? 0} views</div>
+          <div>Transfers: <b style={{ color: NAVY }}>{t.transfersPending ?? 0}</b> pending · {t.transfersAccepted ?? 0} done</div>
+          <div>Boats active this week: <b style={{ color: NAVY }}>{t.activeBoats7 ?? 0}</b></div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+        <Tab id="all" label={`All (${t.boats ?? 0})`} />
+        <Tab id="active" label="Paying" />
+        <Tab id="trialing" label="Trial" />
+        <Tab id="ending" label="Trial ending soon" />
+        <Tab id="setup" label="Not started" />
+        <Tab id="past_due" label="Payment issue" />
+        <Tab id="lapsed" label="Locked" />
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search boat, HIN, email" style={{ padding: '8px 12px', fontSize: 12.5, borderRadius: 7, border: `1px solid ${MIST}`, minWidth: 180 }} />
+        <button onClick={load} style={{ ...ctlBtn, marginLeft: 'auto' }} disabled={busy}>{busy ? 'Loading…' : 'Reload'}</button>
+      </div>
+      {d && rows.length === 0 && <div style={{ background: '#fff', border: `1px solid ${MIST}`, borderRadius: 10, padding: '2rem', textAlign: 'center', color: SLATE, fontSize: 13.5 }}>Nothing here.</div>}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {rows.map((b: any) => {
+          const [label, tone] = PLAN[b.plan] || [b.plan, SLATE]
+          const trialLeft = b.trialEndsAt ? Math.ceil((Date.parse(b.trialEndsAt) - Date.now()) / 86400000) : null
+          const entries = (b.logs || 0) + (b.docs || 0) + (b.trips || 0) + (b.expenses || 0) + (b.remindersOpen || 0)
+          return (
+            <div key={b.id} style={{ background: '#fff', border: `1px solid ${MIST}`, borderLeft: `4px solid ${tone}`, borderRadius: 8, overflow: 'hidden' }}>
+              <div onClick={() => setOpen(open === b.id ? null : b.id)} style={{ padding: '12px 15px', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{b.name}{[b.year, b.make, b.model].filter(Boolean).length ? <span style={{ fontWeight: 400, color: SLATE }}> · {[b.year, b.make, b.model].filter(Boolean).join(' ')}</span> : null}</div>
+                  <div style={{ fontSize: 12, color: SLATE, marginTop: 2 }}>{b.email || 'no email'}{b.hin ? ` · HIN ${b.hin}` : ''} · {entries} entries</div>
+                </div>
+                <div style={{ background: '#f8fafc', color: tone, borderRadius: 20, padding: '5px 12px', fontSize: 11.5, fontWeight: 800, whiteSpace: 'nowrap' }}>
+                  {label}{b.plan === 'trialing' && trialLeft != null ? ` · ${Math.max(trialLeft, 0)}d left` : ''}
+                </div>
+                <div style={{ fontSize: 11.5, color: SLATE, minWidth: 110, textAlign: 'right' }}>added {ago(b.createdAt)}<div>last entry {ago(b.lastEntryAt)}</div></div>
+              </div>
+              {open === b.id && (
+                <div style={{ borderTop: `1px solid ${MIST}`, background: '#f8fafc', padding: '13px 15px', fontSize: 12.5, lineHeight: 1.8, color: SLATE }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '2px 20px' }}>
+                    <div><b>Maintenance entries:</b> {b.logs}</div>
+                    <div><b>Documents:</b> {b.docs} ({mb(b.docBytes || 0)})</div>
+                    <div><b>Reminders open:</b> {b.remindersOpen}{b.remindersOverdue ? ` (${b.remindersOverdue} overdue)` : ''}</div>
+                    <div><b>Trips:</b> {b.trips}</div>
+                    <div><b>Expenses:</b> {b.expenses}</div>
+                    <div><b>Costs logged:</b> ${Number(b.costTotal || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</div>
+                    <div><b>Report links:</b> {b.shares} · {b.shareViews} views</div>
+                    <div><b>Engine hours:</b> {b.engineHours ?? '—'}</div>
+                    <div><b>Trial ends:</b> {b.trialEndsAt ? new Date(b.trialEndsAt).toLocaleDateString() : '—'}</div>
+                    <div><b>Renews:</b> {b.renewsAt ? new Date(b.renewsAt).toLocaleDateString() : '—'}</div>
+                    {b.lapsedAt && <div><b>Locked since:</b> {new Date(b.lapsedAt).toLocaleDateString()}</div>}
+                  </div>
+                  <div style={{ marginTop: 9, fontSize: 11.5 }}><b>ID:</b> <code style={{ background: '#fff', padding: '2px 6px', borderRadius: 4 }}>{b.id}</code></div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      <div style={{ fontSize: 11.5, color: SLATE, marginTop: 12 }}>Read-only view. Billing isn&apos;t connected to Stripe yet, so &ldquo;Paying&rdquo; and revenue come from each boat&apos;s plan status.</div>
     </>
   )
 }

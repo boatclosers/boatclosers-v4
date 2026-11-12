@@ -214,6 +214,99 @@ export async function POST(req: Request) {
       }
     }
 
+    // ── Funnel + Virtual Broker usage (read-only) ────────────────────────────
+    if (body.action === 'stats') {
+      const sb = admin()
+      const { data: deals } = await sb
+        .from('deals')
+        .select('id, created_at, vessel, negotiate, other_party_id, party_b_user_id, invite_email, finalized_at, status, max_step')
+        .order('created_at', { ascending: false })
+        .limit(2000)
+      const now = Date.now()
+      const real = (deals || []).filter((d: any) => !d?.negotiate?.testDeal)
+      const STAGES: [string, (d: any) => boolean][] = [
+        ['Started a deal', () => true],
+        ['Described the boat', (d) => { const v = d.vessel || {}; return !!(v.year && v.make && v.model) }],
+        ['Invited the other party', (d) => !!(d.invite_email || d.other_party_id || d.party_b_user_id)],
+        ['Other party joined', (d) => !!(d.other_party_id || d.party_b_user_id)],
+        ['First offer sent', (d) => ((d.negotiate?.offers || []).filter(Boolean).length > 0)],
+        ['Price agreed', (d) => !!(d.negotiate?.agreedPrice || (d.negotiate?.offers || []).some((o: any) => o && (o.status === 'accepted' || o.status === 'agreed')))],
+        ['Paid $249', (d) => !!(d.negotiate?.paid || d.negotiate?.dealLocked)],
+        ['Closed', (d) => !!(d.finalized_at || d.negotiate?.dealFinalized || d.status === 'finalized')],
+      ]
+      const windowOf = (days: number | null) => real.filter((d: any) => days == null || now - Date.parse(d.created_at) <= days * 86400000)
+      const funnel = (days: number | null) => {
+        const list = windowOf(days)
+        return STAGES.map(([label, test]) => ({ label, count: list.filter((d: any) => { try { return test(d) } catch { return false } }).length }))
+      }
+
+      // Virtual Broker questions, per customer.
+      const since30 = new Date(now - 30 * 86400000).toISOString()
+      const { data: msgs, error: msgErr } = await sb
+        .from('assistant_messages')
+        .select('user_id, deal_id, step, role, question, answer, created_at')
+        .order('created_at', { ascending: false })
+        .limit(3000)
+      const emails: Record<string, string> = {}
+      try {
+        const { data: u } = await sb.auth.admin.listUsers({ page: 1, perPage: 1000 })
+        for (const x of u?.users || []) if (x.email) emails[x.id] = x.email
+      } catch { /* optional */ }
+      const per: Record<string, any> = {}
+      const stepCount: Record<string, number> = {}
+      let today = 0, week = 0, month = 0
+      for (const m of msgs || []) {
+        const age = now - Date.parse(m.created_at)
+        if (age <= 86400000) today++
+        if (age <= 7 * 86400000) week++
+        if (m.created_at >= since30) month++
+        stepCount[m.step || '?'] = (stepCount[m.step || '?'] || 0) + 1
+        const k = m.user_id
+        if (!per[k]) per[k] = { userId: k, email: emails[k] || '', today: 0, week: 0, month: 0, total: 0, lastAt: m.created_at, lastQuestion: m.question, deals: new Set<string>(), role: m.role }
+        const r = per[k]
+        r.total++
+        if (age <= 86400000) r.today++
+        if (age <= 7 * 86400000) r.week++
+        if (m.created_at >= since30) r.month++
+        if (m.deal_id) r.deals.add(m.deal_id)
+      }
+      const users = Object.values(per).map((r: any) => ({ ...r, deals: r.deals.size })).sort((a: any, b: any) => b.month - a.month || b.total - a.total)
+      const limit = Number(process.env.ASSISTANT_DAILY_LIMIT || 40)
+      return NextResponse.json({
+        ok: true,
+        funnel: { d7: funnel(7), d30: funnel(30), all: funnel(null) },
+        ai: {
+          available: !msgErr, keySet: !!process.env.ANTHROPIC_API_KEY, model: process.env.AI_MODEL || 'claude-sonnet-5-5', dailyLimit: limit,
+          totals: { today, week, month, all: (msgs || []).length, people: users.length, atLimitToday: users.filter((u: any) => u.today >= limit).length },
+          byStep: stepCount,
+          users: users.slice(0, 200),
+          recent: (msgs || []).slice(0, 40).map((m: any) => ({ email: emails[m.user_id] || '', step: m.step, role: m.role, question: m.question, answer: String(m.answer || '').slice(0, 600), at: m.created_at })),
+        },
+      })
+    }
+
+    // ── My Boat Logs (separate app and database) ──────────────────────────────
+    // Calls owner_overview() in the My Boat Logs database with a private key
+    // (MBL_ADMIN_KEY). Read-only; only a hash of the key is stored over there.
+    if (body.action === 'mblOverview') {
+      const key = process.env.MBL_ADMIN_KEY || ''
+      const url = process.env.MBL_SUPABASE_URL || 'https://dnjdqndllwjyccrrraap.supabase.co'
+      const anon = process.env.MBL_SUPABASE_ANON_KEY || 'sb_publishable_eZgmQzMast5XlMink-hd4A_kBtdF-k6'
+      if (!key) return NextResponse.json({ error: 'MBL_ADMIN_KEY is not set on the BoatClosers server yet.' }, { status: 500 })
+      try {
+        const r = await fetch(`${url}/rest/v1/rpc/owner_overview`, {
+          method: 'POST', cache: 'no-store',
+          headers: { 'Content-Type': 'application/json', apikey: anon, Authorization: `Bearer ${anon}` },
+          body: JSON.stringify({ p_key: key }),
+        })
+        const j = await r.json().catch(() => null)
+        if (!r.ok || !j) return NextResponse.json({ error: `My Boat Logs said: ${j?.message || r.status}` }, { status: 502 })
+        return NextResponse.json({ ok: true, ...j })
+      } catch (e: any) {
+        return NextResponse.json({ error: 'Could not reach My Boat Logs: ' + (e?.message || 'unknown') }, { status: 502 })
+      }
+    }
+
     // ── My Boat Inspector (separate app and database) ─────────────────────────
     // The owner's password is checked above; this server then calls My Boat
     // Inspector's private owner endpoint with a shared key (MBI_ADMIN_KEY, set in
