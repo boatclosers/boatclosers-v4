@@ -6579,10 +6579,11 @@ export default function BoatClosers() {
   useEffect(() => {
     try {
       const qs = new URLSearchParams(window.location.search);
-      const pv = qs.get("preview");
-      if (pv === "on") localStorage.setItem(PREVIEW_KEY, "1");
-      if (pv === "off") localStorage.removeItem(PREVIEW_KEY);
-      if (pv) {
+      // Forgiving on purpose: ?preview, ?preview=on, =1, =yes, =true all turn it on.
+      const pv = qs.has("preview") ? String(qs.get("preview") || "on").toLowerCase() : null;
+      if (pv && ["on", "1", "yes", "true"].includes(pv)) localStorage.setItem(PREVIEW_KEY, "1");
+      if (pv && ["off", "0", "no", "false"].includes(pv)) localStorage.removeItem(PREVIEW_KEY);
+      if (pv !== null) {
         qs.delete("preview");
         const rest = qs.toString();
         window.history.replaceState(null, "", window.location.pathname + (rest ? `?${rest}` : "") + window.location.hash);
