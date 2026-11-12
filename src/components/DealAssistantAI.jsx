@@ -254,7 +254,7 @@ export function AssistantDock({ guides }) {
   return (
     <>
       {!open && (
-        <button type="button" onClick={() => { setTab("ask"); setOpen(true); }} aria-label="Open the Deal Assistant"
+        <button type="button" onClick={() => { setTab("ask"); setOpen(true); }} aria-label="Open the Virtual Broker"
           style={{ position: "fixed", right: 18, bottom: 18, zIndex: 60, display: "flex", alignItems: "center", gap: 8, border: 0, borderRadius: 999,
             background: K.navy, color: K.white, padding: "13px 18px 13px 15px", fontSize: 14.5, fontWeight: 600, cursor: "pointer",
             boxShadow: "0 6px 20px rgba(8,21,46,0.28)", fontFamily: FONT.sans }}>
@@ -262,7 +262,7 @@ export function AssistantDock({ guides }) {
         </button>
       )}
       {open && (
-        <div role="dialog" aria-label="Deal Assistant" aria-modal="false"
+        <div role="dialog" aria-label="Virtual Broker" aria-modal="false"
           style={{ position: "fixed", zIndex: 70, right: mobile ? 0 : 18, bottom: mobile ? 0 : 18, top: mobile ? 0 : "auto",
             width: mobile ? "100%" : 400, height: mobile ? "100%" : "min(640px, calc(100vh - 36px))",
             background: K.paper, borderRadius: mobile ? 0 : 18, boxShadow: "0 12px 40px rgba(8,21,46,0.28)", display: "flex", flexDirection: "column",
@@ -272,7 +272,7 @@ export function AssistantDock({ guides }) {
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <Compass size={20} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 700 }}>Deal Assistant</div>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>Virtual Broker</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)" }}>{guide?.title ? guide.title + " · " : ""}knows your deal's details</div>
               </div>
               <button type="button" onClick={() => setOpen(false)} aria-label="Close"
