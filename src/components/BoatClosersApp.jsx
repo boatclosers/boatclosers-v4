@@ -6264,11 +6264,11 @@ function Landing({ onStart, onLegal }) {
       {/* Who built it */}
       {section(X.sandWarm, (
         <div style={{ maxWidth:720, margin:"0 auto", display:"flex", flexDirection:isMobile?"column":"row", gap:isMobile?16:26, alignItems:isMobile?"flex-start":"center" }}>
-          <div aria-hidden="true" style={{ flexShrink:0, width:84, height:84, borderRadius:"50%", background:C.navy, color:X.brassLt, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:F.display, fontSize:30, fontWeight:600, border:`2px solid ${C.brass}` }}>GC</div>
+          <div aria-hidden="true" style={{ flexShrink:0, width:84, height:84, borderRadius:"50%", background:C.navy, color:X.brassLt, display:"flex", alignItems:"center", justifyContent:"center", border:`2px solid ${C.brass}` }}><svg width="38" height="38" viewBox="0 0 24 24" style={{ fill:"none", stroke:X.brassLt, strokeWidth:1.5, strokeLinecap:"round", strokeLinejoin:"round" }}><circle cx="12" cy="5" r="2"/><path d="M12 7v14M8 11h8M5 14a7 7 0 0 0 14 0"/></svg></div>
           <div>
             {eyebrow("Built by someone who closes these deals")}
             <h2 style={{ ...h2s, fontSize:isMobile?23:26, color:C.navy, margin:"12px 0 10px" }}>A working broker&rsquo;s process, put in your hands</h2>
-            <p style={{ ...lead, margin:0 }}>BoatClosers was built by <b style={{ color:C.navy }}>Garry Chupurdy Jr.</b>, a licensed Florida yacht broker and captain, from how real vessel transactions close, including the complicated ones. The documents follow maritime and state-transfer standards, and the app flags anything that needs a notary or an attorney.</p>
+            <p style={{ ...lead, margin:0 }}>BoatClosers was built by a licensed Florida yacht broker and captain, from how real vessel transactions close, including the complicated ones. The documents follow maritime and state-transfer standards, and the app flags anything that needs a notary or an attorney.</p>
             <div style={{ display:"flex", flexWrap:"wrap", gap:"8px 10px", marginTop:16 }}>
               {["Licensed FL yacht broker & captain","Maritime & state-transfer standards","We never hold your money"].map(t=>(
                 <div key={t} style={{ fontFamily:F.sans, fontSize:12.5, color:C.navy, background:X.paper, border:`0.5px solid ${X.mist}`, borderRadius:20, padding:"7px 14px" }}>{t}</div>
