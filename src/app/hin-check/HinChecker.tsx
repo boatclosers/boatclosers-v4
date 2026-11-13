@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { decodeHin, type HinResult } from '@/lib/hin'
 import LienCheck from '@/components/LienCheck'
 import { useBuilder, BuilderDetails, builderName, RecallsSection, VesselSection } from '@/components/HinBuilder'
@@ -45,6 +45,18 @@ export default function HinChecker() {
   const [result, setResult] = useState<HinResult | null>(null)
   const [listing, setListing] = useState('')
   const { builder, loading, done } = useBuilder(result?.mic ?? null)
+
+  // Arriving from a link like /hin-check?hin=ABC12345D515 runs the check right away.
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('hin')
+      const clean = (q || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 16)
+      if (clean) {
+        setHin(clean)
+        setResult(decodeHin(clean))
+      }
+    } catch {}
+  }, [])
 
   function handleCheck() {
     // The listing field takes "2015 Carolina Skiff" or just "2015".
