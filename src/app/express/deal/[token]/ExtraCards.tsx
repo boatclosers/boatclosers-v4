@@ -264,3 +264,26 @@ export function TitleCheckCard({
     </div>
   )
 }
+
+// The deposit receipt: free, because it's needed at the handshake, before anything else.
+export function DepositCard({ token, missing, saving }: { token: string; missing: string[]; saving?: boolean }) {
+  return (
+    <div style={{ ...boxStyle, border: `1px solid ${gold}` }}>
+      <div style={eyebrow}>DEPOSIT RECEIPT · FREE</div>
+      <h2 style={h2}>Get the deposit in writing</h2>
+      <p style={{ margin: 0, color: muted, fontSize: 14.5, lineHeight: 1.6 }}>
+        One page you both sign when the money changes hands: how much, the day you’ll close, and who gets it back if the sale doesn’t happen. It comes off the price on your final receipt.
+      </p>
+      {missing.length || saving ? (
+        <p style={{ margin: 0, fontSize: 14.5, color: cream }}>
+          {missing.length ? `Answer the questions above to make it. Still needed: ${missing.join(', ')}.` : 'Saving…'}
+        </p>
+      ) : (
+        <DocRow token={token} doc="deposit-receipt" name="Deposit receipt" note="Print it, or open it on your phone and sign a printed copy at the boat." primary />
+      )}
+      <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.55 }}>
+        Paying by Zelle or Venmo? Put “boat deposit” in the memo, and take a screenshot. Never send a deposit for a boat you haven’t seen in person.
+      </p>
+    </div>
+  )
+}

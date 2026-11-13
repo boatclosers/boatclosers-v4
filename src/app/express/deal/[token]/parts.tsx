@@ -257,7 +257,7 @@ export function ContactPrefs({ token, contact, onSaved }: { token: string; conta
 
 const FULL_REASONS = [
   { id: 'f-negotiate', label: 'We still need to agree on the price', why: 'Full BoatClosers runs offers and counteroffers in one place, with every round on record.' },
-  { id: 'f-deposit', label: 'I’m putting down a deposit before the boat is mine', why: 'A deposit needs written terms for when you get it back. Full BoatClosers writes those terms and has a neutral third party hold the money.' },
+  { id: 'f-deposit', label: 'The deposit is too big to just hand the seller', why: 'My Boat Closing writes a deposit receipt, but the seller holds the money. Full BoatClosers has a neutral third party hold it until the sale.' },
   { id: 'f-survey', label: 'The sale should depend on a survey or sea trial', why: 'Full BoatClosers adds contingencies to a signed purchase agreement, so you can walk away or renegotiate if the survey finds problems.' },
   { id: 'f-finance', label: 'I’m financing through a lender', why: 'Most lenders want a signed purchase agreement and a closing they can pay into. My Boat Closing doesn’t create either.' },
   { id: 'f-agreement', label: 'We both want a signed purchase agreement', why: 'My Boat Closing is buyer-only. Full BoatClosers brings the seller in, and both of you sign the agreement and the closing papers.' },
@@ -269,7 +269,7 @@ export function FullSuggest({ deal, checks, onToggle, moveHref = '/' }: { deal: 
   const lienOpen = deal.progress?.handoff?.lien === 'open'
   return (
     <div style={{ ...boxStyle, ...(hits.length || lienOpen ? { border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.08)' } : {}) }}>
-      <div style={eyebrow}>IS EXPRESS RIGHT FOR THIS DEAL?</div>
+      <div style={eyebrow}>IS MY BOAT CLOSING RIGHT FOR THIS DEAL?</div>
       <h2 style={h2}>My Boat Closing is for a simple sale. Does yours need any of these?</h2>
       <div>
         {FULL_REASONS.map((r, i) => (

@@ -3,7 +3,7 @@
 // broker before changing it.
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
-import { type Handoff, whatToBring, salesTaxEstimate, addDays, type ItemKey } from '@/lib/express/content'
+import { type Handoff, depositMissing, whatToBring, salesTaxEstimate, addDays, type ItemKey } from '@/lib/express/content'
 import { buildHsmv82050 } from '@/lib/express/hsmv82050'
 import { buildHsmv82040vs } from '@/lib/express/hsmv82040vs'
 import { HANDOFF_CHECKS, walkItems, type Photo, type WalkProgress } from '@/lib/express/content'
@@ -20,6 +20,7 @@ export type DocKey =
   | 'hsmv-82050-boat'
   | 'hsmv-82050-trailer'
   | 'payment-receipt'
+  | 'deposit-receipt'
   | 'closing-summary'
   | 'title-worksheet'
   | 'hsmv-82040-vs'
@@ -38,6 +39,7 @@ export const DOC_TITLES: Record<DocKey, string> = {
   'hsmv-82050-boat': 'Florida form HSMV 82050 (boat)',
   'hsmv-82050-trailer': 'Florida form HSMV 82050 (trailer)',
   'payment-receipt': 'Payment Receipt',
+  'deposit-receipt': 'Deposit Receipt',
   'closing-summary': 'Closing Summary',
   'title-worksheet': 'Title & Registration Worksheet',
   'hsmv-82040-vs': 'Florida title application, HSMV 82040 VS (pre-filled)',
@@ -51,11 +53,16 @@ export const DOC_TITLES: Record<DocKey, string> = {
 }
 
 // Papers the seller can open from their own link.
-export const SELLER_DOCS: DocKey[] = ['vessel-bill-of-sale', 'motor-bill-of-sale', 'trailer-bill-of-sale', 'hsmv-82050-boat', 'hsmv-82050-trailer', 'payment-receipt']
+export const SELLER_DOCS: DocKey[] = ['vessel-bill-of-sale', 'motor-bill-of-sale', 'trailer-bill-of-sale', 'hsmv-82050-boat', 'hsmv-82050-trailer', 'payment-receipt', 'deposit-receipt']
+
+// Free papers: made before the $29.99, because they're needed before the sale.
+export const FREE_DOCS: DocKey[] = ['deposit-receipt']
+export const hasDeposit = (h: Handoff = {}) => (h.deposit === 'given' || h.deposit === 'planned') && depositMissing(h).length === 0
 
 export function docsFor(items: Record<string, any>, h: Handoff = {}, state = 'FL', progress: any = {}): DocKey[] {
   const fl = state === 'FL'
   const out: DocKey[] = []
+  if (hasDeposit(h)) out.push('deposit-receipt')
   if (items.boat) out.push('vessel-bill-of-sale')
   if (items.motor && !items.boat) out.push('motor-bill-of-sale')
   if (items.trailer) out.push('trailer-bill-of-sale')
@@ -453,7 +460,49 @@ async function paymentReceipt(d: Deal, h: Handoff) {
   )
   for (const l of itemLines(d)) w.bullet(l)
   if (h.inventory) w.bullet(`Also included: ${h.inventory}`)
+  if (hasDeposit(h)) {
+    const dep = Number(h.depositAmount) * 100
+    w.text(
+      `This total includes the deposit of ${money(dep)} paid on ${longDate(h.depositDate)} by ${h.depositMethod}, so ${money(Math.max(0, d.price_cents - dep))} was paid at the handoff.`,
+      { gap: 8 }
+    )
+  }
   w.text('Seller confirms that nothing further is owed by Buyer for this sale.', { gap: 8 })
+  w.signatures(sellerList(d, h), d.buyer_name)
+  return w.finish(FOOTER)
+}
+
+// The deposit: money handed over to hold the boat before the sale. Free, because
+// it's needed the moment you shake hands, before anything else is signed.
+async function depositReceipt(d: Deal, h: Handoff) {
+  const dep = Number(h.depositAmount || 0) * 100
+  const w = await Writer.create('Deposit Receipt', 'Money paid to hold the boat until the sale')
+  parties(w, d, h)
+  w.heading('The deposit')
+  w.text(
+    `${sellers(d, h)} ("Seller") acknowledges receiving a deposit of ${money(dep)} from ${d.buyer_name} ("Buyer") on ${longDate(h.depositDate) || '______________'}, paid by ${h.depositMethod || '______________'}, toward the purchase of:`,
+    { gap: 8 }
+  )
+  for (const l of itemLines(d)) w.bullet(l)
+  w.heading('The numbers')
+  w.field('Agreed purchase price', money(d.price_cents))
+  w.field('Deposit received', money(dep))
+  w.field('Balance due at the handoff', money(Math.max(0, d.price_cents - dep)))
+  w.field('Close the sale by', longDate(h.closeBy))
+  w.heading('What both of you agree to')
+  w.text(`1. Holding the boat. Seller takes it off the market and will not sell it or promise it to anyone else before ${longDate(h.closeBy)}.`)
+  w.text('2. Credit. The deposit counts toward the purchase price. Buyer pays the balance at the handoff, when Seller signs over the title and delivers the boat.')
+  w.text(
+    '3. If Seller does not complete the sale, including because the title is not in Seller\'s name, a lien has not been released, or the hull identification number does not match, Seller returns the full deposit to Buyer within 3 days.'
+  )
+  const ifOut =
+    h.depositIfBuyerOut === 'returned'
+      ? 'Seller returns the full deposit to Buyer within 3 days, and neither of you owes the other anything further.'
+      : h.depositIfBuyerOut === 'inspection'
+        ? 'Seller may keep the deposit, unless a sea trial or inspection done before that date finds a significant problem Seller did not disclose. In that case Seller returns the full deposit to Buyer within 3 days. Either way, neither of you owes the other anything further.'
+        : 'Seller may keep the deposit, and neither of you owes the other anything further.'
+  w.text(`4. If Buyer does not complete the purchase by ${longDate(h.closeBy)}: ${ifOut}`)
+  w.text('5. Changes. Any change to the date or these terms counts only if both of you agree in writing. A text or email from each of you is enough.', { gap: 8 })
   w.signatures(sellerList(d, h), d.buyer_name)
   return w.finish(FOOTER)
 }
@@ -473,6 +522,7 @@ async function closingSummary(d: Deal, h: Handoff) {
   if (h.inventory) w.bullet(`Also included: ${h.inventory}`)
   w.heading('Money')
   w.field('Purchase price', money(d.price_cents))
+  if (hasDeposit(h)) w.field('Deposit paid', `${money(Number(h.depositAmount) * 100)} on ${longDate(h.depositDate)} by ${h.depositMethod}`)
   w.field('Paid by', h.paymentMethod || '')
   const tax = salesTaxEstimate(d.price_cents)
   if (fl) w.field('Estimated FL sales tax', `about ${money(Math.round(tax.state * 100))} (6%), plus county surtax of up to ${money(Math.round(tax.surtaxMax * 100))}`)
@@ -797,6 +847,7 @@ async function boatFile(d: Deal) {
 // then the handoff record.
 const PACKET_ORDER: DocKey[] = [
   'closing-summary',
+  'deposit-receipt',
   'vessel-bill-of-sale',
   'motor-bill-of-sale',
   'trailer-bill-of-sale',
@@ -847,6 +898,8 @@ export async function buildDocument(key: DocKey, d: Deal): Promise<Uint8Array> {
       return buildHsmv82050(d, 'trailer')
     case 'payment-receipt':
       return paymentReceipt(d, h)
+    case 'deposit-receipt':
+      return depositReceipt(d, h)
     case 'closing-summary':
       return closingSummary(d, h)
     case 'title-worksheet':

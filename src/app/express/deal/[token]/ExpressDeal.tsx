@@ -24,6 +24,9 @@ import {
   salesTaxEstimate,
   addDays,
   handoffProblems,
+  DEPOSIT_METHODS,
+  DEPOSIT_IF_OUT,
+  depositMissing,
   type Handoff,
   type ItemKey,
 } from '@/lib/express/content'
@@ -52,8 +55,10 @@ import {
   ContactPrefs,
 } from './parts'
 import HinCard from './HinCard'
+import DocViewer from './DocViewer'
+import ExpressHelper, { type Next } from './ExpressHelper'
 import ExpressGuided, { type Question } from './ExpressGuided'
-import { WalkAround, TitleCheckCard } from './ExtraCards'
+import { WalkAround, TitleCheckCard, DepositCard } from './ExtraCards'
 import { STATE_NAMES, stateInfo, STATES_CHECKED } from '@/lib/express/states'
 
 const STEPS = [
@@ -137,6 +142,7 @@ function CompareProducts({ token, paid }: { token: string; paid: boolean }) {
     ['Title application and reminders', '✓', '', '✓', ''],
     ['Guided inspection, sea trial and report', '', '✓', '', ''],
     ['Offers and negotiation', '', '', '✓', ''],
+    ['Deposit receipt', '✓', '', '✓', ''],
     ['Deposit held by a neutral party', '', '', '✓', ''],
     ['Survey and sea trial conditions', '', '', '✓', ''],
     ['Seller joins and signs online', '', '', '✓', ''],
@@ -185,6 +191,7 @@ export default function ExpressDeal({ token }: { token: string }) {
   const [step, setStep] = useState<number | null>(null)
   const [guided, setGuided] = useState(true)
   const [paying, setPaying] = useState<'' | 'solo' | 'bundle'>('')
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [payError, setPayError] = useState('')
   const [justPaid, setJustPaid] = useState(false)
   const [saveState, setSaveState] = useState<'' | 'saving' | 'saved' | 'error'>('')
@@ -395,8 +402,43 @@ export default function ExpressDeal({ token }: { token: string }) {
   const sellerSent = Array.isArray(deal.progress?.sellerEmailed) && deal.progress.sellerEmailed.length > 0
   const priceDollars = Number(basics.price) || 0
   // Which step fixes which missing detail, so "Still needed" can link straight to it.
+  const mbiCodeEarly: string | undefined = deal.progress?.mbiCode
   const fixStep = (msg: string) =>
     /length|propulsion|titled/i.test(msg) ? 0 : /address|county|second owner/i.test(msg) ? 1 : /date|paying/i.test(msg) ? 2 : /lien/i.test(msg) ? 3 : 0
+
+  // ---------- the helper: the one next thing to do, worked out from the purchase ----------
+  const nextUp = (): Next | null => {
+    const sh = savedHand
+    const dOn = sh.deposit === 'given' || sh.deposit === 'planned'
+    const walkItemsDone = Object.values(deal.progress?.walk?.items || {}).filter((x: any) => x?.s)
+    const flagged = walkItemsDone.filter((x: any) => x.s === 'flag').length
+    const today = new Date().toISOString().slice(0, 10)
+    const tipMbi =
+      flagged && !mbiCodeEarly
+        ? { text: `You flagged ${flagged} thing${flagged > 1 ? 's' : ''} on the walk-around.`, href: 'https://myboatinspector.com', label: 'Look it over properly with My Boat Inspector' }
+        : undefined
+    if (keys.some((k) => !String(basics.descriptions[k] || '').trim()) || !sh.titledHow) return { text: 'Tell us what you’re buying. About a minute.', to: 0, cta: 'Go to the boat' }
+    if (!String(basics.sellerName || '').trim() || !sh.buyerAddress || !sh.sellerAddress) return { text: 'Add you and the seller, the way the names go on the title.', to: 1, cta: 'Go to the people' }
+    if (!(Number(deal.price_cents) > 0)) return { text: 'Add the price you agreed on.', to: 2, cta: 'Go to the price' }
+    if (!sh.deposit) return { text: 'Handing over a deposit? Tell us first and get a free receipt you both sign.', to: 2, cta: 'Go to the price' }
+    if (dOn && depositMissing(sh).length) return { text: `Finish your free deposit receipt: add ${depositMissing(sh)[0]}.`, to: 2, cta: 'Finish it' }
+    if (!sh.paymentMethod) return { text: 'Pick how you’ll pay the seller.', to: 2, cta: 'Go to the price' }
+    if (!paid) {
+      if (!walkItemsDone.length) return { text: 'At the boat? Do the free walk-around: a dozen quick checks, saved with your notes.', to: 3, cta: 'Start the checks' }
+      if (!sh.lien) return { text: 'Check the title for a lender’s name before you pay. It’s free.', to: 3, cta: 'Check for a lien', tip: tipMbi }
+      return { text: 'Your bill of sale is filled in. Unlock your paperwork for $29.99 and print it.', to: 4, cta: 'See my papers', tip: tipMbi }
+    }
+    if (problems.length) return { text: problems[0], to: fixStep(problems[0]), cta: `Fix in ${STEPS[fixStep(problems[0])].title}` }
+    if (sh.lien === 'open') return { text: 'Get the signed lien release before you pay. Then change your lien answer.', to: 3, cta: 'Update the lien' }
+    if (!deal.progress?.titleCheck) return { text: 'Photograph the seller’s title before you hand over the money. It takes a minute.', to: 3, cta: 'Check the title', tip: tipMbi }
+    if (!sh.saleDate || sh.saleDate >= today) return { text: 'Print your papers and sign them with the seller at the handoff.', to: 4, cta: 'Open my papers' }
+    return {
+      text: `Title and register it${due ? ` by ${due.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}` : ''}.`,
+      to: 5,
+      cta: 'See what to bring',
+      tip: { text: 'Keep the maintenance, receipts and reminders in one place.', href: 'https://myboatlogs.com', label: 'Try My Boat Logs free for 14 days' },
+    }
+  }
 
   const nextButton = (label: string, to: number) => (
     <button type="button" onClick={() => go(to)} style={{ ...goldButton, width: '100%', fontSize: 16, padding: '15px 20px' }}>
@@ -544,6 +586,67 @@ export default function ExpressDeal({ token }: { token: string }) {
     return qs
   }
 
+  const depOn = h.deposit === 'given' || h.deposit === 'planned'
+  const depBig = depOn && Number(h.depositAmount) > 0 && (Number(h.depositAmount) > 2500 || (priceDollars > 0 && Number(h.depositAmount) > priceDollars * 0.2))
+  const depWarn = depBig ? (
+    <div style={{ fontSize: 14, lineHeight: 1.5, color: '#8a6224', background: '#fbf3e4', borderRadius: 10, padding: '10px 12px' }}>
+      That’s a lot to hand a stranger. If you’d rather a neutral party hold it until the sale, <a href={moveHref} style={{ color: '#8a6224', fontWeight: 600 }}>BoatClosers does that</a>, and everything you’ve entered moves over.
+    </div>
+  ) : undefined
+  const depositQs = (): Question[] =>
+    !depOn
+      ? []
+      : [
+          {
+            id: 'damt',
+            kind: 'money',
+            title: 'How much is the deposit?',
+            help: 'A few hundred dollars is common on smaller boats. It comes off the price at the handoff.',
+            value: h.depositAmount || '',
+            onChange: (v) => setHand({ depositAmount: v }),
+            required: true,
+            valid: () => Number(h.depositAmount) > 0 && (!priceDollars || Number(h.depositAmount) < priceDollars),
+            error: 'Add the deposit, less than the price.',
+            extra: depWarn,
+          },
+          {
+            id: 'dmeth',
+            kind: 'choice',
+            title: h.deposit === 'given' ? 'How did you pay it?' : 'How will you pay it?',
+            options: DEPOSIT_METHODS.map((m) => [m, m] as [string, string]),
+            value: h.depositMethod,
+            onChange: (v) => setHand({ depositMethod: v }),
+            required: true,
+          },
+          {
+            id: 'ddate',
+            kind: 'date',
+            title: h.deposit === 'given' ? 'When did you pay it?' : 'When will you pay it?',
+            value: h.depositDate || '',
+            onChange: (v) => setHand({ depositDate: v }),
+            required: true,
+          },
+          {
+            id: 'closeby',
+            kind: 'date',
+            title: 'When will you pay the rest and take the boat?',
+            help: 'The seller holds the boat for you until this day. It’s your sale date too.',
+            value: h.closeBy || '',
+            onChange: (v) => setHand({ closeBy: v, saleDate: v }),
+            required: true,
+          },
+          {
+            id: 'dout',
+            kind: 'choice',
+            title: 'If you change your mind, what happens to the deposit?',
+            why: 'If the seller backs out, or the title, lien or HIN doesn’t check out, you get the whole deposit back no matter what you pick here. This is only for when you decide not to buy.',
+            options: DEPOSIT_IF_OUT.map(([k, l, sub]) => [k, l, sub] as [string, string, string]),
+            value: h.depositIfBuyerOut,
+            onChange: (v) => setHand({ depositIfBuyerOut: v as any }),
+            required: true,
+          },
+        ]
+
   const priceQs = (): Question[] => [
     {
       id: 'price',
@@ -556,7 +659,25 @@ export default function ExpressDeal({ token }: { token: string }) {
       valid: () => Number(basics.price) > 0,
       error: 'Add the agreed price.',
     },
-    { id: 'date', kind: 'date', title: 'When is the sale?', help: 'The day you pay and sign. Your 30-day title deadline starts here.', value: h.saleDate || '', onChange: (v) => setHand({ saleDate: v }), required: true },
+    {
+      id: 'dep',
+      kind: 'choice',
+      title: 'Did you put down a deposit to hold the boat?',
+      help: 'Zelle, cash, a check: any money before the sale. We’ll make a free deposit receipt you both sign.',
+      why: 'A deposit on a handshake is where most arguments start. A one-page receipt says how much, when the sale happens, and who gets the money back if it doesn’t.',
+      options: [
+        ['given', 'Yes, I already paid one'],
+        ['planned', 'I’m about to'],
+        ['none', 'No deposit'],
+      ],
+      value: h.deposit,
+      onChange: (v) => setHand({ deposit: v as any }),
+      required: true,
+    },
+    ...depositQs(),
+    ...(depOn
+      ? []
+      : ([{ id: 'date', kind: 'date', title: 'When is the sale?', help: 'The day you pay and sign. Your 30-day title deadline starts here.', value: h.saleDate || '', onChange: (v: string) => setHand({ saleDate: v }), required: true }] as Question[])),
     {
       id: 'pay',
       kind: 'choice',
@@ -581,7 +702,16 @@ export default function ExpressDeal({ token }: { token: string }) {
       title: 'The deal',
       rows: [
         ['Agreed price', priceDollars ? money(priceDollars * 100) : '', 'price'],
-        ['Date of sale', h.saleDate || '', 'date'],
+        ...(depOn
+          ? ([
+              ['Deposit', h.depositAmount ? `${money(Number(h.depositAmount) * 100)} by ${h.depositMethod || '…'}` : '', 'damt'],
+              ['Close by', h.closeBy || '', 'closeby'],
+              ['If you back out', DEPOSIT_IF_OUT.find(([k]) => k === h.depositIfBuyerOut)?.[1] || '', 'dout'],
+            ] as [string, string, string][])
+          : ([
+              ['Deposit', h.deposit === 'none' ? 'None' : '', 'dep'],
+              ['Date of sale', h.saleDate || '', 'date'],
+            ] as [string, string, string][])),
         ['Paying by', h.paymentMethod || '', 'pay'],
         ['Included', h.inventory || 'Nothing extra', 'inv'],
       ],
@@ -639,7 +769,30 @@ export default function ExpressDeal({ token }: { token: string }) {
   const priceForm = (
     <div style={boxStyle}>
       <Field id="pr" label="Agreed price, in dollars" value={basics.price ? Number(basics.price).toLocaleString('en-US') : ''} onChange={(v) => setBasic({ price: v.replace(/[^0-9]/g, '') })} />
-      <Field id="dt" label="Date of sale" type="date" value={h.saleDate || ''} onChange={(v) => setHand({ saleDate: v })} />
+      <Select
+        id="dp"
+        label="Deposit to hold the boat"
+        value={h.deposit === 'given' ? 'Yes, I already paid one' : h.deposit === 'planned' ? 'I’m about to' : h.deposit === 'none' ? 'No deposit' : ''}
+        options={['Yes, I already paid one', 'I’m about to', 'No deposit']}
+        onChange={(v) => setHand({ deposit: v.startsWith('Yes') ? 'given' : v.startsWith('I’m') ? 'planned' : 'none' })}
+      />
+      {depOn && (
+        <>
+          <Field id="da" label="Deposit amount, in dollars" value={h.depositAmount ? Number(h.depositAmount).toLocaleString('en-US') : ''} onChange={(v) => setHand({ depositAmount: v.replace(/[^0-9]/g, '') })} />
+          {depWarn}
+          <Select id="dm" label="Paid by" value={h.depositMethod || ''} options={DEPOSIT_METHODS} onChange={(v) => setHand({ depositMethod: v })} />
+          <Field id="dd" label="Deposit date" type="date" value={h.depositDate || ''} onChange={(v) => setHand({ depositDate: v })} />
+          <Field id="cb" label="Pay the rest and take the boat by" hint="also your sale date" type="date" value={h.closeBy || ''} onChange={(v) => setHand({ closeBy: v, saleDate: v })} />
+          <Select
+            id="do"
+            label="If you change your mind"
+            value={DEPOSIT_IF_OUT.find(([k]) => k === h.depositIfBuyerOut)?.[1] || ''}
+            options={DEPOSIT_IF_OUT.map(([, l]) => l)}
+            onChange={(v) => setHand({ depositIfBuyerOut: DEPOSIT_IF_OUT.find(([, l]) => l === v)?.[0] })}
+          />
+        </>
+      )}
+      {!depOn && <Field id="dt" label="Date of sale" type="date" value={h.saleDate || ''} onChange={(v) => setHand({ saleDate: v })} />}
       <Select id="pm" label="How you’re paying" value={h.paymentMethod || ''} options={PAYMENT_METHODS} onChange={(v) => setHand({ paymentMethod: v })} />
       <Field id="iv" label="What else comes with it" hint="optional, goes on the bill of sale" textarea value={h.inventory || ''} onChange={(v) => setHand({ inventory: v })} />
     </div>
@@ -693,7 +846,7 @@ export default function ExpressDeal({ token }: { token: string }) {
         ]
   ).concat([
     'Title photo pre-check: catch the wrong name, an unreleased lien or a mismatched HIN before you pay',
-    'A payment receipt for the seller to sign',
+    'A payment receipt for the seller to sign, with any deposit credited',
     'A title signing guide for how the boat is titled',
     has.boat ? 'Vessel history: builder, recalls and Coast Guard records from the HIN' : '',
     'Walk-around record, handoff checklist and dated photos',
@@ -703,6 +856,52 @@ export default function ExpressDeal({ token }: { token: string }) {
 
   const paywall = (
     <div style={{ ...boxStyle, border: `1.5px solid ${gold}`, background: 'rgba(201,150,46,0.07)' }}>
+      <button
+        type="button"
+        onClick={() => {
+          flush()
+          setPreviewOpen(true)
+        }}
+        aria-label="See your bill of sale, filled in"
+        style={{ display: 'flex', gap: 14, alignItems: 'center', textAlign: 'left', width: '100%', border: 0, borderRadius: 10, padding: 0, background: 'transparent', cursor: 'pointer', color: cream }}
+      >
+        <span
+          aria-hidden="true"
+          style={{ position: 'relative', flexShrink: 0, width: 96, height: 124, background: '#fffdf9', borderRadius: 4, boxShadow: '0 6px 16px rgba(0,0,0,0.35)', padding: '10px 9px', overflow: 'hidden', color: '#13233a', fontFamily: 'Georgia, serif' }}
+        >
+          <span style={{ display: 'block', fontSize: 8.5, fontWeight: 700, textAlign: 'center', marginBottom: 6 }}>Bill of Sale</span>
+          <span style={{ display: 'block', fontSize: 6.5, lineHeight: 1.5, fontFamily: 'Inter, system-ui, sans-serif' }}>
+            Seller: {(basics.sellerName || '').split(' ')[0] || '—'}
+            <br />
+            Buyer: {firstName || '—'}
+            <br />
+            {priceDollars ? money(priceDollars * 100) : ''}
+          </span>
+          {[0, 1, 2, 3, 4].map((n) => (
+            <span key={n} style={{ display: 'block', height: 3, borderRadius: 2, background: '#dfe4e8', margin: '5px 0', width: `${90 - n * 9}%` }} />
+          ))}
+          <span style={{ position: 'absolute', left: -14, right: -14, top: 52, transform: 'rotate(-28deg)', textAlign: 'center', fontSize: 11, fontWeight: 800, letterSpacing: 1, color: 'rgba(184,134,58,0.75)', fontFamily: 'Inter, system-ui, sans-serif' }}>
+            PREVIEW
+          </span>
+        </span>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ fontFamily: 'Georgia, serif', fontSize: 19 }}>Your bill of sale is already filled in</span>
+          <span style={{ fontSize: 14, color: muted, lineHeight: 1.5 }}>Your names, the boat and the price, from what you entered. Have a look before you pay.</span>
+          <span style={{ ...outlineButton, alignSelf: 'flex-start', padding: '8px 14px', fontSize: 14 }}>See it filled in</span>
+        </span>
+      </button>
+      {previewOpen && (
+        <DocViewer
+          token={token}
+          doc={has.boat ? 'vessel-bill-of-sale' : has.motor ? 'motor-bill-of-sale' : 'trailer-bill-of-sale'}
+          title="Your bill of sale (preview)"
+          onClose={() => setPreviewOpen(false)}
+          preview={{
+            label: paying === 'solo' ? 'Opening checkout…' : 'Unlock · $29.99',
+            onUnlock: () => pay(false),
+          }}
+        />
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
         <span style={{ fontFamily: 'Georgia, serif', fontSize: 22 }}>Your paperwork</span>
         <span style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: gold, fontWeight: 700 }}>$29.99</span>
@@ -809,6 +1008,8 @@ export default function ExpressDeal({ token }: { token: string }) {
         })}
       </nav>
 
+      <ExpressHelper token={token} step={step} next={nextUp()} onGo={go} />
+
       {saveState === 'error' && (
         <p role="alert" style={{ margin: 0, color: gold, fontSize: 14 }}>
           Your last change didn’t save. Check your connection; it will try again when you keep going.
@@ -862,6 +1063,7 @@ export default function ExpressDeal({ token }: { token: string }) {
               {nextButton('Continue to the free checks', 3)}
             </>
           )}
+          {depOn && <DepositCard token={token} missing={depositMissing(h)} saving={saveState === 'saving'} />}
         </>
       )}
 
@@ -959,6 +1161,7 @@ export default function ExpressDeal({ token }: { token: string }) {
                 <div style={eyebrow}>SIGN THESE AT THE HANDOFF</div>
                 <DocRow token={token} doc="boat-file" name="Your Boat File" note="Every paper, your checks and a starter boat log, in one download." primary />
                 <DocRow token={token} doc="closing-packet" name="Just the papers to sign" note="In the order you’ll use them. Easiest to print." />
+                {depOn && depositMissing(savedHand).length === 0 && <DocRow token={token} doc="deposit-receipt" name="Deposit receipt" note="Already signed? It’s credited on your payment receipt." />}
                 {!fl && st?.billOfSale && (
                   <div style={{ border: `1px solid ${gold}`, borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{ fontWeight: 700 }}>{stateName}’s official bill of sale</div>

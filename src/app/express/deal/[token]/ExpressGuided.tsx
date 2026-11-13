@@ -141,10 +141,16 @@ export default function ExpressGuided({
   const pos = q.kind === 'review' ? answered : idx + 1
   const topRef = useRef<HTMLDivElement>(null)
 
+  const firstRun = useRef(true)
   useEffect(() => {
     setWhy(false)
     setErr('')
     voice.clear()
+    // Keep the page where it is on first load, so the helper above stays in view.
+    if (firstRun.current) {
+      firstRun.current = false
+      return
+    }
     try {
       topRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
     } catch {}

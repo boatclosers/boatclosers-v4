@@ -29,6 +29,33 @@ export type Handoff = {
   hull?: string
   propulsion?: string
   fuel?: string
+  // The deposit, when the buyer hands over money to hold the boat before the sale.
+  deposit?: DepositStatus
+  depositAmount?: string
+  depositMethod?: string
+  depositDate?: string
+  closeBy?: string
+  depositIfBuyerOut?: DepositIfOut
+}
+
+export type DepositStatus = 'none' | 'given' | 'planned'
+export type DepositIfOut = 'kept' | 'returned' | 'inspection'
+export const DEPOSIT_METHODS = ['Zelle', 'Cash', 'Venmo', 'Cash App', 'Check', 'Other']
+export const DEPOSIT_IF_OUT: [DepositIfOut, string, string][] = [
+  ['kept', 'The seller keeps it', 'Most common. It’s what holds the boat for you.'],
+  ['inspection', 'Returned only if the boat fails a sea trial or inspection', 'Good if you haven’t looked it over properly yet.'],
+  ['returned', 'The seller returns it', 'Fully refundable, for any reason.'],
+]
+// The deposit receipt can be made once these are in.
+export function depositMissing(h: Handoff): string[] {
+  if (h.deposit !== 'given' && h.deposit !== 'planned') return []
+  const out: string[] = []
+  if (!(Number(h.depositAmount) > 0)) out.push('the deposit amount')
+  if (!h.depositMethod) out.push('how it was paid')
+  if (!h.depositDate) out.push('the deposit date')
+  if (!h.closeBy) out.push('the date to close by')
+  if (!h.depositIfBuyerOut) out.push('what happens if you back out')
+  return out
 }
 
 export const PAYMENT_METHODS = ["Cashier's check", 'Bank transfer', 'Cash', 'Escrow service', 'Personal check', 'Other']

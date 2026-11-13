@@ -75,6 +75,12 @@ function cleanHandoff(b: any): Handoff {
     hull: str(b?.hull, 30),
     propulsion: str(b?.propulsion, 40),
     fuel: str(b?.fuel, 20),
+    deposit: pick(b?.deposit, ['none', 'given', 'planned'] as const),
+    depositAmount: /^\d{1,7}$/.test(String(b?.depositAmount ?? '')) ? String(b.depositAmount) : undefined,
+    depositMethod: str(b?.depositMethod, 30),
+    depositDate: /^\d{4}-\d{2}-\d{2}$/.test(b?.depositDate || '') ? b.depositDate : undefined,
+    closeBy: /^\d{4}-\d{2}-\d{2}$/.test(b?.closeBy || '') ? b.closeBy : undefined,
+    depositIfBuyerOut: pick(b?.depositIfBuyerOut, ['kept', 'returned', 'inspection'] as const),
   }
 }
 

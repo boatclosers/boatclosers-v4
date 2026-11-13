@@ -32,11 +32,26 @@ function loadPdfJs(): Promise<any> {
 
 export type TokenParam = 'token' | 'stoken'
 
-export function docUrl(token: string, doc: string, download = false, param: TokenParam = 'token') {
-  return `/api/express/document?${param}=${token}&doc=${doc}${download ? '&download=1' : ''}`
+export function docUrl(token: string, doc: string, download = false, param: TokenParam = 'token', preview = false) {
+  return `/api/express/document?${param}=${token}&doc=${doc}${download ? '&download=1' : ''}${preview ? '&preview=1' : ''}`
 }
 
-export default function DocViewer({ token, doc, title, onClose, param = 'token' }: { token: string; doc: string; title: string; onClose: () => void; param?: TokenParam }) {
+export default function DocViewer({
+  token,
+  doc,
+  title,
+  onClose,
+  param = 'token',
+  preview,
+}: {
+  token: string
+  doc: string
+  title: string
+  onClose: () => void
+  param?: TokenParam
+  // A watermarked look before paying: no Download, and an unlock button instead.
+  preview?: { label: string; onUnlock: () => void }
+}) {
   const pagesRef = useRef<HTMLDivElement>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [msg, setMsg] = useState('')
@@ -51,7 +66,7 @@ export default function DocViewer({ token, doc, title, onClose, param = 'token' 
     window.addEventListener('keydown', onKey)
     ;(async () => {
       try {
-        const res = await fetch(docUrl(token, doc, false, param), { cache: 'no-store' })
+        const res = await fetch(docUrl(token, doc, false, param, !!preview), { cache: 'no-store' })
         if (!res.ok) {
           setMsg(await res.text())
           setStatus('error')
@@ -96,7 +111,7 @@ export default function DocViewer({ token, doc, title, onClose, param = 'token' 
       document.body.style.overflow = prev
       window.removeEventListener('keydown', onKey)
     }
-  }, [token, doc, title, param])
+  }, [token, doc, title, param, !!preview]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const btn = {
     background: '#c9962e',
@@ -119,9 +134,15 @@ export default function DocViewer({ token, doc, title, onClose, param = 'token' 
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid rgba(201,150,46,0.35)' }}>
         <div style={{ flex: 1, color: '#f5f1e8', fontWeight: 600, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
-        <a href={docUrl(token, doc, true, param)} style={btn}>
-          Download
-        </a>
+        {preview ? (
+          <button type="button" onClick={preview.onUnlock} style={btn}>
+            {preview.label}
+          </button>
+        ) : (
+          <a href={docUrl(token, doc, true, param)} style={btn}>
+            Download
+          </a>
+        )}
         <button type="button" onClick={onClose} style={{ ...btn, background: 'transparent', color: '#f5f1e8', border: '1px solid #c9962e' }}>
           Close
         </button>
@@ -129,6 +150,11 @@ export default function DocViewer({ token, doc, title, onClose, param = 'token' 
       <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
         {status === 'loading' && <p style={{ color: '#bdb6a8', textAlign: 'center' }}>Opening {title}...</p>}
         {status === 'error' && <p style={{ color: '#c9962e', textAlign: 'center', lineHeight: 1.6 }}>{msg}</p>}
+        {preview && status === 'ready' && (
+          <p style={{ color: '#f5f1e8', textAlign: 'center', fontSize: 14.5, lineHeight: 1.5, margin: '0 auto 14px', maxWidth: 560 }}>
+            This is your bill of sale, filled in from what you entered. Unlock it to print it clean, along with every other paper for the sale.
+          </p>
+        )}
         <div ref={pagesRef} style={{ maxWidth: 900, margin: '0 auto' }} />
       </div>
     </div>
