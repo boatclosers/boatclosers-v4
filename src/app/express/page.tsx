@@ -36,6 +36,14 @@ const STORY = [
   { step: 'Now what?', note: 'You search “boat bill of sale” and get a generic form. Neither of you is sure where to sign the title.', stuck: true },
 ]
 
+// What a documented sale does later: real moments, in the order they come up.
+const LATER = [
+  { when: 'Next week', title: 'At the tag office', text: 'The bill of sale shows the price you paid, so your sales tax is figured on that number and the title goes through the first time.' },
+  { when: 'Next season', title: 'With your insurance', text: 'Proof of the purchase date, the price and what came with it, in one file you can send from your phone.' },
+  { when: 'If a question comes up', title: 'It’s already answered', text: 'What was included, what was paid, and the seller’s signed word that nothing was owed on the boat. Dated, signed by both of you.' },
+  { when: 'When you sell it', title: 'Hand the next buyer a clean history', text: 'A Boat File with the bill of sale, the title trail and your records makes your boat the easy one to buy.' },
+]
+
 const GROUPS = [
   {
     title: 'Check the boat',
@@ -241,6 +249,12 @@ const css = `
 .mbc .sec-head p{font-size:17.5px; color:var(--ink-2); margin-top:12px}
 
 /* price */
+.mbc .later{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(4,1fr); gap:28px}
+.mbc .later li{border-top:2px solid var(--ink); padding-top:16px; display:flex; flex-direction:column; gap:6px}
+.mbc .later .when{font-size:13.5px; font-weight:600; color:var(--brass-ink, #8a6224)}
+.mbc .later b{font-family:var(--display); font-size:21px; font-weight:600; line-height:1.2}
+.mbc .later li > span:last-child{font-size:15.5px; color:var(--ink-2); line-height:1.55}
+.mbc .later-close{margin-top:34px; font-family:var(--display); font-size:clamp(20px,2.4vw,26px); line-height:1.3; max-width:30em}
 .mbc .price{display:grid; grid-template-columns:1.1fr 1fr; gap:48px; align-items:start}
 .mbc .tag{position:relative; background:var(--ink); color:#fff; border-radius:16px; padding:30px 30px 26px}
 .mbc .tag .amt{font-family:var(--display); font-size:72px; font-weight:700; line-height:1; letter-spacing:-0.03em}
@@ -277,6 +291,7 @@ const css = `
 .mbc .sticky{display:none}
 
 @media (max-width:980px){
+  .mbc .later{grid-template-columns:1fr 1fr}
   .mbc .hero{grid-template-columns:1fr; gap:24px; padding-top:20px}
   .mbc .title-fig{max-width:520px}
   .mbc .groups{grid-template-columns:1fr}
@@ -288,6 +303,7 @@ const css = `
   .mbc .price{grid-template-columns:1fr}
 }
 @media (max-width:680px){
+  .mbc .later{grid-template-columns:1fr; gap:22px}
   .mbc .nav-links .hide-sm{display:none}
   .mbc .hero h1{font-size:38px}
   .mbc .hero .sub{font-size:17.5px}
@@ -459,6 +475,27 @@ export default function Page() {
             </ul>
           </div>
         </div>
+      </section>
+
+      <section className="wrap sec later-sec">
+        <div className="sec-head">
+          <h2>A handshake makes the deal. Paper keeps it.</h2>
+          <p>
+            The $29.99 does its work long after the trailer leaves the driveway. A documented sale answers questions before anyone asks them, for as long as you own the boat.
+          </p>
+        </div>
+        <ol className="later">
+          {LATER.map((l) => (
+            <li key={l.when}>
+              <span className="when">{l.when}</span>
+              <b>{l.title}</b>
+              <span>{l.text}</span>
+            </li>
+          ))}
+        </ol>
+        <p className="later-close">
+          Thirty dollars, once. The record lasts as long as the boat does.
+        </p>
       </section>
 
       <section className="wrap sec">

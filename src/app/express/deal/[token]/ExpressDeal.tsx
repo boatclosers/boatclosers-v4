@@ -938,6 +938,9 @@ export default function ExpressDeal({ token }: { token: string }) {
         <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 26, color: goldText, fontWeight: 700 }}>$29.99</span>
       </div>
       <p style={{ margin: 0, color: muted, fontSize: 14.5, lineHeight: 1.6 }}>One price for everything in this sale. You’ve already entered the details, so your papers fill in the moment you unlock.</p>
+      <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.6, color: cream, borderLeft: `3px solid ${gold}`, paddingLeft: 12 }}>
+        A handshake makes the deal; paper keeps it. Your signed, dated papers answer questions later: at the tag office, with your insurance, and when you sell the boat.
+      </p>
       <ul style={{ margin: 0, paddingLeft: 20, color: cream, fontSize: 15, lineHeight: 1.7 }}>
         {docList.map((d) => (
           <li key={d}>{d}</li>
