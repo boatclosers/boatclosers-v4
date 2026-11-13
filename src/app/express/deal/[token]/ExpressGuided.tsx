@@ -185,17 +185,17 @@ export default function ExpressGuided({
   return (
     <div ref={topRef} style={{ scrollMarginTop: 20, color: K.navy }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 13, marginBottom: 8 }}>
-        <span style={{ fontWeight: 700, color: '#e3c28a', letterSpacing: 0.6, textTransform: 'uppercase' }}>{label}</span>
-        <span style={{ color: '#d8d2c4' }}>
+        <span style={{ fontWeight: 700, color: '#8a6224', letterSpacing: 0.6, textTransform: 'uppercase' }}>{label}</span>
+        <span style={{ color: '#4e5d6c' }}>
           {pos} of {answered}
         </span>
       </div>
-      <div style={{ height: 6, borderRadius: 6, background: 'rgba(245,241,232,0.15)', overflow: 'hidden', marginBottom: 18 }}>
+      <div style={{ height: 6, borderRadius: 6, background: 'rgba(19,35,58,0.125)', overflow: 'hidden', marginBottom: 18 }}>
         <div style={{ height: 6, borderRadius: 6, background: K.brass, width: `${Math.round((pos / answered) * 100)}%`, transition: 'width .3s' }} />
       </div>
 
-      <div style={{ background: K.paper, borderRadius: 22, padding: '26px 22px 22px' }}>
-        <h2 style={{ margin: 0, fontFamily: 'Georgia, serif', fontWeight: 500, fontSize: 28, lineHeight: 1.18 }}>{q.title}</h2>
+      <div style={{ background: K.paper, borderRadius: 22, padding: '26px 22px 22px', border: '1px solid rgba(19,35,58,0.1)', boxShadow: '0 14px 30px -22px rgba(19,35,58,0.45)' }}>
+        <h2 style={{ margin: 0, fontFamily: "'Fraunces', Georgia, serif", fontWeight: 500, fontSize: 28, lineHeight: 1.18 }}>{q.title}</h2>
         {q.help && <p style={{ margin: '10px 0 0', fontSize: 16, lineHeight: 1.5, color: K.slate }}>{q.help}</p>}
 
         {(q.kind === 'text' || q.kind === 'money' || q.kind === 'date') && (
@@ -395,7 +395,7 @@ export default function ExpressGuided({
       </div>
 
       <div style={{ textAlign: 'center', marginTop: 12 }}>
-        <button type="button" onClick={onShowForm} style={{ border: 0, background: 'transparent', padding: 10, fontSize: 14, color: '#d8d2c4', textDecoration: 'underline', cursor: 'pointer' }}>
+        <button type="button" onClick={onShowForm} style={{ border: 0, background: 'transparent', padding: 10, fontSize: 14, color: '#4e5d6c', textDecoration: 'underline', cursor: 'pointer' }}>
           See all fields on one page instead
         </button>
       </div>

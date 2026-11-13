@@ -14,8 +14,8 @@ const cream = '#f5f1e8'
 
 export default function Page() {
   return (
-    <div style={{ background: navy, minHeight: '100vh', color: cream, fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" }}>
-      <style>{'body{margin:0;background:#0f1b2d}'}</style>
+    <div style={{ background: '#e9efec', minHeight: '100vh', color: '#13233a', fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" }}>
+      <style>{'body{margin:0;background:#e9efec}'}</style>
       <header
         style={{
           display: 'flex',
@@ -24,16 +24,12 @@ export default function Page() {
           flexWrap: 'wrap',
           gap: 16,
           padding: '20px 24px',
-          borderBottom: `2px dashed ${gold}`,
+          borderBottom: '1px solid rgba(19,35,58,0.12)',
         }}
       >
         <Link href="/express" style={{ textDecoration: 'none' }}>
-          <div style={{ color: gold, fontFamily: 'Georgia, serif', fontSize: 22, letterSpacing: 2, fontWeight: 700 }}>
-            MY BOAT CLOSING
-          </div>
-          <div style={{ color: cream, fontSize: 10, letterSpacing: 3, opacity: 0.75 }}>
-            FROM BOATCLOSERS · ALL 50 STATES
-          </div>
+          <div style={{ color: '#13233a', fontFamily: "'Fraunces', Georgia, serif", fontSize: 22, fontWeight: 700 }}>My Boat Closing</div>
+          <div style={{ color: '#4e5d6c', fontSize: 12.5, marginTop: 2 }}>from BoatClosers · all 50 states</div>
         </Link>
       </header>
 

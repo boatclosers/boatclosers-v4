@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { makeMatches, type Builder, type Recall, type VesselRecord } from '@/lib/hin'
 
-const gold = '#c9962e'
-const cream = '#f5f1e8'
-const muted = '#bdb6a8'
+// CSS variables so My Boat Closing's light page can recolor these (see HinCard).
+const gold = 'var(--hb-gold, #c9962e)'
+const cream = 'var(--hb-text, #f5f1e8)'
+const muted = 'var(--hb-muted, #bdb6a8)'
 
 export function titleCase(s: string): string {
   return s
@@ -144,7 +145,7 @@ function useJson<T>(url: string | null) {
 }
 
 const sectionTitle = { fontSize: 11, letterSpacing: 2, color: gold, fontWeight: 700, marginBottom: 6 }
-const rowStyle = { padding: '8px 0', borderBottom: '1px solid rgba(245,241,232,0.1)', lineHeight: 1.5 }
+const rowStyle = { padding: '8px 0', borderBottom: '1px solid var(--hb-line, rgba(245,241,232,0.1))', lineHeight: 1.5 }
 
 function monthYear(d: string): string {
   const m = /^(\d{4})-(\d{2})/.exec(d)

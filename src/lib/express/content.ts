@@ -38,6 +38,11 @@ export type Handoff = {
   depositIfBuyerOut?: DepositIfOut
 }
 
+// Past these, a neutral party should hold the money: BoatClosers, not a handshake.
+export const DEPOSIT_SECURE_DOLLARS = 1000
+export const BIG_PRICE_CENTS = 5000000
+export const MBI_URL = 'https://myboatinspector.com'
+
 export type DepositStatus = 'none' | 'given' | 'planned'
 export type DepositIfOut = 'kept' | 'returned' | 'inspection'
 export const DEPOSIT_METHODS = ['Zelle', 'Cash', 'Venmo', 'Cash App', 'Check', 'Other']

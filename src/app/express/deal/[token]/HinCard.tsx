@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { decodeHin } from '@/lib/hin'
 import { useBuilder, BuilderDetails, builderName, RecallsSection, VesselSection } from '@/components/HinBuilder'
-import { navy, gold, cream, muted, line, boxStyle, eyebrow } from './parts'
+import { navy, gold, cream, muted, line, boxStyle, eyebrow, goldText } from './parts'
 
 // Step 1 tool: decode the boat's HIN and compare it with the year the buyer entered.
 export default function HinCard({ token, boat, onSaved }: { token: string; boat: any; onSaved: (items: any) => void }) {
@@ -45,9 +45,9 @@ export default function HinCard({ token, boat, onSaved }: { token: string; boat:
         : 'Something looks off'
 
   return (
-    <div style={boxStyle}>
+    <div style={{ ...boxStyle, ...({ '--hb-gold': goldText, '--hb-text': cream, '--hb-muted': muted, '--hb-line': line } as React.CSSProperties) }}>
       <div style={eyebrow}>HIN CHECK · FREE</div>
-      <div style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: r && r.status !== 'valid' ? gold : cream }}>
+      <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 20, color: r && r.status !== 'valid' ? goldText : cream }}>
         {headline}
       </div>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -70,8 +70,8 @@ export default function HinCard({ token, boat, onSaved }: { token: string; boat:
             padding: '12px 14px',
             fontSize: 16,
             borderRadius: 6,
-            border: `1px solid ${line}`,
-            background: cream,
+            border: '1.5px solid rgba(19,35,58,0.22)',
+            background: '#ffffff',
             color: navy,
             fontFamily: 'ui-monospace, Menlo, monospace',
             letterSpacing: 1,
@@ -96,12 +96,12 @@ export default function HinCard({ token, boat, onSaved }: { token: string; boat:
           {saving ? 'Checking...' : 'Check HIN'}
         </button>
       </div>
-      {msg && <p style={{ margin: 0, color: gold, fontSize: 14 }}>{msg}</p>}
+      {msg && <p style={{ margin: 0, color: goldText, fontSize: 14 }}>{msg}</p>}
 
       {r && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 15, lineHeight: 1.5 }}>
           {r.problems.map((p) => (
-            <div key={p} style={{ color: gold }}>
+            <div key={p} style={{ color: goldText }}>
               ✕ {p}
             </div>
           ))}

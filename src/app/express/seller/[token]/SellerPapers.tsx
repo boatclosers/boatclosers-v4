@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { DocRow, boxStyle, eyebrow, muted, gold, cream } from '../../deal/[token]/parts'
+import { DocRow, boxStyle, eyebrow, muted, gold, cream, goldText } from '../../deal/[token]/parts'
 
 export default function SellerPapers({ stoken }: { stoken: string }) {
   const [d, setD] = useState<any>(null)
@@ -24,8 +24,8 @@ export default function SellerPapers({ stoken }: { stoken: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
-        <div style={{ color: gold, fontWeight: 700, fontSize: 14 }}>Seller’s copies</div>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 28, lineHeight: 1.2, margin: '6px 0' }}>Hi {String(d.sellerName).split(' ')[0]}, here are your papers</h1>
+        <div style={{ color: goldText, fontWeight: 700, fontSize: 14 }}>Seller’s copies</div>
+        <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 28, lineHeight: 1.2, margin: '6px 0' }}>Hi {String(d.sellerName).split(' ')[0]}, here are your papers</h1>
         <p style={{ margin: 0, color: muted, lineHeight: 1.6 }}>
           From your sale of {d.items.join(', ')} to {d.buyerName}. You don’t need an account.
         </p>

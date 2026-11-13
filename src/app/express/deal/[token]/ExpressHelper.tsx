@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from 'react'
 // @ts-ignore: shared plain-JS hook from the BoatClosers app
 import { useVoice } from '@/components/useVoice'
-import { navy, gold, cream, muted, line } from './parts'
+import { navy, gold, cream, muted, line, goldText } from './parts'
 
 export type Next = { text: string; to: number; cta: string; tip?: { text: string; href: string; label: string } }
 
@@ -34,7 +34,7 @@ export default function ExpressHelper({ token, step, next, onGo }: { token: stri
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <Compass />
           <div style={{ flex: '1 1 200px', minWidth: 0, fontSize: 15, lineHeight: 1.45, color: cream }}>
-            <b style={{ color: gold, fontWeight: 700 }}>Next:</b> {next ? next.text : 'You’re all set. Ask if anything comes up.'}
+            <b style={{ color: goldText, fontWeight: 700 }}>Next:</b> {next ? next.text : 'You’re all set. Ask if anything comes up.'}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             {next && next.to !== step && (
@@ -50,7 +50,7 @@ export default function ExpressHelper({ token, step, next, onGo }: { token: stri
         {next?.tip && (
           <div style={{ fontSize: 13.5, color: muted, lineHeight: 1.5, paddingLeft: 30 }}>
             {next.tip.text}{' '}
-            <a href={next.tip.href} target={next.tip.href.startsWith('http') ? '_blank' : undefined} rel="noopener" style={{ color: gold, fontWeight: 600 }}>
+            <a href={next.tip.href} target={next.tip.href.startsWith('http') ? '_blank' : undefined} rel="noopener" style={{ color: goldText, fontWeight: 600 }}>
               {next.tip.label}
             </a>
           </div>
@@ -123,7 +123,7 @@ function AskDrawer({ token, step, onClose }: { token: string; step: number; onCl
     <div role="dialog" aria-modal="true" aria-label="Ask a question" style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(4,9,18,0.6)', display: 'flex', justifyContent: 'flex-end' }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ width: 'min(440px, 100%)', height: '100%', background: '#0f1b2d', borderLeft: `1px solid ${line}`, display: 'flex', flexDirection: 'column', color: cream }}
+        style={{ width: 'min(440px, 100%)', height: '100%', background: '#f6f8f7', borderLeft: `1px solid ${line}`, display: 'flex', flexDirection: 'column', color: cream }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: `1px solid ${line}` }}>
           <Compass />
@@ -142,7 +142,7 @@ function AskDrawer({ token, step, onClose }: { token: string; step: number; onCl
               <p style={{ margin: 0, color: muted, fontSize: 14.5, lineHeight: 1.6 }}>Stuck on a step, or not sure what comes next? Ask in your own words, or tap the mic and say it.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {(SUGGEST[step] || SUGGEST[0]).map((q) => (
-                  <button key={q} type="button" onClick={() => send(q)} style={{ textAlign: 'left', border: `1px solid ${line}`, background: 'rgba(245,241,232,0.04)', color: cream, borderRadius: 10, padding: '10px 12px', fontSize: 14.5, cursor: 'pointer' }}>
+                  <button key={q} type="button" onClick={() => send(q)} style={{ textAlign: 'left', border: `1px solid ${line}`, background: 'rgba(19,35,58,0.048)', color: cream, borderRadius: 10, padding: '10px 12px', fontSize: 14.5, cursor: 'pointer' }}>
                     {q}
                   </button>
                 ))}
@@ -155,8 +155,9 @@ function AskDrawer({ token, step, onClose }: { token: string; step: number; onCl
               style={{
                 alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
                 maxWidth: '88%',
-                background: m.role === 'user' ? gold : 'rgba(245,241,232,0.07)',
-                color: m.role === 'user' ? navy : cream,
+                background: m.role === 'user' ? navy : '#ffffff',
+                color: m.role === 'user' ? '#ffffff' : cream,
+                border: m.role === 'user' ? 'none' : `1px solid ${line}`,
                 borderRadius: 12,
                 padding: '10px 13px',
                 fontSize: 15,
@@ -169,7 +170,7 @@ function AskDrawer({ token, step, onClose }: { token: string; step: number; onCl
           ))}
           {busy && <div style={{ color: muted, fontSize: 14 }}>Thinking…</div>}
           {err && (
-            <div role="alert" style={{ color: gold, fontSize: 14 }}>
+            <div role="alert" style={{ color: goldText, fontSize: 14 }}>
               {err}
             </div>
           )}
@@ -188,14 +189,14 @@ function AskDrawer({ token, step, onClose }: { token: string; step: number; onCl
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={voice.listening ? 'Listening…' : 'Type a question'}
-            style={{ flex: 1, minWidth: 0, background: cream, color: navy, border: 0, borderRadius: 10, padding: '12px 14px', fontSize: 16 }}
+            style={{ flex: 1, minWidth: 0, background: '#ffffff', color: navy, border: 0, borderRadius: 10, padding: '12px 14px', fontSize: 16 }}
           />
           {voice.supported && (
             <button
               type="button"
               onClick={onVoice}
               aria-label={voice.listening ? 'Stop listening' : 'Ask by voice'}
-              style={{ width: 48, border: 0, borderRadius: 10, cursor: 'pointer', background: voice.listening ? gold : 'rgba(245,241,232,0.12)', color: voice.listening ? navy : cream, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: 48, border: 0, borderRadius: 10, cursor: 'pointer', background: voice.listening ? gold : 'rgba(19,35,58,0.104)', color: voice.listening ? navy : cream, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="9" y="3" width="6" height="11" rx="3" />

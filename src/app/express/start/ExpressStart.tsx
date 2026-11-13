@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { ALL_STATE_CODES, STATE_NAMES } from '@/lib/express/states'
 
-const navy = '#0f1b2d'
-const card = '#18283f'
-const gold = '#c9962e'
-const cream = '#f5f1e8'
-const muted = '#bdb6a8'
-const line = 'rgba(201,150,46,0.35)'
+// Light theme, matching the landing page.
+const navy = '#13233a'
+const card = '#ffffff'
+const gold = '#b8863a'
+const goldText = '#8a6224'
+const cream = '#13233a'
+const muted = '#4e5d6c'
+const line = 'rgba(19,35,58,0.13)'
 
 type ItemKey = 'boat' | 'trailer' | 'motor'
 
@@ -59,7 +61,7 @@ const inputStyle = {
   fontSize: 16,
   borderRadius: 6,
   border: `1px solid ${line}`,
-  background: cream,
+  background: '#ffffff',
   color: navy,
   width: '100%',
   boxSizing: 'border-box' as const,
@@ -163,7 +165,7 @@ export default function ExpressStart() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(28px, 6vw, 36px)', lineHeight: 1.2, margin: 0 }}>
+        <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 'clamp(28px, 6vw, 36px)', lineHeight: 1.2, margin: 0 }}>
           What are you buying?
         </h1>
         <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: muted }}>
@@ -183,7 +185,7 @@ export default function ExpressStart() {
               style={{
                 minHeight: 76,
                 borderRadius: 8,
-                border: `2px solid ${on ? gold : 'rgba(245,241,232,0.3)'}`,
+                border: `2px solid ${on ? gold : 'rgba(19,35,58,0.23)'}`,
                 background: on ? gold : 'transparent',
                 color: on ? navy : cream,
                 display: 'flex',
@@ -194,7 +196,7 @@ export default function ExpressStart() {
                 cursor: 'pointer',
               }}
             >
-              <span style={{ fontFamily: 'Georgia, serif', fontSize: 18, fontWeight: 700 }}>{i.label}</span>
+              <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 18, fontWeight: 700 }}>{i.label}</span>
               <span style={{ fontSize: 11, letterSpacing: 1 }}>{on ? 'ADDED' : 'TAP TO ADD'}</span>
             </button>
           )
@@ -214,7 +216,7 @@ export default function ExpressStart() {
             gap: 14,
           }}
         >
-          <div style={{ fontSize: 11, letterSpacing: 2, color: gold, fontWeight: 700 }}>{i.label.toUpperCase()}</div>
+          <div style={{ fontSize: 11, letterSpacing: 2, color: goldText, fontWeight: 700 }}>{i.label.toUpperCase()}</div>
           <Field
             id={`${i.key}-desc`}
             label={i.descLabel}
@@ -302,8 +304,8 @@ export default function ExpressStart() {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span style={{ fontFamily: 'Georgia, serif', fontSize: 20 }}>Free to start</span>
-          <span style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: gold, fontWeight: 700 }}>$0</span>
+          <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 20 }}>Free to start</span>
+          <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 26, color: goldText, fontWeight: 700 }}>$0</span>
         </div>
         <div style={{ fontSize: 14, lineHeight: 1.6, color: muted }}>
           Your HIN check, lien check, and seller questions for this sale ({summary}) are free. When
@@ -312,7 +314,7 @@ export default function ExpressStart() {
       </div>
 
       {error && (
-        <p role="alert" style={{ margin: 0, color: gold, fontSize: 15 }}>
+        <p role="alert" style={{ margin: 0, color: goldText, fontSize: 15 }}>
           {error}
         </p>
       )}

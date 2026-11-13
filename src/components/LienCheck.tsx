@@ -7,11 +7,13 @@ import { useState } from 'react'
 // the title, the state, the Coast Guard (documented boats), the UCC registry,
 // and unrecorded liens (marina, storage, repair) that only paperwork covers.
 
-const navy = '#0f1b2d'
-const gold = '#c9962e'
-const cream = '#f5f1e8'
-const muted = '#bdb6a8'
-const line = 'rgba(201,150,46,0.35)'
+// Colors come from CSS variables so My Boat Closing can show it on its light page.
+const navy = 'var(--lc-navy, #0f1b2d)'
+const gold = 'var(--lc-gold, #c9962e)'
+const cream = 'var(--lc-text, #f5f1e8)'
+const muted = 'var(--lc-muted, #bdb6a8)'
+const line = 'var(--lc-line, rgba(201,150,46,0.35))'
+const LIGHT = { '--lc-navy': '#13233a', '--lc-gold': '#8a6224', '--lc-text': '#13233a', '--lc-muted': '#4e5d6c', '--lc-line': 'rgba(19,35,58,0.13)', '--lc-off': 'rgba(19,35,58,0.22)', '--lc-on': '#b8863a' } as React.CSSProperties
 
 type TitleType = 'florida' | 'documented' | 'other' | 'unsure'
 
@@ -158,14 +160,14 @@ export default function LienCheck({
   const count = steps.filter((s) => done[s.id]).length
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, ...(inExpress ? LIGHT : {}) }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
         <div style={{ fontSize: 11, letterSpacing: 2, color: gold, fontWeight: 700 }}>LIEN CHECK · FREE</div>
         <div style={{ fontSize: 13, color: muted }}>
           {count} of {steps.length} done
         </div>
       </div>
-      <div style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: cream, lineHeight: 1.3 }}>
+      <div style={{ fontFamily: inExpress ? "'Fraunces', Georgia, serif" : 'Georgia, serif', fontSize: 20, color: cream, lineHeight: 1.3 }}>
         Make sure nobody else has a claim on this boat
       </div>
       <p style={{ margin: 0, color: muted, fontSize: 15, lineHeight: 1.6 }}>
@@ -188,8 +190,8 @@ export default function LienCheck({
                 fontSize: 14,
                 fontWeight: 600,
                 cursor: 'pointer',
-                border: `1px solid ${on ? gold : 'rgba(245,241,232,0.3)'}`,
-                background: on ? gold : 'transparent',
+                border: `1px solid ${on ? gold : 'var(--lc-off, rgba(245,241,232,0.3))'}`,
+                background: on ? 'var(--lc-on, #c9962e)' : 'transparent',
                 color: on ? navy : cream,
               }}
             >

@@ -22,24 +22,31 @@ import {
   MAX_PHOTOS,
 } from '@/lib/express/content'
 
-export const navy = '#0f1b2d'
-export const card = '#18283f'
-export const gold = '#c9962e'
-export const cream = '#f5f1e8'
-export const muted = '#bdb6a8'
-export const line = 'rgba(201,150,46,0.35)'
+// Light theme, matching the landing page: sea-glass page, white cards, ink text,
+// brass for buttons and accents. ('cream' is the main text color; the name stayed
+// from the old dark theme so every screen picks it up.)
+export const navy = '#13233a'
+export const card = '#ffffff'
+export const gold = '#b8863a'
+export const goldText = '#8a6224'
+export const cream = '#13233a'
+export const muted = '#4e5d6c'
+export const line = 'rgba(19,35,58,0.13)'
+export const field = '#ffffff'
+export const page = '#e9efec'
 
 export const boxStyle = {
   background: card,
   border: `1px solid ${line}`,
-  borderRadius: 8,
+  boxShadow: '0 1px 2px rgba(19,35,58,0.05)',
+  borderRadius: 14,
   padding: '18px 18px',
   display: 'flex',
   flexDirection: 'column' as const,
   gap: 10,
 }
-export const eyebrow = { fontSize: 11, letterSpacing: 2, color: gold, fontWeight: 700 }
-export const h2 = { fontFamily: 'Georgia, serif', fontSize: 20, color: cream, lineHeight: 1.3, margin: 0 }
+export const eyebrow = { fontSize: 11, letterSpacing: 1.5, color: goldText, fontWeight: 700 }
+export const h2 = { fontFamily: "'Fraunces', Georgia, serif", fontWeight: 600, fontSize: 21, color: cream, lineHeight: 1.3, margin: 0 }
 
 export function money(cents: number) {
   return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -51,8 +58,9 @@ export const goldButton = {
   fontWeight: 700,
   fontSize: 15,
   padding: '13px 18px',
-  borderRadius: 6,
+  borderRadius: 10,
   border: 'none',
+  boxShadow: '0 2px 0 #8d6526',
   cursor: 'pointer',
   textDecoration: 'none',
   textAlign: 'center' as const,
@@ -60,9 +68,10 @@ export const goldButton = {
 }
 export const outlineButton = {
   ...goldButton,
-  background: 'transparent',
+  background: '#ffffff',
   color: cream,
-  border: `1px solid ${gold}`,
+  boxShadow: 'none',
+  border: `1.5px solid ${navy}`,
 }
 
 // ---------- Checklist ----------
@@ -178,7 +187,7 @@ export function ChannelPicker({ value, onChange, label }: { value: ChannelChoice
               fontSize: 14,
               fontWeight: 600,
               cursor: 'pointer',
-              border: `1px solid ${on ? gold : 'rgba(245,241,232,0.3)'}`,
+              border: `1px solid ${on ? gold : 'rgba(19,35,58,0.23)'}`,
               background: on ? 'rgba(201,150,46,0.2)' : 'transparent',
               color: cream,
             }}
@@ -245,7 +254,7 @@ export function ContactPrefs({ token, contact, onSaved }: { token: string; conta
           <>
             By choosing Text you agree to get texts from BoatClosers about this purchase, like deadline reminders. Msg frequency
             varies. Msg &amp; data rates may apply. Reply STOP to stop, HELP for help.{' '}
-            <a href="/sms-terms" style={{ color: gold }}>Terms</a> · <a href="/privacy" style={{ color: gold }}>Privacy</a>
+            <a href="/sms-terms" style={{ color: goldText }}>Terms</a> · <a href="/privacy" style={{ color: goldText }}>Privacy</a>
           </>
         )}
       </p>
@@ -257,7 +266,7 @@ export function ContactPrefs({ token, contact, onSaved }: { token: string; conta
 
 const FULL_REASONS = [
   { id: 'f-negotiate', label: 'We still need to agree on the price', why: 'Full BoatClosers runs offers and counteroffers in one place, with every round on record.' },
-  { id: 'f-deposit', label: 'The deposit is too big to just hand the seller', why: 'My Boat Closing writes a deposit receipt, but the seller holds the money. Full BoatClosers has a neutral third party hold it until the sale.' },
+  { id: 'f-deposit', label: 'The deposit is more than $1,000', why: 'My Boat Closing writes a deposit receipt, but the seller holds the money. Over $1,000, Full BoatClosers has a neutral third party hold it until the sale.' },
   { id: 'f-survey', label: 'The sale should depend on a survey or sea trial', why: 'Full BoatClosers adds contingencies to a signed purchase agreement, so you can walk away or renegotiate if the survey finds problems.' },
   { id: 'f-finance', label: 'I’m financing through a lender', why: 'Most lenders want a signed purchase agreement and a closing they can pay into. My Boat Closing doesn’t create either.' },
   { id: 'f-agreement', label: 'We both want a signed purchase agreement', why: 'My Boat Closing is buyer-only. Full BoatClosers brings the seller in, and both of you sign the agreement and the closing papers.' },
@@ -265,7 +274,7 @@ const FULL_REASONS = [
 
 export function FullSuggest({ deal, checks, onToggle, moveHref = '/' }: { deal: any; checks: Record<string, boolean>; onToggle: (id: string, v: boolean) => void; moveHref?: string }) {
   const hits = FULL_REASONS.filter((r) => checks[r.id])
-  const big = deal.price_cents > 2500000
+  const big = deal.price_cents > 5000000
   const lienOpen = deal.progress?.handoff?.lien === 'open'
   return (
     <div style={{ ...boxStyle, ...(hits.length || lienOpen ? { border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.08)' } : {}) }}>
@@ -286,12 +295,12 @@ export function FullSuggest({ deal, checks, onToggle, moveHref = '/' }: { deal: 
       </div>
       {big && !hits.length && (
         <p style={{ margin: 0, color: muted, fontSize: 14, lineHeight: 1.6 }}>
-          At {money(deal.price_cents)}, think about a deposit held by a neutral party and a professional survey before you pay in full. If you want either, full BoatClosers is built for it.
+          At {money(deal.price_cents)}, we recommend full BoatClosers: a signed purchase agreement, a neutral party holding the deposit and the money, and the right to walk away if the survey finds problems.
         </p>
       )}
-      {(hits.length > 0 || lienOpen) && (
+      {(hits.length > 0 || lienOpen || big) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: gold }}>Full BoatClosers is the better fit</div>
+          <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 18, color: goldText }}>Full BoatClosers is the better fit</div>
           <ul style={{ margin: 0, paddingLeft: 20, color: cream, fontSize: 14, lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {lienOpen && <li>There’s an open lien. Full BoatClosers can hold the money with a neutral party until the lender releases it.</li>}
             {hits.map((r) => (
@@ -418,7 +427,7 @@ export function PhotosCard({ token, photos, has, onSaved }: { token: string; pho
           style={{ display: 'none' }}
         />
       </label>
-      {msg && <p style={{ margin: 0, color: gold, fontSize: 14 }}>{msg}</p>}
+      {msg && <p style={{ margin: 0, color: goldText, fontSize: 14 }}>{msg}</p>}
       {photos.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 8 }}>
           {photos.map((p) => (
@@ -426,7 +435,7 @@ export function PhotosCard({ token, photos, has, onSaved }: { token: string; pho
               key={p.id}
               type="button"
               onClick={() => setOpen(p.id)}
-              style={{ padding: 0, border: `1px solid ${line}`, borderRadius: 6, overflow: 'hidden', background: navy, cursor: 'pointer', textAlign: 'left' }}
+              style={{ padding: 0, border: `1px solid ${line}`, borderRadius: 6, overflow: 'hidden', background: page, cursor: 'pointer', textAlign: 'left' }}
             >
               <img src={src(p.id)} alt={p.label} loading="lazy" style={{ width: '100%', height: 84, objectFit: 'cover', display: 'block' }} />
               <span style={{ display: 'block', fontSize: 11, color: muted, padding: '4px 6px', lineHeight: 1.3 }}>{p.label}</span>
@@ -534,10 +543,10 @@ export function SellerQuestions({
       <button type="button" onClick={send} disabled={sending || askedCount >= 3} style={{ ...goldButton, opacity: sending || askedCount >= 3 ? 0.6 : 1 }}>
         {sending ? 'Sending...' : askedCount ? 'Send the questions again' : 'Send the questions'}
       </button>
-      {sendMsg && <p style={{ margin: 0, color: gold, fontSize: 14, lineHeight: 1.5 }}>{sendMsg}</p>}
+      {sendMsg && <p style={{ margin: 0, color: goldText, fontSize: 14, lineHeight: 1.5 }}>{sendMsg}</p>}
       <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.5 }}>
         We email it from BoatClosers with your name on it. Answers come back to you, and the seller can opt out any time. Only have their number, or prefer
-        your own? <a href={mailto} style={{ color: gold }}>Use my email</a> or <a href={sms} style={{ color: gold }}>my texts</a>. Note the
+        your own? <a href={mailto} style={{ color: goldText }}>Use my email</a> or <a href={sms} style={{ color: goldText }}>my texts</a>. Note the
         answers below; they save with your purchase.
       </p>
       <div>
@@ -576,7 +585,7 @@ export function SellerQuestions({
                 <button
                   type="button"
                   onClick={() => setOpen({ ...open, [q.id]: true })}
-                  style={{ marginLeft: 32, alignSelf: 'flex-start', background: 'none', border: 'none', color: gold, fontSize: 14, cursor: 'pointer', padding: 0 }}
+                  style={{ marginLeft: 32, alignSelf: 'flex-start', background: 'none', border: 'none', color: goldText, fontSize: 14, cursor: 'pointer', padding: 0 }}
                 >
                   + Note the seller’s answer
                 </button>
@@ -595,8 +604,8 @@ const inputStyle = {
   padding: '12px 14px',
   fontSize: 16,
   borderRadius: 6,
-  border: `1px solid ${line}`,
-  background: cream,
+  border: '1.5px solid rgba(19,35,58,0.22)',
+  background: field,
   color: navy,
   width: '100%',
   boxSizing: 'border-box' as const,
@@ -703,7 +712,7 @@ export function Choice<T extends string>({
                 padding: '11px 14px',
                 borderRadius: 6,
                 cursor: 'pointer',
-                border: `1px solid ${on ? gold : 'rgba(245,241,232,0.3)'}`,
+                border: `1px solid ${on ? gold : 'rgba(19,35,58,0.23)'}`,
                 background: on ? 'rgba(201,150,46,0.15)' : 'transparent',
                 color: cream,
                 display: 'flex',

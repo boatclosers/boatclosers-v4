@@ -78,7 +78,7 @@ export default function ExpressSignup() {
             fontSize: 16,
             borderRadius: 4,
             border: '1px solid rgba(201,150,46,0.5)',
-            background: cream,
+            background: '#ffffff',
             color: navy,
           }}
         />

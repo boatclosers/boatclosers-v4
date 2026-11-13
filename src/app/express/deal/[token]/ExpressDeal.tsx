@@ -27,6 +27,9 @@ import {
   DEPOSIT_METHODS,
   DEPOSIT_IF_OUT,
   depositMissing,
+  DEPOSIT_SECURE_DOLLARS,
+  BIG_PRICE_CENTS,
+  MBI_URL,
   type Handoff,
   type ItemKey,
 } from '@/lib/express/content'
@@ -53,6 +56,7 @@ import {
   FullSuggest,
   PhotosCard,
   ContactPrefs,
+  goldText,
 } from './parts'
 import HinCard from './HinCard'
 import DocViewer from './DocViewer'
@@ -83,7 +87,7 @@ const BUNDLE_PRICE = '$79.99'
 type Basics = { buyerName: string; sellerName: string; price: string; descriptions: Partial<Record<ItemKey, string>> }
 
 function sectionTitle(text: string) {
-  return <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(26px, 6vw, 32px)', lineHeight: 1.2, margin: 0 }}>{text}</h1>
+  return <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 'clamp(26px, 6vw, 32px)', lineHeight: 1.2, margin: 0 }}>{text}</h1>
 }
 
 // ---------- the other products, offered once each where they fit ----------
@@ -112,7 +116,7 @@ function ProductCard({
       style={{
         flex: '1 1 240px',
         border: `1px solid ${highlight ? gold : line}`,
-        background: highlight ? 'rgba(201,150,46,0.08)' : 'rgba(245,241,232,0.03)',
+        background: highlight ? 'rgba(201,150,46,0.08)' : 'rgba(19,35,58,0.041)',
         borderRadius: 10,
         padding: '16px 18px',
         display: 'flex',
@@ -122,8 +126,8 @@ function ProductCard({
     >
       <div style={eyebrow}>{label}</div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ fontFamily: 'Georgia, serif', fontSize: 19, fontWeight: 700 }}>{name}</span>
-        <span style={{ color: gold, fontWeight: 700, whiteSpace: 'nowrap' }}>{price}</span>
+        <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 19, fontWeight: 700 }}>{name}</span>
+        <span style={{ color: goldText, fontWeight: 700, whiteSpace: 'nowrap' }}>{price}</span>
       </div>
       <div style={{ fontSize: 14.5, lineHeight: 1.55, color: muted, flex: 1 }}>{text}</div>
       <a href={href} {...(external ? { target: '_blank', rel: 'noopener' } : {})} style={{ ...outlineButton, textAlign: 'center', textDecoration: 'none' }}>
@@ -150,7 +154,7 @@ function CompareProducts({ token, paid }: { token: string; paid: boolean }) {
   ]
   return (
     <details style={{ ...boxStyle, gap: 12 }}>
-      <summary style={{ cursor: 'pointer', fontWeight: 700, color: gold, listStyle: 'none' }}>Compare all four products ▾</summary>
+      <summary style={{ cursor: 'pointer', fontWeight: 700, color: goldText, listStyle: 'none' }}>Compare all four products ▾</summary>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520, fontSize: 13.5 }}>
           <tbody>
@@ -163,7 +167,7 @@ function CompareProducts({ token, paid }: { token: string; paid: boolean }) {
                       padding: '8px 6px',
                       textAlign: j ? 'center' : 'left',
                       fontWeight: i === 0 || j === 0 ? 700 : 500,
-                      color: i === 0 ? gold : j === 1 && i ? cream : c === '✓' ? cream : muted,
+                      color: i === 0 ? goldText : j === 1 && i ? cream : c === '✓' ? cream : muted,
                       background: j === 1 ? 'rgba(201,150,46,0.08)' : 'transparent',
                     }}
                   >
@@ -175,7 +179,7 @@ function CompareProducts({ token, paid }: { token: string; paid: boolean }) {
           </tbody>
         </table>
       </div>
-      <a href={`/?fromExpress=${token}`} style={{ color: gold, fontSize: 14 }}>
+      <a href={`/?fromExpress=${token}`} style={{ color: goldText, fontSize: 14 }}>
         Need what BoatClosers does? Move this purchase over. Everything you entered comes with you.
       </a>
     </details>
@@ -376,7 +380,7 @@ export default function ExpressDeal({ token }: { token: string }) {
   if (error && !deal) {
     return (
       <div style={boxStyle}>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 26, margin: 0 }}>This link isn&apos;t working</h1>
+        <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 26, margin: 0 }}>This link isn&apos;t working</h1>
         <p style={{ margin: 0, color: muted, lineHeight: 1.6 }}>
           Check that you opened the full link from your My Boat Closing email. If it still won&apos;t open, email support@boatclosers.com.
         </p>
@@ -413,18 +417,27 @@ export default function ExpressDeal({ token }: { token: string }) {
     const walkItemsDone = Object.values(deal.progress?.walk?.items || {}).filter((x: any) => x?.s)
     const flagged = walkItemsDone.filter((x: any) => x.s === 'flag').length
     const today = new Date().toISOString().slice(0, 10)
-    const tipMbi =
-      flagged && !mbiCodeEarly
-        ? { text: `You flagged ${flagged} thing${flagged > 1 ? 's' : ''} on the walk-around.`, href: 'https://myboatinspector.com', label: 'Look it over properly with My Boat Inspector' }
-        : undefined
+    const flaggedTip = flagged
+      ? { text: `You flagged ${flagged} thing${flagged > 1 ? 's' : ''} on the walk-around. Want to dive deeper before you pay?`, href: MBI_URL, label: 'Use My Boat Inspector' }
+      : undefined
+    const deeperTip = mbiCodeEarly ? undefined : flaggedTip || { text: 'Want to dive deeper than a quick look? A guided walkthrough, sea trial and written report.', href: MBI_URL, label: 'My Boat Inspector' }
+    const secureTip =
+      Number(deal.price_cents) > BIG_PRICE_CENTS
+        ? { text: 'Over $50,000, use BoatClosers: a signed agreement and a neutral party holding the money.', href: moveHref, label: 'Move to BoatClosers' }
+        : dOn && Number(sh.depositAmount) > DEPOSIT_SECURE_DOLLARS
+          ? { text: 'Over $1,000, have a neutral party hold the deposit.', href: moveHref, label: 'BoatClosers secures it' }
+          : undefined
+    const tipMbi = secureTip || deeperTip
     if (keys.some((k) => !String(basics.descriptions[k] || '').trim()) || !sh.titledHow) return { text: 'Tell us what you’re buying. About a minute.', to: 0, cta: 'Go to the boat' }
     if (!String(basics.sellerName || '').trim() || !sh.buyerAddress || !sh.sellerAddress) return { text: 'Add you and the seller, the way the names go on the title.', to: 1, cta: 'Go to the people' }
     if (!(Number(deal.price_cents) > 0)) return { text: 'Add the price you agreed on.', to: 2, cta: 'Go to the price' }
+    if (dOn && sh.depositIfBuyerOut === 'inspection' && !mbiCodeEarly && !depositMissing(sh).length && !paid && !walkItemsDone.length)
+      return { text: `Your deposit depends on an inspection. Get it done before ${sh.closeBy || 'your close-by date'}.`, to: 3, cta: 'Go to the checks', tip: { text: 'A dated, written report is the cleanest proof if the boat doesn’t check out.', href: MBI_URL, label: 'Inspect with My Boat Inspector' } }
     if (!sh.deposit) return { text: 'Handing over a deposit? Tell us first and get a free receipt you both sign.', to: 2, cta: 'Go to the price' }
-    if (dOn && depositMissing(sh).length) return { text: `Finish your free deposit receipt: add ${depositMissing(sh)[0]}.`, to: 2, cta: 'Finish it' }
-    if (!sh.paymentMethod) return { text: 'Pick how you’ll pay the seller.', to: 2, cta: 'Go to the price' }
+    if (dOn && depositMissing(sh).length) return { text: `Finish your free deposit receipt: add ${depositMissing(sh)[0]}.`, to: 2, cta: 'Finish it', tip: secureTip }
+    if (!sh.paymentMethod) return { text: 'Pick how you’ll pay the seller.', to: 2, cta: 'Go to the price', tip: secureTip }
     if (!paid) {
-      if (!walkItemsDone.length) return { text: 'At the boat? Do the free walk-around: a dozen quick checks, saved with your notes.', to: 3, cta: 'Start the checks' }
+      if (!walkItemsDone.length) return { text: 'At the boat? Do the free walk-around: a dozen quick checks, saved with your notes.', to: 3, cta: 'Start the checks', tip: tipMbi }
       if (!sh.lien) return { text: 'Check the title for a lender’s name before you pay. It’s free.', to: 3, cta: 'Check for a lien', tip: tipMbi }
       return { text: 'Your bill of sale is filled in. Unlock your paperwork for $29.99 and print it.', to: 4, cta: 'See my papers', tip: tipMbi }
     }
@@ -526,6 +539,7 @@ export default function ExpressDeal({ token }: { token: string }) {
         ...(has.boat ? ([['Length', h.lengthFt ? `${h.lengthFt} ft` : '', 'len'], ['Power', h.propulsion || '', 'prop']] as [string, string, string][]) : []),
         ['Titled', titled.find((o) => o.key === h.titledHow)?.label || '', 'titled'],
       ],
+      note: 'Want to dive deeper on the boat itself? My Boat Inspector walks you through the hull, engine, systems and a sea trial, with a written report. myboatinspector.com',
       finishLabel: 'Continue to the people',
       onFinish: () => go(1),
     })
@@ -587,12 +601,24 @@ export default function ExpressDeal({ token }: { token: string }) {
   }
 
   const depOn = h.deposit === 'given' || h.deposit === 'planned'
-  const depBig = depOn && Number(h.depositAmount) > 0 && (Number(h.depositAmount) > 2500 || (priceDollars > 0 && Number(h.depositAmount) > priceDollars * 0.2))
+  const depBig = depOn && Number(h.depositAmount) > DEPOSIT_SECURE_DOLLARS
+  const bigPrice = priceDollars * 100 > BIG_PRICE_CENTS
   const depWarn = depBig ? (
     <div style={{ fontSize: 14, lineHeight: 1.5, color: '#8a6224', background: '#fbf3e4', borderRadius: 10, padding: '10px 12px' }}>
-      That’s a lot to hand a stranger. If you’d rather a neutral party hold it until the sale, <a href={moveHref} style={{ color: '#8a6224', fontWeight: 600 }}>BoatClosers does that</a>, and everything you’ve entered moves over.
+      Over $1,000, we recommend a neutral party hold the deposit instead of the seller. <a href={moveHref} style={{ color: '#8a6224', fontWeight: 600 }}>BoatClosers does that</a>, with a signed agreement on when it’s returned. Everything you’ve entered moves over, and any $29.99 you paid comes off.
     </div>
   ) : undefined
+  const bigNote = bigPrice ? (
+    <div style={{ ...boxStyle, border: `1px solid ${gold}`, background: 'rgba(201,150,46,0.08)', gap: 8 }}>
+      <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 19 }}>Over $50,000? Use BoatClosers for this one</div>
+      <p style={{ margin: 0, color: muted, fontSize: 14.5, lineHeight: 1.6 }}>
+        At {money(priceDollars * 100)}, you want a signed purchase agreement, a neutral party holding the money, and the right to walk away if the survey finds problems. My Boat Closing is built for smaller, simpler sales. BoatClosers is $249, and everything you’ve entered moves over.
+      </p>
+      <a href={moveHref} style={{ ...goldButton, alignSelf: 'flex-start', textDecoration: 'none' }}>
+        Move this purchase to BoatClosers
+      </a>
+    </div>
+  ) : null
   const depositQs = (): Question[] =>
     !depOn
       ? []
@@ -715,7 +741,11 @@ export default function ExpressDeal({ token }: { token: string }) {
         ['Paying by', h.paymentMethod || '', 'pay'],
         ['Included', h.inventory || 'Nothing extra', 'inv'],
       ],
-      note: 'Still haggling? My Boat Closing is for a price you’ve already agreed. BoatClosers runs offers and counteroffers.',
+      note: bigPrice
+        ? 'Over $50,000, we recommend BoatClosers: a signed purchase agreement, a neutral party holding the money, and survey conditions.'
+        : depBig
+          ? 'Over $1,000, we recommend a neutral party hold the deposit. BoatClosers does that.'
+          : 'Still haggling? My Boat Closing is for a price you’ve already agreed. BoatClosers runs offers and counteroffers.',
       finishLabel: 'Continue to the free checks',
       onFinish: () => go(3),
     },
@@ -799,7 +829,7 @@ export default function ExpressDeal({ token }: { token: string }) {
   )
 
   const modeSwitch = (
-    <div role="group" aria-label="How to fill this in" style={{ display: 'flex', gap: 4, background: 'rgba(245,241,232,0.08)', borderRadius: 10, padding: 4, alignSelf: 'flex-start' }}>
+    <div role="group" aria-label="How to fill this in" style={{ display: 'flex', gap: 4, background: 'rgba(19,35,58,0.076)', borderRadius: 10, padding: 4, alignSelf: 'flex-start' }}>
       {[
         [true, 'One question at a time'],
         [false, 'Full form'],
@@ -816,8 +846,9 @@ export default function ExpressDeal({ token }: { token: string }) {
             fontSize: 13.5,
             fontWeight: 600,
             cursor: 'pointer',
-            background: guided === on ? cream : 'transparent',
-            color: guided === on ? navy : cream,
+            background: guided === on ? '#ffffff' : 'transparent',
+            boxShadow: guided === on ? '0 1px 2px rgba(19,35,58,0.12)' : 'none',
+            color: navy,
           }}
         >
           {label as string}
@@ -867,7 +898,7 @@ export default function ExpressDeal({ token }: { token: string }) {
       >
         <span
           aria-hidden="true"
-          style={{ position: 'relative', flexShrink: 0, width: 96, height: 124, background: '#fffdf9', borderRadius: 4, boxShadow: '0 6px 16px rgba(0,0,0,0.35)', padding: '10px 9px', overflow: 'hidden', color: '#13233a', fontFamily: 'Georgia, serif' }}
+          style={{ position: 'relative', flexShrink: 0, width: 96, height: 124, background: '#fffdf9', borderRadius: 4, boxShadow: '0 6px 16px rgba(0,0,0,0.35)', padding: '10px 9px', overflow: 'hidden', color: '#13233a', fontFamily: "'Fraunces', Georgia, serif" }}
         >
           <span style={{ display: 'block', fontSize: 8.5, fontWeight: 700, textAlign: 'center', marginBottom: 6 }}>Bill of Sale</span>
           <span style={{ display: 'block', fontSize: 6.5, lineHeight: 1.5, fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -885,7 +916,7 @@ export default function ExpressDeal({ token }: { token: string }) {
           </span>
         </span>
         <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontFamily: 'Georgia, serif', fontSize: 19 }}>Your bill of sale is already filled in</span>
+          <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 19 }}>Your bill of sale is already filled in</span>
           <span style={{ fontSize: 14, color: muted, lineHeight: 1.5 }}>Your names, the boat and the price, from what you entered. Have a look before you pay.</span>
           <span style={{ ...outlineButton, alignSelf: 'flex-start', padding: '8px 14px', fontSize: 14 }}>See it filled in</span>
         </span>
@@ -903,8 +934,8 @@ export default function ExpressDeal({ token }: { token: string }) {
         />
       )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
-        <span style={{ fontFamily: 'Georgia, serif', fontSize: 22 }}>Your paperwork</span>
-        <span style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: gold, fontWeight: 700 }}>$29.99</span>
+        <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 22 }}>Your paperwork</span>
+        <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 26, color: goldText, fontWeight: 700 }}>$29.99</span>
       </div>
       <p style={{ margin: 0, color: muted, fontSize: 14.5, lineHeight: 1.6 }}>One price for everything in this sale. You’ve already entered the details, so your papers fill in the moment you unlock.</p>
       <ul style={{ margin: 0, paddingLeft: 20, color: cream, fontSize: 15, lineHeight: 1.7 }}>
@@ -917,7 +948,7 @@ export default function ExpressDeal({ token }: { token: string }) {
       </button>
       <div style={{ borderTop: `1px solid ${line}`, paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ fontWeight: 700 }}>
-          Haven’t looked the boat over yet? <span style={{ color: gold }}>Add My Boat Inspector · {BUNDLE_PRICE} total</span>
+          Haven’t looked the boat over yet? <span style={{ color: goldText }}>Add My Boat Inspector · {BUNDLE_PRICE} total</span>
         </div>
         <div style={{ color: muted, fontSize: 14, lineHeight: 1.55 }}>
           A guided walkthrough of the boat and a sea trial, with a written report, before you hand over money. {MBI_PRICE} on its own. You get a code by email to use at myboatinspector.com. It doesn’t replace a professional marine survey.
@@ -927,7 +958,7 @@ export default function ExpressDeal({ token }: { token: string }) {
         </button>
       </div>
       {payError && (
-        <p role="alert" style={{ margin: 0, color: gold }}>
+        <p role="alert" style={{ margin: 0, color: goldText }}>
           {payError}
         </p>
       )}
@@ -965,7 +996,7 @@ export default function ExpressDeal({ token }: { token: string }) {
       {/* Header: who, what it costs, and how far along */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ color: gold, fontWeight: 700, fontSize: 14 }}>{paid ? 'Paperwork unlocked' : `Welcome aboard, ${firstName}`}</span>
+          <span style={{ color: goldText, fontWeight: 700, fontSize: 14 }}>{paid ? 'Paperwork unlocked' : `Welcome aboard, ${firstName}`}</span>
           <span style={{ fontSize: 12.5, color: muted, border: `1px solid ${line}`, borderRadius: 999, padding: '4px 12px' }}>
             {paid ? 'Paid · $29.99' : 'Free to check · $29.99 for your paperwork'}
           </span>
@@ -991,7 +1022,7 @@ export default function ExpressDeal({ token }: { token: string }) {
                 flex: '1 0 auto',
                 minWidth: 92,
                 textAlign: 'left',
-                border: `1.5px solid ${on ? gold : 'rgba(245,241,232,0.18)'}`,
+                border: `1.5px solid ${on ? gold : 'rgba(19,35,58,0.146)'}`,
                 background: on ? 'rgba(201,150,46,0.14)' : 'transparent',
                 color: cream,
                 borderRadius: 10,
@@ -1011,7 +1042,7 @@ export default function ExpressDeal({ token }: { token: string }) {
       <ExpressHelper token={token} step={step} next={nextUp()} onGo={go} />
 
       {saveState === 'error' && (
-        <p role="alert" style={{ margin: 0, color: gold, fontSize: 14 }}>
+        <p role="alert" style={{ margin: 0, color: goldText, fontSize: 14 }}>
           Your last change didn’t save. Check your connection; it will try again when you keep going.
         </p>
       )}
@@ -1063,7 +1094,8 @@ export default function ExpressDeal({ token }: { token: string }) {
               {nextButton('Continue to the free checks', 3)}
             </>
           )}
-          {depOn && <DepositCard token={token} missing={depositMissing(h)} saving={saveState === 'saving'} />}
+          {depOn && <DepositCard token={token} missing={depositMissing(h)} saving={saveState === 'saving'} inspection={h.depositIfBuyerOut === 'inspection'} secureHref={depBig ? moveHref : undefined} />}
+          {bigNote}
         </>
       )}
 
@@ -1086,9 +1118,9 @@ export default function ExpressDeal({ token }: { token: string }) {
             <LienCheck sellerName={deal.seller_name} inExpress saved={checks} onToggle={toggle} />
             <Choice label="What did you find on the title?" value={h.lien} options={LIEN_OPTIONS} onChange={(v) => setHand({ lien: v })} />
             {h.lien === 'open' && (
-              <p style={{ margin: 0, color: gold, lineHeight: 1.6, fontSize: 15 }}>
+              <p style={{ margin: 0, color: goldText, lineHeight: 1.6, fontSize: 15 }}>
                 Don’t hand over money yet. Until the lender releases the lien, it has a claim on the boat even after you pay. The seller pays it off first, you pay the lender directly with a payoff letter, or{' '}
-                <a href={moveHref} style={{ color: gold }}>
+                <a href={moveHref} style={{ color: goldText }}>
                   move to BoatClosers
                 </a>{' '}
                 so a neutral party holds the money until the lien clears.
@@ -1132,6 +1164,7 @@ export default function ExpressDeal({ token }: { token: string }) {
       {step === 4 && (
         <>
           {sectionTitle(paid ? 'Your papers' : 'Unlock your paperwork')}
+          {!paid && bigNote}
           {!paid && paywall}
           {paid && problems.length > 0 && (
             <div style={{ ...boxStyle, border: `1px solid ${gold}` }}>
@@ -1188,12 +1221,12 @@ export default function ExpressDeal({ token }: { token: string }) {
                   <DocRow key={k} token={token} doc={k} name={n} note={note} />
                 ))}
                 {savedHand.titledHow === 'other-no-title' && (
-                  <p style={{ margin: 0, color: gold, fontSize: 14, lineHeight: 1.6 }}>The boat comes from a state that doesn’t title boats, so the seller signs the bill of sale in front of a notary. The notary section is on the last page.</p>
+                  <p style={{ margin: 0, color: goldText, fontSize: 14, lineHeight: 1.6 }}>The boat comes from a state that doesn’t title boats, so the seller signs the bill of sale in front of a notary. The notary section is on the last page.</p>
                 )}
                 {savedHand.titledHow === 'documented' && (
-                  <p style={{ margin: 0, color: gold, fontSize: 14, lineHeight: 1.6 }}>
+                  <p style={{ margin: 0, color: goldText, fontSize: 14, lineHeight: 1.6 }}>
                     Documented boat: the seller also signs the Coast Guard bill of sale,{' '}
-                    <a href="https://www.dco.uscg.mil/nvdc/" target="_blank" rel="noopener noreferrer" style={{ color: gold }}>
+                    <a href="https://www.dco.uscg.mil/nvdc/" target="_blank" rel="noopener noreferrer" style={{ color: goldText }}>
                       form CG-1340
                     </a>
                     .
@@ -1237,7 +1270,7 @@ export default function ExpressDeal({ token }: { token: string }) {
                   <div style={eyebrow}>TITLE AND REGISTER IN {stateName.toUpperCase()}</div>
                   <h2 style={h2}>{st.titles ? `${stateName} titles boats` : `${stateName} registers boats but doesn’t title them`}</h2>
                   {st.note && <p style={{ margin: 0, color: cream }}>{st.note}</p>}
-                  {st.notaryNote && <p style={{ margin: 0, color: gold }}>{st.notaryNote}</p>}
+                  {st.notaryNote && <p style={{ margin: 0, color: goldText }}>{st.notaryNote}</p>}
                   <p style={{ margin: 0, color: muted, lineHeight: 1.6 }}>
                     {st.titleOffice ? `${st.titleOffice.name} handles titles and registration.` : `Start with ${st.agency}; if another office handles titles, their site says so.`} Most states set a deadline after a sale and collect sales or use tax when you
                     register, so check both early.
@@ -1365,7 +1398,7 @@ function SellerCopy({ token, deal, saved, onSaved }: { token: string; deal: any;
       ) : (
         <p style={{ margin: 0, fontSize: 14 }}>Add the seller’s email in the Parties step to send it.</p>
       )}
-      {msg && <p style={{ margin: 0, color: gold, fontSize: 14 }}>{msg}</p>}
+      {msg && <p style={{ margin: 0, color: goldText, fontSize: 14 }}>{msg}</p>}
       <a href={`sms:?&body=${smsBody}`} style={{ color: muted, fontSize: 13 }}>
         Or text the reminder from your own phone
       </a>

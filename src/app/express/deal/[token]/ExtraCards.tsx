@@ -4,7 +4,7 @@
 
 import { useRef, useState } from 'react'
 import { walkItems, type ItemKey, type WalkProgress } from '@/lib/express/content'
-import { navy, gold, cream, muted, line, boxStyle, eyebrow, h2, goldButton, outlineButton, DocRow } from './parts'
+import { navy, gold, cream, muted, line, boxStyle, eyebrow, h2, goldButton, outlineButton, DocRow, goldText } from './parts'
 
 export function WalkAround({
   token,
@@ -81,7 +81,7 @@ export function WalkAround({
                         setW((cur) => ({ ...cur, hours: v }))
                         save({ hours: v })
                       }}
-                      style={{ background: cream, color: navy, border: 0, borderRadius: 6, padding: '10px 12px', fontSize: 15, maxWidth: 220 }}
+                      style={{ background: '#ffffff', color: navy, border: 0, borderRadius: 6, padding: '10px 12px', fontSize: 15, maxWidth: 220 }}
                     />
                   )}
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -98,8 +98,8 @@ export function WalkAround({
                           fontWeight: 700,
                           fontSize: 14,
                           cursor: 'pointer',
-                          border: `1.5px solid ${r.s === v ? (v === 'ok' ? '#5aa469' : gold) : 'rgba(245,241,232,0.25)'}`,
-                          background: r.s === v ? (v === 'ok' ? 'rgba(90,164,105,0.18)' : 'rgba(201,150,46,0.18)') : 'transparent',
+                          border: `1.5px solid ${r.s === v ? (v === 'ok' ? '#2e7a55' : gold) : 'rgba(19,35,58,0.195)'}`,
+                          background: r.s === v ? (v === 'ok' ? 'rgba(46,122,85,0.12)' : 'rgba(201,150,46,0.18)') : 'transparent',
                           color: cream,
                         }}
                       >
@@ -113,7 +113,7 @@ export function WalkAround({
                       placeholder="What did you see?"
                       defaultValue={r.note || ''}
                       onBlur={(e) => set(i.id, { note: e.target.value })}
-                      style={{ background: cream, color: navy, border: 0, borderRadius: 6, padding: '10px 12px', fontSize: 15 }}
+                      style={{ background: '#ffffff', color: navy, border: 0, borderRadius: 6, padding: '10px 12px', fontSize: 15 }}
                     />
                   )}
                 </li>
@@ -123,9 +123,20 @@ export function WalkAround({
           {paid && <DocRow token={token} doc="walk-around" name="Walk-around record" note="Your checks and notes as a dated page." />}
         </>
       )}
+      {flags > 0 && (
+        <div style={{ border: `1px solid ${gold}`, borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontWeight: 700 }}>You flagged {flags} thing{flags > 1 ? 's' : ''}. Want to dive deeper?</div>
+          <div style={{ color: muted, fontSize: 14, lineHeight: 1.55 }}>
+            My Boat Inspector takes you through the hull, engine, systems and a sea trial step by step, with photos and a written report you can negotiate with, or use to decide on a professional survey.
+          </div>
+          <a href="https://myboatinspector.com" target="_blank" rel="noopener" style={{ ...goldButton, alignSelf: 'flex-start', textDecoration: 'none' }}>
+            Inspect with My Boat Inspector
+          </a>
+        </div>
+      )}
       <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.55 }}>
         A quick look, not an inspection. For a full guided walkthrough, sea trial and written report, use{' '}
-        <a href="https://myboatinspector.com" target="_blank" rel="noopener" style={{ color: gold }}>
+        <a href="https://myboatinspector.com" target="_blank" rel="noopener" style={{ color: goldText }}>
           My Boat Inspector
         </a>
         .
@@ -230,7 +241,7 @@ export function TitleCheckCard({
               <div style={{ fontWeight: 600, lineHeight: 1.5 }}>{result.summary}</div>
               {result.flags?.map((f: any, i: number) => (
                 <div key={i} style={{ display: 'flex', gap: 10, fontSize: 14.5, lineHeight: 1.5 }}>
-                  <span style={{ fontWeight: 800, minWidth: 52, color: f.level === 'stop' ? '#ff8a7a' : f.level === 'check' ? gold : '#7cc48a' }}>
+                  <span style={{ fontWeight: 800, minWidth: 52, color: f.level === 'stop' ? '#b3261e' : f.level === 'check' ? gold : '#2e7a55' }}>
                     {f.level === 'stop' ? 'STOP' : f.level === 'check' ? 'CHECK' : 'OK'}
                   </span>
                   <span>{f.text}</span>
@@ -256,7 +267,7 @@ export function TitleCheckCard({
         </>
       )}
       {err && (
-        <p role="alert" style={{ margin: 0, color: gold, fontSize: 14 }}>
+        <p role="alert" style={{ margin: 0, color: goldText, fontSize: 14 }}>
           {err}
         </p>
       )}
@@ -266,7 +277,7 @@ export function TitleCheckCard({
 }
 
 // The deposit receipt: free, because it's needed at the handshake, before anything else.
-export function DepositCard({ token, missing, saving }: { token: string; missing: string[]; saving?: boolean }) {
+export function DepositCard({ token, missing, saving, inspection, secureHref }: { token: string; missing: string[]; saving?: boolean; inspection?: boolean; secureHref?: string }) {
   return (
     <div style={{ ...boxStyle, border: `1px solid ${gold}` }}>
       <div style={eyebrow}>DEPOSIT RECEIPT · FREE</div>
@@ -280,6 +291,28 @@ export function DepositCard({ token, missing, saving }: { token: string; missing
         </p>
       ) : (
         <DocRow token={token} doc="deposit-receipt" name="Deposit receipt" note="Print it, or open it on your phone and sign a printed copy at the boat." primary />
+      )}
+      {inspection && (
+        <div style={{ borderTop: `1px solid ${line}`, paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontWeight: 700 }}>Your deposit depends on an inspection</div>
+          <div style={{ color: muted, fontSize: 14, lineHeight: 1.55 }}>
+            Do it before the close-by date, and keep it in writing. My Boat Inspector walks you through the hull, engine, systems and a sea trial, and gives you a dated report to show the seller if something’s wrong.
+          </div>
+          <a href="https://myboatinspector.com" target="_blank" rel="noopener" style={{ ...outlineButton, alignSelf: 'flex-start', textDecoration: 'none' }}>
+            Inspect with My Boat Inspector
+          </a>
+        </div>
+      )}
+      {secureHref && (
+        <div style={{ borderTop: `1px solid ${line}`, paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontWeight: 700, color: goldText }}>Over $1,000? Have it held by a neutral party</div>
+          <div style={{ color: muted, fontSize: 14, lineHeight: 1.55 }}>
+            With this receipt the seller holds your money. BoatClosers has a neutral party hold it until the sale, with a signed agreement on when it comes back.
+          </div>
+          <a href={secureHref} style={{ ...goldButton, alignSelf: 'flex-start', textDecoration: 'none' }}>
+            Secure the deposit with BoatClosers
+          </a>
+        </div>
       )}
       <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.55 }}>
         Paying by Zelle or Venmo? Put “boat deposit” in the memo, and take a screenshot. Never send a deposit for a boat you haven’t seen in person.

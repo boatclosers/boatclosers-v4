@@ -72,7 +72,7 @@ const GROUPS = [
 const FAQ = [
   {
     q: 'Who is My Boat Closing for?',
-    a: 'Buyers in an everyday private sale: a skiff, bay boat, pontoon or center console, usually under $50,000, where you’ve agreed on a price and just want the sale organized and done right. No escrow, no survey period, no broker.',
+    a: 'Buyers in an everyday private sale: a skiff, bay boat, pontoon or center console, usually under $50,000, where you’ve agreed on a price and just want the sale organized and done right. No escrow, no survey period, no broker. Over $50,000, or with a deposit over $1,000, we recommend full BoatClosers so a neutral party holds the money.',
   },
   {
     q: 'Is the HIN check really free?',
@@ -84,7 +84,7 @@ const FAQ = [
   },
   {
     q: 'We already agreed on a price and I gave a deposit. Is it too late?',
-    a: 'No, that’s exactly when most people find us. Start your purchase with the price you agreed, and you’ll have the papers ready before you go back with the money.',
+    a: 'No, that’s exactly when most people find us. Start your purchase with the price you agreed, and you’ll get a free deposit receipt you both sign, then the papers ready before you go back with the money. Over $1,000, we recommend a neutral party hold the deposit; BoatClosers does that.',
   },
   {
     q: 'Does the seller have to sign up?',
@@ -96,7 +96,7 @@ const FAQ = [
   },
   {
     q: 'What if my deal needs more than this?',
-    a: 'If you want a neutral party to hold the deposit, a signed purchase agreement, a survey period, or financing, move to full BoatClosers. Everything you entered comes with you, and your $29.99 comes off the $249.',
+    a: 'Want to dive deeper on the boat’s condition? My Boat Inspector gives you a guided walkthrough, sea trial and written report. For a purchase over $50,000, a deposit over $1,000, a signed purchase agreement, a survey period, or financing, move to full BoatClosers. Everything you entered comes with you, and your $29.99 comes off the $249.',
   },
 ]
 
