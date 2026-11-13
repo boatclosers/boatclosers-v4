@@ -290,7 +290,10 @@ export function DepositCard({ token, missing, saving, inspection, secureHref }: 
           {missing.length ? `Answer the questions above to make it. Still needed: ${missing.join(', ')}.` : 'Saving…'}
         </p>
       ) : (
-        <DocRow token={token} doc="deposit-receipt" name="Deposit receipt" note="Print it, or open it on your phone and sign a printed copy at the boat." primary />
+        <>
+          <DocRow token={token} doc="deposit-receipt" name="Deposit receipt" note="One page. Both of you sign a printed copy when the money changes hands." primary />
+          <PrintHelp token={token} doc="deposit-receipt" what="the deposit receipt" compact />
+        </>
       )}
       {inspection && (
         <div style={{ borderTop: `1px solid ${line}`, paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -317,6 +320,78 @@ export function DepositCard({ token, missing, saving, inspection, secureHref }: 
       <p style={{ margin: 0, color: muted, fontSize: 13, lineHeight: 1.55 }}>
         Paying by Zelle or Venmo? Put “boat deposit” in the memo, and take a screenshot. Never send a deposit for a boat you haven’t seen in person.
       </p>
+    </div>
+  )
+}
+
+// Printing: every paper gets signed in ink, so make printing feel easy wherever
+// the buyer is. One button prints straight from the phone (the share sheet has
+// Print on iPhone; elsewhere it opens the PDF, where Print is in the menu).
+export function PrintHelp({ token, doc, what = 'your papers', compact }: { token: string; doc: string; what?: string; compact?: boolean }) {
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState('')
+  const [open, setOpen] = useState(!compact)
+  async function printNow() {
+    setBusy(true)
+    setNote('')
+    const url = `/api/express/document?token=${token}&doc=${doc}`
+    try {
+      const r = await fetch(url, { cache: 'no-store' })
+      if (!r.ok) throw new Error(await r.text())
+      const blob = await r.blob()
+      const file = new File([blob], `${doc}.pdf`, { type: 'application/pdf' })
+      const nav: any = navigator
+      if (nav.canShare && nav.canShare({ files: [file] })) {
+        await nav.share({ files: [file], title: 'My Boat Closing papers' })
+        setNote('Pick Print (or your printer’s app) from the list. Print 2 copies: one for each of you.')
+      } else {
+        window.open(URL.createObjectURL(blob), '_blank')
+        setNote('Your papers opened in a new tab. Use Print from the browser menu. Print 2 copies: one for each of you.')
+      }
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') setNote(e?.message && e.message.length < 160 ? e.message : 'That didn’t open. Try Download instead.')
+    }
+    setBusy(false)
+  }
+  const ways: [string, string][] = [
+    ['At home or work', 'Print two copies tonight, one for each of you. It’s the easiest way, and you walk up ready.'],
+    ['On the seller’s printer', 'Your phone prints straight to most Wi-Fi printers. Join their Wi-Fi and tap Print from this phone.'],
+    ['In town, in about 10 minutes', 'Any UPS Store, FedEx Office, Staples or Office Depot prints from your phone at the counter for a dollar or two. Many UPS Stores have a notary too.'],
+    ['At the marina or library', 'Marina offices and public libraries will usually print a few pages if you ask.'],
+  ]
+  return (
+    <div style={{ border: `1px solid ${line}`, borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, background: '#f6f8f7' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 200px' }}>
+          <div style={{ fontWeight: 700 }}>Print {what}, then sign in ink</div>
+          <div style={{ fontSize: 13.5, color: muted, lineHeight: 1.5 }}>Two copies, a few pages each. No printer handy? You have options.</div>
+        </div>
+        <button type="button" onClick={printNow} disabled={busy} style={{ ...goldButton, padding: '10px 16px', opacity: busy ? 0.6 : 1 }}>
+          {busy ? 'Opening…' : 'Print from this phone'}
+        </button>
+      </div>
+      {note && <div style={{ fontSize: 14, color: cream, lineHeight: 1.5 }}>{note}</div>}
+      {compact && !open ? (
+        <button type="button" onClick={() => setOpen(true)} style={{ alignSelf: 'flex-start', border: 0, background: 'none', padding: 0, color: navy, fontWeight: 600, fontSize: 14, textDecoration: 'underline', cursor: 'pointer' }}>
+          No printer? Here’s where to print
+        </button>
+      ) : (
+        <>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {ways.map(([t, d]) => (
+              <li key={t} style={{ fontSize: 14, lineHeight: 1.5 }}>
+                <b style={{ fontWeight: 700 }}>{t}.</b> <span style={{ color: muted }}>{d}</span>
+              </li>
+            ))}
+          </ul>
+          <a href="https://www.google.com/maps/search/print+shop+near+me" target="_blank" rel="noopener" style={{ ...outlineButton, alignSelf: 'flex-start', padding: '9px 14px', fontSize: 14 }}>
+            Find a print shop near me
+          </a>
+          <div style={{ fontSize: 13.5, color: muted, lineHeight: 1.55, borderTop: `1px solid ${line}`, paddingTop: 10 }}>
+            <b style={{ color: cream }}>Can’t print today?</b> No problem. Do the free checks now, agree on the day you’ll close, and if you put down a deposit, send it by Zelle with “boat deposit” in the memo. You’ll both sign the printed papers when you meet again.
+          </div>
+        </>
+      )}
     </div>
   )
 }

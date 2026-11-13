@@ -95,6 +95,10 @@ const FAQ = [
     a: 'No, that’s exactly when most people find us. Start your purchase with the price you agreed, and you’ll get a free deposit receipt you both sign, then the papers ready before you go back with the money. Over $1,000, we recommend a neutral party hold the deposit; BoatClosers does that.',
   },
   {
+    q: 'Do I need a printer?',
+    a: 'You’ll sign printed copies in ink, so yes, but it’s easy. Print from your phone at home, on the seller’s Wi-Fi printer, or at any UPS Store, FedEx Office or Staples in a few minutes. The app shows you every option, with a button to find the nearest print shop.',
+  },
+  {
     q: 'Does the seller have to sign up?',
     a: 'No. You run it from your phone, and the seller signs the papers with you at the handoff. We can email them their copy.',
   },

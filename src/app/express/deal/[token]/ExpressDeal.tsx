@@ -62,7 +62,7 @@ import HinCard from './HinCard'
 import DocViewer from './DocViewer'
 import ExpressHelper, { type Next } from './ExpressHelper'
 import ExpressGuided, { type Question } from './ExpressGuided'
-import { WalkAround, TitleCheckCard, DepositCard } from './ExtraCards'
+import { WalkAround, TitleCheckCard, DepositCard, PrintHelp } from './ExtraCards'
 import { STATE_NAMES, stateInfo, STATES_CHECKED } from '@/lib/express/states'
 
 const STEPS = [
@@ -444,7 +444,8 @@ export default function ExpressDeal({ token }: { token: string }) {
     if (problems.length) return { text: problems[0], to: fixStep(problems[0]), cta: `Fix in ${STEPS[fixStep(problems[0])].title}` }
     if (sh.lien === 'open') return { text: 'Get the signed lien release before you pay. Then change your lien answer.', to: 3, cta: 'Update the lien' }
     if (!deal.progress?.titleCheck) return { text: 'Photograph the seller’s title before you hand over the money. It takes a minute.', to: 3, cta: 'Check the title', tip: tipMbi }
-    if (!sh.saleDate || sh.saleDate >= today) return { text: 'Print your papers and sign them with the seller at the handoff.', to: 4, cta: 'Open my papers' }
+    if (!sh.saleDate || sh.saleDate >= today)
+      return { text: 'Print two copies of your papers before you meet. Both of you sign them at the handoff.', to: 4, cta: 'Print my papers', tip: { text: 'No printer? UPS Store, FedEx Office or Staples print from your phone in minutes.', href: 'https://www.google.com/maps/search/print+shop+near+me', label: 'Find one near me' } }
     return {
       text: `Title and register it${due ? ` by ${due.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}` : ''}.`,
       to: 5,
@@ -938,6 +939,9 @@ export default function ExpressDeal({ token }: { token: string }) {
         <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 26, color: goldText, fontWeight: 700 }}>$29.99</span>
       </div>
       <p style={{ margin: 0, color: muted, fontSize: 14.5, lineHeight: 1.6 }}>One price for everything in this sale. You’ve already entered the details, so your papers fill in the moment you unlock.</p>
+      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: muted }}>
+        You’ll print them and sign in ink: at home, on the seller’s printer, or at any UPS Store, FedEx Office or Staples in a few minutes. We show you how.
+      </p>
       <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.6, color: cream, borderLeft: `3px solid ${gold}`, paddingLeft: 12 }}>
         A handshake makes the deal; paper keeps it. Your signed, dated papers answer questions later: at the tag office, with your insurance, and when you sell the boat.
       </p>
@@ -1195,6 +1199,7 @@ export default function ExpressDeal({ token }: { token: string }) {
             <>
               <div style={boxStyle}>
                 <div style={eyebrow}>SIGN THESE AT THE HANDOFF</div>
+                <PrintHelp token={token} doc="closing-packet" />
                 <DocRow token={token} doc="boat-file" name="Your Boat File" note="Every paper, your checks and a starter boat log, in one download." primary />
                 <DocRow token={token} doc="closing-packet" name="Just the papers to sign" note="In the order you’ll use them. Easiest to print." />
                 {depOn && depositMissing(savedHand).length === 0 && <DocRow token={token} doc="deposit-receipt" name="Deposit receipt" note="Already signed? It’s credited on your payment receipt." />}
