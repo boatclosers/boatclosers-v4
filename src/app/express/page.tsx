@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { organization, myBoatClosingApp, faqPage, jsonLd } from '@/lib/structured-data'
 
 // My Boat Closing landing page (myboatclosing.com, also /express).
 // The hook is the free HIN check: does the boat match its paperwork? The story
@@ -367,6 +368,11 @@ function HinPlate() {
 export default function Page() {
   return (
     <div className="mbc">
+      {/* Invisible structured data for search engines and AI answer engines. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(organization, myBoatClosingApp, faqPage(FAQ)) }}
+      />
       <style dangerouslySetInnerHTML={{ __html: css }} />
 
       <div className="wrap">
