@@ -76,6 +76,12 @@ const guides = [
     blurb:
       'Hull identification number, purchase price, as-is language, lien affirmation, and when your state requires a notary.',
   },
+  {
+    slug: 'texas-boat-bill-of-sale',
+    title: 'Texas Boat Bill of Sale and Title Transfer',
+    blurb:
+      'The PWD 143 and PWD 144 forms that act as the bill of sale, the 6.25% boat tax and its cap, the 45 working day deadline, outboards and trailers.',
+  },
 ]
 
 export default function Page() {
