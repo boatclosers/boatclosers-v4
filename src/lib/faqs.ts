@@ -104,7 +104,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'which-states',
         q: 'Does BoatClosers work outside Florida?',
-        a: 'BoatClosers is built for Florida deals and Coast Guard documented boats today, and more states are coming. If you are buying or selling somewhere else, add your email and state on the homepage and we will let you know when your state is ready.',
+        a: "Yes. BoatClosers works in all 50 states. Florida's official forms are built in. Everywhere else you get that state's own bill of sale where it publishes one, our notarized bill of sale where it doesn't, and a link to the agency that titles boats there. Coast Guard documented boats work anywhere.",
       },
       {
         id: 'what-249-covers',
