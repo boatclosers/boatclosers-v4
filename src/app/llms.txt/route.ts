@@ -8,6 +8,11 @@
 //   myboatclosing.com/llms.txt    -> My Boat Closing
 // Keep the facts here in step with the landing pages.
 import { STATE_GUIDES } from '@/lib/state-guides'
+import { TOPIC_GUIDES } from '@/lib/topic-guides'
+
+const TOPIC_LINKS = TOPIC_GUIDES.map(
+  (g) => `- [${g.title}](https://www.boatclosers.com/guides/${g.slug})`
+).join('\n')
 
 const STATE_LINKS = STATE_GUIDES.map(
   (g) => `- [${g.state} Boat Bill of Sale and Title Transfer](https://www.boatclosers.com/guides/${g.slug})`
@@ -66,6 +71,7 @@ const BOATCLOSERS = `# BoatClosers
 - [Boat Bill of Sale: What It Must Include](https://www.boatclosers.com/guides/boat-bill-of-sale)
 - [Selling a Boat: Broker vs. BoatClosers vs. Doing It Yourself](https://www.boatclosers.com/guides/broker-vs-boatclosers-vs-diy)
 - [Texas Boat Bill of Sale and Title Transfer](https://www.boatclosers.com/guides/texas-boat-bill-of-sale)
+${TOPIC_LINKS}
 ${STATE_LINKS}
 
 ${SUITE}
