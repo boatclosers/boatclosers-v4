@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: '%s · BoatClosers',
   },
   description:
-    'Online closing tool for private boat sales. Offers, escrow, inspections and every state's paperwork in one deal room. Flat $249. Not a brokerage.',
+    'Online closing tool for private boat sales. Offers, escrow, inspections and every state’s paperwork in one deal room. Flat $249. Not a brokerage.',
   keywords: [
     'sell a boat without a broker',
     'buy a boat without a broker',
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     siteName: 'BoatClosers',
     title: 'BoatClosers: Close a Private Boat Sale Online',
     description:
-      'Online closing tool for private boat sales. Offers, escrow, inspections and every state's paperwork in one deal room. Flat $249. Not a brokerage.',
+      'Online closing tool for private boat sales. Offers, escrow, inspections and every state’s paperwork in one deal room. Flat $249. Not a brokerage.',
     locale: 'en_US',
     images: [
       {
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'BoatClosers: Close a Private Boat Sale Online',
     description:
-      'Online closing tool for private boat sales. Offers, escrow, inspections and every state's paperwork in one deal room. Flat $249. Not a brokerage.',
+      'Online closing tool for private boat sales. Offers, escrow, inspections and every state’s paperwork in one deal room. Flat $249. Not a brokerage.',
     images: ['/og-image.png'],
   },
   // Bing Webmaster Tools site verification (used for myboatclosing.com,
