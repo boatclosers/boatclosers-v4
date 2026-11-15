@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { STATE_GUIDES } from '@/lib/state-guides'
 
 export const metadata: Metadata = {
   title: 'Private Boat Sale Guides',
@@ -82,6 +83,12 @@ const guides = [
     blurb:
       'The PWD 143 and PWD 144 forms that act as the bill of sale, the 6.25% boat tax and its cap, the 45 working day deadline, outboards and trailers.',
   },
+  // State guides from src/lib/state-guides.ts
+  ...STATE_GUIDES.map((g) => ({
+    slug: g.slug,
+    title: `${g.state} Boat Bill of Sale and Title Transfer`,
+    blurb: g.description,
+  })),
 ]
 
 export default function Page() {

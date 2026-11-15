@@ -7,6 +7,11 @@
 //   www.boatclosers.com/llms.txt  -> BoatClosers
 //   myboatclosing.com/llms.txt    -> My Boat Closing
 // Keep the facts here in step with the landing pages.
+import { STATE_GUIDES } from '@/lib/state-guides'
+
+const STATE_LINKS = STATE_GUIDES.map(
+  (g) => `- [${g.state} Boat Bill of Sale and Title Transfer](https://www.boatclosers.com/guides/${g.slug})`
+).join('\n')
 
 const SUITE = `## The BoatClosers suite (each is its own product)
 
@@ -60,6 +65,7 @@ const BOATCLOSERS = `# BoatClosers
 - [How to Buy a Used Boat From a Private Seller in Florida](https://www.boatclosers.com/guides/buy-used-boat-private-seller-florida)
 - [Boat Bill of Sale: What It Must Include](https://www.boatclosers.com/guides/boat-bill-of-sale)
 - [Texas Boat Bill of Sale and Title Transfer](https://www.boatclosers.com/guides/texas-boat-bill-of-sale)
+${STATE_LINKS}
 
 ${SUITE}
 
@@ -97,6 +103,7 @@ const MY_BOAT_CLOSING = `# My Boat Closing
 - [Free HIN check](https://www.boatclosers.com/hin-check)
 - [Boat Bill of Sale guide](https://www.boatclosers.com/guides/boat-bill-of-sale)
 - [Texas Boat Bill of Sale and Title Transfer](https://www.boatclosers.com/guides/texas-boat-bill-of-sale)
+${STATE_LINKS}
 
 ${SUITE}
 

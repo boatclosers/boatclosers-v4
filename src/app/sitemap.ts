@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { STATE_GUIDES } from '@/lib/state-guides'
 
 const BASE = 'https://www.boatclosers.com'
 
@@ -13,6 +14,7 @@ const guides = [
   'boat-bill-of-sale',
   'buy-used-boat-private-seller-florida',
   'texas-boat-bill-of-sale',
+  ...STATE_GUIDES.map((g) => g.slug),
 ]
 
 export default function sitemap(): MetadataRoute.Sitemap {
