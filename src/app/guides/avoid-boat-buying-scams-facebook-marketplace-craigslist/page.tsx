@@ -1,0 +1,9 @@
+import TopicGuidePage, { topicGuideMetadata } from '@/components/TopicGuide'
+import { getTopicGuide } from '@/lib/topic-guides'
+
+const g = getTopicGuide('avoid-boat-buying-scams-facebook-marketplace-craigslist')
+export const metadata = topicGuideMetadata(g)
+
+export default function Page() {
+  return <TopicGuidePage g={g} />
+}

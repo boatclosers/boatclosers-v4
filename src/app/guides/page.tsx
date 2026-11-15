@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { STATE_GUIDES } from '@/lib/state-guides'
+import { TOPIC_GUIDES } from '@/lib/topic-guides'
 
 export const metadata: Metadata = {
   title: 'Private Boat Sale Guides',
@@ -89,6 +90,8 @@ const guides = [
     blurb:
       'An honest side-by-side: what each costs, who finds the buyer, how deposits and paperwork work, and when a broker is worth the commission.',
   },
+  // Topic guides from src/lib/topic-guides.ts
+  ...TOPIC_GUIDES.map((g) => ({ slug: g.slug, title: g.title, blurb: g.description })),
   // State guides from src/lib/state-guides.ts
   ...STATE_GUIDES.map((g) => ({
     slug: g.slug,

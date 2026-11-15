@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { STATE_GUIDES } from '@/lib/state-guides'
+import { TOPIC_GUIDES } from '@/lib/topic-guides'
 
 const BASE = 'https://www.boatclosers.com'
 
@@ -15,6 +16,7 @@ const guides = [
   'buy-used-boat-private-seller-florida',
   'texas-boat-bill-of-sale',
   'broker-vs-boatclosers-vs-diy',
+  ...TOPIC_GUIDES.map((g) => g.slug),
   ...STATE_GUIDES.map((g) => g.slug),
 ]
 
