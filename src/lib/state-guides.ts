@@ -677,6 +677,328 @@ export const STATE_GUIDES: StateGuide[] = [
       { name: 'SCDNR, Watercraft/Outboard Motor Application', url: 'https://dnr.sc.gov/boating/Titling_and_Registration/docs/WatercraftOutboardMotorApplication.pdf' },
     ],
   },
+  {
+    slug: 'illinois-boat-bill-of-sale',
+    state: 'Illinois',
+    title: 'Illinois Boat Bill of Sale and Title Transfer: A Private Sale Guide',
+    description:
+      'How to sell or buy a used boat privately in Illinois: the signed DNR title, the RUT-75 watercraft use tax return, the 6.25% use tax due within 30 days, and the DNR transfer application.',
+    checked: CHECKED,
+    dateModified: ISO,
+    agencyName: 'the Illinois DNR or the Illinois Department of Revenue',
+    intro:
+      'In Illinois, boats are titled and registered by the Department of Natural Resources (DNR), but the tax on a private sale goes to the Department of Revenue first, on form RUT-75. Unlike many states, Illinois taxes private boat sales. Here is how a private boat sale closes in Illinois.',
+    shortAnswer:
+      'The seller signs over the original Illinois watercraft title and gives the buyer a bill of sale. Within 30 days, the buyer files form RUT-75 with the Illinois Department of Revenue and pays the 6.25% watercraft use tax. Then the buyer sends the DNR a Watercraft Application (Transfer/Renewal), the signed title, the RUT-75, the bill of sale and the fee.',
+    numbers: [
+      { label: 'Watercraft use tax on a private sale', value: '6.25% of the purchase price' },
+      { label: 'Tax form', value: 'RUT-75, Aircraft/Watercraft Use Tax Transaction Return' },
+      { label: 'RUT-75 deadline', value: 'Within 30 days of acquiring the boat (or bringing it into Illinois)' },
+    ],
+    sellerSteps: [
+      'Sign the original Illinois watercraft title over to the buyer.',
+      'Give the buyer a bill of sale or purchase agreement with the price and date.',
+      'If there is a loan on the boat, give the buyer a lien release letter.',
+    ],
+    buyerSteps: [
+      'Check that the hull identification number (HIN) matches the title before you pay.',
+      'Within 30 days, file form RUT-75 with the Illinois Department of Revenue and pay the 6.25% use tax. It can be filed online through MyTax Illinois; allow one business day for processing before you apply for registration.',
+      'Send the DNR a completed Watercraft Application with the Transfer/Renewal box checked, the original signed title, any lien release letter, the RUT-75, the bill of sale and a check or money order payable to IDNR.',
+    ],
+    notes: [
+      {
+        title: 'No private-sale exemption',
+        text: 'Illinois watercraft use tax applies to boats acquired from a person or business that isn’t a boat retailer. The buyer pays 6.25% on the purchase price with form RUT-75. Attach a copy of the purchase agreement or invoice.',
+      },
+      {
+        title: 'Bought from a dealer',
+        text: 'If you buy from an Illinois dealer, the dealer files form ST-556 instead. If you buy from an out-of-state dealer and bring the boat to Illinois, the tax is reported on form RUT-25.',
+      },
+      {
+        title: 'Trailers',
+        text: 'The trailer is separate from the boat. List its price separately, since the watercraft use tax is based on the boat’s price.',
+      },
+    ],
+    faq: [
+      {
+        q: 'Do I pay tax on a used boat from a private seller in Illinois?',
+        a: 'Yes. Illinois charges a 6.25% watercraft use tax on boats bought from someone who isn’t a boat retailer. You report and pay it on form RUT-75 with the Illinois Department of Revenue.',
+      },
+      {
+        q: 'When is form RUT-75 due?',
+        a: 'Within 30 days of acquiring the boat in Illinois, or within 30 days of bringing it into Illinois if you bought it elsewhere.',
+      },
+      {
+        q: 'What do I send the Illinois DNR to transfer a boat?',
+        a: 'A Watercraft Application with Transfer/Renewal checked, the original signed Illinois title, a lien release letter if needed, the RUT-75 tax form, the bill of sale or purchase agreement, and a check or money order payable to IDNR.',
+      },
+    ],
+    sources: [
+      { name: 'Illinois DNR, Illinois Registered Watercraft', url: 'https://dnr.illinois.gov/boating/illinoisregistered.html' },
+      { name: 'Illinois DNR, Tax Requirement on Watercraft', url: 'https://dnr.illinois.gov/boating/taxrequirementonwatercraft.html' },
+      { name: 'Illinois Department of Revenue, Watercraft tax requirements', url: 'https://tax.illinois.gov/individuals/watercraft.html' },
+      { name: 'Illinois Department of Revenue, RUT-75 instructions', url: 'https://tax.illinois.gov/forms/sales/vehicleusetax/rut-75-instructions.html' },
+    ],
+  },
+  {
+    slug: 'georgia-boat-bill-of-sale',
+    state: 'Georgia',
+    title: 'Georgia Boat Bill of Sale and Title Transfer: A Private Sale Guide',
+    description:
+      'How to sell or buy a used boat privately in Georgia: the detailed bill of sale, the seller’s 15-day report to DNR, Georgia eTitles and paper titles, and the buyer’s new three-year registration.',
+    checked: CHECKED,
+    dateModified: ISO,
+    agencyName: 'the Georgia DNR',
+    intro:
+      'Georgia has been an eTitle state for boats since July 1, 2020, so most transfers happen in the DNR’s system instead of on paper. The detailed bill of sale and the seller’s report to DNR are what move the title. Here is how a private boat sale closes in Georgia.',
+    shortAnswer:
+      'The seller gives the buyer a signed, detailed bill of sale and the Georgia registration card, and reports the sale to DNR within 15 days. If a paper title was issued, the seller must sign it and give it to the buyer. The buyer then applies for a new registration with a signed Georgia Vessel Registration Application and the bill of sale.',
+    numbers: [
+      { label: 'Seller reports the sale to DNR', value: 'Within 15 days' },
+      { label: 'Notary', value: 'Not required on the bill of sale' },
+      { label: 'New owner’s registration', value: 'A new three-year registration; the previous owner’s can’t be used' },
+      { label: 'Registration fee (by length)', value: '$35 under 16 ft, $70 to 26 ft, $140 to 40 ft, $210 for 40 ft and over' },
+    ],
+    sellerSteps: [
+      'Give the buyer a signed, detailed bill of sale: the Georgia (or other state) registration number, HIN, make, model year, length, hull material, and both signatures. DNR’s Certified True Bill of Sale for Vessel works.',
+      'Give the buyer the Georgia boat registration card.',
+      'If a paper title was issued, you must sign it and give it to the buyer at the sale.',
+      'Report the sale to DNR within 15 days: online at GoOutdoorsGeorgia.com, by phone at 1-800-366-2661, or in writing with the Certified True Bill of Sale. For an eTitled boat, the eTitle transfers to the buyer once you report the sale.',
+    ],
+    buyerSteps: [
+      'Check that the HIN on the boat matches the bill of sale and registration before you pay.',
+      'If the seller isn’t the owner of record, get a chain of bills of sale back to the owner of record.',
+      'Submit a signed Georgia Vessel Registration Application with the bill of sale (and the signed paper title, if there is one) online, by email to documents@GaBoat.com, by fax or by mail.',
+      'Apply right away. You can’t use the previous owner’s registration.',
+    ],
+    notes: [
+      {
+        title: 'eTitle, paper title or no title',
+        text: 'A Georgia boat may be eTitled (the Boat Registration and Verification Record serves as the title), have a paper title the owner requested (which is then the controlling ownership document), or show no title if it hasn’t been renewed or re-registered since July 1, 2020.',
+      },
+      {
+        title: 'Boats from another state',
+        text: 'For a boat coming from another state, the buyer provides the original title from a title state, or a bill of sale from a non-title state, plus the original registration card if available.',
+      },
+      {
+        title: 'Trailers',
+        text: 'The trailer is separate from the boat. List its price separately on the bill of sale.',
+      },
+    ],
+    faq: [
+      {
+        q: 'Does a Georgia boat bill of sale need to be notarized?',
+        a: 'No. Georgia DNR says the bill of sale doesn’t have to be witnessed or notarized, though that is acceptable. It must identify the boat: registration number, HIN, make, model year, length, hull material and both signatures.',
+      },
+      {
+        q: 'How long does a seller have to report a boat sale in Georgia?',
+        a: '15 days. Report it online at GoOutdoorsGeorgia.com, by phone at 1-800-366-2661, or in writing with the Certified True Bill of Sale for Vessel.',
+      },
+      {
+        q: 'How does a Georgia boat eTitle transfer?',
+        a: 'The eTitle transfers to the new owner after the seller reports the sale to DNR and gives the buyer the detailed bill of sale.',
+      },
+    ],
+    sources: [
+      { name: 'Georgia DNR Wildlife Resources, Register/Renew a Boat', url: 'https://georgiawildlife.com/boating/registration' },
+      { name: 'Georgia DNR, Certified True Bill of Sale for Vessel', url: 'https://gadnrle.org/sites/default/files/VESSEL%20BILL%20OF%20SALE%207-15-2022.pdf' },
+      { name: 'Georgia DNR, Vessel Registration Application', url: 'https://gadnrle.org/sites/default/files/Vessel%20Registration%20Application%208-22-2022.pdf' },
+    ],
+  },
+  {
+    slug: 'louisiana-boat-bill-of-sale',
+    state: 'Louisiana',
+    title: 'Louisiana Boat Bill of Sale and Title Transfer: A Private Sale Guide',
+    description:
+      'How to sell or buy a used boat privately in Louisiana: the required notarized bill of sale, transferring the LDWF registration, why a casual sale has no state sales tax, and trailers at the OMV.',
+    checked: CHECKED,
+    dateModified: ISO,
+    agencyName: 'the Louisiana Department of Wildlife and Fisheries',
+    intro:
+      'In Louisiana, boats are registered and titled by the Department of Wildlife and Fisheries (LDWF), and the bill of sale must be notarized. A boat bought from an individual who used it personally owes no state sales tax. Here is how a private boat sale closes in Louisiana.',
+    shortAnswer:
+      'The seller signs a notarized bill of sale and hands over the title and registration. The buyer sends LDWF a Boat Registration/Boat and Motor Title Application with the current Louisiana registration number, the original notarized bill of sale, and the seller’s registration certificate so LDWF can verify the sale was a tax-exempt casual sale.',
+    numbers: [
+      { label: 'Bill of sale', value: 'Must be notarized' },
+      { label: 'State sales tax on a casual sale from an individual', value: 'None' },
+      { label: 'Registered by', value: 'Louisiana Department of Wildlife and Fisheries' },
+      { label: 'Trailer registered by', value: 'Louisiana Office of Motor Vehicles' },
+    ],
+    sellerSteps: [
+      'Sign a bill of sale in front of a notary. Include the registration number, hull identification number (HIN), make, model and year of the boat, and the signatures. LDWF publishes a Bill of Sale of Boat/Motor form.',
+      'Give the buyer the title and the LDWF registration certificate.',
+      'List the trailer as a separate item on the notarized bill of sale.',
+    ],
+    buyerSteps: [
+      'Check that the HIN on the boat matches the title and registration before you pay.',
+      'Complete a Boat Registration/Boat and Motor Title Application. A transfer must show the boat’s current Louisiana registration number.',
+      'Send LDWF the application with the original notarized bill of sale and the seller’s registration certificate.',
+      'Register the trailer separately at a Motor Vehicle Office with a notarized bill of sale.',
+    ],
+    notes: [
+      {
+        title: 'Why there is no state sales tax',
+        text: 'A boat bought from an individual who used it personally is an isolated or casual sale and is exempt from state sales tax. LDWF still has to verify that before registering the boat, which is why the seller’s registration certificate and a notarized bill of sale are needed.',
+      },
+      {
+        title: 'Boats from another state',
+        text: 'For a boat bought from an individual in another state, provide a copy of the title and registration from that state and a notarized bill of sale signed by both parties.',
+      },
+      {
+        title: 'Bought from a dealer',
+        text: 'If you buy from a dealer, sales tax should be paid to the dealer, and the invoice showing the tax paid goes to LDWF.',
+      },
+    ],
+    faq: [
+      {
+        q: 'Does a boat bill of sale have to be notarized in Louisiana?',
+        a: 'Yes. LDWF requires an original notarized bill of sale for a transfer, showing the registration number, HIN, make, model, year and signatures.',
+      },
+      {
+        q: 'Do I pay sales tax on a used boat from a private seller in Louisiana?',
+        a: 'No state sales tax is due on an isolated or casual sale from an individual who used the boat personally. Present the seller’s registration certificate and a notarized bill of sale to LDWF so it can verify the exemption.',
+      },
+      {
+        q: 'Where do I register the boat trailer in Louisiana?',
+        a: 'At the Louisiana Office of Motor Vehicles, not LDWF. List the trailer as a separate item on the notarized bill of sale.',
+      },
+    ],
+    sources: [
+      { name: 'Louisiana Department of Revenue, Boat Registration', url: 'https://revenue.louisiana.gov/individuals/general-resources/boat-registration' },
+      { name: 'Louisiana Department of Revenue, Why LDWF requires a sales tax clearance', url: 'https://revenue.la.gov/tax-education-and-faqs/faqs/collections/why-does-the-department-of-wildlife-and-fisheries-require-a-sales-tax-clearance-before-they-will-complete-my-boat-registration' },
+      { name: 'LDWF, Bill of Sale of Boat/Motor', url: 'https://www.wlf.louisiana.gov/assets/Boating/Files/Title-and-Register-Your-Boat/bill_of_sale_of_boat-motor.pdf' },
+    ],
+  },
+  {
+    slug: 'missouri-boat-bill-of-sale',
+    state: 'Missouri',
+    title: 'Missouri Boat Bill of Sale and Title Transfer: A Private Sale Guide',
+    description:
+      'How to sell or buy a used boat privately in Missouri: the assigned title or descriptive bill of sale, separate outboard titles, the 60-day deadline, the 4.225% state tax plus local tax, and penalties.',
+    checked: CHECKED,
+    dateModified: ISO,
+    agencyName: 'the Missouri Department of Revenue',
+    intro:
+      'In Missouri, boats, vessels and outboard motors are titled by the Department of Revenue at license offices, and the outboard motor gets its own title. Buyers get 60 days, twice the time they get for a car. Here is how a private boat sale closes in Missouri.',
+    shortAnswer:
+      'The seller assigns the Missouri title (or gives a descriptive bill of sale) for the boat and a separate one for the outboard motor. Within 60 days, the buyer applies for title at a Missouri license office and pays the 4.225% state sales tax plus local tax where they live, along with the title fees.',
+    numbers: [
+      { label: 'Buyer’s deadline to title', value: '60 days from purchase' },
+      { label: 'Late penalty', value: '$10 on day 61, plus $10 per 30 days, up to $30' },
+      { label: 'Sales tax', value: '4.225% state, plus the local rate where you live' },
+      { label: 'Title fees', value: '$7.50 boat, $5 outboard motor (plus $2 outboard registration)' },
+    ],
+    sellerSteps: [
+      'Assign the Missouri certificate of title to the buyer. An outboard motor has its own title.',
+      'If you use a bill of sale (form DOR-1957) instead of a title, include a complete description of the boat, the purchase price, the date of sale and the buyer’s name and address.',
+      'If there is a loan on the boat, get the lien released before closing.',
+    ],
+    buyerSteps: [
+      'Check that the hull identification number (HIN) on the boat matches the title before you pay.',
+      'Within 60 days, take the assigned title or descriptive bill of sale and your application to a Missouri license office.',
+      'Pay the state sales tax of 4.225% plus your local sales tax on the purchase price, less any trade-in. The local rate is where you live, not where you bought the boat.',
+      'Pay the $7.50 boat title fee, the $5 outboard motor title fee, the $2 outboard registration fee and processing fees.',
+    ],
+    notes: [
+      {
+        title: 'Outboard motors',
+        text: 'Missouri titles outboard motors separately from the boat, with their own title fee and registration fee.',
+      },
+      {
+        title: 'Temporary permit',
+        text: 'Missouri offers a temporary watercraft certificate of number so you can use the boat while you complete the title and registration.',
+      },
+      {
+        title: 'Trailers',
+        text: 'A boat trailer is titled separately, and trailers have a shorter 30-day deadline than boats. List the trailer price separately from the boat.',
+      },
+    ],
+    faq: [
+      {
+        q: 'How long do I have to title a boat in Missouri?',
+        a: '60 days from the purchase. A $10 penalty starts on the 61st day and increases $10 for every 30 days late, up to $30.',
+      },
+      {
+        q: 'How much sales tax is due on a used boat in Missouri?',
+        a: 'State sales tax of 4.225% plus the local sales tax where you live, on the purchase price less any trade-in, paid when you title the boat.',
+      },
+      {
+        q: 'Does an outboard motor need its own title in Missouri?',
+        a: 'Yes. Missouri titles outboard motors separately. The outboard title fee is $5, plus a $2 outboard registration fee.',
+      },
+    ],
+    sources: [
+      { name: 'Missouri Department of Revenue, Boat/Vessel/Outboard Motor Titling and Registration', url: 'https://dor.mo.gov/motorv/watercraft/' },
+      { name: 'Missouri Department of Revenue, Application for Watercraft or Outboard Motor Title (Form 93)', url: 'https://dor.mo.gov/forms/93.pdf' },
+      { name: 'Missouri Department of Revenue, Titling Manual', url: 'https://dor.mo.gov/forms/Missouri_Titling_Manual.pdf' },
+    ],
+  },
+  {
+    slug: 'alabama-boat-bill-of-sale',
+    state: 'Alabama',
+    title: 'Alabama Boat Bill of Sale and Title Transfer: A Private Sale Guide',
+    description:
+      'How to sell or buy a used boat privately in Alabama: the bill of sale and last registration, the new title rules for boats built after 2023, the 15-day transfer window and sales tax at the county.',
+    checked: CHECKED,
+    dateModified: ISO,
+    agencyName: 'your county probate judge or license commissioner',
+    intro:
+      'Alabama only started titling boats in 2024, so for most used boats the bill of sale and the last registration are still the ownership documents. Transfers happen at your county probate or license office. Here is how a private boat sale closes in Alabama.',
+    shortAnswer:
+      'The seller gives the buyer a detailed bill of sale and the boat’s last registration certificate (or the signed title, for a boat built after 2023). Within 15 calendar days, the buyer takes them to the county probate judge or license commissioner with an Application for Boat Registration, Transfer and Replacement, and pays the $5 transfer fee and any sales tax.',
+    numbers: [
+      { label: 'Transfer a currently registered boat', value: 'Within 15 calendar days of purchase' },
+      { label: 'Transfer fee', value: '$5, plus registration fee if expired' },
+      { label: 'Title required', value: 'Boats built after December 31, 2023 (some exclusions)' },
+      { label: 'Sales tax', value: 'Same local rates as vehicles, paid at registration in your county' },
+    ],
+    sellerSteps: [
+      'Give the buyer a bill of sale with the hull number (HIN), year, make, model, length, Alabama registration number, motor make, horsepower and serial number, the price paid, the date, and both parties’ names, addresses and signatures.',
+      'Give the buyer the boat’s last registration certificate.',
+      'If the boat was built after 2023 and has an Alabama title, sign the title over too.',
+      'Have your signature on the bill of sale notarized. Some county offices, such as Shelby County, require it.',
+    ],
+    buyerSteps: [
+      'Check that the HIN on the boat matches the bill of sale and registration before you pay.',
+      'Within 15 calendar days, go in person to your county probate judge or license commissioner.',
+      'Bring the bill of sale, the last registration (or title), your ID and a completed Application for Boat Registration, Transfer and Replacement.',
+      'Pay the $5 transfer fee (plus the registration fee if it has expired) and the sales and use tax, which is based on the purchase price at the same local rates as vehicles.',
+    ],
+    notes: [
+      {
+        title: 'Which boats need a title',
+        text: 'Since January 1, 2024, Alabama titles boats built after December 31, 2023, with exclusions. Boats under 18 feet are titled only if powered by an engine of 75 horsepower or more. Boats 26 feet or longer can be titled voluntarily regardless of age. Outboard motors and boat trailers are not titled in Alabama.',
+      },
+      {
+        title: 'Itemize any trade',
+        text: 'If the bill of sale lists "other valuable considerations," each one must be itemized and given a value for sales tax purposes.',
+      },
+      {
+        title: 'Buying from someone who isn’t the registered owner',
+        text: 'You must provide the chain of ownership back to the registered owner.',
+      },
+    ],
+    faq: [
+      {
+        q: 'Does Alabama title boats?',
+        a: 'Only boats built after December 31, 2023 (with exclusions, such as boats under 18 feet with less than 75 horsepower). Owners of boats 26 feet or longer can apply for a title voluntarily. Outboard motors and trailers are not titled.',
+      },
+      {
+        q: 'How long do I have to transfer a used boat in Alabama?',
+        a: 'If the boat is currently registered in Alabama, apply for the transfer within 15 calendar days of the purchase.',
+      },
+      {
+        q: 'Do I pay sales tax on a used boat in Alabama?',
+        a: 'Sales and use tax applies to the purchase price of boats at the same local rates as vehicles. If you didn’t pay it at purchase, you pay it when you register in your home county.',
+      },
+    ],
+    sources: [
+      { name: 'Alabama Department of Revenue, Which vessels must be titled', url: 'https://www.revenue.alabama.gov/faqs/what-vessels-are-required-to-be-titled-in-alabama/' },
+      { name: 'Alabama Department of Revenue, Vessel Titling Quick Reference Guide', url: 'https://www.revenue.alabama.gov/wp-content/uploads/2024/03/Vessel-Titling-Quick-Reference-Guide-2024.pdf' },
+      { name: 'Shelby County, What do I need to register my boat?', url: 'https://shelbyal.com/620/To-Register-My-Boat' },
+      { name: 'Houston County Probate, Boat Registration', url: 'https://houstoncountyal.gov/probate/boat/' },
+    ],
+  },
 ]
 
 export const getStateGuide = (slug: string) => STATE_GUIDES.find((g) => g.slug === slug)
