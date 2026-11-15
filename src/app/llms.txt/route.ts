@@ -64,6 +64,7 @@ const BOATCLOSERS = `# BoatClosers
 - [Why Every Private Boat Deal Needs a Deposit and Escrow](https://www.boatclosers.com/guides/boat-deposit-and-escrow)
 - [How to Buy a Used Boat From a Private Seller in Florida](https://www.boatclosers.com/guides/buy-used-boat-private-seller-florida)
 - [Boat Bill of Sale: What It Must Include](https://www.boatclosers.com/guides/boat-bill-of-sale)
+- [Selling a Boat: Broker vs. BoatClosers vs. Doing It Yourself](https://www.boatclosers.com/guides/broker-vs-boatclosers-vs-diy)
 - [Texas Boat Bill of Sale and Title Transfer](https://www.boatclosers.com/guides/texas-boat-bill-of-sale)
 ${STATE_LINKS}
 

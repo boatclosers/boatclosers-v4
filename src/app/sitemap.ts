@@ -14,6 +14,7 @@ const guides = [
   'boat-bill-of-sale',
   'buy-used-boat-private-seller-florida',
   'texas-boat-bill-of-sale',
+  'broker-vs-boatclosers-vs-diy',
   ...STATE_GUIDES.map((g) => g.slug),
 ]
 
