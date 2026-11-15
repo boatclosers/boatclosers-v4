@@ -23,7 +23,8 @@ const SUITE = `## The BoatClosers suite (each is its own product)
 - [BoatClosers](https://www.boatclosers.com): online closing platform for private boat sales. Flat $249 per deal.
 - [My Boat Closing](https://myboatclosing.com): simple paperwork tool for small private purchases, usually under $50,000. Free HIN check, $29.99 for the paperwork.
 - [My Boat Inspector](https://myboatinspector.com): guided used-boat inspection and sea trial walkthrough with a written report. $59.99. A guide, not a marine survey.
-- [My Boat Logs](https://myboatlogs.com): maintenance log, document vault and shareable vessel history for boat owners. $39.99 per boat per year, 14-day free trial.`
+- [My Boat Logs](https://myboatlogs.com): maintenance log, document vault and shareable vessel history for boat owners. $39.99 per boat per year, 14-day free trial.
+- [My Boat Listing](https://www.myboatlisting.com): builds a for-sale-by-owner boat listing from the seller's own answers, starting with the HIN. Gives a short ad for Facebook Marketplace, Craigslist and Boat Trader plus a full buyer page with records and disclosures. Free during early access.`
 
 const BOATCLOSERS = `# BoatClosers
 
