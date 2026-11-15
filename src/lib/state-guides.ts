@@ -354,6 +354,329 @@ export const STATE_GUIDES: StateGuide[] = [
       { name: 'NY Department of Taxation and Finance, DMV transaction forms (DTF-802, 803, 804)', url: 'https://www.tax.ny.gov/forms/dmv_transaction_forms.htm' },
     ],
   },
+  {
+    slug: 'florida-boat-bill-of-sale',
+    state: 'Florida',
+    title: 'Florida Boat Bill of Sale and Title Transfer: A Private Sale Guide',
+    description:
+      'How to sell or buy a used boat privately in Florida: the signed title, form HSMV 82050 for the bill of sale and notice of sale, HSMV 82040 VS, the 30-day deadline, 6% sales tax and the $18,000 cap.',
+    checked: CHECKED,
+    dateModified: ISO,
+    agencyName: 'your county tax collector or the Florida Department of Highway Safety and Motor Vehicles',
+    intro:
+      'In Florida, boats are titled and registered at your county tax collector’s office, and sales tax is due even when you buy from a private seller. The buyer has 30 days. Here is how a private boat sale closes in Florida.',
+    shortAnswer:
+      'The seller signs the transfer section on the back of the Florida title with the price and date, gives the buyer a bill of sale (form HSMV 82050 works), and files a notice of sale within 30 days. Within 30 days of the purchase, the buyer takes the signed title, bill of sale, ID and a completed Application for Certificate of Title (HSMV 82040 VS) to the county tax collector and pays the sales tax.',
+    numbers: [
+      { label: 'Buyer’s deadline to title and register', value: '30 days from purchase' },
+      { label: 'State sales tax', value: '6% of the price, plus your county’s surtax on the first $5,000' },
+      { label: 'Most sales tax on one boat', value: '$18,000 total, state and county combined' },
+      { label: 'Seller’s notice of sale', value: 'Within 30 days, on HSMV 82050 or the back of the title' },
+    ],
+    sellerSteps: [
+      'Sign the transfer section on the back of the Florida title with the sale price and date. No cross-outs or white-out.',
+      'Give the buyer a bill of sale. Form HSMV 82050, Notice of Sale and/or Bill of Sale, can serve as both.',
+      'File a notice of sale with the county tax collector within 30 days, on HSMV 82050 or the completed section of the title. That takes the boat out of your name.',
+      'If there is a loan on the boat, get the lien satisfied before closing.',
+      'Give the buyer a separate bill of sale for the trailer.',
+    ],
+    buyerSteps: [
+      'Check that the hull identification number (HIN) on the boat matches the title before you pay.',
+      'Keep proof of the purchase date (the dated bill of sale) on board until the boat is registered.',
+      'Within 30 days, take the signed title, bill of sale, your ID and a completed Application for Certificate of Title (HSMV 82040 VS) to any county tax collector’s office.',
+      'Pay the sales tax there. The tax collector calculates it.',
+      'Title the trailer too if it needs its own title.',
+    ],
+    notes: [
+      {
+        title: 'Sales tax on a private sale',
+        text: 'Florida collects sales tax on a casual sale (no dealer involved) on the boat, an inboard motor and the trailer. The total state and county tax on a boat is capped at $18,000.',
+      },
+      {
+        title: 'Late registration',
+        text: 'Operating an unregistered boat after the 30-day window is a second-degree misdemeanor in Florida, and a late fee applies to transfers filed after 30 days.',
+      },
+      {
+        title: 'Trailers',
+        text: 'Florida titles trailers separately. Trailers weighing 2,000 pounds or more need their own title. List the trailer price separately from the boat.',
+      },
+      {
+        title: 'Coast Guard documented boats',
+        text: 'Federally documented boats are exempt from Florida titling. Ownership transfers through the National Vessel Documentation Center, but the boat is still registered with the county.',
+      },
+    ],
+    faq: [
+      {
+        q: 'How long do I have to title a boat in Florida after buying it?',
+        a: '30 days from the purchase. During that time, keep proof of the purchase date on board. Operating an unregistered boat after 30 days is a second-degree misdemeanor.',
+      },
+      {
+        q: 'Do I pay sales tax on a boat bought from a private seller in Florida?',
+        a: 'Yes. Florida collects 6% state sales tax plus your county’s surtax on the first $5,000 when you title the boat, even in a private sale. The total tax on a boat is capped at $18,000.',
+      },
+      {
+        q: 'What form is the Florida boat bill of sale?',
+        a: 'Form HSMV 82050, Notice of Sale and/or Bill of Sale, can be used as the bill of sale and as the seller’s notice of sale. The buyer applies for title on form HSMV 82040 VS.',
+      },
+    ],
+    sources: [
+      { name: 'Florida HSMV, Vessel Titling and Registrations', url: 'https://flhsmv.gov/motor-vehicles-tag-titles/vessels/vessel-titling-registrations' },
+      { name: 'Florida HSMV, Application for Certificate of Title, HSMV 82040 VS', url: 'https://www.flhsmv.gov/pdf/forms/82040-vs.pdf' },
+      { name: 'Florida HSMV, sales tax and the $18,000 vessel cap (procedure TL-08)', url: 'https://www.flhsmv.gov/pdf/proc/tl/tl-08.pdf' },
+      { name: 'Palm Beach County Tax Collector, Vessel Titles', url: 'https://www.pbctax.gov/vessel/titles/' },
+    ],
+  },
+  {
+    slug: 'wisconsin-boat-bill-of-sale',
+    state: 'Wisconsin',
+    title: 'Wisconsin Boat Bill of Sale and Title Transfer: A Private Sale Guide',
+    description:
+      'How to sell or buy a used boat privately in Wisconsin: the title assignment, the DNR record of sale, the registration card, and paying sales or use tax at the DNR.',
+    checked: CHECKED,
+    dateModified: ISO,
+    agencyName: 'the Wisconsin DNR',
+    intro:
+      'In Wisconsin, boats are titled and registered by the DNR. The buyer, not the seller, pays the sales tax, at the DNR when registering. Here is how a private boat sale closes in Wisconsin.',
+    shortAnswer:
+      'The seller completes the assignment section on the back of the title with the buyer’s name, address and the sale price, and hands over the signed title and the registration card. The buyer applies to the DNR for title and registration and pays the sales or use tax at that time.',
+    numbers: [
+      { label: 'Who pays sales tax in a private sale', value: 'The buyer, when registering or titling with the DNR' },
+      { label: 'Bill of sale', value: 'Not required by the DNR, but may be needed for tax purposes' },
+      { label: 'Low prices', value: 'The Wisconsin Department of Revenue investigates suspiciously low sale prices' },
+    ],
+    sellerSteps: [
+      'Complete the assignment section on the back of the title with the buyer’s name, address and the sale price. Every owner on the title must sign.',
+      'Give the buyer the signed original title and the registration card.',
+      'Fill out a record of sale. The DNR publishes a Record of Sale for Private Party Boat Sales; both of you should keep a copy.',
+      'If the title is lost, get a replacement title before the sale.',
+    ],
+    buyerSteps: [
+      'Don’t pay for a titled boat unless the seller has the original title (not a photocopy) signed by all required owners.',
+      'Check that the registration card matches the boat’s registration number, make and model, and that the HIN matches the title.',
+      'Apply to the DNR for title and registration with the signed title.',
+      'Pay the Wisconsin sales or use tax (plus any county or city tax) when you register.',
+    ],
+    notes: [
+      {
+        title: 'Write the real price',
+        text: 'The Wisconsin Department of Revenue checks applications and investigates suspiciously low sale prices.',
+      },
+      {
+        title: 'Trailers',
+        text: 'The trailer is a separate item from the boat. List its price separately on the record of sale.',
+      },
+    ],
+    faq: [
+      {
+        q: 'Do I need a bill of sale to sell a boat in Wisconsin?',
+        a: 'The DNR doesn’t require one, but recommends it because it may be needed for tax purposes. The DNR publishes a Record of Sale for Private Party Boat Sales that both parties can sign and keep.',
+      },
+      {
+        q: 'Who pays sales tax on a private boat sale in Wisconsin?',
+        a: 'The buyer. A private seller doesn’t collect it; the buyer pays the Wisconsin state and any county or city sales or use tax when registering or titling the boat with the DNR.',
+      },
+      {
+        q: 'What does the seller fill out on a Wisconsin boat title?',
+        a: 'The assignment section on the back, with the buyer’s name and address and the sale price, signed by every owner on the title.',
+      },
+    ],
+    sources: [
+      { name: 'Wisconsin DNR, Buyer checklist for boat sales', url: 'https://dnr.wisconsin.gov/sites/default/files/topic/Permits/vehicleRegistrations/BuyerChecklistBoatSales.pdf' },
+      { name: 'Wisconsin DNR, Seller checklist for boat sales', url: 'https://dnr.wisconsin.gov/sites/default/files/topic/Permits/vehicleRegistrations/SellerChecklistBoatSales.pdf' },
+      { name: 'Wisconsin DNR, Record of Sale for Private Party Boat Sales', url: 'https://dnr.wisconsin.gov/sites/default/files/topic/Permits/vehicleRegistrations/SamplebillofSale.pdf' },
+      { name: 'Wisconsin Department of Revenue, Publication 213 (used vehicles)', url: 'https://www.revenue.wi.gov/DOR%20Publications/2113usedvehicles.pdf' },
+    ],
+  },
+  {
+    slug: 'washington-boat-bill-of-sale',
+    state: 'Washington',
+    title: 'Washington Boat Bill of Sale and Title Transfer: A Private Sale Guide',
+    description:
+      'How to sell or buy a used boat privately in Washington: the signed vessel title, bill of sale form TD-420-065, the seller’s 5-day Report of Sale, the buyer’s 15-day deadline and late fees.',
+    checked: CHECKED,
+    dateModified: ISO,
+    agencyName: 'the Washington Department of Licensing',
+    intro:
+      'In Washington, boats are titled and registered by the Department of Licensing (DOL) at vehicle licensing offices. The clock is short: the seller has 5 business days and the buyer has 15 days. Here is how a private boat sale closes in Washington.',
+    shortAnswer:
+      'Every registered and legal owner signs the Vessel Certificate of Title and gives it to the buyer, along with a Vehicle/Vessel Bill of Sale (form TD-420-065). The seller mails a Vessel Report of Sale to DOL within 5 business days. Within 15 days, the buyer takes the signed title and a Vessel Title Application (TD-420-289) to a vehicle licensing office and pays the fees and taxes.',
+    numbers: [
+      { label: 'Seller’s Report of Sale', value: 'Within 5 business days of the sale' },
+      { label: 'Buyer applies for title', value: 'Within 15 days, or a late fee applies' },
+      { label: 'Late transfer fee', value: 'Starts at $50, up to $125' },
+    ],
+    sellerSteps: [
+      'All registered and legal owners sign the Vessel Certificate of Title and give it to the buyer.',
+      'Fill out a Vehicle/Vessel Bill of Sale (form TD-420-065) with the buyer.',
+      'Mail a Vessel Report of Sale to the Department of Licensing, PO Box 9038, Olympia, WA 98507, within 5 business days. It releases your liability for the boat.',
+      'If there is a loan on the boat, the legal owner (lender) must release its interest on the title.',
+    ],
+    buyerSteps: [
+      'Check that the hull identification number (HIN) matches the title before you pay.',
+      'Complete a Vessel Title Application (TD-420-289).',
+      'Within 15 days, take or mail the signed title, the application and the bill of sale to a vehicle licensing office.',
+      'Pay the title fees and the use tax, which is based on the sale price on the bill of sale.',
+    ],
+    notes: [
+      {
+        title: 'Late fees',
+        text: 'If the buyer applies after 15 days, late transfer fees start at $50 and increase to a maximum of $125.',
+      },
+      {
+        title: 'Trailers',
+        text: 'A boat trailer is a separate vehicle with its own title. List its price separately on the bill of sale.',
+      },
+    ],
+    faq: [
+      {
+        q: 'How long do I have to transfer a boat title in Washington?',
+        a: 'The buyer must apply for a new title within 15 days of the purchase, or pay a late fee that starts at $50 and rises to $125. The seller must file a Vessel Report of Sale within 5 business days.',
+      },
+      {
+        q: 'What is the Washington boat bill of sale form?',
+        a: 'The Vehicle/Vessel Bill of Sale, form TD-420-065, from the Washington Department of Licensing.',
+      },
+      {
+        q: 'Do I pay tax on a used boat from a private seller in Washington?',
+        a: 'Yes. The buyer pays use tax when applying for the title, based on the sale price on the bill of sale.',
+      },
+    ],
+    sources: [
+      { name: 'Washington DOL, Vessel Report of Sale (TD-420-063)', url: 'https://dol.wa.gov/forms/view/420063' },
+      { name: 'Washington DOL, Vehicle/Vessel Bill of Sale (TD-420-065)', url: 'https://dol.wa.gov/sites/default/files/2022-11/420065.pdf' },
+      { name: 'Washington law, RCW 88.02.370 (vessel report of sale)', url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=88.02.370' },
+    ],
+  },
+  {
+    slug: 'ohio-boat-bill-of-sale',
+    state: 'Ohio',
+    title: 'Ohio Boat Bill of Sale and Title Transfer: A Private Sale Guide',
+    description:
+      'How to sell or buy a used boat privately in Ohio: which boats and outboard motors need a title, separate outboard titles, the 30-day deadline at the Clerk of Courts, and sales tax on a casual sale.',
+    checked: CHECKED,
+    dateModified: ISO,
+    agencyName: 'your county Clerk of Courts title office',
+    intro:
+      'In Ohio, boat and outboard motor titles are handled by the county Clerk of Courts title office, the same place that titles cars. An outboard boat and its outboard motor have separate titles. Here is how a private boat sale closes in Ohio.',
+    shortAnswer:
+      'The seller signs the Ohio title(s) over to the buyer, one for the boat and one for an outboard motor of 10 horsepower or more, and assigns the Ohio watercraft registration card. Within 30 days, the buyer applies for new titles at any county Clerk of Courts title office and pays the sales tax there.',
+    numbers: [
+      { label: 'Title required', value: 'Watercraft 14 feet or longer, and outboard motors 10 horsepower or more' },
+      { label: 'Buyer applies for title', value: 'Within 30 days of purchase' },
+      { label: 'Late filing fee', value: '$5 after 30 days' },
+      { label: 'Where', value: 'Any county Clerk of Courts title office in Ohio' },
+    ],
+    sellerSteps: [
+      'Sign the Ohio certificate of title over to the buyer. An outboard boat and its outboard motor have separate titles; an inboard or inboard/outboard boat has one.',
+      'Assign the Ohio watercraft registration card to the buyer.',
+      'If the boat or motor was never titled in Ohio, establish an Ohio title in your name before the sale.',
+      'If there is a loan, get the lien released before closing.',
+    ],
+    buyerSteps: [
+      'Check that the boat’s 12-character hull identification number matches the title. Ohio requires a 12-digit HIN to title a watercraft.',
+      'Within 30 days, take the signed title(s) and your ID to any county Clerk of Courts title office and apply for new titles.',
+      'Pay the sales tax on the purchase price when you title. The clerk collects it.',
+      'Transfer the registration with the assigned registration card.',
+    ],
+    notes: [
+      {
+        title: 'Outboard motors',
+        text: 'Outboard motors of 10 horsepower or more need their own Ohio title. No registration is required for outboard motors.',
+      },
+      {
+        title: 'Boats that aren’t titled',
+        text: 'Canoes and kayaks are not titled in Ohio, and neither are watercraft under 14 feet.',
+      },
+      {
+        title: 'Trailers',
+        text: 'A boat trailer is handled separately from the boat, and whether it needs its own title depends on its weight; ask the Clerk of Courts. List its price separately on the bill of sale.',
+      },
+    ],
+    faq: [
+      {
+        q: 'Which boats need a title in Ohio?',
+        a: 'Watercraft 14 feet or longer and outboard motors of 10 horsepower or more. Canoes and kayaks are not titled.',
+      },
+      {
+        q: 'How long do I have to title a boat in Ohio?',
+        a: 'The application for title must be filed within 30 days after the purchase. A $5 late fee applies after that.',
+      },
+      {
+        q: 'Do I pay sales tax on a used boat from a private seller in Ohio?',
+        a: 'Yes. Ohio taxes casual sales of titled watercraft and outboard motors, and the Clerk of Courts collects the tax when you apply for the title.',
+      },
+    ],
+    sources: [
+      { name: 'Ohio Revised Code 1548.06, Application for certificate of title', url: 'https://codes.ohio.gov/ohio-revised-code/section-1548.06' },
+      { name: 'Franklin County Clerk of Courts, Watercraft titles', url: 'https://stageclerk.franklincountyohio.gov/autoTitle/overviewWC' },
+      { name: 'Summit County Clerk of Courts, Watercraft', url: 'https://clerkweb.summitoh.net/watercraft' },
+    ],
+  },
+  {
+    slug: 'south-carolina-boat-bill-of-sale',
+    state: 'South Carolina',
+    title: 'South Carolina Boat Bill of Sale and Title Transfer: A Private Sale Guide',
+    description:
+      'How to sell or buy a used boat privately in South Carolina: separate boat and outboard titles, the property tax receipt, the 5% casual excise tax capped at $500, and late fees after 30 days.',
+    checked: CHECKED,
+    dateModified: ISO,
+    agencyName: 'the South Carolina DNR',
+    intro:
+      'In South Carolina, boats and outboard motors are titled separately by the DNR, and the tax on a private sale is capped at just $500. One step catches buyers off guard: you need a paid property tax receipt first. Here is how a private boat sale closes in South Carolina.',
+    shortAnswer:
+      'The seller signs the original South Carolina title for the boat and a separate title for each outboard motor. The buyer submits those titles, a completed Watercraft/Outboard Motor Application, a paid property tax receipt from their county, and the fees, including the 5% casual excise tax capped at $500, to the SCDNR.',
+    numbers: [
+      { label: 'Casual excise tax (private sale)', value: '5% of the price, capped at $500' },
+      { label: 'Boat title and registration', value: '$20' },
+      { label: 'Outboard motor title', value: '$10' },
+      { label: 'Late fees', value: '$15 after 30 days, $30 after 60 days' },
+    ],
+    sellerSteps: [
+      'Sign the original title for the watercraft and a separate title for each outboard motor. South Carolina titles do not have to be notarized.',
+      'Don’t scratch out or white out anything. An altered title is invalid, and you would then need to sign a notarized bill of sale on the SCDNR application.',
+      'If the title is lost, sign and notarize the bill of sale section (Section H) of the Watercraft/Outboard Motor Application for the buyer.',
+    ],
+    buyerSteps: [
+      'Check SC Boat Facts for unpaid personal property taxes or liens before you buy.',
+      'Get a paid property tax receipt in your name for the coming year from your county of residence.',
+      'Complete and sign the Watercraft/Outboard Motor Application. All buyers must be listed.',
+      'Send the original titles, application, tax receipt and fees to SCDNR, Attn. Titling & Registration, P.O. Box 167, Columbia, SC 29202, within 30 days to avoid late fees. Keep photocopies.',
+    ],
+    notes: [
+      {
+        title: 'The $500 tax cap',
+        text: 'A private (casual) sale of a boat, or a boat and motor bought together, carries a 5% casual excise tax with a $500 maximum. An outboard motor bought on its own is also 5% with a $500 maximum. Tax already paid in another state is credited.',
+      },
+      {
+        title: 'Temporary operation',
+        text: 'You can use the boat with the temporary certificate of number at the bottom right of the application and a copy of your bill of sale or titles while you wait.',
+      },
+      {
+        title: 'Trailers',
+        text: 'The trailer is separate from the boat and motor. List its price separately on the bill of sale.',
+      },
+    ],
+    faq: [
+      {
+        q: 'How much tax do I pay on a used boat in South Carolina?',
+        a: 'In a private sale, a 5% casual excise tax capped at $500 for the boat, or the boat and motor bought as a package. An outboard motor bought alone is also 5% with a $500 cap.',
+      },
+      {
+        q: 'Does a South Carolina boat title need to be notarized?',
+        a: 'No. Original South Carolina titles do not have to be notarized. A notarized bill of sale on the SCDNR application is needed only if the title was altered or lost.',
+      },
+      {
+        q: 'Why do I need a property tax receipt to register a boat in South Carolina?',
+        a: 'SCDNR requires a paid property tax receipt in the buyer’s name for the coming year, from the buyer’s county of residence, to transfer a boat or motor.',
+      },
+    ],
+    sources: [
+      { name: 'SCDNR, Buying from an SC owner with SC titles', url: 'https://dnr.sc.gov/boating/Titling_and_Registration/SC_Owner_with_SC_Titles.html' },
+      { name: 'SCDNR, Casual Excise Tax', url: 'https://www.dnr.sc.gov/boating/Titling_and_Registration/Casual_Excise_Tax.html' },
+      { name: 'SCDNR, Titling and Registration FAQ', url: 'https://dnr.sc.gov/boating/Titling_and_Registration/Frequently_Asked_Questions.html' },
+      { name: 'SCDNR, Watercraft/Outboard Motor Application', url: 'https://dnr.sc.gov/boating/Titling_and_Registration/docs/WatercraftOutboardMotorApplication.pdf' },
+    ],
+  },
 ]
 
 export const getStateGuide = (slug: string) => STATE_GUIDES.find((g) => g.slug === slug)
