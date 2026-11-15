@@ -83,6 +83,12 @@ const guides = [
     blurb:
       'The PWD 143 and PWD 144 forms that act as the bill of sale, the 6.25% boat tax and its cap, the 45 working day deadline, outboards and trailers.',
   },
+  {
+    slug: 'broker-vs-boatclosers-vs-diy',
+    title: 'Selling a Boat: Broker vs. BoatClosers vs. Doing It Yourself',
+    blurb:
+      'An honest side-by-side: what each costs, who finds the buyer, how deposits and paperwork work, and when a broker is worth the commission.',
+  },
   // State guides from src/lib/state-guides.ts
   ...STATE_GUIDES.map((g) => ({
     slug: g.slug,
