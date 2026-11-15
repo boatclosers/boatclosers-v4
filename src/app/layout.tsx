@@ -55,6 +55,11 @@ export const metadata: Metadata = {
       'Online closing tool for private boat sales. Offers, Florida paperwork and Escrow.com payment in one place. Flat $249. Not a brokerage.',
     images: ['/og-image.png'],
   },
+  // Bing Webmaster Tools site verification (used for myboatclosing.com,
+  // which is served by this app; harmless on boatclosers.com).
+  verification: {
+    other: { 'msvalidate.01': 'D6CE284E5391B083F5C801D6A3529F5D' },
+  },
   robots: {
     index: true,
     follow: true,
