@@ -6,7 +6,8 @@ const SUPABASE_URL = 'https://xoihnmkgncuocxiknvgs.supabase.co'
 // The short link (boatclosers.com/join/BOAT-7F3K2M) lands here. We look up the
 // deal by its short code, then send the person to the real invite/join page.
 // Facebook following this link ends up on the invite page's boat-name preview.
-export default async function JoinShortPage({ params }: { params: { code: string } }) {
+export default async function JoinShortPage(props: { params: Promise<{ code: string }> }) {
+  const params = await props.params;
   const code = params?.code || ''
   let token: string | null = null
 

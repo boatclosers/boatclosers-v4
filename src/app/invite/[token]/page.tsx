@@ -28,7 +28,8 @@ async function getBoatName(token: string): Promise<string | null> {
 
 // Runs on the server when a link is shared/crawled (e.g. by Facebook), so the
 // preview card can say "You're invited to close the deal on a 2020 Azimut 55".
-export async function generateMetadata({ params }: { params: { token: string } }) {
+export async function generateMetadata(props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const token = params?.token || ''
   const boat = await getBoatName(token)
   const title = boat

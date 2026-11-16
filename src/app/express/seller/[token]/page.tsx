@@ -6,7 +6,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-export default function Page({ params }: { params: { token: string } }) {
+export default async function Page(props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   return (
     <div style={{ background: '#e9efec', minHeight: '100vh', color: '#13233a', fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" }}>
       <style>{'body{margin:0;background:#e9efec}'}</style>
