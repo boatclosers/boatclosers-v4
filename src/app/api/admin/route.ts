@@ -307,6 +307,104 @@ export async function POST(req: Request) {
       }
     }
 
+    // ── Payments and refunds (every product, one Stripe account) ──────────────
+    // 'payments' lists recent charges with what they were for. 'refund' refunds
+    // one charge, in full or in part. The page asks the owner to confirm the
+    // amount first; this server re-checks the charge and never refunds more than
+    // what's left on it. Every refund is tagged with who/why in Stripe metadata.
+    if (body.action === 'payments' || body.action === 'refund') {
+      const key = process.env.STRIPE_SECRET_KEY || ''
+      if (!key) return NextResponse.json({ error: 'STRIPE_SECRET_KEY is not set.' }, { status: 500 })
+      const stripe = async (path: string, form?: Record<string, string>) => {
+        const r = await fetch(`https://api.stripe.com/v1/${path}`, {
+          method: form ? 'POST' : 'GET',
+          cache: 'no-store',
+          headers: { Authorization: `Bearer ${key}`, ...(form ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}) },
+          body: form ? new URLSearchParams(form).toString() : undefined,
+        })
+        const j: any = await r.json().catch(() => ({}))
+        if (!r.ok) throw new Error(j?.error?.message || `Stripe returned ${r.status}`)
+        return j
+      }
+      const productOf = (meta: any, ch: any) => {
+        const m = meta || {}
+        if (m.product) return String(m.product)
+        if (m.boat_id) return 'My Boat Inspector'
+        if (m.expressDealId) return 'My Boat Closing'
+        if (m.dealId) return 'BoatClosers'
+        if (ch?.invoice) return 'Subscription'
+        return ch?.description || 'Other'
+      }
+
+      if (body.action === 'payments') {
+        try {
+          const [charges, sessions] = await Promise.all([
+            stripe('charges?limit=100'),
+            stripe('checkout/sessions?limit=100&status=complete'),
+          ])
+          const byPi: Record<string, any> = {}
+          for (const s of sessions.data || []) if (s.payment_intent) byPi[String(s.payment_intent)] = s
+          const rows = (charges.data || []).filter((c: any) => c.paid).map((c: any) => {
+            const s = byPi[String(c.payment_intent || '')] || null
+            const meta = { ...(c.metadata || {}), ...(s?.metadata || {}) }
+            return {
+              id: c.id,
+              created: c.created * 1000,
+              amount: c.amount,
+              refunded: c.amount_refunded,
+              email: c.billing_details?.email || s?.customer_details?.email || c.receipt_email || '',
+              name: c.billing_details?.name || s?.customer_details?.name || '',
+              product: productOf(meta, c),
+              meta,
+              livemode: c.livemode,
+              disputed: !!c.disputed,
+            }
+          })
+          return NextResponse.json({ ok: true, payments: rows })
+        } catch (e: any) {
+          return NextResponse.json({ error: 'Could not load payments: ' + (e?.message || 'unknown') }, { status: 502 })
+        }
+      }
+
+      // refund
+      const chargeId = String(body.chargeId || '')
+      const reason = String(body.reason || '').slice(0, 300)
+      if (!/^(ch|py)_[A-Za-z0-9]+$/.test(chargeId)) return NextResponse.json({ error: 'Pick a payment to refund.' }, { status: 400 })
+      try {
+        const ch = await stripe(`charges/${chargeId}`)
+        const left = ch.amount - ch.amount_refunded
+        const want = body.amountCents ? Math.round(Number(body.amountCents)) : left
+        if (!Number.isFinite(want) || want <= 0) return NextResponse.json({ error: 'Enter an amount above $0.' }, { status: 400 })
+        if (want > left) return NextResponse.json({ error: `Only $${(left / 100).toFixed(2)} is left to refund on this payment.` }, { status: 400 })
+        const refund = await stripe('refunds', {
+          charge: chargeId,
+          amount: String(want),
+          reason: 'requested_by_customer',
+          'metadata[by]': 'owner dashboard',
+          'metadata[note]': reason || 'No note',
+        })
+        // My Boat Inspector: a full refund locks the boat again.
+        let note = ''
+        let meta: any = ch.metadata || {}
+        if (!meta.boat_id && ch.payment_intent) {
+          const ss = await stripe(`checkout/sessions?payment_intent=${ch.payment_intent}&limit=1`).catch(() => null)
+          meta = { ...meta, ...(ss?.data?.[0]?.metadata || {}) }
+        }
+        if (meta.boat_id && want === left && process.env.MBI_ADMIN_KEY) {
+          const base = process.env.MBI_URL || 'https://myboatinspector.com'
+          await fetch(`${base}/api/admin`, {
+            method: 'POST', cache: 'no-store',
+            headers: { 'Content-Type': 'application/json', 'x-admin-key': process.env.MBI_ADMIN_KEY },
+            body: JSON.stringify({ action: 'refunded', boatId: meta.boat_id, amountCents: want, note: reason }),
+          }).catch(() => null)
+          note = ' The inspection was locked again.'
+        }
+        return NextResponse.json({ ok: true, done: `Refunded $${(want / 100).toFixed(2)}. Stripe status: ${refund.status}.${note} The money usually reaches their card in 5 to 10 business days.` })
+      } catch (e: any) {
+        return NextResponse.json({ error: 'Refund failed: ' + (e?.message || 'unknown') }, { status: 502 })
+      }
+    }
+
     // ── My Boat Inspector (separate app and database) ─────────────────────────
     // The owner's password is checked above; this server then calls My Boat
     // Inspector's private owner endpoint with a shared key (MBI_ADMIN_KEY, set in
