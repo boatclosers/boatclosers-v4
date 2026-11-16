@@ -114,7 +114,7 @@ const FAQ = [
 ]
 
 function Icon({ name }: { name: string }) {
-  const p: Record<string, JSX.Element> = {
+  const p: Record<string, React.JSX.Element> = {
     hin: <><rect x="3" y="7" width="18" height="10" rx="1.5" /><path d="M6.5 12h2M10.5 12h2M14.5 12h3" /></>,
     walk: <><path d="M3 15c3 2 6 3 9 3s6-1 9-3" /><path d="M5 15V9h11l3 6" /><path d="M9 9V6h4v3" /></>,
     ask: <><path d="M5 5h14v10H9l-4 4z" /><path d="M10 9.5a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6.9V13" /></>,

@@ -44,11 +44,9 @@ const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '')
 export async function GET(req: Request) {
   // Same protection as the deposit reminders: only Vercel's scheduler can run this.
   const secret = process.env.CRON_SECRET
-  if (secret) {
-    const auth = req.headers.get('authorization') || ''
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  // Refuse to run without the secret, so nobody else can trigger these sends.
+  if (!secret || (req.headers.get('authorization') || '') !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const sb = admin()

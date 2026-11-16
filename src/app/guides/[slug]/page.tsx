@@ -15,7 +15,8 @@ export function generateStaticParams() {
 
 const BASE = 'https://www.boatclosers.com/guides'
 
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const g = getStateGuide(params.slug)
   if (!g) return {}
   const url = `${BASE}/${g.slug}`
@@ -33,7 +34,8 @@ const cream = '#f5f1e8'
 const h2 = { fontFamily: 'Georgia, serif', color: gold, fontSize: 28, marginTop: 52 } as const
 const link = { color: gold } as const
 
-export default function Page({ params }: { params: { slug: string } }) {
+export default async function Page(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const g = getStateGuide(params.slug)
   if (!g) notFound()
   const url = `${BASE}/${g.slug}`

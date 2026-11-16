@@ -45,7 +45,8 @@ async function handle(msg: Rpc, ctx: { userId: string }) {
   }
 }
 
-export async function POST(request: Request, { params }: { params: { token: string } }) {
+export async function POST(request: Request, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const ctx = await userForToken(params.token)
   if (!ctx) return NextResponse.json(fail(null, -32001, 'This link is not valid or was turned off. Make a new one in BoatClosers.'), { status: 401 })
   const body = await request.json().catch(() => null)
@@ -59,7 +60,8 @@ export async function POST(request: Request, { params }: { params: { token: stri
 }
 
 // Opened in a browser, the link just says whether it works.
-export async function GET(request: Request, { params }: { params: { token: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   if ((request.headers.get('accept') ?? '').includes('text/event-stream'))
     return new NextResponse('Method Not Allowed', { status: 405, headers: { Allow: 'POST' } })
   const ctx = await userForToken(params.token)
