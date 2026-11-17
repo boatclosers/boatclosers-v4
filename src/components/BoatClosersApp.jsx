@@ -15,6 +15,7 @@ import { SEA_YACHTS, seaYachtsTierPrice, seaYachtsTierCost, seaYachtsVisible, PR
 import GuidedStep from "./GuidedMode"; // GUIDED MODE
 import { DealCtx, useDealCtx, AssistantBar, AssistantDock } from "./DealAssistantAI"; // DEAL ASSISTANT
 import { FAQS } from "../lib/faqs";
+import HomeLanding from "./HomeLanding";
 import { FONT } from "../lib/theme";
 // ─────────────────────────────────────────────────────────────────────────────
 // BOATCLOSERS v4
@@ -6188,94 +6189,16 @@ function Landing({ onStart, onLegal }) {
   ];
   const faqs = FAQS.slice(0, 6).map(f => [f.q, f.a]);
 
+  const faqPairs = FAQS.slice(0, 6).map(f => [f.q, f.a]);
   return (
-    <div style={{ fontFamily:F.serif, background:C.sand, color:C.text, minHeight:"100vh" }}>
-      {/* Nav */}
-      <nav style={{ background:X.navyDeep, height:56, display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, padding: isMobile ? "0 0.75rem" : "0 1.25rem", position:"sticky", top:0, zIndex:100, borderBottom:"1px solid rgba(184,134,58,0.22)" }}>
-        <div style={{ display:"flex", alignItems:"center", gap: isMobile ? 12 : 22 }}>
-          <a href="/buyers-guide" style={{ fontFamily:F.sans, fontSize: isMobile ? 12 : 13, color:"rgba(255,255,255,0.82)", textDecoration:"none", whiteSpace:"nowrap" }}>{isMobile ? "Buyer guide" : "Buyer's Guide"}</a>
-          <a href="/sellers-guide" style={{ fontFamily:F.sans, fontSize: isMobile ? 12 : 13, color:"rgba(255,255,255,0.82)", textDecoration:"none", whiteSpace:"nowrap" }}>{isMobile ? "Seller guide" : "Seller's Guide"}</a>
-        </div>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-        <button style={{ ...outlineBtn, padding: isMobile ? "7px 11px" : "7px 15px", fontSize:12 }} onClick={onStart}>Sign In</button>
-        <button style={{ ...brassBtn, padding: isMobile ? "7px 12px" : "7px 16px", fontSize:12 }} onClick={onStart}>{isMobile ? "Start" : "Get Started"}</button>
-        </div>
-      </nav>
-
-      {/* Hero */}
-      <header style={{ background:X.navyDeep, color:"#fff", textAlign:"center", position:"relative", overflow:"hidden" }}>
-        <div style={{ position:"absolute", top:0, left:0, right:0, height:"56%", background:`linear-gradient(180deg, ${X.navySky} 0%, ${X.navyDeep} 100%)` }} />
-        <div style={{ position:"relative", padding: isMobile?"2.5rem 1.25rem 2.75rem":"3.25rem 1.25rem 3.25rem", maxWidth:660, margin:"0 auto" }}>
-          <div style={{ marginBottom:14 }}>{eyebrow("Private boat sales · Not a brokerage")}</div>
-          <div style={{ fontFamily:F.display, color:X.brassLt, fontSize:isMobile?32:36, letterSpacing:1, fontWeight:600, lineHeight:1 }}>Boatclosers</div>
-          <h1 style={{ ...h2s, fontSize:isMobile?31:42, lineHeight:1.12, color:"#fff", marginTop:24 }}>A broker&rsquo;s closing, <span style={{ color:X.brassLt }}>without the broker&rsquo;s 10%.</span></h1>
-          <p style={{ ...lead, color:"rgba(255,255,255,0.76)", marginTop:16, fontSize:isMobile?15.5:16.5 }}>BoatClosers walks private buyers and sellers through the whole deal online: offers, the deposit and escrow, inspections, the Florida paperwork and signing. <b style={{ color:"#fff", fontWeight:600 }}>One flat $249.</b></p>
-          <div style={{ display:"flex", gap:10, justifyContent:"center", marginTop:24, flexWrap:"wrap" }}>
-            <button style={brassBtn} onClick={()=>onStart("buyer")}>Start as Buyer</button>
-            <button style={outlineBtn} onClick={()=>onStart("seller")}>Start as Seller</button>
-          </div>
-          <div style={{ fontFamily:F.sans, color:"rgba(255,255,255,0.55)", fontSize:12.5, marginTop:14 }}>Free to start · pay only when you&rsquo;re ready to sign · <a href="#preview" onClick={e=>{ e.preventDefault(); document.getElementById("preview")?.scrollIntoView({ behavior:"smooth" }); }} style={{ color:"#fff", textDecoration:"underline", textUnderlineOffset:3, textDecorationColor:"rgba(224,192,116,0.6)" }}>see a sample deal</a></div>
-        </div>
-      </header>
-
-      {/* Savings calculator */}
-      <section aria-labelledby="calc-h" style={{ background:C.navy2, padding: isMobile ? "1.75rem 1.25rem 2rem" : "2rem 1.25rem 2.25rem", borderBottom:"1px solid rgba(184,134,58,0.25)" }}>
-        <div style={{ maxWidth:820, margin:"0 auto", display:"grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.05fr) minmax(0,1fr)", gap: isMobile ? 18 : 28, alignItems:"center" }}>
-          <div>
-            <h2 id="calc-h" style={{ ...h2s, color:"#fff", fontSize:isMobile?22:25, margin:0 }}>See what you keep</h2>
-            <label htmlFor="calc-price" style={{ display:"block", fontFamily:F.sans, fontSize:13, color:"rgba(255,255,255,0.7)", margin:"8px 0 8px" }}>What&rsquo;s the boat selling for?</label>
-            <div style={{ position:"relative", maxWidth:320 }}>
-              <span aria-hidden="true" style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", fontFamily:F.sans, fontSize:20, fontWeight:600, color:C.navy }}>$</span>
-              <input id="calc-price" type="text" inputMode="numeric" autoComplete="off" value={priceNum ? priceNum.toLocaleString("en-US") : ""} onChange={e=>setBoatPrice(e.target.value.replace(/[^0-9]/g, "").slice(0, 9))}
-                style={{ width:"100%", boxSizing:"border-box", padding:"12px 14px 12px 32px", fontSize:20, fontWeight:600, fontFamily:F.sans, color:C.navy, background:"#fff", border:`2px solid ${C.brass}`, borderRadius:6, outline:"none" }} />
-            </div>
-          </div>
-          <div aria-live="polite" style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(224,192,116,0.35)", borderRadius:10, padding:"14px 18px", fontFamily:F.sans }}>
-            <div style={{ display:"flex", justifyContent:"space-between", gap:12, fontSize:14, color:"rgba(255,255,255,0.75)", padding:"4px 0" }}><span>Typical 10% broker commission</span><span style={{ fontWeight:600, color:"#fff" }}>{usd0(commission)}</span></div>
-            <div style={{ display:"flex", justifyContent:"space-between", gap:12, fontSize:14, color:"rgba(255,255,255,0.75)", padding:"4px 0", borderBottom:"1px solid rgba(255,255,255,0.12)" }}><span>BoatClosers</span><span style={{ fontWeight:600, color:"#fff" }}>$249</span></div>
-            <div style={{ display:"flex", justifyContent:"space-between", gap:12, alignItems:"baseline", paddingTop:8 }}><span style={{ fontSize:14, color:X.brassLt, fontWeight:600 }}>You keep</span><span style={{ fontSize:isMobile?26:30, fontWeight:700, color:X.brassLt }}>{usd0(keep)}</span></div>
-          </div>
-        </div>
-        <div style={{ maxWidth:820, margin:"12px auto 0", fontFamily:F.sans, fontSize:11.5, color:"rgba(255,255,255,0.45)", lineHeight:1.5 }}>Commissions vary; 10% is a common listing rate for boats. Escrow fees, if you use escrow, are separate. Smaller deal with the price already agreed? <a href="/express" style={{ color:X.brassLt }}>My Boat Closing is $29.99</a>.</div>
-      </section>
-
-      <ProductPreview F={F} X={X} isMobile={isMobile} onStart={onStart} />
-
-      {/* How it works: one track + what's inside */}
-      {section(X.paper, (
-        <div style={{ maxWidth:900, margin:"0 auto" }}>
-          <div style={{ textAlign:"center" }}>{eyebrow("How it works")}</div>
-          <h2 style={{ ...h2s, textAlign:"center", fontSize:isMobile?25:29, color:C.navy, margin:"14px 0 8px" }}>One deal room. Both parties. Every step tracked.</h2>
-          <p style={{ ...lead, textAlign:"center", maxWidth:600, margin:"0 auto 36px" }}>Buyer and seller work in the same deal. Enter it once, and the offers, escrow, inspections and paperwork all run from it.</p>
-          <ol style={{ listStyle:"none", padding:0, margin:0, display:"flex", flexDirection:isMobile?"column":"row", justifyContent:"space-between", gap:isMobile?16:0, position:"relative" }}>
-            {!isMobile && <div aria-hidden="true" style={{ position:"absolute", top:21, left:"10%", right:"10%", height:1, background:X.mist, zIndex:0 }} />}
-            {trackSteps.map(([n,t,d],i)=>(
-              <li key={t} style={{ flex:1, display:"flex", flexDirection:isMobile?"row":"column", alignItems:"center", textAlign:isMobile?"left":"center", gap:isMobile?14:0, position:"relative", zIndex:1 }}>
-                <div style={{ width:42, height:42, flexShrink:0, borderRadius:"50%", background: i===4?C.brass:C.navy, color: i===4?C.navy:X.brassLt, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:F.serif, fontWeight:600, fontSize:17 }}>{n}</div>
-                <div>
-                  <div style={{ fontFamily:F.sans, fontSize:14, fontWeight:600, color:C.navy, marginTop:isMobile?0:10 }}>{t}</div>
-                  <div style={{ fontFamily:F.sans, fontSize:12.5, color:X.slate, lineHeight:1.5, margin:isMobile?"2px 0 0":"3px auto 0", maxWidth:isMobile?"none":150 }}>{d}</div>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div style={{ display:"grid", gridTemplateColumns:cols(3), gap:12, marginTop:42 }}>
-            {features.map(f=>(
-              <div key={f.t} style={{ display:"flex", gap:12, alignItems:"flex-start", background:C.sand, border:`0.5px solid ${X.mist}`, borderRadius:10, padding:"14px 16px" }}>
-                <Ico>{f.p}</Ico>
-                <div>
-                  <h3 style={{ fontFamily:F.sans, fontSize:14.5, color:C.navy, margin:"1px 0 4px", fontWeight:600 }}>{f.t}</h3>
-                  <p style={{ fontFamily:F.sans, fontSize:13, color:X.slate, lineHeight:1.55, margin:0 }}>{f.d}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop:22, textAlign:"center", fontFamily:F.sans, fontSize:14, color:C.navy }}>
-            Loan on the boat, a lost title or an estate sale?{" "}
-            <button onClick={()=>setShowDocFinder(true)} style={{ border:0, background:"transparent", padding:0, fontFamily:F.sans, fontSize:14, fontWeight:600, color:C.navy, textDecoration:"underline", textDecorationColor:C.brass, textUnderlineOffset:3, cursor:"pointer" }}>See exactly what your deal needs →</button>
-          </div>
-        </div>
-      ))}
+    <>
+      <HomeLanding
+        onStart={onStart}
+        onDocFinder={()=>setShowDocFinder(true)}
+        docCount={DOC_COUNT}
+        faqs={faqPairs}
+        statesBand={<StatesBand F={F} X={X} isMobile={isMobile} />}
+      />
       {showDocFinder && (
         <div onClick={()=>setShowDocFinder(false)} style={{ position:"fixed", inset:0, background:"rgba(8,21,46,0.75)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:5000, padding:"3vh 1rem", overflowY:"auto" }}>
           <div onClick={e=>e.stopPropagation()} style={{ background:"#fff", borderRadius:12, maxWidth:600, width:"100%", padding:"1.6rem", border:`2px solid ${C.brass}` }}>
@@ -6283,101 +6206,7 @@ function Landing({ onStart, onLegal }) {
           </div>
         </div>
       )}
-
-      {/* Broker vs BoatClosers + what we aren't */}
-      {section(C.sand, (
-        <div style={{ maxWidth:860, margin:"0 auto" }}>
-          <div style={{ textAlign:"center" }}>{eyebrow("Why private sellers and buyers use it")}</div>
-          <h2 style={{ ...h2s, textAlign:"center", fontSize:isMobile?25:29, color:C.navy, margin:"14px 0 28px" }}>The same closing a broker runs. You keep the commission.</h2>
-          <div role="table" aria-label="With a broker compared with BoatClosers" style={{ background:X.paper, border:`0.5px solid ${X.mist}`, borderRadius:12, overflow:"hidden", fontFamily:F.sans }}>
-            <div role="row" style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "0.9fr 1fr 1fr", background:C.navy, color:"#fff", fontSize:12.5, fontWeight:600, letterSpacing:0.4, textTransform:"uppercase" }}>
-              {!isMobile && <div role="columnheader" style={{ padding:"12px 16px" }}></div>}
-              <div role="columnheader" style={{ padding:"12px 16px", color:"rgba(255,255,255,0.75)" }}>With a broker</div>
-              <div role="columnheader" style={{ padding:"12px 16px", color:X.brassLt }}>With BoatClosers</div>
-            </div>
-            {compare.map(([k, a, b], i)=>(
-              <div role="row" key={k} style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "0.9fr 1fr 1fr", borderTop: i ? `0.5px solid ${X.mist}` : "none", fontSize:14, lineHeight:1.45 }}>
-                {isMobile
-                  ? <div role="rowheader" style={{ gridColumn:"1 / -1", padding:"10px 14px 0", fontSize:12, fontWeight:600, color:C.brass, textTransform:"uppercase", letterSpacing:0.4 }}>{k}</div>
-                  : <div role="rowheader" style={{ padding:"13px 16px", fontWeight:600, color:C.navy }}>{k}</div>}
-                <div role="cell" style={{ padding: isMobile ? "4px 14px 12px" : "13px 16px", color:X.slate }}>{a}</div>
-                <div role="cell" style={{ padding: isMobile ? "4px 14px 12px" : "13px 16px", color:C.navy, fontWeight:500, background:"rgba(184,134,58,0.06)" }}>{b}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:cols(3), gap:12, marginTop:22 }}>
-            {notList.map(([t,d])=>(
-              <div key={t} style={{ background:X.paper, border:`0.5px solid ${X.mist}`, borderRadius:10, padding:"14px 16px" }}>
-                <h3 style={{ fontFamily:F.sans, fontSize:14.5, fontWeight:600, color:C.navy, margin:"0 0 5px" }}>{t}</h3>
-                <p style={{ fontFamily:F.sans, fontSize:13, color:X.slate, lineHeight:1.55, margin:0 }}>{d}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      {/* Who built it */}
-      {section(X.sandWarm, (
-        <div style={{ maxWidth:720, margin:"0 auto", display:"flex", flexDirection:isMobile?"column":"row", gap:isMobile?16:26, alignItems:isMobile?"flex-start":"center" }}>
-          <div aria-hidden="true" style={{ flexShrink:0, width:84, height:84, borderRadius:"50%", background:C.navy, color:X.brassLt, display:"flex", alignItems:"center", justifyContent:"center", border:`2px solid ${C.brass}` }}><svg width="38" height="38" viewBox="0 0 24 24" style={{ fill:"none", stroke:X.brassLt, strokeWidth:1.5, strokeLinecap:"round", strokeLinejoin:"round" }}><circle cx="12" cy="5" r="2"/><path d="M12 7v14M8 11h8M5 14a7 7 0 0 0 14 0"/></svg></div>
-          <div>
-            {eyebrow("Built by someone who closes these deals")}
-            <h2 style={{ ...h2s, fontSize:isMobile?23:26, color:C.navy, margin:"12px 0 10px" }}>A working broker&rsquo;s process, put in your hands</h2>
-            <p style={{ ...lead, margin:0 }}>BoatClosers was built by a licensed Florida yacht broker and captain, from how real vessel transactions close, including the complicated ones. The documents follow maritime and state-transfer standards, and the app flags anything that needs a notary or an attorney.</p>
-            <div style={{ display:"flex", flexWrap:"wrap", gap:"8px 10px", marginTop:16 }}>
-              {["Licensed FL yacht broker & captain","Maritime & state-transfer standards","We never hold your money"].map(t=>(
-                <div key={t} style={{ fontFamily:F.sans, fontSize:12.5, color:C.navy, background:X.paper, border:`0.5px solid ${X.mist}`, borderRadius:20, padding:"7px 14px" }}>{t}</div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ))}
-
-      {/* Pricing */}
-      <section style={{ background:C.navy, padding: isMobile ? "3rem 1.25rem" : "4rem 1.25rem" }}>
-        <div style={{ maxWidth:440, margin:"0 auto", textAlign:"center" }}>
-          <h2 style={{ ...h2s, fontSize:28, color:"#fff", marginBottom:8 }}>Simple, honest pricing</h2>
-          <p style={{ fontFamily:F.sans, fontSize:14, color:"rgba(255,255,255,0.6)", marginBottom:28 }}>One flat fee. No percentage. No subscription.</p>
-          <div style={{ background:"rgba(255,255,255,0.04)", border:`1.5px solid ${C.brass}`, borderRadius:12, padding: isMobile ? "1.75rem 1.4rem" : "2.25rem" }}>
-            <div style={{ fontFamily:F.sans, fontSize:11, letterSpacing:3, color:X.brassLt, textTransform:"uppercase", fontWeight:500 }}>Per transaction</div>
-            <div style={{ fontFamily:F.sans, fontSize:56, fontWeight:600, color:"#fff", lineHeight:1, marginTop:12 }}>$249</div>
-            <div style={{ fontFamily:F.sans, fontSize:13.5, color:"rgba(255,255,255,0.82)", lineHeight:1.6, margin:"12px 0 18px" }}>The whole transaction, from the first offer to the signed closing. Same price for a $5,000 boat or a $500,000 one.</div>
-            <div style={{ textAlign:"left", fontFamily:F.sans, fontSize:13.5, lineHeight:2.05, color:"rgba(255,255,255,0.8)" }}>
-              {[`All ${DOC_COUNT} documents, ${CAT_COUNT} categories`,"Offers, counters & contingencies","Five escrow options","Due diligence & closing checklists","Electronic signatures for both sides"].map(f=>(
-                <div key={f} style={{ display:"flex", gap:9, alignItems:"baseline" }}><span aria-hidden="true" style={{ color:C.brass }}>✓</span><span>{f}</span></div>
-              ))}
-            </div>
-            <button style={{ ...brassBtn, display:"block", width:"100%", marginTop:22, padding:13 }} onClick={onStart}>Start Free — Pay When Ready</button>
-            <div style={{ fontFamily:F.sans, fontSize:11.5, color:"rgba(255,255,255,0.45)", marginTop:12, lineHeight:1.6 }}>The other party joins free. If you use Escrow.com, its fee is separate and paid to Escrow.com.</div>
-          </div>
-        </div>
-      </section>
-
-      {/* Where we work */}
-      <StatesBand F={F} X={X} isMobile={isMobile} />
-
-      {/* FAQ */}
-      <section style={{ maxWidth:720, margin:"0 auto", padding: isMobile ? "3rem 1.25rem" : "4rem 1.25rem" }}>
-        <h2 style={{ ...h2s, textAlign:"center", fontSize:27, color:C.navy, marginBottom:20 }}>Common questions</h2>
-        {faqs.map(([q,a])=>(
-          <details key={q} style={{ borderBottom:`0.5px solid ${X.mist}`, padding:"4px 0" }}>
-            <summary style={{ fontFamily:F.sans, fontSize:15, fontWeight:600, color:C.navy, padding:"14px 0", cursor:"pointer", listStylePosition:"outside" }}>{q}</summary>
-            <div style={{ fontFamily:F.sans, fontSize:14, color:X.slate, lineHeight:1.7, padding:"0 0 14px" }}>{a}</div>
-          </details>
-        ))}
-        <div style={{ textAlign:"center", marginTop:24 }}><a href="/faq" style={{ fontFamily:F.sans, fontSize:14, fontWeight:600, color:C.navy, textDecoration:"underline", textUnderlineOffset:3, textDecorationColor:C.brass }}>See all questions, organized by topic →</a></div>
-      </section>
-
-      {/* Final CTA */}
-      <section style={{ background:C.teal, padding: isMobile ? "3rem 1.25rem" : "3.75rem 1.25rem", textAlign:"center" }}>
-        <h2 style={{ ...h2s, fontSize:28, color:"#fff", marginBottom:10 }}>Open a deal room in two minutes</h2>
-        <p style={{ fontFamily:F.sans, fontSize:15, color:"rgba(255,255,255,0.88)", marginBottom:26 }}>Add the boat, invite the other party, start negotiating. Pay $249 only when you&rsquo;re ready to sign.</p>
-        <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
-          <button style={brassBtn} onClick={()=>onStart("buyer")}>Start as Buyer</button>
-          <button style={{ ...outlineBtn, borderColor:"rgba(255,255,255,0.5)", color:"#fff" }} onClick={()=>onStart("seller")}>Start as Seller</button>
-        </div>
-      </section>
-    </div>
+    </>
   );
 }
 
