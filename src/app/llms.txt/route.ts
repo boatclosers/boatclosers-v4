@@ -108,6 +108,7 @@ const MY_BOAT_CLOSING = `# My Boat Closing
 ## Key pages
 
 - [Home](https://myboatclosing.com)
+- [How My Boat Closing works (help guide)](https://myboatclosing.com/help)
 - [Free HIN check](https://www.boatclosers.com/hin-check)
 - [Boat Bill of Sale guide](https://www.boatclosers.com/guides/boat-bill-of-sale)
 - [Texas Boat Bill of Sale and Title Transfer](https://www.boatclosers.com/guides/texas-boat-bill-of-sale)

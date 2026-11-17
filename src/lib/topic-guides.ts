@@ -412,6 +412,206 @@ export const TOPIC_GUIDES: TopicGuide[] = [
       { slug: 'avoid-boat-buying-scams-facebook-marketplace-craigslist', title: 'Avoiding scams on Marketplace and Craigslist' },
     ],
   },
+
+  {
+    slug: 'how-to-sign-over-a-boat-title',
+    title: 'How to Sign Over a Boat Title in a Private Sale',
+    h1: 'How to Sign Over',
+    h1Accent: 'a Boat Title',
+    description:
+      'How to sign a boat title over to a buyer in a private sale: who signs, where, the mistakes that get titles rejected, and what to do when there is a loan, two owners, or no title at all.',
+    dateModified: '2026-11-17',
+    intro:
+      'A title signed in the wrong spot, by the wrong person or with a cross-out can send the buyer back to the seller for a new one. Most title problems at the tag office are avoidable with a few minutes of care at the handoff.',
+    sections: [
+      {
+        h: 'Before anyone signs',
+        list: [
+          'Match the HIN on the transom to the title, character for character.',
+          'Check that the person signing is the owner named on the title. Compare it to their ID.',
+          'Look for a lienholder on the title. If there is one, you need a lien release or the lender’s satisfaction before or at closing.',
+          'Use your state’s current forms. Some states reject older versions.',
+        ],
+      },
+      {
+        h: 'Signing it',
+        list: [
+          'The seller signs and prints their name exactly as it appears on the title, in the seller section only.',
+          'Fill in the buyer’s full name and address, the sale date and the price where the title asks for them.',
+          'Use ink and write clearly. Don’t use correction fluid or cross anything out; many states treat an altered title as void.',
+          'If your state requires a notary for the title or bill of sale, sign in front of the notary, not before.',
+        ],
+      },
+      {
+        h: 'Two owners, a loan, or no title',
+        list: [
+          'Two owners joined by “and” usually both have to sign. Joined by “or”, one may be enough. Check your state’s rule.',
+          'If the seller still owes money, the loan has to be paid off and the lien released before the title is clear. Escrow is the safe way to handle the payoff.',
+          'If the boat is Coast Guard documented, ownership moves through the National Vessel Documentation Center, not a state title.',
+          'Some states don’t title boats, or not small ones. Then the registration and a good bill of sale carry the weight.',
+        ],
+      },
+      {
+        h: 'After the signatures',
+        list: [
+          'The buyer takes the signed title, the bill of sale and any lien release to the state office before the deadline and pays any sales tax.',
+          'The seller keeps copies and files a notice of sale if the state has one.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Where does the seller sign on a boat title?',
+        a: 'In the seller or transfer section, printing and signing their name exactly as it appears on the front. Layouts differ by state, so read the title carefully before signing.',
+      },
+      {
+        q: 'What happens if a boat title is signed wrong?',
+        a: 'The state office may reject it, and the seller may need to apply for a duplicate title and sign again. Avoid cross-outs and correction fluid.',
+      },
+      {
+        q: 'Does a boat title need to be notarized?',
+        a: 'Some states require a notary for the title or the bill of sale, and many don’t. Check your state agency’s rules before closing.',
+      },
+    ],
+    cta: 'both',
+    related: [
+      { slug: 'boat-bill-of-sale', title: 'Boat bill of sale: what it must include' },
+      { slug: 'buy-a-boat-with-a-loan-on-it', title: 'Buying a boat when the seller still owes money on it' },
+      { slug: 'coast-guard-documented-boat-transfer', title: 'Transferring a Coast Guard documented boat' },
+    ],
+  },
+
+  {
+    slug: 'after-you-sell-a-boat',
+    title: 'Sold Your Boat? What to Do After the Sale',
+    h1: 'Sold Your Boat?',
+    h1Accent: 'What to Do Next',
+    description:
+      'What a seller should do after selling a boat privately: file a notice of sale, deal with the registration and numbers, cancel insurance, keep copies, and hand over the records.',
+    dateModified: '2026-11-17',
+    intro:
+      'The boat is gone and the money is in the bank, but a few loose ends can still come back to you: a registration in your name, an insurance policy you’re still paying for, or a question about what was included.',
+    sections: [
+      {
+        h: 'File a notice of sale',
+        paras: [
+          'Many states let the seller report the sale, so you aren’t on the hook for tickets, fees or accidents after the boat leaves. Do it right away, with the buyer’s name, the date and the HIN.',
+        ],
+      },
+      {
+        h: 'Registration and numbers',
+        list: [
+          'Follow your state’s rule for the registration certificate and decals. In some states they stay with the boat; in others they don’t.',
+          'If the boat was Coast Guard documented, make sure the documentation is transferred or deleted so it isn’t left in your name.',
+        ],
+      },
+      {
+        h: 'Insurance and the marina',
+        list: [
+          'Cancel or move your insurance once the sale is final, not before.',
+          'Tell your marina or storage facility, and settle any slip contract.',
+          'Cancel a towing membership or move it to your next boat.',
+        ],
+      },
+      {
+        h: 'Keep copies',
+        list: [
+          'The signed bill of sale, a photo of the signed title, the payment receipt and any lien release.',
+          'The handoff record: what was included, and the date.',
+          'Keep them for a few years. They answer most questions that come up later.',
+        ],
+      },
+      {
+        h: 'Hand over the history',
+        paras: [
+          'Give the buyer the manuals, warranties and service records that go with the boat. A boat log or history report passes the boat’s story on without your personal details.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Do I need to tell the state I sold my boat?',
+        a: 'Many states have a notice of sale or similar form for sellers, and filing it protects you if the buyer doesn’t title the boat. Check your state boating or motor vehicle agency.',
+      },
+      {
+        q: 'Do the registration numbers stay with the boat?',
+        a: 'It depends on the state. Some keep the number with the boat, some don’t. Follow your state’s rule.',
+      },
+      {
+        q: 'When should I cancel my boat insurance?',
+        a: 'After the sale is final and the buyer has taken the boat, not before.',
+      },
+    ],
+    cta: 'bc',
+    related: [
+      { slug: 'sell-a-boat-without-a-broker', title: 'How to sell a boat privately without a broker' },
+      { slug: 'seller-due-diligence-boat-sale', title: 'Seller due diligence' },
+      { slug: 'documents-needed-private-boat-sale', title: 'What documents you need to close a private boat sale' },
+    ],
+  },
+
+  {
+    slug: 'buying-a-boat-trailer-and-motor-together',
+    title: 'Buying a Boat, Trailer and Motor Together: Paperwork for Each',
+    h1: 'Boat, Trailer and Motor:',
+    h1Accent: 'Paperwork for Each',
+    description:
+      'When a used boat comes with a trailer and an outboard, each can have its own title, registration or serial number. Here is what to check and sign for each one in a private sale.',
+    dateModified: '2026-11-17',
+    intro:
+      'Most small boats sell as a package: the hull, the outboard and the trailer. To the state, those can be two or three separate things with separate paperwork, and buyers who only deal with the boat’s title can end up with a trailer they can’t register.',
+    sections: [
+      {
+        h: 'The boat',
+        list: [
+          'Check the HIN on the transom against the title or registration.',
+          'Sign the boat’s title over, or use a bill of sale where the state doesn’t title boats.',
+        ],
+      },
+      {
+        h: 'The trailer',
+        list: [
+          'A trailer has its own VIN, usually on the tongue. Check it against the trailer’s title or registration.',
+          'In many states the trailer is titled or registered separately from the boat, so it needs its own signed title or bill of sale.',
+          'An old trailer with no paperwork can be hard to register. Ask before you agree on the price.',
+        ],
+      },
+      {
+        h: 'The motor',
+        list: [
+          'Write down the outboard’s make, model and serial number from its plate.',
+          'A few states title or register outboard motors separately. Check your state’s rule.',
+          'List the motor and its serial number on the bill of sale either way. It helps prove ownership if it’s ever stolen.',
+        ],
+      },
+      {
+        h: 'One deal, every piece on paper',
+        paras: [
+          'Put the boat, the trailer and the motor on the bill of sale with their numbers, and list everything else that goes with the deal. Pay at the moment all the signed papers change hands.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Does a boat trailer need its own title?',
+        a: 'In many states, yes: trailers are titled or registered separately from boats. Check your state motor vehicle agency.',
+      },
+      {
+        q: 'Do I need a separate bill of sale for the trailer?',
+        a: 'Some states want one; in others one bill of sale that lists the trailer’s VIN is enough. Listing every piece with its number is the safe choice.',
+      },
+      {
+        q: 'Is the outboard motor titled separately from the boat?',
+        a: 'In most states it isn’t, but a few do title or register outboards. Either way, record the motor’s serial number on the bill of sale.',
+      },
+    ],
+    cta: 'mbc',
+    related: [
+      { slug: 'boat-bill-of-sale', title: 'Boat bill of sale: what it must include' },
+      { slug: 'agreed-on-a-price-for-a-boat-now-what', title: 'We agreed on a price. Now what?' },
+      { slug: 'documents-needed-private-boat-sale', title: 'What documents you need to close a private boat sale' },
+    ],
+  },
 ]
 
 export function getTopicGuide(slug: string) {
