@@ -1,7 +1,9 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 
 const GA_ID = 'G-TSE5VMCK7N'
+
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#0f1b2d' }
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.boatclosers.com'),
@@ -28,6 +30,8 @@ export const metadata: Metadata = {
   authors: [{ name: 'BoatClosers' }],
   creator: 'BoatClosers',
   applicationName: 'BoatClosers',
+  icons: { icon: '/icons/bc-192.png', apple: '/icons/bc-180.png' },
+  appleWebApp: { capable: true, title: 'BoatClosers', statusBarStyle: 'black-translucent' },
   alternates: {
     canonical: 'https://www.boatclosers.com',
   },

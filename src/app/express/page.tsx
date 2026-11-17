@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import InstallApp from '@/components/InstallApp'
 import { organization, myBoatClosingApp, faqPage, jsonLd } from '@/lib/structured-data'
 
 // My Boat Closing landing page (myboatclosing.com, also /express).
@@ -384,6 +385,7 @@ export default function Page() {
           <div className="nav-links">
             <a href="#how" className="hide-sm">How it works</a>
             <a href="#price" className="hide-sm">Price</a>
+            <InstallApp name="My Boat Closing" label="Get the app" theme={{ bg: '#ffffff', fg: '#13233a', accent: '#13233a', accentFg: '#ffffff', border: '#e2e6ee', muted: '#4e5d6c' }} />
             <a href={START} className="btn small">Start free</a>
           </div>
         </nav>
