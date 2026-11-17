@@ -1,6 +1,7 @@
 'use client'
 import { stateInfo as stateInfoFor } from "@/lib/express/states";
 import DocumentsStepV2 from "./DocumentsStepV2";
+import InstallApp from "./InstallApp";
 import ContingencyPicker from "./ContingencyPicker";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 // useLayoutEffect on the client (runs before paint), a no-op on the server.
@@ -7540,6 +7541,7 @@ export default function BoatClosers() {
           <button onClick={openMyDeals} title="All your deals, including closed ones"
             style={S.navBtn}>My deals</button>
           <button title="Reload to pull the other party's latest offers, messages, and updates" style={S.navBtn} onClick={()=>window.location.reload()}>{emo("🔄")} Check for updates</button>
+          <InstallApp name="BoatClosers" label="Get the app" small theme={{ bg:"#ffffff", fg:"#0f1b2d", accent:"#c9962e", accentFg:"#0f1b2d", border:"#e2e6ee", muted:"#475569" }} />
           <button title="Get help or report a problem or conflict" style={S.navBtn} onClick={()=>{ setSupportSent(false); setSupportErr(""); setSupportModal(true); }}>Help</button>
           <button style={{ ...S.navBtn, border:"none", color:"rgba(255,255,255,0.55)", paddingLeft:6, paddingRight:6 }} onClick={handleSignOut}>Sign out</button>
         </div>
