@@ -1,10 +1,10 @@
 // "Carry your boat over" between the suite's apps.
-// Another app (for now My Boat Inspector) sends the boat's details in the link as
+// Another app in the suite (My Boat Inspector "mbi" or My Boat Listing "mbl") sends the boat's details in the link as
 // ?fromInspector=<base64url JSON>. It's only a prefill: the customer sees and can change
 // every field before anything is sent, so nothing here is trusted beyond length and format.
 
 export type Handoff = {
-  src: 'mbi'
+  src: 'mbi' | 'mbl'
   bid: string // the boat's id in the sending app, so the same boat isn't moved twice
   role: 'buy' | 'sell'
   hin: string
@@ -30,10 +30,10 @@ export function decodeHandoff(raw: string | null | undefined): Handoff | null {
         ? Buffer.from(b64, 'base64').toString('utf8')
         : decodeURIComponent(escape(atob(b64)))
     const d = JSON.parse(json)
-    if (d?.v !== 1 || d?.src !== 'mbi') return null
+    if (d?.v !== 1 || (d?.src !== 'mbi' && d?.src !== 'mbl')) return null
     const report = str(d.report, 200)
     return {
-      src: 'mbi',
+      src: d.src === 'mbl' ? 'mbl' : 'mbi',
       bid: str(d.bid, 64),
       role: d.role === 'sell' ? 'sell' : 'buy',
       hin: str(d.hin, 20).toUpperCase().replace(/[^A-Z0-9]/g, ''),
@@ -55,4 +55,9 @@ export function decodeHandoff(raw: string | null | undefined): Handoff | null {
 /** "2015 Carolina Skiff 17" for the boat line in My Boat Closing. */
 export function handoffBoatLine(h: Handoff) {
   return [h.year, h.make, h.model].filter(Boolean).join(' ')
+}
+
+/** "My Boat Inspector" or "My Boat Listing", for messages. */
+export function handoffAppName(h: Handoff) {
+  return h.src === 'mbl' ? 'My Boat Listing' : 'My Boat Inspector'
 }

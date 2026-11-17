@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { decodeHandoff, handoffBoatLine } from '@/lib/handoff'
+import { decodeHandoff, handoffAppName, handoffBoatLine } from '@/lib/handoff'
 import { ALL_STATE_CODES, STATE_NAMES } from '@/lib/express/states'
 
 // Light theme, matching the landing page.
@@ -123,7 +123,7 @@ export default function ExpressStart() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
 
-  const [fromInspector, setFromInspector] = useState(false)
+  const [fromInspector, setFromInspector] = useState('')
 
   // Coming over from My Boat Inspector: fill in the boat, HIN, price and trailer.
   useEffect(() => {
@@ -133,7 +133,7 @@ export default function ExpressStart() {
     setIds((d) => ({ ...d, boat: h.hin || d.boat }))
     if (h.price) setPrice(h.price)
     if (h.trailer) setPicked((p) => ({ ...p, trailer: true }))
-    setFromInspector(true)
+    setFromInspector(handoffAppName(h))
   }, [])
 
   const chosen = ITEMS.filter((i) => picked[i.key])
@@ -187,7 +187,7 @@ export default function ExpressStart() {
         </p>
         {fromInspector && (
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.5, color: goldText, fontWeight: 600 }}>
-            We brought your boat over from My Boat Inspector. Check the details below.
+            We brought the boat over from {fromInspector}. Check the details below.
           </p>
         )}
       </div>

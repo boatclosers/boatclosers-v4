@@ -10,7 +10,7 @@ import { sendEmail, emailLayout } from '@/lib/sendEmail'
 //   My Boat Closing purchases  express_deals.created_at (this database)
 //   My Boat Inspector boats    its owner endpoint (MBI_ADMIN_KEY), createdAt
 //   My Boat Logs boats         owner_overview() in its database (MBL_ADMIN_KEY), createdAt
-// My Boat Listing keeps listings in the seller's browser, so there's nothing to read yet.
+//   My Boat Listing listings   listing_overview() in the same database (same key), createdAt
 // The owner's own test deals are left out. Runs at :40 past every hour (vercel.json).
 // Goes to SUPPORT_EMAIL (or the owner's address). Set ALERTS_OFF=true in Vercel to pause it.
 
@@ -41,7 +41,7 @@ async function boatclosers(since: string): Promise<Line[]> {
     .map((d: any) => {
       const role = d.initiator_role === 'seller' ? 'seller' : 'buyer'
       const p = d.parties?.[role] || {}
-      const from = d.vessel?.fromInspector ? ' · came from My Boat Inspector' : d.vessel?.fromExpress ? ' · moved up from My Boat Closing' : ''
+      const from = d.vessel?.fromInspector ? ` · came from ${d.vessel?.fromApp || 'My Boat Inspector'}` : d.vessel?.fromExpress ? ' · moved up from My Boat Closing' : ''
       return {
         at: d.created_at,
         who: [p.name, p.email].filter(Boolean).join(' · ') || 'New account',
@@ -112,6 +112,28 @@ async function logs(since: number): Promise<Line[]> {
     }))
 }
 
+async function listings(since: number): Promise<Line[]> {
+  const key = process.env.MBL_ADMIN_KEY
+  if (!key) return []
+  const url = process.env.MBL_SUPABASE_URL || 'https://dnjdqndllwjyccrrraap.supabase.co'
+  const anon = process.env.MBL_SUPABASE_ANON_KEY || 'sb_publishable_eZgmQzMast5XlMink-hd4A_kBtdF-k6'
+  const r = await fetch(`${url}/rest/v1/rpc/listing_overview`, {
+    method: 'POST',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json', apikey: anon, Authorization: `Bearer ${anon}` },
+    body: JSON.stringify({ p_key: key }),
+  })
+  if (!r.ok) return [] // not set up yet
+  const j = await r.json().catch(() => null)
+  return (j?.listings || [])
+    .filter((x: any) => x?.createdAt && new Date(x.createdAt).getTime() >= since)
+    .map((x: any) => ({
+      at: x.createdAt,
+      who: x.email || 'Seller (no email yet)',
+      what: `Started a listing${x.boat ? `: ${x.boat}` : ''}${x.plan ? ` · ${x.plan} plan` : ''}`,
+    }))
+}
+
 function section(title: string, lines: Line[]) {
   if (!lines.length) return ''
   const rows = lines
@@ -142,13 +164,14 @@ export async function GET(req: Request) {
       return []
     }
   }
-  const [bc, mbc, mbi, mbl] = await Promise.all([
+  const [bc, mbc, mbi, mbl, lst] = await Promise.all([
     safe(() => boatclosers(since)),
     safe(() => myBoatClosing(since)),
     safe(() => inspector(sinceMs)),
     safe(() => logs(sinceMs)),
+    safe(() => listings(sinceMs)),
   ])
-  const total = bc.length + mbc.length + mbi.length + mbl.length
+  const total = bc.length + mbc.length + mbi.length + mbl.length + lst.length
   if (!total) return NextResponse.json({ ok: true, sent: false, total: 0 })
 
   const html = emailLayout(
@@ -157,9 +180,10 @@ export async function GET(req: Request) {
       section('My Boat Closing', mbc) +
       section('My Boat Inspector', mbi) +
       section('My Boat Logs', mbl) +
+      section('My Boat Listing', lst) +
       `<p style="margin:22px 0 0;"><a href="${ADMIN}" style="background:#b8863a;color:#08152e;text-decoration:none;padding:11px 22px;border-radius:8px;font-size:14px;font-weight:700;display:inline-block;">Open the owner dashboard</a></p>`,
   )
-  const names = [bc.length && 'BoatClosers', mbc.length && 'My Boat Closing', mbi.length && 'My Boat Inspector', mbl.length && 'My Boat Logs'].filter(Boolean).join(', ')
+  const names = [bc.length && 'BoatClosers', mbc.length && 'My Boat Closing', mbi.length && 'My Boat Inspector', mbl.length && 'My Boat Logs', lst.length && 'My Boat Listing'].filter(Boolean).join(', ')
   const r = await sendEmail({ to: OWNER, subject: `New: ${total} started (${names})`, html, essential: true, context: 'owner-alert' })
   return NextResponse.json({ ok: true, sent: !!r?.success, total })
 }

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { decodeHandoff } from '@/lib/handoff'
+import { decodeHandoff, handoffAppName } from '@/lib/handoff'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-// Coming over from My Boat Inspector: starts a deal for the signed-in customer with the
+// Coming over from My Boat Inspector or My Boat Listing: starts a deal for the signed-in customer with the
 // boat's details filled in (buyer or seller, as they were in the inspector).
 //   POST { handoff } with the BoatClosers sign-in token -> { dealId }
 // The same inspected boat opens the same deal if it's sent twice.
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: 'Please sign in first.' }, { status: 401 })
   const body = await req.json().catch(() => ({} as any))
   const h = decodeHandoff(String(body?.handoff || ''))
-  if (!h) return NextResponse.json({ error: 'That link from My Boat Inspector isn’t valid.' }, { status: 400 })
+  if (!h) return NextResponse.json({ error: 'That link from our other app isn’t valid.' }, { status: 400 })
 
   if (h.bid) {
     const { data: existing } = await supabaseAdmin
@@ -60,7 +60,8 @@ export async function POST(req: Request) {
     trailerIncluded: h.trailer === true ? 'yes' : 'no', trailerVin: '', trailerState: '',
     askingPrice: h.price ? String(Math.round(Number(h.price))) : '',
     location: '', description: notes,
-    fromInspector: h.bid || 'mbi',
+    fromInspector: h.bid || h.src,
+    fromApp: handoffAppName(h),
   }
   const me = { ...blankParty, name: String((user.user_metadata as any)?.name || ''), email: user.email || '' }
   const parties = role === 'seller' ? { seller: me, buyer: { ...blankParty } } : { buyer: me, seller: { ...blankParty } }
