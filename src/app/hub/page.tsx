@@ -181,13 +181,11 @@ export default function HubPage() {
 
         <div className="hb-wrap" style={{ paddingTop: 56, paddingBottom: 96, maxWidth: 1000 }}>
           <p style={{ fontSize: 15, letterSpacing: 2, textTransform: 'uppercase', color: N.brassLt, margin: 0 }}>The BoatClosers apps</p>
-          <h1 className="hb-h1" style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 72, lineHeight: 1.02, letterSpacing: '-0.025em', margin: '18px 0 0' }}>
-            BOAT: Bust Out Another Thousand.
-            <br />
-            <span style={{ color: N.brassLt }}>Not this time.</span>
+          <h1 className="hb-h1" style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 72, lineHeight: 1.02, maxWidth: '16ch', letterSpacing: '-0.025em', margin: '18px 0 0' }}>
+            Every step of a private boat sale, <span style={{ color: N.brassLt }}>covered.</span>
           </h1>
           <p style={{ fontSize: 20, lineHeight: 1.6, color: '#c9d4e2', margin: '28px 0 0', maxWidth: '40rem' }}>
-            Check it, close it, keep it, sell it. Apps for a boat’s whole life, built by a licensed yacht broker, without the 10% commission.
+            From the first inspection to the signed title, and every year you own it in between. Built by a licensed yacht broker.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 36 }}>
             {choices.map(([href, label], i) => (
@@ -265,6 +263,9 @@ export default function HubPage() {
       {/* ---------- where private sales go wrong ---------- */}
       <section className="hb-wrap" style={{ paddingTop: 96, paddingBottom: 96 }}>
         <h2 style={{ ...h2, fontSize: 46, maxWidth: '20ch' }}>Where private boat sales go wrong.</h2>
+        <p style={{ fontSize: 18, lineHeight: 1.6, color: N.slate, marginTop: 14, maxWidth: '40rem' }}>
+          There’s a reason boat people say B.O.A.T. stands for <em>Bust Out Another Thousand</em>. Here’s where those thousands usually go, and how to keep them.
+        </p>
         <div className="hb-five" style={{ marginTop: 44 }}>
           {PITFALLS.map(([t, d, fix]) => (
             <div key={t} style={{ borderTop: `1px solid ${N.ink}`, paddingTop: 16 }}>
