@@ -164,6 +164,7 @@ function ConnectAI({ token }) {
         <b>Add it to your AI</b>
         <div style={{ marginTop: 6 }}><b style={{ fontWeight: 600 }}>ChatGPT:</b> on the website, open Settings, then Apps. Under Advanced settings, turn on Developer mode, create a new app named BoatClosers, paste your link, choose No authentication and save.</div>
         <div style={{ marginTop: 6 }}><b style={{ fontWeight: 600 }}>Claude:</b> open Settings, then Connectors, choose Add custom connector, name it BoatClosers and paste your link.</div>
+        <div style={{ marginTop: 6 }}><b style={{ fontWeight: 600 }}>Grok:</b> on grok.com, open Connectors, then New Connector, then Custom. Name it BoatClosers, paste your link and save (needs a paid Grok plan).</div>
         <div style={{ marginTop: 6 }}><b style={{ fontWeight: 600 }}>Others:</b> any assistant that supports MCP connectors (remote servers) can use the same link.</div>
         <div style={{ marginTop: 6, color: K.slate, fontSize: 13 }}>Menu names change from time to time. Then start a chat with it on and say: "Where does my boat deal stand?"</div>
       </div>
