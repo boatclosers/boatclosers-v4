@@ -6495,6 +6495,18 @@ export default function BoatClosers() {
         if (!localStorage.getItem("bc_session")) { setAuthRole("buyer"); setScreen("auth"); }
         return;
       }
+      // Coming over from My Boat Inspector: remember the boat, then sign in.
+      const fi = qs.get("fromInspector");
+      if (fi && fi.length <= 3000 && /^[A-Za-z0-9_-]+$/.test(fi)) {
+        localStorage.setItem("bc_from_inspector", fi);
+        let fiRole = "buyer";
+        try { fiRole = JSON.parse(decodeURIComponent(escape(atob(fi.replace(/-/g, "+").replace(/_/g, "/"))))).role === "sell" ? "seller" : "buyer"; } catch (e) {}
+        qs.delete("fromInspector");
+        const left = qs.toString();
+        window.history.replaceState(null, "", window.location.pathname + (left ? `?${left}` : "") + window.location.hash);
+        if (!localStorage.getItem("bc_session")) { setAuthRole(fiRole); setScreen("auth"); }
+        return;
+      }
       const r = qs.get("start");
       if (r !== "buyer" && r !== "seller") return;
       qs.delete("start");
@@ -7279,6 +7291,29 @@ export default function BoatClosers() {
         setExpressMoveMsg(j.error || "We couldn't move your My Boat Closing purchase. Email support@boatclosers.com and we'll do it for you.");
       } catch (e) {
         setExpressMoveMsg("We couldn't move your My Boat Closing purchase. Check your connection and refresh.");
+      }
+    })();
+  }, [user]); // eslint-disable-line
+
+  // ── FROM MY BOAT INSPECTOR ── once signed in, start a deal with the inspected
+  // boat's details filled in, then open it. Same boat twice opens the same deal.
+  useEffect(() => {
+    if (!user) return;
+    let fi = null;
+    try { fi = localStorage.getItem("bc_from_inspector"); } catch (e) {}
+    if (!fi) return;
+    (async () => {
+      try {
+        const res = await authedFetch("/api/deals/from-inspector", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ handoff: fi }) });
+        const j = await res.json().catch(() => ({}));
+        try { localStorage.removeItem("bc_from_inspector"); } catch (e) {}
+        if (res.ok && j.dealId) {
+          window.location.replace(`/?dealId=${encodeURIComponent(j.dealId)}&step=1`);
+          return;
+        }
+        setExpressMoveMsg(j.error || "We couldn't bring your boat over from My Boat Inspector. You can start a deal and enter it here.");
+      } catch (e) {
+        setExpressMoveMsg("We couldn't bring your boat over from My Boat Inspector. Check your connection and refresh.");
       }
     })();
   }, [user]); // eslint-disable-line

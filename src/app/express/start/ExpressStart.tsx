@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { decodeHandoff, handoffBoatLine } from '@/lib/handoff'
 import { ALL_STATE_CODES, STATE_NAMES } from '@/lib/express/states'
 
 // Light theme, matching the landing page.
@@ -122,6 +123,19 @@ export default function ExpressStart() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
 
+  const [fromInspector, setFromInspector] = useState(false)
+
+  // Coming over from My Boat Inspector: fill in the boat, HIN, price and trailer.
+  useEffect(() => {
+    const h = decodeHandoff(new URLSearchParams(window.location.search).get('fromInspector'))
+    if (!h) return
+    setDesc((d) => ({ ...d, boat: handoffBoatLine(h) || d.boat }))
+    setIds((d) => ({ ...d, boat: h.hin || d.boat }))
+    if (h.price) setPrice(h.price)
+    if (h.trailer) setPicked((p) => ({ ...p, trailer: true }))
+    setFromInspector(true)
+  }, [])
+
   const chosen = ITEMS.filter((i) => picked[i.key])
   const summary =
     chosen.length === 0
@@ -171,6 +185,11 @@ export default function ExpressStart() {
         <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: muted }}>
           Pick everything in this sale. The seller never has to create an account.
         </p>
+        {fromInspector && (
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.5, color: goldText, fontWeight: 600 }}>
+            We brought your boat over from My Boat Inspector. Check the details below.
+          </p>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
