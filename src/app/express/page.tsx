@@ -573,6 +573,7 @@ export default function Page() {
       </section>
 
       <footer className="wrap foot">
+        <a href="/express/help">How it works</a>
         <a href="/guides">Guides</a>
         <a href="/privacy">Privacy</a>
         <a href="/terms">Terms</a>
