@@ -42,7 +42,7 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   const [data, setData] = useState<any>(null)
   const [filter, setFilter] = useState('live')
-  const [view, setView] = useState<'full' | 'express' | 'mbi' | 'stats' | 'mbl'>('full')
+  const [view, setView] = useState<'full' | 'express' | 'mbi' | 'stats' | 'mbl' | 'pay'>('full')
   const [exFilter, setExFilter] = useState('paid')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
@@ -226,7 +226,7 @@ export default function AdminPage() {
           )}
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-          {([['full', 'BoatClosers · $249'], ['stats', 'Funnel & AI use'], ['express', `My Boat Closing · $29.99 (${t.expressAll ?? 0})`], ['mbi', 'My Boat Inspector'], ['mbl', 'My Boat Logs']] as const).map(([k, l]) => (
+          {([['full', 'BoatClosers · $249'], ['stats', 'Funnel & AI use'], ['express', `My Boat Closing · $29.99 (${t.expressAll ?? 0})`], ['mbi', 'My Boat Inspector'], ['mbl', 'My Boat Logs'], ['pay', 'Payments & refunds']] as const).map(([k, l]) => (
             <button key={k} onClick={() => { setView(k); setOpen(null) }}
               style={{ padding: '10px 16px', fontSize: 13.5, fontWeight: 800, borderRadius: 8, cursor: 'pointer',
                 border: `2px solid ${view === k ? BRASS : MIST}`, background: view === k ? '#fff' : '#f8fafc', color: NAVY }}>
@@ -238,6 +238,7 @@ export default function AdminPage() {
         {view === 'mbi' && <MbiPanel pw={pw} Stat={Stat} />}
         {view === 'stats' && <StatsPanel pw={pw} Stat={Stat} />}
         {view === 'mbl' && <MblPanel pw={pw} Stat={Stat} />}
+        {view === 'pay' && <PaymentsPanel pw={pw} Stat={Stat} />}
 
         {view === 'express' && <ExpressPanel data={data} exFilter={exFilter} setExFilter={setExFilter} open={open} setOpen={setOpen} runAction={runAction} actionBusy={actionBusy} actionMsg={actionMsg} q={q} setQ={setQ} Stat={Stat} />}
 
@@ -780,5 +781,117 @@ function MblPanel({ pw, Stat }: any) {
       </div>
       <div style={{ fontSize: 11.5, color: SLATE, marginTop: 12 }}>Read-only view. Billing isn&apos;t connected to Stripe yet, so &ldquo;Paying&rdquo; and revenue come from each boat&apos;s plan status.</div>
     </>
+  )
+}
+
+
+// Payments & refunds: every product pays into one Stripe account, so one list
+// covers them all. A refund always asks for the amount and a confirmation.
+function PaymentsPanel({ pw, Stat }: any) {
+  const [d, setD] = useState<any[] | null>(null)
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [q, setQ] = useState('')
+  const [prod, setProd] = useState('all')
+  const [refunding, setRefunding] = useState<any>(null)
+  const [amount, setAmount] = useState('')
+  const [reason, setReason] = useState('')
+  const [msg, setMsg] = useState<any>(null)
+  const load = async () => {
+    setBusy(true); setErr('')
+    const j = await adminCall(pw, 'payments')
+    if (j.ok) setD(j.payments); else setErr(j.error || 'Could not load payments.')
+    setBusy(false)
+  }
+  useEffect(() => { load() }, [])
+  const usd = (c: number) => '$' + (c / 100).toFixed(2)
+  const rows = (d || [])
+    .filter((p) => prod === 'all' || p.product === prod)
+    .filter((p) => !q.trim() || `${p.email} ${p.name} ${p.product}`.toLowerCase().includes(q.trim().toLowerCase()))
+  const products = Array.from(new Set((d || []).map((p) => p.product)))
+  const total = (d || []).reduce((a, p) => a + p.amount, 0)
+  const refundedTotal = (d || []).reduce((a, p) => a + p.refunded, 0)
+
+  const startRefund = (p: any) => { setRefunding(p); setAmount(((p.amount - p.refunded) / 100).toFixed(2)); setReason(''); setMsg(null) }
+  const doRefund = async () => {
+    const cents = Math.round(parseFloat(amount || '0') * 100)
+    const left = refunding.amount - refunding.refunded
+    if (!cents || cents <= 0) { setMsg({ ok: false, text: 'Enter an amount above $0.' }); return }
+    if (cents > left) { setMsg({ ok: false, text: `Only ${usd(left)} is left to refund.` }); return }
+    if (!window.confirm(`Refund ${usd(cents)} to ${refunding.email || 'this customer'} for ${refunding.product}? This can't be undone.`)) return
+    setBusy(true)
+    const j = await adminCall(pw, 'refund', { chargeId: refunding.id, amountCents: cents, reason })
+    setBusy(false)
+    if (j.ok) { setMsg({ ok: true, text: j.done }); setRefunding(null); load() }
+    else setMsg({ ok: false, text: j.error || 'Refund failed.' })
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 14 }}>
+        <Stat label="Payments shown" value={(d || []).length} />
+        <Stat label="Collected" value={usd(total)} />
+        <Stat label="Refunded" value={usd(refundedTotal)} tone={refundedTotal ? '#b45309' : undefined} />
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+        <select value={prod} onChange={(e) => setProd(e.target.value)} style={{ padding: '8px 10px', borderRadius: 7, border: `1px solid ${MIST}`, fontSize: 13 }}>
+          <option value="all">All products</option>
+          {products.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search email or name" style={{ flex: 1, minWidth: 180, padding: '8px 10px', borderRadius: 7, border: `1px solid ${MIST}`, fontSize: 13 }} />
+        <button onClick={load} disabled={busy} style={{ padding: '8px 14px', borderRadius: 7, border: `1px solid ${MIST}`, background: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>{busy ? 'Loading…' : 'Refresh'}</button>
+      </div>
+      {err && <div style={{ padding: 12, borderRadius: 8, background: '#fef2f2', color: '#b91c1c', fontSize: 13, marginBottom: 12 }}>{err}</div>}
+      {msg && <div style={{ padding: 12, borderRadius: 8, background: msg.ok ? '#ecfdf5' : '#fef2f2', color: msg.ok ? '#0f6e56' : '#b91c1c', fontSize: 13, marginBottom: 12 }}>{msg.text}</div>}
+
+      {refunding && (
+        <div style={{ border: `2px solid ${BRASS}`, borderRadius: 10, padding: 16, marginBottom: 14, background: '#fffdf7' }}>
+          <div style={{ fontWeight: 800, color: NAVY, fontSize: 15 }}>Refund {refunding.email || 'this customer'}</div>
+          <div style={{ fontSize: 13, color: SLATE, marginTop: 4 }}>{refunding.product} · paid {usd(refunding.amount)} on {new Date(refunding.created).toLocaleDateString()}{refunding.refunded ? ` · already refunded ${usd(refunding.refunded)}` : ''}</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+            <label style={{ fontSize: 12.5, fontWeight: 700, color: NAVY }}>Amount ($)
+              <input value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))} inputMode="decimal" style={{ display: 'block', marginTop: 4, padding: '8px 10px', borderRadius: 7, border: `1px solid ${MIST}`, width: 120, fontSize: 14 }} />
+            </label>
+            <label style={{ fontSize: 12.5, fontWeight: 700, color: NAVY, flex: 1, minWidth: 200 }}>Note (for your records)
+              <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. didn't start the inspection" style={{ display: 'block', marginTop: 4, padding: '8px 10px', borderRadius: 7, border: `1px solid ${MIST}`, width: '100%', boxSizing: 'border-box', fontSize: 14 }} />
+            </label>
+          </div>
+          {refunding.product === 'My Boat Inspector' && <div style={{ fontSize: 12, color: SLATE, marginTop: 8 }}>Your policy: full refund if not started; 7-day refund if no report; no refund once a report is made unless challenged. A full refund locks the inspection again.</div>}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button onClick={doRefund} disabled={busy} style={{ padding: '9px 16px', borderRadius: 7, border: 0, background: '#b91c1c', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Refund {amount ? '$' + amount : ''}</button>
+            <button onClick={() => setRefunding(null)} style={{ padding: '9px 16px', borderRadius: 7, border: `1px solid ${MIST}`, background: '#fff', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ background: '#fff', border: `1px solid ${MIST}`, borderRadius: 10, overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr style={{ textAlign: 'left', color: SLATE, borderBottom: `1px solid ${MIST}` }}>
+              {['Date', 'Customer', 'Product', 'Paid', 'Refunded', ''].map((h) => <th key={h} style={{ padding: '10px 12px', fontWeight: 700 }}>{h}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((p) => {
+              const left = p.amount - p.refunded
+              return (
+                <tr key={p.id} style={{ borderBottom: `1px solid ${MIST}` }}>
+                  <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{new Date(p.created).toLocaleDateString()}{!p.livemode && <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 800, color: '#b45309' }}>TEST</span>}</td>
+                  <td style={{ padding: '10px 12px' }}>{p.name && <div style={{ fontWeight: 700, color: NAVY }}>{p.name}</div>}<div style={{ color: SLATE }}>{p.email || '—'}</div></td>
+                  <td style={{ padding: '10px 12px' }}>{p.product}{p.disputed && <span style={{ marginLeft: 6, color: '#b91c1c', fontWeight: 800 }}>Disputed</span>}</td>
+                  <td style={{ padding: '10px 12px', fontWeight: 700 }}>{usd(p.amount)}</td>
+                  <td style={{ padding: '10px 12px', color: p.refunded ? '#b45309' : SLATE }}>{p.refunded ? usd(p.refunded) : '—'}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                    {left > 0 ? <button onClick={() => startRefund(p)} style={{ padding: '6px 12px', borderRadius: 6, border: `1px solid ${MIST}`, background: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12.5 }}>Refund…</button> : <span style={{ fontSize: 12, color: SLATE }}>Fully refunded</span>}
+                  </td>
+                </tr>
+              )
+            })}
+            {d && !rows.length && <tr><td colSpan={6} style={{ padding: 18, color: SLATE, textAlign: 'center' }}>No payments yet.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ fontSize: 12, color: SLATE, marginTop: 10 }}>Shows the 100 most recent payments in your Stripe account, from every product. Refunds go back to the customer’s card, usually within 5 to 10 business days.</div>
+    </div>
   )
 }
