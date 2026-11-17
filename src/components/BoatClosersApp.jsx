@@ -7312,9 +7312,9 @@ export default function BoatClosers() {
           window.location.replace(`/?dealId=${encodeURIComponent(j.dealId)}&step=1`);
           return;
         }
-        setExpressMoveMsg(j.error || "We couldn't bring your boat over from My Boat Inspector. You can start a deal and enter it here.");
+        setExpressMoveMsg(j.error || "We couldn't bring your boat over. You can start a deal and enter it here.");
       } catch (e) {
-        setExpressMoveMsg("We couldn't bring your boat over from My Boat Inspector. Check your connection and refresh.");
+        setExpressMoveMsg("We couldn't bring your boat over. Check your connection and refresh.");
       }
     })();
   }, [user]); // eslint-disable-line
