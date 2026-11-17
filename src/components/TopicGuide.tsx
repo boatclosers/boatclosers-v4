@@ -212,6 +212,22 @@ export default function TopicGuidePage({ g }: { g: TopicGuide }) {
           </>
         )}
 
+        {g.links && (
+          <>
+            <h2 style={{ ...h2, fontSize: 22 }}>Helpful links</h2>
+            <ul style={{ fontSize: 16 }}>
+              {g.links.map((l) => (
+                <li key={l.url} style={{ marginBottom: 8 }}>
+                  <a href={l.url} target="_blank" rel="noopener" style={link}>
+                    {l.name}
+                  </a>
+                  {l.note && <span style={{ opacity: 0.7 }}> — {l.note}</span>}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
         <p style={{ fontSize: 13, opacity: 0.55, marginTop: 40 }}>
           This guide is general information, not legal or tax advice. Rules and fees change; confirm with the agency
           that titles boats in your state before closing.

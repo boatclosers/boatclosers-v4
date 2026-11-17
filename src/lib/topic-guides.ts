@@ -14,6 +14,8 @@ export type TopicGuide = {
   cta: 'bc' | 'mbc' | 'both'
   related: { slug: string; title: string }[]
   sources?: { name: string; url: string }[]
+  /** Useful outside services (not official sources), shown under their own heading. */
+  links?: { name: string; url: string; note?: string }[]
 }
 
 const DATE = '2026-11-14'
@@ -297,6 +299,7 @@ export const TOPIC_GUIDES: TopicGuide[] = [
         list: [
           'Find the HIN on the transom and make sure it matches the title or registration exactly.',
           'Run a free HIN check and a lien check before you pay anything.',
+          'Run the HIN through a boat history report for theft, salvage and total-loss records.',
           'Inspect it yourself or have it inspected, and do a sea trial.',
         ],
       },
@@ -325,7 +328,14 @@ export const TOPIC_GUIDES: TopicGuide[] = [
       },
       {
         q: 'How do I check if a boat is stolen or has a loan?',
-        a: 'Match the HIN on the hull to the title and registration, run a HIN and lien check, and for a documented boat order an Abstract of Title from the Coast Guard.',
+        a: 'Match the HIN on the hull to the title and registration, run a HIN and lien check, run a boat history report for theft and salvage records, and for a documented boat order an Abstract of Title from the Coast Guard.',
+      },
+    ],
+    links: [
+      {
+        name: 'Boat History Report',
+        url: 'https://www.boathistoryreport.com',
+        note: 'Runs a HIN against theft, salvage, total-loss and accident records. Independent service; we aren’t affiliated with it.',
       },
     ],
     cta: 'both',
@@ -352,6 +362,7 @@ export const TOPIC_GUIDES: TopicGuide[] = [
         list: [
           'Find the HIN on the transom and compare it to the title or registration, character by character.',
           'Run a free HIN check and confirm there is no loan on it, or that the payoff is handled at closing.',
+          'Run a boat history report to check for theft, salvage or a past insurance total loss.',
         ],
       },
       {
@@ -403,6 +414,13 @@ export const TOPIC_GUIDES: TopicGuide[] = [
       {
         q: 'Does the boat bill of sale need to be notarized?',
         a: 'It depends on the state. Some require a notary, most don’t. A notarized bill of sale is never a bad idea.',
+      },
+    ],
+    links: [
+      {
+        name: 'Boat History Report',
+        url: 'https://www.boathistoryreport.com',
+        note: 'Runs a HIN against theft, salvage, total-loss and accident records. Independent service; we aren’t affiliated with it.',
       },
     ],
     cta: 'mbc',

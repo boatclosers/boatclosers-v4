@@ -137,6 +137,24 @@ export default function HinCard({ token, boat, onSaved }: { token: string; boat:
             Next: when you see the boat, make sure the HIN on the transom matches this one and the title exactly. A
             valid format does not rule out liens, theft, or damage.
           </div>
+          <div style={{ borderTop: `1px solid ${line}`, paddingTop: 12, marginTop: 6 }}>
+            <div style={{ fontWeight: 700, color: navy }}>Run a boat history report</div>
+            <div style={{ color: muted, fontSize: 14, margin: '4px 0 8px' }}>
+              This check can’t see theft, salvage, insurance total losses or accident history. A history report runs the
+              HIN against those records. Do it before money changes hands.
+            </div>
+            <a
+              href="https://www.boathistoryreport.com"
+              target="_blank"
+              rel="noopener"
+              style={{ color: navy, fontWeight: 700, textDecoration: 'underline' }}
+            >
+              Get a report at Boat History Report →
+            </a>
+            <div style={{ color: muted, fontSize: 12, marginTop: 6 }}>
+              Independent service. We aren’t affiliated with it and don’t earn anything from it.
+            </div>
+          </div>
         </div>
       )}
     </div>
