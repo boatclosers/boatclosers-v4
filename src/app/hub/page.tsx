@@ -112,7 +112,8 @@ function AppCard({ app, dark }: { app: SuiteApp; dark?: boolean }) {
         <span style={{ fontFamily: F.serif, fontSize: 26, color: dark ? N.brassLt : N.brass }}>{app.price}</span>
       </div>
       {app.priceNote && <div style={{ fontSize: 14, color: dark ? N.sounding : N.slate, marginTop: 4 }}>{app.priceNote}</div>}
-      <p style={{ fontSize: 16.5, lineHeight: 1.6, color: dark ? '#c9d4e2' : N.slate, margin: '12px 0 0' }}>{app.pitch}</p>
+      {app.hook && <p style={{ fontFamily: F.serif, fontSize: 21, lineHeight: 1.3, margin: '14px 0 0' }}>{app.hook}</p>}
+      <p style={{ fontSize: 16.5, lineHeight: 1.6, color: dark ? '#c9d4e2' : N.slate, margin: '10px 0 0' }}>{app.pitch}</p>
       {app.points.length > 0 && (
         <ul style={{ listStyle: 'none', padding: 0, margin: '12px 0 0', fontSize: 15.5, lineHeight: 1.7 }}>
           {app.points.map((p) => (
@@ -122,6 +123,9 @@ function AppCard({ app, dark }: { app: SuiteApp; dark?: boolean }) {
             </li>
           ))}
         </ul>
+      )}
+      {app.proof && (
+        <p style={{ fontSize: 14.5, lineHeight: 1.5, margin: '14px 0 0', padding: '10px 12px', background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(184,134,58,0.09)', borderLeft: `3px solid ${N.brass}` }}>{app.proof}</p>
       )}
       <a
         href={app.url}
