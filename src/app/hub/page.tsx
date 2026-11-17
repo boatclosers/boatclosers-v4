@@ -189,7 +189,7 @@ export default function HubPage() {
             Every step of a private boat sale, <span style={{ color: N.brassLt }}>covered.</span>
           </h1>
           <p style={{ fontSize: 20, lineHeight: 1.6, color: '#c9d4e2', margin: '28px 0 0', maxWidth: '40rem' }}>
-            From the first inspection to the signed title, and every year you own it in between. Built by a licensed yacht broker.
+            From the first inspection to the signed title, and every year you own it in between. Built by a licensed yacht broker, without a yacht broker’s commission.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 36 }}>
             {choices.map(([href, label], i) => (
