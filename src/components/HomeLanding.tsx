@@ -363,6 +363,9 @@ export default function HomeLanding({ onStart, onDocFinder, docCount, faqs, stat
       {/* ---------- the right tool ---------- */}
       <section className="bc-wrap" style={{ paddingTop: 100, paddingBottom: 100 }}>
         <h2 style={{ ...h2, fontSize: 46, maxWidth: '20ch' }}>Not a full deal? There’s a tool for that.</h2>
+        <p style={{ fontSize: 16, marginTop: 14 }}>
+          <a href="/hub" className="bc-link" style={{ fontWeight: 600 }}>See how they all work together →</a>
+        </p>
         <div className="bc-four" style={{ marginTop: 44 }}>
           {family.map(([t, d, u]) => (
             <a key={t} href={u} style={{ display: 'block', textDecoration: 'none', color: N.ink, borderTop: `1px solid ${N.ink}`, paddingTop: 18 }}>

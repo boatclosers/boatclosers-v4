@@ -20,11 +20,13 @@ const STATE_LINKS = STATE_GUIDES.map(
 
 const SUITE = `## The BoatClosers suite (each is its own product)
 
+All of them on one page, in the order of a boat's life (buy, close, own, sell): https://www.boatclosers.com/hub
+
 - [BoatClosers](https://www.boatclosers.com): online closing platform for private boat sales. Flat $249 per deal.
 - [My Boat Closing](https://myboatclosing.com): simple paperwork tool for small private purchases, usually under $50,000. Free HIN check, $29.99 for the paperwork.
-- [My Boat Inspector](https://myboatinspector.com): guided used-boat inspection and sea trial walkthrough with a written report. $59.99. A guide, not a marine survey.
+- [My Boat Inspector](https://myboatinspector.com): guided used-boat inspection and sea trial walkthrough with a written report. $59.99 covers up to 3 boats for 90 days. A guide, not a marine survey.
 - [My Boat Logs](https://myboatlogs.com): maintenance log, document vault and shareable vessel history for boat owners. $39.99 per boat per year, 14-day free trial.
-- [My Boat Listing](https://www.myboatlisting.com): builds a for-sale-by-owner boat listing from the seller's own answers, starting with the HIN. Gives a short ad for Facebook Marketplace, Craigslist and Boat Trader plus a full buyer page with records and disclosures. Free during early access.`
+- [My Boat Listing](https://www.myboatlisting.com): builds a for-sale-by-owner boat listing from the seller's own answers, starting with the HIN. Gives a short ad for Facebook Marketplace, Craigslist and Boat Trader plus a full buyer page with records and disclosures. Quick $19.99, Standard $39.99, Premium $79.99, by boat.`
 
 const BOATCLOSERS = `# BoatClosers
 
@@ -53,6 +55,7 @@ const BOATCLOSERS = `# BoatClosers
 ## Key pages
 
 - [Home](https://www.boatclosers.com)
+- [All the BoatClosers apps](https://www.boatclosers.com/hub)
 - [FAQ](https://www.boatclosers.com/faq)
 - [Free HIN check](https://www.boatclosers.com/hin-check)
 - [Boat lien check](https://www.boatclosers.com/lien-check)
