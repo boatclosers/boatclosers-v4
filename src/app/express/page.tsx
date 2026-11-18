@@ -303,6 +303,7 @@ const css = `
   .mbc .groups{grid-template-columns:1fr}
   .mbc .story{grid-template-columns:1fr 1fr 1fr}
   .mbc .journey{grid-template-columns:1fr 1fr}
+  .mbc .journey li:last-child{grid-column:1 / -1}
   .mbc .plate-wrap{max-width:520px}
   .mbc .hero{grid-template-areas:'intro' 'plate' 'cta'; grid-template-rows:auto}
   .mbc .hero-cta{margin-top:8px}
