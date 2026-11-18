@@ -235,7 +235,7 @@ const css = `
 .mbc .tool p{font-size:14px; color:var(--ink-2); margin-top:3px; line-height:1.5}
 
 /* journey */
-.mbc .journey{list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(4,1fr); gap:20px}
+.mbc .journey{list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(5,1fr); gap:20px}
 .mbc .journey li{border-top:3px solid var(--line); padding-top:14px}
 .mbc .journey li.here{border-top-color:var(--brass)}
 .mbc .j-when{display:block; font-size:13.5px; font-weight:600; color:var(--ink-2)}
@@ -543,6 +543,13 @@ export default function Page() {
             <div className="p">$39.99 a year, 14 days free</div>
             <p className="d">Maintenance, receipts and reminders, and a full history to hand the next buyer.</p>
             <a href="https://myboatlogs.com">Look at My Boat Logs</a>
+          </li>
+          <li>
+            <span className="j-when">When it’s time to sell</span>
+            <h3>My Boat Listing</h3>
+            <div className="p">From $19.99, set by your boat</div>
+            <p className="d">A listing that sounds like you wrote it, plus a buyer page that answers the questions before they ask.</p>
+            <a href="https://www.myboatlisting.com">Look at My Boat Listing</a>
           </li>
         </ol>
       </section>
