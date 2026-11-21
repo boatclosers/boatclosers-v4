@@ -30,7 +30,14 @@ export const metadata: Metadata = {
   authors: [{ name: 'BoatClosers' }],
   creator: 'BoatClosers',
   applicationName: 'BoatClosers',
-  icons: { icon: '/icons/bc-192.png', apple: '/icons/bc-180.png' },
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/icons/bc-48.png', sizes: '48x48', type: 'image/png' },
+      { url: '/icons/bc-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: '/icons/bc-180.png',
+  },
   appleWebApp: { capable: true, title: 'BoatClosers', statusBarStyle: 'black-translucent' },
   alternates: {
     canonical: 'https://www.boatclosers.com',
