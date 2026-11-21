@@ -13,6 +13,12 @@ export function middleware(req: NextRequest) {
   const host = (req.headers.get('host') || '').toLowerCase().split(':')[0]
   if (!OWN_HOSTS.includes(host)) return NextResponse.next()
   const { pathname } = req.nextUrl
+  // Google looks for /favicon.ico first: give myboatclosing.com its own icon.
+  if (pathname === '/favicon.ico') {
+    const url = req.nextUrl.clone()
+    url.pathname = '/icons/mbc-favicon.ico'
+    return NextResponse.rewrite(url)
+  }
   if (pathname === '/' || pathname === '/start' || pathname === '/help' || pathname.startsWith('/deal/') || pathname.startsWith('/seller/')) {
     const url = req.nextUrl.clone()
     url.pathname = pathname === '/' ? '/express' : `/express${pathname}`
@@ -22,5 +28,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/start', '/help', '/deal/:path*', '/seller/:path*'],
+  matcher: ['/', '/favicon.ico', '/start', '/help', '/deal/:path*', '/seller/:path*'],
 }
