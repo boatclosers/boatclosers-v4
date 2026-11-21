@@ -6,15 +6,20 @@ import { INSPECTOR, CHECKS, BOATCLOSERS, CLOSING, LOGS, LISTING, type SuiteApp }
 // from src/lib/suite.ts (only things that are built and live).
 
 const URL = 'https://www.boatclosers.com/hub'
-const TITLE = 'Buy, Own and Sell a Boat Without a Broker | The BoatClosers Apps'
-const DESC =
-  'Check a used boat before the survey, close the deal for a flat fee, keep the boat’s records, and sell it with a listing that works. The BoatClosers apps, built by a licensed yacht broker.'
+// The site adds " · BoatClosers" after the title (see app/layout.tsx), so it isn't repeated here.
+const TITLE = 'Buy, Own and Sell a Boat Without a Broker'
+const SHARE_TITLE = `${TITLE} · BoatClosers`
+// Kept under ~160 characters so Google shows all of it.
+const DESC = `Inspect a used boat before the survey, close the deal for a flat ${BOATCLOSERS.price}, keep its records and list it to sell. Apps built by a licensed yacht broker.`
+const SHARE_IMAGE = { url: '/og-image.png', width: 1200, height: 630, alt: 'The BoatClosers apps for buying, owning and selling a boat' }
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESC,
+  keywords: ['buy a boat without a broker', 'sell a boat without a broker', 'private boat sale', 'used boat inspection', 'boat maintenance log', 'boat listing', 'boat bill of sale'],
   alternates: { canonical: URL },
-  openGraph: { type: 'website', url: URL, title: TITLE, description: DESC },
+  openGraph: { type: 'website', url: URL, siteName: 'BoatClosers', locale: 'en_US', title: SHARE_TITLE, description: DESC, images: [SHARE_IMAGE] },
+  twitter: { card: 'summary_large_image', title: SHARE_TITLE, description: DESC, images: [SHARE_IMAGE.url] },
 }
 
 const N = {
@@ -36,13 +41,14 @@ const F = {
   sans: "'Inter', -apple-system, system-ui, sans-serif",
 }
 
-const STOPS: { id: string; step: string; title: string; text: string; apps: SuiteApp[]; after?: 'close' }[] = [
+const STOPS: { id: string; step: string; title: string; text: string; apps: SuiteApp[]; after?: 'close'; guide?: [string, string] }[] = [
   {
     id: 'buying',
     step: 'Before you buy',
     title: 'Know what you’re looking at.',
     text: 'Most bad boat purchases start with a buyer who fell for the boat before checking it. Check the paperwork first, then walk the boat before you pay for a survey.',
     apps: [INSPECTOR, CHECKS],
+    guide: ['/buyers-guide', 'Read the buyer’s guide: how to buy a used boat privately'],
   },
   {
     id: 'deal',
@@ -65,6 +71,7 @@ const STOPS: { id: string; step: string; title: string; text: string; apps: Suit
     text: 'A weak ad brings lowball offers and the same ten questions. Write one that answers them, then close with the tool that fits.',
     apps: [LISTING],
     after: 'close',
+    guide: ['/sellers-guide', 'Read the seller’s guide: how to sell a boat privately'],
   },
 ]
 
@@ -84,16 +91,44 @@ const FAQ: [string, string][] = [
   ['What does it cost?', `${BOATCLOSERS.name} is ${BOATCLOSERS.price} per deal. ${CLOSING.name} is ${CLOSING.price}. ${INSPECTOR.name} is ${INSPECTOR.price} and ${INSPECTOR.priceNote}. ${LOGS.name} is ${LOGS.price} ${LOGS.priceNote}. ${LISTING.name}: ${LISTING.priceNote}. The HIN and lien checks are free.`],
 ]
 
+// "$59.99" -> "59.99", "Free" -> "0", "From $19.99" -> "19.99"
+const priceOf = (p: string) => (/free/i.test(p) ? '0' : (p.match(/[\d.]+/) || ['0'])[0])
+const abs = (u: string) => (u.startsWith('/') ? `https://www.boatclosers.com${u}` : u)
+
 const ld = {
   '@context': 'https://schema.org',
   '@graph': [
+    {
+      '@type': 'WebPage',
+      '@id': `${URL}#page`,
+      url: URL,
+      name: SHARE_TITLE,
+      description: DESC,
+      isPartOf: { '@type': 'WebSite', name: 'BoatClosers', url: 'https://www.boatclosers.com' },
+      publisher: { '@type': 'Organization', name: 'BoatClosers', url: 'https://www.boatclosers.com', logo: 'https://www.boatclosers.com/icons/bc-512.png' },
+      breadcrumb: {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'BoatClosers', item: 'https://www.boatclosers.com' },
+          { '@type': 'ListItem', position: 2, name: 'The BoatClosers apps', item: URL },
+        ],
+      },
+    },
     {
       '@type': 'ItemList',
       name: 'The BoatClosers apps',
       itemListElement: [INSPECTOR, BOATCLOSERS, CLOSING, LOGS, LISTING].map((a, i) => ({
         '@type': 'ListItem',
         position: i + 1,
-        item: { '@type': 'SoftwareApplication', name: a.name, url: a.url.startsWith('/') ? `https://www.boatclosers.com${a.url}` : a.url, applicationCategory: 'BusinessApplication', description: a.pitch },
+        item: {
+          '@type': 'SoftwareApplication',
+          name: a.name,
+          url: abs(a.url),
+          applicationCategory: 'BusinessApplication',
+          operatingSystem: 'Web',
+          description: a.pitch,
+          offers: { '@type': 'Offer', price: priceOf(a.price), priceCurrency: 'USD', url: abs(a.url) },
+        },
       })),
     },
     {
@@ -220,6 +255,11 @@ export default function HubPage() {
               </div>
               <h2 style={{ ...h2, fontSize: 46, marginTop: 14, maxWidth: '14ch' }}>{s.title}</h2>
               <p style={{ fontSize: 18, lineHeight: 1.65, color: N.slate, marginTop: 18, maxWidth: '30rem' }}>{s.text}</p>
+              {s.guide && (
+                <p style={{ fontSize: 16, marginTop: 18, maxWidth: '30rem' }}>
+                  <a href={s.guide[0]} className="hb-link" style={{ fontWeight: 600 }}>{s.guide[1]} →</a>
+                </p>
+              )}
             </div>
             <div>
               <div className="hb-apps">
