@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { decodeHin, type HinResult } from '@/lib/hin'
 import LienCheck from '@/components/LienCheck'
+import HistoryReportCard from '@/components/HistoryReportCard'
 import { useBuilder, BuilderDetails, builderName, RecallsSection, VesselSection } from '@/components/HinBuilder'
 
 const navy = '#0f1b2d'
@@ -237,6 +238,12 @@ export default function HinChecker() {
           </div>
         )}
       </div>
+
+      {result && (
+        <div style={{ marginTop: 20 }}>
+          <HistoryReportCard />
+        </div>
+      )}
 
       {result && (
         <div style={{ marginTop: 20, borderRadius: 6, padding: '22px 22px 24px', background: gold, color: navy }}>

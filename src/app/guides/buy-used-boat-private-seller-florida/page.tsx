@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import HistoryReportCard from '@/components/HistoryReportCard'
 
 export const metadata: Metadata = {
   title: 'How to Buy a Used Boat From a Private Seller in Florida',
@@ -173,6 +174,10 @@ export default function Page() {
         <p>
           You pay sales tax when you title: 6% of the price, capped at $18,000 of tax on a boat, plus your county&apos;s surtax on the first $5,000. The tax collector calculates the exact amount, and a price that looks too low for the boat will get questions, so put the real number on the paperwork.
         </p>
+        <div style={{ marginTop: 28 }}>
+          <HistoryReportCard />
+        </div>
+
         <h2 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 28, marginTop: 52 }}>
           The short version
         </h2>

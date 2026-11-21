@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { TopicGuide } from '@/lib/topic-guides'
+import HistoryReportCard from '@/components/HistoryReportCard'
 
 const BASE = 'https://www.boatclosers.com/guides'
 const navy = '#0f1b2d'
@@ -112,6 +113,12 @@ export default function TopicGuidePage({ g }: { g: TopicGuide }) {
             </section>
           )
         })}
+
+        {g.historyReport && (
+          <div style={{ marginTop: 28 }}>
+            <HistoryReportCard audience={g.historyReport} />
+          </div>
+        )}
 
         <h2 style={h2}>Common questions</h2>
         {g.faq.map((f) => (
