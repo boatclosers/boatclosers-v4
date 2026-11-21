@@ -225,7 +225,7 @@ export default function Page() {
           renegotiation.
         </p>
 
-        <div style={{ marginTop: 52 }}>
+        <div style={{ marginTop: 28 }}>
           <HistoryReportCard />
         </div>
 

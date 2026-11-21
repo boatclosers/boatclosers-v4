@@ -174,7 +174,7 @@ export default function Page() {
         <p>
           You pay sales tax when you title: 6% of the price, capped at $18,000 of tax on a boat, plus your county&apos;s surtax on the first $5,000. The tax collector calculates the exact amount, and a price that looks too low for the boat will get questions, so put the real number on the paperwork.
         </p>
-        <div style={{ marginTop: 52 }}>
+        <div style={{ marginTop: 28 }}>
           <HistoryReportCard />
         </div>
 

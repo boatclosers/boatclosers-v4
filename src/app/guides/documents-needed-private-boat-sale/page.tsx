@@ -166,7 +166,7 @@ export default function Page() {
           deposit in July.
         </p>
 
-        <div style={{ marginTop: 52 }}>
+        <div style={{ marginTop: 28 }}>
           <HistoryReportCard />
         </div>
 

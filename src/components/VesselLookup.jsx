@@ -16,7 +16,6 @@
 import { useState } from "react";
 import { FONT } from "../lib/theme";
 import { emo } from "./Icon";
-import { HISTORY_REPORT_URL, REPORT_DISCLOSURE } from "../lib/historyReport";
 
 const C = {
   navy:"#08152e", teal:"#0e6b7c", tealLight:"#e4f4f7", brass:"#b8863a",
@@ -50,8 +49,7 @@ const LINKS = [
     title: "Boat History Report (Damage, Theft & Salvage)",
     desc: "The official records above show who owns the boat and what is owed on it — they do not show what the boat has been through. A history report searches by HIN, state registration, or USCG documentation number for accidents, hurricane and flood damage, fire, sinking, running aground, theft, total-loss and salvage events, recalls, and registration history. This matters because most states do not issue salvage titles for boats: a storm-damaged or sunken vessel can be repaired and resold on a perfectly clean title, and no lien search will ever show it.",
     btn: "Run a Boat History Report →",
-    url: HISTORY_REPORT_URL,
-    note: REPORT_DISCLOSURE,
+    url: "https://boathistoryreport.com/",
   },
 ];
 
@@ -116,7 +114,6 @@ export default function VesselLookup({ hin }) {
                    style={{ display:"inline-block", marginTop:10, background:l.color, color:"#fff", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:FONT.sans, fontWeight:700, textDecoration:"none" }}>
                   {l.btn}
                 </a>
-                {l.note && <div style={{ fontSize:10.5, fontFamily:FONT.sans, color:C.slate, marginTop:6 }}>{l.note}</div>}
               </div>
             ))}
           </div>

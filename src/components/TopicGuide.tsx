@@ -115,7 +115,7 @@ export default function TopicGuidePage({ g }: { g: TopicGuide }) {
         })}
 
         {g.historyReport && (
-          <div style={{ marginTop: 44 }}>
+          <div style={{ marginTop: 28 }}>
             <HistoryReportCard audience={g.historyReport} />
           </div>
         )}
