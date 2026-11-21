@@ -16,6 +16,7 @@
 import { useState } from "react";
 import { FONT } from "../lib/theme";
 import { emo } from "./Icon";
+import { BOAT_ALERT_URL, BOAT_ALERT_DISCLOSURE } from "../lib/boatAlert";
 
 const C = {
   navy:"#08152e", teal:"#0e6b7c", tealLight:"#e4f4f7", brass:"#b8863a",
@@ -46,10 +47,11 @@ const LINKS = [
     rank: "Third-Party · Paid",
     color: C.brass, bg: "#fff9ee",
     icon: "📋",
-    title: "Boat History Report (Damage, Theft & Salvage)",
+    title: "Boat Alert History Report (Damage, Theft & Salvage)",
     desc: "The official records above show who owns the boat and what is owed on it — they do not show what the boat has been through. A history report searches by HIN, state registration, or USCG documentation number for accidents, hurricane and flood damage, fire, sinking, running aground, theft, total-loss and salvage events, recalls, and registration history. This matters because most states do not issue salvage titles for boats: a storm-damaged or sunken vessel can be repaired and resold on a perfectly clean title, and no lien search will ever show it.",
-    btn: "Run a Boat History Report →",
-    url: "https://boathistoryreport.com/",
+    btn: "Run a Boat Alert report →",
+    url: BOAT_ALERT_URL,
+    note: BOAT_ALERT_DISCLOSURE,
   },
 ];
 
@@ -114,6 +116,7 @@ export default function VesselLookup({ hin }) {
                    style={{ display:"inline-block", marginTop:10, background:l.color, color:"#fff", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:FONT.sans, fontWeight:700, textDecoration:"none" }}>
                   {l.btn}
                 </a>
+                {l.note && <div style={{ fontSize:10.5, fontFamily:FONT.sans, color:C.slate, marginTop:6 }}>{l.note}</div>}
               </div>
             ))}
           </div>
@@ -127,7 +130,7 @@ export default function VesselLookup({ hin }) {
           <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, lineHeight:1.65, marginTop:12, padding:"10px 12px", border:`1px solid ${C.mist}`, borderRadius:6, background:C.white }}>
             <strong style={{ color:C.navy }}>Disclaimer:</strong> BoatClosers is not affiliated with, endorsed by, or
             connected to the U.S. Coast Guard, the National Vessel Documentation Center, CGMIX/PSIX, or any third-party
-            service listed above. These links are provided for your convenience only. BoatClosers does not perform title
+            service listed above (BoatClosers may earn a commission if you buy a Boat Alert report through the link). These links are provided for your convenience only. BoatClosers does not perform title
             searches, does not access these records on your behalf, and does not guarantee any vessel's title or lien
             status. Always verify through official government sources.
           </div>

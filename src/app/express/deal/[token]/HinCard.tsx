@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { decodeHin } from '@/lib/hin'
+import { BOAT_ALERT_URL, BOAT_ALERT_DISCLOSURE } from '@/lib/boatAlert'
 import { useBuilder, BuilderDetails, builderName, RecallsSection, VesselSection } from '@/components/HinBuilder'
 import { navy, gold, cream, muted, line, boxStyle, eyebrow, goldText } from './parts'
 
@@ -144,16 +145,14 @@ export default function HinCard({ token, boat, onSaved }: { token: string; boat:
               HIN against those records. Do it before money changes hands.
             </div>
             <a
-              href="https://www.boathistoryreport.com"
+              href={BOAT_ALERT_URL}
               target="_blank"
-              rel="noopener"
+              rel="noopener sponsored"
               style={{ color: navy, fontWeight: 700, textDecoration: 'underline' }}
             >
-              Get a report at Boat History Report →
+              Get a report at Boat Alert →
             </a>
-            <div style={{ color: muted, fontSize: 12, marginTop: 6 }}>
-              Independent service. We aren’t affiliated with it and don’t earn anything from it.
-            </div>
+            <div style={{ color: muted, fontSize: 12, marginTop: 6 }}>{BOAT_ALERT_DISCLOSURE}</div>
           </div>
         </div>
       )}

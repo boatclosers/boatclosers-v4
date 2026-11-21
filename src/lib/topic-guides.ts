@@ -1,6 +1,8 @@
 // Data for topic guides that share one layout (src/components/TopicGuide.tsx).
 // Each guide has its own small page file under src/app/guides/<slug>/page.tsx.
 
+import { BOAT_ALERT_NAME, BOAT_ALERT_URL, BOAT_ALERT_WHAT, BOAT_ALERT_DISCLOSURE } from './boatAlert'
+
 export type TopicGuide = {
   slug: string
   title: string
@@ -333,9 +335,9 @@ export const TOPIC_GUIDES: TopicGuide[] = [
     ],
     links: [
       {
-        name: 'Boat History Report',
-        url: 'https://www.boathistoryreport.com',
-        note: 'Runs a HIN against theft, salvage, total-loss and accident records. Independent service; we aren’t affiliated with it.',
+        name: BOAT_ALERT_NAME,
+        url: BOAT_ALERT_URL,
+        note: `${BOAT_ALERT_WHAT} ${BOAT_ALERT_DISCLOSURE}`,
       },
     ],
     cta: 'both',
@@ -418,9 +420,9 @@ export const TOPIC_GUIDES: TopicGuide[] = [
     ],
     links: [
       {
-        name: 'Boat History Report',
-        url: 'https://www.boathistoryreport.com',
-        note: 'Runs a HIN against theft, salvage, total-loss and accident records. Independent service; we aren’t affiliated with it.',
+        name: BOAT_ALERT_NAME,
+        url: BOAT_ALERT_URL,
+        note: `${BOAT_ALERT_WHAT} ${BOAT_ALERT_DISCLOSURE}`,
       },
     ],
     cta: 'mbc',
