@@ -175,7 +175,7 @@ export default function HubPage() {
       {/* ---------- hero ---------- */}
       <section style={{ background: `radial-gradient(1200px 600px at 85% -10%, ${N.navy2} 0%, ${N.abyss} 60%)`, color: '#fff' }}>
         <nav className="hb-wrap hb-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 20, paddingBottom: 20, gap: 16 }}>
-          <a href="/" style={{ fontFamily: F.display, color: N.brassLt, fontSize: 26, fontWeight: 600, letterSpacing: 0.5 }}>BoatClosers</a>
+          <a href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontFamily: F.display, color: N.brassLt, fontSize: 26, fontWeight: 600, letterSpacing: 0.5, textDecoration: 'none' }}><img src="/icons/bc-mark.svg" alt="" width={30} height={30} style={{ display: 'block' }} />BoatClosers</a>
           <div style={{ display: 'flex', gap: 26 }}>
             <a href="/buyers-guide" className="hb-hide-sm">Buyer’s guide</a>
             <a href="/sellers-guide" className="hb-hide-sm">Seller’s guide</a>
