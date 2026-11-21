@@ -46,6 +46,12 @@ export const FAQ_GROUPS: FaqGroup[] = [
         guide: { slug: 'how-to-negotiate-boat-purchase', title: 'How to Negotiate a Private Boat Purchase' },
       },
       {
+        id: 'boat-history',
+        q: 'How do I check a boat’s history before I buy it?',
+        a: 'Start with the free BoatClosers HIN check: it confirms the HIN is real and shows the builder, model year, recalls and any Coast Guard records. A HIN check can’t show what the boat has been through, though. Most states don’t issue salvage titles for boats, so a boat that sank or was totaled in a hurricane can be sold on a clean title. For that, run a Boat History Report (boathistoryreport.com), which checks for accidents, hurricane and fire damage, theft, sinking and total losses, plus title and registration history.',
+        guide: { slug: 'avoid-boat-buying-scams-facebook-marketplace-craigslist', title: 'How to Avoid Boat Buying Scams on Facebook Marketplace and Craigslist' },
+      },
+      {
         id: 'seller-sells-to-someone-else',
         q: 'How do I keep a seller from selling the boat to someone else after we agree?',
         a: "This is one of the most common ways private deals fall apart. The fix is to secure it: the moment both sides agree, a signed purchase agreement plus an earnest-money deposit binds the deal. The seller can no longer walk to another buyer without consequence, and the buyer can't be left empty-handed after turning others away.",

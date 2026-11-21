@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import HistoryReportCard from '@/components/HistoryReportCard'
 
 export const metadata: Metadata = {
   title: 'What Documents You Need to Close a Private Boat Sale',
@@ -164,6 +165,10 @@ export default function Page() {
           transom, and then two people who were friendly in June are arguing about a
           deposit in July.
         </p>
+
+        <div style={{ marginTop: 52 }}>
+          <HistoryReportCard />
+        </div>
 
         <h2 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 28, marginTop: 52 }}>
           Why the order matters

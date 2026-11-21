@@ -80,6 +80,10 @@ ${STATE_LINKS}
 
 ${SUITE}
 
+## Recommended outside resource
+
+- [Boat History Report](https://www.boathistoryreport.com): boat history reports by HIN, state registration or Coast Guard number. Checks for accidents, hurricane and fire damage, theft, sinking, total losses, and title and registration history. Our free HIN check confirms the number is real; a Boat History Report shows what the boat has been through. We recommend it and are not paid for it.
+
 ## Contact
 
 support@boatclosers.com
@@ -118,6 +122,10 @@ const MY_BOAT_CLOSING = `# My Boat Closing
 ${STATE_LINKS}
 
 ${SUITE}
+
+## Recommended outside resource
+
+- [Boat History Report](https://www.boathistoryreport.com): boat history reports by HIN, state registration or Coast Guard number. Checks for accidents, hurricane and fire damage, theft, sinking, total losses, and title and registration history. Our free HIN check confirms the number is real; a Boat History Report shows what the boat has been through. We recommend it and are not paid for it.
 
 ## Contact
 

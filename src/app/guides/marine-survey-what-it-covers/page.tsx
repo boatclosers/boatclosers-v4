@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import HistoryReportCard from '@/components/HistoryReportCard'
 
 export const metadata: Metadata = {
   title: 'What a Marine Survey Covers and What It Costs',
@@ -223,6 +224,10 @@ export default function Page() {
           a survey that values the boat well below your agreed price is leverage in a
           renegotiation.
         </p>
+
+        <div style={{ marginTop: 52 }}>
+          <HistoryReportCard />
+        </div>
 
         <h2 style={{ fontFamily: 'Georgia, serif', color: gold, fontSize: 28, marginTop: 52 }}>
           The survey has to be written into the deal first

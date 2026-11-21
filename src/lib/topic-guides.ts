@@ -16,8 +16,8 @@ export type TopicGuide = {
   sources?: { name: string; url: string }[]
   /** Useful outside services (not official sources), shown under their own heading. */
   links?: { name: string; url: string; note?: string }[]
-  /** Show the Boat Alert history report card after the sections. */
-  historyReport?: boolean
+  /** Show the Boat History Report card after the sections, worded for buyers or sellers. */
+  historyReport?: 'buyer' | 'seller'
 }
 
 const DATE = '2026-11-14'
@@ -95,6 +95,7 @@ export const TOPIC_GUIDES: TopicGuide[] = [
         a: 'The seller has to bring the shortfall to closing so the loan is paid in full. If they can’t, the deal shouldn’t close, because an unpaid lien stays with the boat.',
       },
     ],
+    historyReport: 'buyer',
     cta: 'bc',
     related: [
       { slug: 'boat-deposit-and-escrow', title: 'Why every private boat deal needs a deposit and escrow' },
@@ -172,6 +173,7 @@ export const TOPIC_GUIDES: TopicGuide[] = [
         a: 'Be honest about what you know and don’t know, sell as-is in writing, and encourage the buyer to inspect it. That protects you and builds trust.',
       },
     ],
+    historyReport: 'seller',
     cta: 'both',
     related: [
       { slug: 'sell-a-boat-without-a-broker', title: 'How to sell a boat privately without a broker' },
@@ -250,6 +252,7 @@ export const TOPIC_GUIDES: TopicGuide[] = [
         a: 'Often, yes. Many states require documented boats used in their waters to be registered and pay a fee, even though they do not issue a state title. Check with the state where the boat is kept.',
       },
     ],
+    historyReport: 'buyer',
     cta: 'bc',
     related: [
       { slug: 'buy-a-boat-with-a-loan-on-it', title: 'Buying a boat when the seller still owes money on it' },
@@ -333,7 +336,7 @@ export const TOPIC_GUIDES: TopicGuide[] = [
         a: 'Match the HIN on the hull to the title and registration, run a HIN and lien check, run a boat history report for theft and salvage records, and for a documented boat order an Abstract of Title from the Coast Guard.',
       },
     ],
-    historyReport: true,
+    historyReport: 'buyer',
     cta: 'both',
     related: [
       { slug: 'boat-deposit-and-escrow', title: 'Why every private boat deal needs a deposit and escrow' },
@@ -412,7 +415,7 @@ export const TOPIC_GUIDES: TopicGuide[] = [
         a: 'It depends on the state. Some require a notary, most don’t. A notarized bill of sale is never a bad idea.',
       },
     ],
-    historyReport: true,
+    historyReport: 'buyer',
     cta: 'mbc',
     related: [
       { slug: 'boat-bill-of-sale', title: 'Boat bill of sale: what it must include' },
@@ -613,6 +616,7 @@ export const TOPIC_GUIDES: TopicGuide[] = [
         a: 'In most states it isn’t, but a few do title or register outboards. Either way, record the motor’s serial number on the bill of sale.',
       },
     ],
+    historyReport: 'buyer',
     cta: 'mbc',
     related: [
       { slug: 'boat-bill-of-sale', title: 'Boat bill of sale: what it must include' },
