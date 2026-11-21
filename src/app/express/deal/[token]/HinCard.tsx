@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { decodeHin } from '@/lib/hin'
-import { BOAT_ALERT_URL, BOAT_ALERT_DISCLOSURE } from '@/lib/boatAlert'
+import HistoryReportCard from '@/components/HistoryReportCard'
 import { useBuilder, BuilderDetails, builderName, RecallsSection, VesselSection } from '@/components/HinBuilder'
 import { navy, gold, cream, muted, line, boxStyle, eyebrow, goldText } from './parts'
 
@@ -138,21 +138,8 @@ export default function HinCard({ token, boat, onSaved }: { token: string; boat:
             Next: when you see the boat, make sure the HIN on the transom matches this one and the title exactly. A
             valid format does not rule out liens, theft, or damage.
           </div>
-          <div style={{ borderTop: `1px solid ${line}`, paddingTop: 12, marginTop: 6 }}>
-            <div style={{ fontWeight: 700, color: navy }}>Run a boat history report</div>
-            <div style={{ color: muted, fontSize: 14, margin: '4px 0 8px' }}>
-              This check can’t see theft, salvage, insurance total losses or accident history. A history report runs the
-              HIN against those records. Do it before money changes hands.
-            </div>
-            <a
-              href={BOAT_ALERT_URL}
-              target="_blank"
-              rel="noopener sponsored"
-              style={{ color: navy, fontWeight: 700, textDecoration: 'underline' }}
-            >
-              Get a report at Boat Alert →
-            </a>
-            <div style={{ color: muted, fontSize: 12, marginTop: 6 }}>{BOAT_ALERT_DISCLOSURE}</div>
+          <div style={{ marginTop: 10 }}>
+            <HistoryReportCard theme="light" />
           </div>
         </div>
       )}

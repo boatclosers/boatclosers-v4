@@ -1,8 +1,6 @@
 // Data for topic guides that share one layout (src/components/TopicGuide.tsx).
 // Each guide has its own small page file under src/app/guides/<slug>/page.tsx.
 
-import { BOAT_ALERT_NAME, BOAT_ALERT_URL, BOAT_ALERT_WHAT, BOAT_ALERT_DISCLOSURE } from './boatAlert'
-
 export type TopicGuide = {
   slug: string
   title: string
@@ -18,6 +16,8 @@ export type TopicGuide = {
   sources?: { name: string; url: string }[]
   /** Useful outside services (not official sources), shown under their own heading. */
   links?: { name: string; url: string; note?: string }[]
+  /** Show the Boat Alert history report card after the sections. */
+  historyReport?: boolean
 }
 
 const DATE = '2026-11-14'
@@ -333,13 +333,7 @@ export const TOPIC_GUIDES: TopicGuide[] = [
         a: 'Match the HIN on the hull to the title and registration, run a HIN and lien check, run a boat history report for theft and salvage records, and for a documented boat order an Abstract of Title from the Coast Guard.',
       },
     ],
-    links: [
-      {
-        name: BOAT_ALERT_NAME,
-        url: BOAT_ALERT_URL,
-        note: `${BOAT_ALERT_WHAT} ${BOAT_ALERT_DISCLOSURE}`,
-      },
-    ],
+    historyReport: true,
     cta: 'both',
     related: [
       { slug: 'boat-deposit-and-escrow', title: 'Why every private boat deal needs a deposit and escrow' },
@@ -418,13 +412,7 @@ export const TOPIC_GUIDES: TopicGuide[] = [
         a: 'It depends on the state. Some require a notary, most don’t. A notarized bill of sale is never a bad idea.',
       },
     ],
-    links: [
-      {
-        name: BOAT_ALERT_NAME,
-        url: BOAT_ALERT_URL,
-        note: `${BOAT_ALERT_WHAT} ${BOAT_ALERT_DISCLOSURE}`,
-      },
-    ],
+    historyReport: true,
     cta: 'mbc',
     related: [
       { slug: 'boat-bill-of-sale', title: 'Boat bill of sale: what it must include' },
