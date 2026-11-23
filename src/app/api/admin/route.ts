@@ -402,6 +402,70 @@ export async function POST(req: Request) {
       }
     }
 
+    // ── My Boat Listing owner tools: view one listing, make a help link, delete ──
+    // Uses listing_admin_get / listing_admin_help / listing_admin_delete in the My Boat Logs
+    // database (migration 0010 there), with the same private key (MBL_ADMIN_KEY).
+    // A help link is a second key for that one listing: the seller's own edit link keeps working.
+    if (body.action === 'listingGet' || body.action === 'listingHelp' || body.action === 'listingDelete') {
+      const key = process.env.MBL_ADMIN_KEY || ''
+      const url = process.env.MBL_SUPABASE_URL || 'https://dnjdqndllwjyccrrraap.supabase.co'
+      const anon = process.env.MBL_SUPABASE_ANON_KEY || 'sb_publishable_eZgmQzMast5XlMink-hd4A_kBtdF-k6'
+      const site = process.env.MBL_LISTING_URL || 'https://www.myboatlisting.com'
+      if (!key) return NextResponse.json({ error: 'MBL_ADMIN_KEY is not set on the BoatClosers server yet.' }, { status: 500 })
+      const id = String(body.listingId || '')
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: 'Pick a listing first.' }, { status: 400 })
+      const rpc = async (fn: string, args: Record<string, unknown>) => {
+        const r = await fetch(`${url}/rest/v1/rpc/${fn}`, {
+          method: 'POST', cache: 'no-store',
+          headers: { 'Content-Type': 'application/json', apikey: anon, Authorization: `Bearer ${anon}` },
+          body: JSON.stringify({ p_key: key, p_id: id, ...args }),
+        })
+        const j = await r.json().catch(() => null)
+        if (r.status === 404) throw new Error('These tools are not set up in the database yet. Run migration 0010 in the My Boat Logs Supabase project.')
+        if (!r.ok) throw new Error(j?.message || `My Boat Listing returned ${r.status}`)
+        return j
+      }
+      try {
+        if (body.action === 'listingGet') {
+          const j = await rpc('listing_admin_get', {})
+          if (!j) return NextResponse.json({ error: 'That listing no longer exists.' }, { status: 404 })
+          return NextResponse.json({ ok: true, listing: j })
+        }
+        if (body.action === 'listingHelp') {
+          const token = crypto.randomBytes(32).toString('base64url')
+          const ok = await rpc('listing_admin_help', { p_token: token })
+          if (!ok) return NextResponse.json({ error: 'That listing no longer exists.' }, { status: 404 })
+          return NextResponse.json({ ok: true, link: `${site}/build?l=${id}&t=${token}` })
+        }
+        const ok = await rpc('listing_admin_delete', {})
+        if (!ok) return NextResponse.json({ error: 'That listing was already gone.' }, { status: 404 })
+        return NextResponse.json({ ok: true, done: 'Listing deleted.' })
+      } catch (e: any) {
+        return NextResponse.json({ error: e?.message || 'Could not reach My Boat Listing.' }, { status: 502 })
+      }
+    }
+
+    // ── Recent emails (Resend): did the customer get our email? ──────────────
+    // Read-only list of the latest emails sent from BoatClosers / My Boat Closing,
+    // with Resend's last status (delivered, bounced, opened…). Uses RESEND_API_KEY.
+    if (body.action === 'emailLog') {
+      const key = process.env.RESEND_API_KEY || ''
+      if (!key) return NextResponse.json({ error: 'RESEND_API_KEY is not set.' }, { status: 500 })
+      try {
+        const r = await fetch('https://api.resend.com/emails?limit=100', { cache: 'no-store', headers: { Authorization: `Bearer ${key}` } })
+        const j: any = await r.json().catch(() => ({}))
+        if (r.status === 401 || r.status === 403) return NextResponse.json({ error: 'Resend says this key can only send emails, not list them. To see the list here, make a Full access key in Resend and put it in RESEND_API_KEY, or use the Resend link in Quick links.' }, { status: 502 })
+        if (!r.ok) return NextResponse.json({ error: `Resend returned ${r.status}: ${j?.message || 'unknown'}` }, { status: 502 })
+        const emails = (j.data || []).map((e: any) => ({
+          id: e.id, to: Array.isArray(e.to) ? e.to.join(', ') : String(e.to || ''), from: e.from || '', subject: e.subject || '',
+          status: e.last_event || '', at: e.created_at || '',
+        }))
+        return NextResponse.json({ ok: true, emails })
+      } catch (e: any) {
+        return NextResponse.json({ error: 'Could not reach Resend: ' + (e?.message || 'unknown') }, { status: 502 })
+      }
+    }
+
     // ── Payments and refunds (every product, one Stripe account) ──────────────
     // 'payments' lists recent charges with what they were for. 'refund' refunds
     // one charge, in full or in part. The page asks the owner to confirm the

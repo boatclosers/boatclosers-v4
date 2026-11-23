@@ -42,7 +42,7 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   const [data, setData] = useState<any>(null)
   const [filter, setFilter] = useState('live')
-  const [view, setView] = useState<'full' | 'express' | 'mbi' | 'stats' | 'mbl' | 'mls' | 'pay'>('full')
+  const [view, setView] = useState<'today' | 'full' | 'express' | 'mbi' | 'stats' | 'mbl' | 'mls' | 'pay' | 'tools'>('today')
   const [exFilter, setExFilter] = useState('paid')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
@@ -123,7 +123,7 @@ export default function AdminPage() {
           <div style={{ fontSize: 12, letterSpacing: 2, color: BRASS, fontWeight: 700, marginBottom: 6 }}>BOATCLOSERS</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: NAVY, marginBottom: 4 }}>Owner dashboard</div>
           <div style={{ fontSize: 12.5, color: SLATE, marginBottom: 18, lineHeight: 1.6 }}>
-            Every deal on the platform, and what each one is waiting on.
+            Every app, every customer, and what needs you today.
           </div>
           <input
             type="password" value={pw} onChange={e => setPw(e.target.value)}
@@ -196,6 +196,18 @@ export default function AdminPage() {
       </div>
 
       <div style={{ padding: '1.25rem 1.5rem', maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+          {([['today', 'Today'], ['full', `BoatClosers · $249${t.needsAttention ? ` (${t.needsAttention} need you)` : ''}`], ['stats', 'Funnel & AI use'], ['express', `My Boat Closing · $29.99 (${t.expressAll ?? 0})`], ['mbi', 'My Boat Inspector'], ['mbl', 'My Boat Logs'], ['mls', 'My Boat Listing'], ['pay', 'Payments & refunds'], ['tools', 'Tools & links']] as const).map(([k, l]) => (
+            <button key={k} onClick={() => { setView(k); setOpen(null) }}
+              style={{ padding: '10px 16px', fontSize: 13.5, fontWeight: 800, borderRadius: 8, cursor: 'pointer',
+                border: `2px solid ${view === k ? BRASS : MIST}`, background: view === k ? '#fff' : '#f8fafc', color: NAVY }}>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {view === 'today' && <TodayPanel pw={pw} data={data} Stat={Stat} go={(v: any) => { setView(v); setOpen(null) }} />}
+        {view === 'tools' && <>
         <div style={{ background: '#fff', border: `1px solid ${MIST}`, borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: NAVY, marginBottom: 3 }}>Escrow.com connection test</div>
           <div style={{ fontSize: 11.5, color: SLATE, marginBottom: 10, lineHeight: 1.6 }}>
@@ -225,16 +237,9 @@ export default function AdminPage() {
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-          {([['full', 'BoatClosers · $249'], ['stats', 'Funnel & AI use'], ['express', `My Boat Closing · $29.99 (${t.expressAll ?? 0})`], ['mbi', 'My Boat Inspector'], ['mbl', 'My Boat Logs'], ['mls', 'My Boat Listing'], ['pay', 'Payments & refunds']] as const).map(([k, l]) => (
-            <button key={k} onClick={() => { setView(k); setOpen(null) }}
-              style={{ padding: '10px 16px', fontSize: 13.5, fontWeight: 800, borderRadius: 8, cursor: 'pointer',
-                border: `2px solid ${view === k ? BRASS : MIST}`, background: view === k ? '#fff' : '#f8fafc', color: NAVY }}>
-              {l}
-            </button>
-          ))}
-        </div>
-
+          <QuickLinks />
+          <EmailLog pw={pw} />
+        </>}
         {view === 'mbi' && <MbiPanel pw={pw} Stat={Stat} />}
         {view === 'stats' && <StatsPanel pw={pw} Stat={Stat} />}
         {view === 'mbl' && <MblPanel pw={pw} Stat={Stat} />}
@@ -442,6 +447,261 @@ function ExpressPanel({ data, exFilter, setExFilter, open, setOpen, runAction, a
         The buyer&apos;s link opens their purchase exactly as they see it. Anything you change there changes it for them.
       </div>
     </>
+  )
+}
+
+// ---------- Today: the whole suite on one screen ----------
+// What needs you, who's new, what came in, and one search box across every app.
+// Uses the deals and My Boat Closing purchases already loaded, plus the other apps'
+// existing read-only summaries and Stripe. Nothing here changes anything.
+const APP_TONE: Record<string, string> = {
+  'BoatClosers': '#08152e', 'My Boat Closing': '#1d4ed8', 'My Boat Inspector': '#0f6e56', 'My Boat Logs': '#7c3aed', 'My Boat Listing': '#b8863a', 'Stripe': '#b91c1c',
+}
+const APP_TAB: Record<string, string> = {
+  'BoatClosers': 'full', 'My Boat Closing': 'express', 'My Boat Inspector': 'mbi', 'My Boat Logs': 'mbl', 'My Boat Listing': 'mls', 'Stripe': 'pay',
+}
+function AppTag({ app }: { app: string }) {
+  return <span style={{ fontSize: 10.5, fontWeight: 800, color: '#fff', background: APP_TONE[app] || SLATE, borderRadius: 4, padding: '2px 7px', whiteSpace: 'nowrap' }}>{app}</span>
+}
+function TodayPanel({ pw, data, Stat, go }: any) {
+  const [mbi, setMbi] = useState<any>(null)
+  const [mbl, setMbl] = useState<any>(null)
+  const [lst, setLst] = useState<any>(null)
+  const [pays, setPays] = useState<any[] | null>(null)
+  const [errs, setErrs] = useState<string[]>([])
+  const [busy, setBusy] = useState(false)
+  const [q, setQ] = useState('')
+  const load = async () => {
+    setBusy(true)
+    const [a, b, c, d] = await Promise.all([adminCall(pw, 'mbiList'), adminCall(pw, 'mblOverview'), adminCall(pw, 'listingOverview'), adminCall(pw, 'payments')])
+    const e: string[] = []
+    if (a.ok) setMbi(a); else e.push('My Boat Inspector: ' + (a.error || 'could not load'))
+    if (b.ok) setMbl(b); else e.push('My Boat Logs: ' + (b.error || 'could not load'))
+    if (c.ok) setLst(c); else e.push('My Boat Listing: ' + (c.error || 'could not load'))
+    if (d.ok) setPays((d.payments || []).filter((x: any) => x.livemode)); else e.push('Stripe: ' + (d.error || 'could not load'))
+    setErrs(e); setBusy(false)
+  }
+  useEffect(() => { load() }, [])
+
+  const deals: any[] = data?.deals || []
+  const express: any[] = data?.express || []
+  const insp: any[] = mbi?.inspections || []
+  const boats: any[] = mbl?.boats || []
+  const listings: any[] = lst?.listings || []
+  const daysSince = (iso?: string | null) => iso ? Math.floor((Date.now() - Date.parse(iso)) / 86400000) : null
+
+  // 1. Needs you
+  type Item = { app: string; who: string; what: string; why: string; red?: boolean }
+  const need: Item[] = []
+  for (const d of deals) if (!d.test && d.urgency >= 4) need.push({ app: 'BoatClosers', who: [d.buyer?.email, d.seller?.email].filter(Boolean).join(' / ') || d.inviteEmail || 'no email', what: d.boat, why: [`${d.state}${d.waitingOn && d.waitingOn !== '—' ? ` (waiting on ${d.waitingOn.toLowerCase()})` : ''}`, ...(d.flags || [])].join(' · '), red: d.urgency >= 5 })
+  for (const e of express) {
+    if (!e.paid || e.test) continue
+    if (typeof e.titleDaysLeft === 'number' && e.titleDaysLeft <= 5) need.push({ app: 'My Boat Closing', who: e.buyer?.email || 'no email', what: (e.items || [])[0] || 'Purchase', why: e.titleDaysLeft < 0 ? `Title application ${-e.titleDaysLeft} days OVERDUE` : `Title application due in ${e.titleDaysLeft} days`, red: e.titleDaysLeft <= 2 })
+    else if (e.stage === 'Paid, not started' && (e.idleDays ?? 0) >= 3) need.push({ app: 'My Boat Closing', who: e.buyer?.email || 'no email', what: (e.items || [])[0] || 'Purchase', why: `Paid, hasn't started (quiet ${e.idleDays} days)` })
+  }
+  for (const r of insp) {
+    if (r.test) continue
+    if (String(r.stage || '').startsWith('REFUND REQUESTED')) need.push({ app: 'My Boat Inspector', who: r.email || 'guest', what: r.boat, why: r.stage, red: true })
+    else if (r.paid && r.stage === 'Unlocked, not started' && (r.idleDays ?? 0) >= 3) need.push({ app: 'My Boat Inspector', who: r.email || 'guest', what: r.boat, why: `Paid, hasn't started (quiet ${r.idleDays} days)` })
+  }
+  for (const b of boats) {
+    if (b.plan === 'past_due') need.push({ app: 'My Boat Logs', who: b.email || 'no email', what: b.name || [b.year, b.make, b.model].filter(Boolean).join(' '), why: 'Payment issue on their yearly plan', red: true })
+    else if (b.plan === 'trialing' && b.trialEndsAt) {
+      const left = Math.ceil((Date.parse(b.trialEndsAt) - Date.now()) / 86400000)
+      if (left <= 3) need.push({ app: 'My Boat Logs', who: b.email || 'no email', what: b.name || 'Boat', why: `Free trial ends in ${Math.max(left, 0)} day${left === 1 ? '' : 's'}` })
+    }
+  }
+  for (const p of pays || []) if (p.disputed) need.push({ app: 'Stripe', who: p.email || 'unknown', what: `${p.product} · $${(p.amount / 100).toFixed(2)}`, why: 'Payment DISPUTED (chargeback). Respond in Stripe.', red: true })
+  need.sort((a, b) => Number(!!b.red) - Number(!!a.red))
+
+  // 2. New customers, last 7 days
+  type New = { app: string; who: string; what: string; days: number }
+  const fresh: New[] = []
+  for (const d of deals) if (!d.test && (d.createdDays ?? 99) <= 7) fresh.push({ app: 'BoatClosers', who: d[d.initiatorRole]?.email || d.buyer?.email || d.seller?.email || 'no email', what: `Started a deal: ${d.boat}`, days: d.createdDays })
+  for (const e of express) if (!e.test && (e.createdDays ?? 99) <= 7) fresh.push({ app: 'My Boat Closing', who: e.buyer?.email || 'no email', what: e.paid ? 'Paid for a closing' : 'Started (free tools)', days: e.createdDays })
+  for (const r of insp) if (!r.test && (r.createdDays ?? 99) <= 7) fresh.push({ app: 'My Boat Inspector', who: r.email || 'guest', what: `${r.role === 'Seller' ? 'Seller' : 'Buyer'} inspection: ${r.boat}`, days: r.createdDays })
+  for (const b of boats) { const n = daysSince(b.createdAt); if (n !== null && n <= 7) fresh.push({ app: 'My Boat Logs', who: b.email || 'no email', what: `Added a boat: ${b.name || [b.year, b.make, b.model].filter(Boolean).join(' ')}`, days: n }) }
+  for (const x of listings) { const n = daysSince(x.createdAt); if (n !== null && n <= 7) fresh.push({ app: 'My Boat Listing', who: x.email || 'no email yet', what: `Started a listing${x.boat ? `: ${x.boat}` : ''}`, days: n }) }
+  fresh.sort((a, b) => a.days - b.days)
+  const newToday = fresh.filter(f => f.days === 0).length
+
+  // 3. Money in (Stripe, live, after refunds)
+  const midnight = new Date(); midnight.setHours(0, 0, 0, 0)
+  const net = (since: number) => (pays || []).filter((p: any) => p.created >= since).reduce((s: number, p: any) => s + p.amount - (p.refunded || 0), 0) / 100
+  const byProduct: Record<string, number> = {}
+  for (const p of pays || []) if (p.created >= Date.now() - 30 * 86400000) byProduct[p.product] = (byProduct[p.product] || 0) + (p.amount - (p.refunded || 0)) / 100
+  const $ = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  // 4. One search across every app
+  type Hit = { app: string; title: string; sub: string }
+  const hits: Hit[] = []
+  const term = q.trim().toLowerCase()
+  if (term.length >= 2) {
+    const has = (...xs: any[]) => xs.filter(Boolean).join(' ').toLowerCase().includes(term)
+    for (const d of deals) if (has(d.id, d.ref, d.boat, d.hin, d.buyer?.email, d.seller?.email, d.buyer?.name, d.seller?.name, d.inviteEmail)) hits.push({ app: 'BoatClosers', title: d.boat, sub: `${d.state} · ${[d.buyer?.email, d.seller?.email].filter(Boolean).join(' / ')}${d.ref ? ` · ${d.ref}` : ''}` })
+    for (const e of express) if (has(e.id, e.buyer?.email, e.buyer?.name, e.seller, ...(e.items || []))) hits.push({ app: 'My Boat Closing', title: (e.items || [])[0] || 'Purchase', sub: `${e.stage} · ${e.buyer?.email || ''}` })
+    for (const r of insp) if (has(r.id, r.email, r.boat, r.hin)) hits.push({ app: 'My Boat Inspector', title: r.boat, sub: `${r.stage} · ${r.email || 'guest'}` })
+    for (const b of boats) if (has(b.id, b.email, b.name, b.hin, b.make, b.model)) hits.push({ app: 'My Boat Logs', title: b.name || [b.year, b.make, b.model].filter(Boolean).join(' '), sub: `${b.plan} · ${b.email || ''}` })
+    for (const x of listings) if (has(x.id, x.email, x.boat)) hits.push({ app: 'My Boat Listing', title: x.boat || 'Listing', sub: `step ${(x.step || 0) + 1} · ${x.email || 'no email'}` })
+    for (const p of pays || []) if (has(p.id, p.email, p.name)) hits.push({ app: 'Stripe', title: `${p.product} · $${(p.amount / 100).toFixed(2)}${p.refunded ? ` (refunded $${(p.refunded / 100).toFixed(2)})` : ''}`, sub: `${p.email} · ${new Date(p.created).toLocaleDateString()}` })
+  }
+
+  const row: any = { background: '#fff', border: `1px solid ${MIST}`, borderRadius: 8, padding: '10px 13px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }
+  return (
+    <>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+        <Stat label="Needs you" value={need.length} tone={need.some(n => n.red) ? '#b91c1c' : need.length ? '#b45309' : '#0f6e56'} />
+        <Stat label="New customers today / 7 days" value={`${newToday} / ${fresh.length}`} />
+        <Stat label="Money in today" value={pays ? $(net(midnight.getTime())) : '…'} tone="#0f6e56" />
+        <Stat label="Last 7 days" value={pays ? $(net(Date.now() - 7 * 86400000)) : '…'} tone="#0f6e56" />
+        <Stat label="Last 30 days" value={pays ? $(net(Date.now() - 30 * 86400000)) : '…'} tone="#0f6e56" />
+      </div>
+      {errs.length > 0 && <div style={{ background: '#fff8e6', border: '1px solid #f0d9a8', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#7a5500', marginBottom: 12 }}>Some apps didn&apos;t load, so this view may be missing items: {errs.join(' · ')}</div>}
+
+      <div style={card}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ ...h3, margin: 0 }}>Find a customer</div>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Email, name, boat, HIN or deal ref, across every app" style={{ flex: 1, minWidth: 240, padding: '9px 12px', fontSize: 13, borderRadius: 7, border: `1px solid ${MIST}` }} />
+          <button onClick={load} style={ctlBtn} disabled={busy}>{busy ? 'Loading…' : 'Reload'}</button>
+        </div>
+        {term.length >= 2 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+            {hits.length === 0 && <div style={{ fontSize: 12.5, color: SLATE }}>No matches in any app.</div>}
+            {hits.slice(0, 40).map((h, i) => (
+              <div key={i} style={{ ...row, background: '#f8fafc' }}>
+                <AppTag app={h.app} />
+                <div style={{ flex: 1, minWidth: 200 }}><div style={{ fontSize: 13, fontWeight: 700, color: NAVY }}>{h.title}</div><div style={{ fontSize: 12, color: SLATE }}>{h.sub}</div></div>
+                <button style={ctlBtn} onClick={() => go(APP_TAB[h.app])}>Open {h.app}</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={card}>
+        <div style={h3}>Needs you ({need.length})</div>
+        <div style={{ fontSize: 12, color: SLATE, marginBottom: 8 }}>Stuck deals, paid customers who haven&apos;t started, deadlines, refund requests, payment problems and chargebacks, from every app.</div>
+        {need.length === 0 && <div style={{ fontSize: 13, color: '#0f6e56', fontWeight: 700 }}>Nothing needs you right now.</div>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {need.map((n, i) => (
+            <div key={i} style={{ ...row, borderLeft: `4px solid ${n.red ? '#b91c1c' : '#b45309'}` }}>
+              <AppTag app={n.app} />
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: NAVY }}>{n.what} <span style={{ fontWeight: 400, color: SLATE }}>· {n.who}</span></div>
+                <div style={{ fontSize: 12, color: n.red ? '#b91c1c' : SLATE }}>{n.why}</div>
+              </div>
+              <button style={ctlBtn} onClick={() => go(APP_TAB[n.app])}>Open</button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <div style={{ ...card, flex: '2 1 420px' }}>
+          <div style={h3}>New customers, last 7 days ({fresh.length})</div>
+          {fresh.length === 0 && <div style={{ fontSize: 12.5, color: SLATE }}>No one new this week.</div>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+            {fresh.slice(0, 60).map((f, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', fontSize: 12.5, borderTop: i ? `1px solid ${MIST}` : 'none', paddingTop: i ? 6 : 0 }}>
+                <AppTag app={f.app} />
+                <div style={{ flex: 1, minWidth: 200, color: NAVY }}><b>{f.who}</b> <span style={{ color: SLATE }}>· {f.what}</span></div>
+                <div style={{ color: SLATE, fontSize: 11.5 }}>{f.days === 0 ? 'today' : f.days === 1 ? 'yesterday' : `${f.days} days ago`}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ ...card, flex: '1 1 260px' }}>
+          <div style={h3}>Money in by app, last 30 days</div>
+          {!pays && <div style={{ fontSize: 12.5, color: SLATE }}>Loading…</div>}
+          {pays && Object.keys(byProduct).length === 0 && <div style={{ fontSize: 12.5, color: SLATE }}>No live payments in the last 30 days.</div>}
+          {Object.entries(byProduct).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '5px 0', borderTop: `1px solid ${MIST}` }}><span>{k}</span><b style={{ color: NAVY }}>{$(v)}</b></div>
+          ))}
+          <div style={{ fontSize: 11, color: SLATE, marginTop: 6 }}>From Stripe, live payments only, after refunds. Test unlocks never count.</div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ---------- Tools & links ----------
+const LINKS: [string, [string, string][]][] = [
+  ['Your sites', [
+    ['BoatClosers', 'https://www.boatclosers.com'], ['My Boat Closing', 'https://www.myboatclosing.com'], ['My Boat Inspector', 'https://www.myboatinspector.com'],
+    ['My Boat Logs', 'https://www.myboatlogs.com'], ['My Boat Listing', 'https://www.myboatlisting.com'], ['Hub page', 'https://www.boatclosers.com/hub'],
+  ]],
+  ['Money', [
+    ['Stripe dashboard', 'https://dashboard.stripe.com'], ['Stripe payments', 'https://dashboard.stripe.com/payments'], ['Stripe disputes', 'https://dashboard.stripe.com/disputes'], ['Escrow.com', 'https://www.escrow.com'],
+  ]],
+  ['Running the apps', [
+    ['Vercel (sites and deploys)', 'https://vercel.com/dashboard'], ['GitHub (code and pull requests)', 'https://github.com/boatclosers'],
+    ['Supabase: BoatClosers', 'https://supabase.com/dashboard/project/xoihnmkgncuocxiknvgs'], ['Supabase: My Boat Logs + Listing', 'https://supabase.com/dashboard/project/dnjdqndllwjyccrrraap'], ['Supabase: all projects', 'https://supabase.com/dashboard/projects'],
+    ['Resend (emails sent)', 'https://resend.com/emails'],
+  ]],
+  ['Getting found', [
+    ['Google Analytics', 'https://analytics.google.com'], ['Google Search Console', 'https://search.google.com/search-console'], ['Bing Webmaster Tools', 'https://www.bing.com/webmasters'],
+  ]],
+]
+function QuickLinks() {
+  return (
+    <div style={card}>
+      <div style={h3}>Quick links</div>
+      <div style={{ fontSize: 12, color: SLATE, marginBottom: 10 }}>Everything you use to run the business, in one place. Opens in a new tab.</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+        {LINKS.map(([group, items]) => (
+          <div key={group}>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: BRASS, textTransform: 'uppercase', marginBottom: 6 }}>{group}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {items.map(([label, href]) => <a key={href} href={href} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: NAVY, fontWeight: 600 }}>{label}</a>)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function EmailLog({ pw }: any) {
+  const [rows, setRows] = useState<any[] | null>(null)
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [q, setQ] = useState('')
+  const load = async () => {
+    setBusy(true); setErr('')
+    const j = await adminCall(pw, 'emailLog')
+    if (j.ok) setRows(j.emails || []); else setErr(j.error || 'Could not load emails.')
+    setBusy(false)
+  }
+  const bad = /bounce|complain|fail|suppress|delay/i
+  const list = (rows || []).filter(e => !q.trim() || `${e.to} ${e.subject}`.toLowerCase().includes(q.trim().toLowerCase()))
+  return (
+    <div style={card}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ ...h3, margin: 0 }}>Did they get our email?</div>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search by email address or subject" style={{ flex: 1, minWidth: 200, padding: '8px 12px', fontSize: 12.5, borderRadius: 7, border: `1px solid ${MIST}` }} />
+        <button onClick={load} style={ctlBtn} disabled={busy}>{busy ? 'Loading…' : rows ? 'Reload' : 'Show recent emails'}</button>
+      </div>
+      <div style={{ fontSize: 12, color: SLATE, marginTop: 6 }}>The last 100 emails sent from BoatClosers and My Boat Closing, with what happened to each (delivered, opened, bounced). Handy when a customer says &ldquo;I never got it.&rdquo;</div>
+      {err && <div style={{ background: '#fdecec', border: '1px solid #f5b5b5', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, color: '#b91c1c', marginTop: 10 }}>{err}</div>}
+      {rows && (
+        <div style={{ overflowX: 'auto', marginTop: 10 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+            <thead><tr style={{ textAlign: 'left', color: SLATE }}><th style={{ padding: '6px 8px' }}>When</th><th style={{ padding: '6px 8px' }}>To</th><th style={{ padding: '6px 8px' }}>Subject</th><th style={{ padding: '6px 8px' }}>Status</th></tr></thead>
+            <tbody>
+              {list.map(e => (
+                <tr key={e.id} style={{ borderTop: `1px solid ${MIST}` }}>
+                  <td style={{ padding: '6px 8px', whiteSpace: 'nowrap', color: SLATE }}>{e.at ? new Date(e.at).toLocaleString() : ''}</td>
+                  <td style={{ padding: '6px 8px', color: NAVY }}>{e.to}</td>
+                  <td style={{ padding: '6px 8px' }}>{e.subject}</td>
+                  <td style={{ padding: '6px 8px', fontWeight: 700, color: bad.test(e.status) ? '#b91c1c' : e.status ? '#0f6e56' : SLATE }}>{e.status || '—'}</td>
+                </tr>
+              ))}
+              {list.length === 0 && <tr><td colSpan={4} style={{ padding: '10px 8px', color: SLATE }}>No emails match.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -794,6 +1054,29 @@ function MblPanel({ pw, Stat }: any) {
 // ---------- My Boat Listing (separate app) ----------
 // Listings are saved in the My Boat Logs database; listing_overview() returns a summary.
 // Revenue comes from Stripe (charges tagged product "My Boat Listing").
+// One listing's answers, shown as plain label/value lines (empty answers left out).
+function ListingAnswers({ data }: { data: Record<string, any> }) {
+  const label = (k: string) => k.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase())
+  const show = (v: any): string => {
+    if (v === true) return 'Yes'
+    if (v === false || v == null) return ''
+    if (Array.isArray(v)) return v.map(show).filter(Boolean).join(' · ')
+    if (typeof v === 'object') return Object.entries(v).map(([k, x]) => { const s = show(x); return s ? `${label(k)}: ${s}` : '' }).filter(Boolean).join(' · ')
+    return String(v).trim()
+  }
+  const rows = Object.entries(data).map(([k, v]) => [label(k), show(v)] as const).filter(([, v]) => v)
+  return (
+    <div style={{ marginTop: 10, background: '#fff', border: `1px solid ${MIST}`, borderRadius: 8, padding: '10px 12px' }}>
+      <div style={{ fontWeight: 700, color: NAVY, marginBottom: 4 }}>Their answers</div>
+      {rows.length === 0 ? <div>Nothing filled in yet.</div> : rows.map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', gap: 10, borderTop: `1px solid ${MIST}`, padding: '4px 0' }}>
+          <div style={{ minWidth: 150, fontWeight: 600 }}>{k}</div>
+          <div style={{ flex: 1, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: NAVY }}>{v}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
 const LISTING_STEPS = ['HIN', 'The boat', 'Your story', 'Records', 'Direct it', 'Your listings']
 function ListingPanel({ pw, Stat }: any) {
   const [d, setD] = useState<any>(null)
@@ -803,6 +1086,33 @@ function ListingPanel({ pw, Stat }: any) {
   const [f, setF] = useState('all')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
+  const [detail, setDetail] = useState<Record<string, any>>({})
+  const [help, setHelp] = useState<Record<string, string>>({})
+  const [act, setAct] = useState('')
+  const [msg, setMsg] = useState('')
+  const view = async (id: string) => {
+    if (detail[id]) { setDetail(({ [id]: _, ...rest }) => rest); return }
+    setAct('view:' + id); setMsg('')
+    const j = await adminCall(pw, 'listingGet', { listingId: id })
+    if (j.ok) setDetail(v => ({ ...v, [id]: j.listing })); else setMsg(j.error || 'Could not open that listing.')
+    setAct('')
+  }
+  const makeHelp = async (id: string) => {
+    if (help[id] && !window.confirm('Make a NEW help link? The old help link will stop working. The seller\'s own link keeps working.')) return
+    setAct('help:' + id); setMsg('')
+    const j = await adminCall(pw, 'listingHelp', { listingId: id })
+    if (j.ok) setHelp(v => ({ ...v, [id]: j.link })); else setMsg(j.error || 'Could not make a help link.')
+    setAct('')
+  }
+  const del = async (x: any) => {
+    if (!window.confirm(`Permanently DELETE this listing${x.boat ? ` (${x.boat})` : ''}${x.email ? ` for ${x.email}` : ''}? The seller's edit link will stop working. This cannot be undone.`)) return
+    setAct('del:' + x.id); setMsg('')
+    const j = await adminCall(pw, 'listingDelete', { listingId: x.id })
+    if (j.ok) { setD((v: any) => v ? { ...v, listings: (v.listings || []).filter((y: any) => y.id !== x.id) } : v); setOpen(null); setMsg(j.done || 'Deleted.') }
+    else setMsg(j.error || 'Could not delete.')
+    setAct('')
+  }
+  const copy = async (text: string) => { try { await navigator.clipboard.writeText(text); setMsg('Link copied.') } catch { setMsg('Copy did not work. Select the link and copy it.') } }
   const load = async () => {
     setBusy(true); setErr('')
     const [j, p] = await Promise.all([adminCall(pw, 'listingOverview'), adminCall(pw, 'payments')])
@@ -829,6 +1139,7 @@ function ListingPanel({ pw, Stat }: any) {
   return (
     <>
       {err && <div style={{ background: '#fdecec', border: '1px solid #f5b5b5', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, color: '#b91c1c', marginBottom: 12 }}>{err}</div>}
+      {msg && <div style={{ background: '#eef6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, color: NAVY, marginBottom: 12 }}>{msg}</div>}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
         <Stat label="Listings started" value={t.all ?? 0} />
         <Stat label="New this week" value={t.new7 ?? 0} />
@@ -883,13 +1194,31 @@ function ListingPanel({ pw, Stat }: any) {
                     <div><b>Last saved:</b> {x.updatedAt ? new Date(x.updatedAt).toLocaleString() : '—'}</div>
                   </div>
                   <div style={{ marginTop: 9, fontSize: 11.5 }}><b>ID:</b> <code style={{ background: '#fff', padding: '2px 6px', borderRadius: 4 }}>{x.id}</code></div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                    <button style={ctlBtn} disabled={!!act} onClick={() => view(x.id)}>{act === 'view:' + x.id ? 'Opening…' : detail[x.id] ? 'Hide answers' : 'See their answers'}</button>
+                    <button style={ctlBtn} disabled={!!act} onClick={() => makeHelp(x.id)}>{act === 'help:' + x.id ? 'Making link…' : help[x.id] ? 'New help link' : 'Make a help link'}</button>
+                    <button style={{ ...ctlBtn, color: '#b91c1c', borderColor: '#f5b5b5' }} disabled={!!act} onClick={() => del(x)}>{act === 'del:' + x.id ? 'Deleting…' : 'Delete'}</button>
+                  </div>
+                  {help[x.id] && (
+                    <div style={{ marginTop: 10, background: '#fff', border: `1px solid ${MIST}`, borderRadius: 8, padding: '10px 12px' }}>
+                      <div style={{ fontWeight: 700, color: NAVY }}>Help link</div>
+                      <div style={{ fontSize: 12, marginTop: 2 }}>Opens this listing so you can fix it, or send it to the seller if they lost their link. Their own link keeps working. Open it in a private window so it doesn&apos;t replace a listing you&apos;re building in this browser.</div>
+                      <code style={{ display: 'block', wordBreak: 'break-all', background: '#f8fafc', padding: '6px 8px', borderRadius: 6, marginTop: 6, fontSize: 11.5 }}>{help[x.id]}</code>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                        <button style={ctlBtn} onClick={() => copy(help[x.id])}>Copy link</button>
+                        <a style={{ ...ctlBtn, textDecoration: 'none' }} href={help[x.id]} target="_blank" rel="noopener noreferrer">Open listing</a>
+                        {x.email && <a style={{ ...ctlBtn, textDecoration: 'none' }} href={`mailto:${encodeURIComponent(x.email)}?subject=${encodeURIComponent('Your boat listing link')}&body=${encodeURIComponent(`Here's a link back to your listing${x.boat ? ` for the ${x.boat}` : ''}: ${help[x.id]}`)}`}>Write the seller an email</a>}
+                      </div>
+                    </div>
+                  )}
+                  {detail[x.id] && <ListingAnswers data={detail[x.id].data || {}} />}
                 </div>
               )}
             </div>
           )
         })}
       </div>
-      <div style={{ fontSize: 11.5, color: SLATE, marginTop: 12 }}>Read-only view. Payments and revenue come from Stripe (live charges for My Boat Listing). A listing shows as Paid when its email matches a payment. Refunds are in the Payments &amp; refunds tab. Listings are only saved here once the seller&apos;s browser reaches the database, so a few may exist only on the seller&apos;s device.</div>
+      <div style={{ fontSize: 11.5, color: SLATE, marginTop: 12 }}>See answers, make a help link or delete from inside each listing. Payments and revenue come from Stripe (live charges for My Boat Listing). A listing shows as Paid when its email matches a payment. Refunds are in the Payments &amp; refunds tab. Listings are only saved here once the seller&apos;s browser reaches the database, so a few may exist only on the seller&apos;s device.</div>
     </>
   )
 }
