@@ -157,6 +157,79 @@ function assess(d: any) {
   }
 }
 
+// Problems the deal state alone does not show: the things a customer would
+// otherwise have to email about (or never mention at all). Each flag is one
+// plain sentence. Any flag puts the deal in "Needs attention".
+const HELP_WORDS = /(don[’']?t know how|do not know how|can[’']?t (find|get|sign|open|log|see)|cannot (find|get|sign|open|log|see)|how do i|not working|doesn[’']?t work|won[’']?t let|stuck|confus|error|help me|starts me)/i
+function fmtDate(iso: string) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '')
+  if (!m) return iso
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+function problemFlags(d: any, lastSignIn: Record<string, string | null>, waitingOn: string): string[] {
+  const out: string[] = []
+  const neg = d?.negotiate || {}
+  const docs = d?.docs_data || {}
+  const closedOrEnded = d.status === 'finalized' || d.status === 'canceled' || neg.canceled || neg.dealFinalized || neg.depositEnded
+  if (closedOrEnded) return out
+
+  // 1. Closing date has passed and the deal is still open.
+  const cm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(neg.closingDate || '')
+  if (cm) {
+    const late = Math.floor((Date.now() - new Date(Number(cm[1]), Number(cm[2]) - 1, Number(cm[3]) + 1).getTime()) / 86400000) + 1
+    if (late > 0) out.push(`Closing date (${fmtDate(neg.closingDate)}) passed ${late} day${late === 1 ? '' : 's'} ago and the deal is not closed.`)
+  }
+
+  // 2. Documents one side signed that the other side has not.
+  const signed = docs.signedDocs && typeof docs.signedDocs === 'object' ? docs.signedDocs : {}
+  const waiting: Record<string, { n: number; oldest: number }> = {}
+  for (const v of Object.values(signed) as any[]) {
+    if (!v || v.bothSigned || !v.firstRole) continue
+    const other = v.firstRole === 'seller' ? 'buyer' : 'seller'
+    const age = typeof v.at === 'number' ? Math.floor((Date.now() - v.at) / 86400000) : 0
+    const w = waiting[other] || { n: 0, oldest: 0 }
+    w.n += 1; w.oldest = Math.max(w.oldest, age); waiting[other] = w
+  }
+  for (const [role, w] of Object.entries(waiting)) {
+    if (w.oldest < 2) continue
+    const signer = role === 'buyer' ? 'Seller' : 'Buyer'
+    out.push(`${signer} signed ${w.n} document${w.n === 1 ? '' : 's'} the ${role} has not signed yet (oldest waiting ${w.oldest} days).`)
+  }
+
+  // 3. Someone wrote in the deal chat that they are stuck.
+  const msgs: any[] = Array.isArray(neg.messages) ? neg.messages : []
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const m = msgs[i]; const text = String(m?.text || '')
+    if (!text || /^[✍✓]/.test(text)) continue
+    if (HELP_WORDS.test(text)) {
+      const who = m.from === 'buyer' ? 'Buyer' : m.from === 'seller' ? 'Seller' : 'A party'
+      const when = typeof m.at === 'number' ? ` (${Math.floor((Date.now() - m.at) / 86400000)}d ago)` : ''
+      out.push(`${who} may be stuck${when}: "${text.length > 140 ? text.slice(0, 140) + '…' : text}"`)
+      break
+    }
+  }
+
+  // 4. The person the deal is waiting on has not signed in for a week.
+  const initRole = d.initiator_role === 'seller' ? 'seller' : 'buyer'
+  const idFor = (role: string) => role === initRole ? d.initiator_id : d.other_party_id
+  for (const role of ['buyer', 'seller']) {
+    const due = waitingOn === 'Both' || waitingOn.toLowerCase() === role || (waiting[role]?.oldest ?? 0) >= 2
+    if (!due) continue
+    const uid = idFor(role)
+    if (!uid || !(uid in lastSignIn)) continue
+    const seen = lastSignIn[uid]
+    const gone = seen ? Math.floor((Date.now() - Date.parse(seen)) / 86400000) : null
+    if (gone === null) out.push(`The ${role} has never signed in.`)
+    else if (gone >= 7) out.push(`The ${role} has not signed in for ${gone} days.`)
+  }
+
+  // 5. The deal's records disagree about who the second party is.
+  if (d.other_party_id && d.party_b_user_id && d.other_party_id !== d.party_b_user_id) {
+    out.push('Deal records disagree about who the invited party is. Check before anyone signs.')
+  }
+  return out
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json()
@@ -554,7 +627,7 @@ export async function POST(req: Request) {
     // this page hijack a pending invite.
     const { data, error } = await sb
       .from('deals')
-      .select('id, created_at, updated_at, finalized_at, status, vessel, parties, negotiate, dd_data, initiator_id, other_party_id, initiator_role, invite_role, invite_email, invite_status, max_step')
+      .select('id, created_at, updated_at, finalized_at, status, vessel, parties, negotiate, dd_data, docs_data, initiator_id, other_party_id, party_b_user_id, initiator_role, invite_role, invite_email, invite_status, max_step')
       .order('updated_at', { ascending: false })
       .limit(500)
 
@@ -562,7 +635,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Could not read deals: ' + error.message }, { status: 500 })
     }
 
-    const rows = (data || []).map(assess)
+    // Last sign-in for everyone on a live deal, so a party who has gone missing
+    // shows up before the closing date slips.
+    const liveRows = (data || []).filter((d: any) => d.status !== 'finalized' && d.status !== 'canceled')
+    const ids = Array.from(new Set(liveRows.flatMap((d: any) => [d.initiator_id, d.other_party_id]).filter(Boolean))) as string[]
+    const lastSignIn: Record<string, string | null> = {}
+    await Promise.all(ids.map(async (id) => {
+      try {
+        const { data: u } = await sb.auth.admin.getUserById(id)
+        if (u?.user) lastSignIn[id] = u.user.last_sign_in_at || null
+      } catch {}
+    }))
+
+    const rows = (data || []).map((d: any) => {
+      const r: any = assess(d)
+      r.ref = d?.docs_data?.dealRef || ''
+      r.flags = problemFlags(d, lastSignIn, r.waitingOn)
+      if (r.flags.length && !r.test) r.urgency = Math.max(r.urgency, 4)
+      return r
+    })
 
     // My Boat Closing purchases ($29.99, buyer only).
     const { data: ex } = await sb

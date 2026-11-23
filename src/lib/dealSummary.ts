@@ -27,7 +27,7 @@ export function dealContext(deal: any, live: any, role: string, step: string) {
   lines.push(`Boat: ${boat || 'not entered yet'}${v.loa ? `, ${v.loa} ft` : ''}${v.engineMake ? `, ${v.engineCount || 1}x ${v.engineMake} ${v.engineModel || ''}`.trimEnd() : ''}${v.engineHours ? `, ${v.engineHours} engine hours` : ''}.`)
   lines.push(`Asking price: ${money(v.askingPrice) || 'not entered'}. HIN: ${v.hin ? 'entered' : 'not entered'}. Title: ${v.isDocumented === 'yes' ? 'Coast Guard documented' : v.isDocumented === 'no' ? 'state titled' : 'not sure yet'}. Listed with a broker: ${v.brokerListed || 'not answered'}. Trailer: ${v.trailerIncluded === 'yes' ? 'included' : 'no'}. Location: ${trim(v.location, 60) || 'not entered'}.`)
   const myName = trim(p?.[role]?.name, 60), otherName = trim(p?.[other]?.name, 60)
-  lines.push(`Names: ${role} ${myName || '(not entered)'}; ${other} ${otherName || '(not entered)'}. The ${other} has ${live?.partyBJoined || deal?.party_b_user_id ? 'joined' : 'NOT joined yet'}.`)
+  lines.push(`Names: ${role} ${myName || '(not entered)'}; ${other} ${otherName || '(not entered)'}. The ${other} has ${live?.partyBJoined || deal?.other_party_id || deal?.party_b_user_id ? 'joined' : 'NOT joined yet'}.`)
   const offers = Array.isArray(n.offers) ? n.offers.filter(Boolean).slice(-6) : []
   if (offers.length) {
     lines.push('Offer history (oldest to newest):')

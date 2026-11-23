@@ -63,7 +63,7 @@ function nextFor(deal: any, uid: string) {
   const nx = nextStepFor(step, {
     role, vessel: deal.vessel, parties: deal.parties, negotiate: n, ddData: deal.dd_data,
     amInitiator: deal.initiator_id === uid || deal.party_a_user_id === uid,
-    partyBJoined: !!deal.party_b_user_id, dealPaid: isPaid(n),
+    partyBJoined: !!(deal.other_party_id || deal.party_b_user_id), dealPaid: isPaid(n),
   })
   return { role, step, next: nx?.text || '' }
 }
@@ -97,7 +97,7 @@ export async function callTool(ctx: Ctx, name: string, args: Record<string, unkn
     const { role, step, next } = nextFor(deal, ctx.userId)
     return {
       deal_id: deal.id,
-      summary: dealContext(deal, { partyBJoined: !!deal.party_b_user_id, dealPaid: isPaid(deal.negotiate), amInitiator: deal.initiator_id === ctx.userId || deal.party_a_user_id === ctx.userId }, role, step),
+      summary: dealContext(deal, { partyBJoined: !!(deal.other_party_id || deal.party_b_user_id), dealPaid: isPaid(deal.negotiate), amInitiator: deal.initiator_id === ctx.userId || deal.party_a_user_id === ctx.userId }, role, step),
       next,
       open_in_app: siteUrl(),
       note: 'To send or answer an offer, pay, sign or finalize, the person does it in the BoatClosers app.',
