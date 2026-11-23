@@ -380,6 +380,28 @@ export async function POST(req: Request) {
       }
     }
 
+    // ── My Boat Listing (separate app; its listings live in the My Boat Logs database) ──
+    // Calls listing_overview() with the same private key as My Boat Logs (MBL_ADMIN_KEY).
+    // Read-only.
+    if (body.action === 'listingOverview') {
+      const key = process.env.MBL_ADMIN_KEY || ''
+      const url = process.env.MBL_SUPABASE_URL || 'https://dnjdqndllwjyccrrraap.supabase.co'
+      const anon = process.env.MBL_SUPABASE_ANON_KEY || 'sb_publishable_eZgmQzMast5XlMink-hd4A_kBtdF-k6'
+      if (!key) return NextResponse.json({ error: 'MBL_ADMIN_KEY is not set on the BoatClosers server yet.' }, { status: 500 })
+      try {
+        const r = await fetch(`${url}/rest/v1/rpc/listing_overview`, {
+          method: 'POST', cache: 'no-store',
+          headers: { 'Content-Type': 'application/json', apikey: anon, Authorization: `Bearer ${anon}` },
+          body: JSON.stringify({ p_key: key }),
+        })
+        const j = await r.json().catch(() => null)
+        if (!r.ok || !j) return NextResponse.json({ error: `My Boat Listing said: ${j?.message || r.status}` }, { status: 502 })
+        return NextResponse.json({ ok: true, ...j })
+      } catch (e: any) {
+        return NextResponse.json({ error: 'Could not reach My Boat Listing: ' + (e?.message || 'unknown') }, { status: 502 })
+      }
+    }
+
     // ── Payments and refunds (every product, one Stripe account) ──────────────
     // 'payments' lists recent charges with what they were for. 'refund' refunds
     // one charge, in full or in part. The page asks the owner to confirm the

@@ -42,7 +42,7 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   const [data, setData] = useState<any>(null)
   const [filter, setFilter] = useState('live')
-  const [view, setView] = useState<'full' | 'express' | 'mbi' | 'stats' | 'mbl' | 'pay'>('full')
+  const [view, setView] = useState<'full' | 'express' | 'mbi' | 'stats' | 'mbl' | 'mls' | 'pay'>('full')
   const [exFilter, setExFilter] = useState('paid')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
@@ -226,7 +226,7 @@ export default function AdminPage() {
           )}
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-          {([['full', 'BoatClosers · $249'], ['stats', 'Funnel & AI use'], ['express', `My Boat Closing · $29.99 (${t.expressAll ?? 0})`], ['mbi', 'My Boat Inspector'], ['mbl', 'My Boat Logs'], ['pay', 'Payments & refunds']] as const).map(([k, l]) => (
+          {([['full', 'BoatClosers · $249'], ['stats', 'Funnel & AI use'], ['express', `My Boat Closing · $29.99 (${t.expressAll ?? 0})`], ['mbi', 'My Boat Inspector'], ['mbl', 'My Boat Logs'], ['mls', 'My Boat Listing'], ['pay', 'Payments & refunds']] as const).map(([k, l]) => (
             <button key={k} onClick={() => { setView(k); setOpen(null) }}
               style={{ padding: '10px 16px', fontSize: 13.5, fontWeight: 800, borderRadius: 8, cursor: 'pointer',
                 border: `2px solid ${view === k ? BRASS : MIST}`, background: view === k ? '#fff' : '#f8fafc', color: NAVY }}>
@@ -238,6 +238,7 @@ export default function AdminPage() {
         {view === 'mbi' && <MbiPanel pw={pw} Stat={Stat} />}
         {view === 'stats' && <StatsPanel pw={pw} Stat={Stat} />}
         {view === 'mbl' && <MblPanel pw={pw} Stat={Stat} />}
+        {view === 'mls' && <ListingPanel pw={pw} Stat={Stat} />}
         {view === 'pay' && <PaymentsPanel pw={pw} Stat={Stat} />}
 
         {view === 'express' && <ExpressPanel data={data} exFilter={exFilter} setExFilter={setExFilter} open={open} setOpen={setOpen} runAction={runAction} actionBusy={actionBusy} actionMsg={actionMsg} q={q} setQ={setQ} Stat={Stat} />}
@@ -789,6 +790,109 @@ function MblPanel({ pw, Stat }: any) {
   )
 }
 
+
+// ---------- My Boat Listing (separate app) ----------
+// Listings are saved in the My Boat Logs database; listing_overview() returns a summary.
+// Revenue comes from Stripe (charges tagged product "My Boat Listing").
+const LISTING_STEPS = ['HIN', 'The boat', 'Your story', 'Records', 'Direct it', 'Your listings']
+function ListingPanel({ pw, Stat }: any) {
+  const [d, setD] = useState<any>(null)
+  const [pays, setPays] = useState<any[] | null>(null)
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [f, setF] = useState('all')
+  const [q, setQ] = useState('')
+  const [open, setOpen] = useState<string | null>(null)
+  const load = async () => {
+    setBusy(true); setErr('')
+    const [j, p] = await Promise.all([adminCall(pw, 'listingOverview'), adminCall(pw, 'payments')])
+    if (j.ok) setD(j); else setErr(j.error || 'Could not load My Boat Listing.')
+    if (p.ok) setPays((p.payments || []).filter((x: any) => x.product === 'My Boat Listing' && x.livemode))
+    setBusy(false)
+  }
+  useEffect(() => { load() }, [])
+  const t = d?.totals || {}
+  const all: any[] = d?.listings || []
+  const done = (x: any) => (x.step || 0) >= LISTING_STEPS.length - 1
+  const paidEmails = new Set((pays || []).map((x: any) => String(x.email || '').toLowerCase()).filter(Boolean))
+  const isPaid = (x: any) => x.paid || (x.email && paidEmails.has(String(x.email).toLowerCase()))
+  const revenue = (pays || []).reduce((s: number, x: any) => s + (x.amount - (x.refunded || 0)), 0) / 100
+  const byPlan: Record<string, number> = {}
+  for (const x of pays || []) { const k = x.meta?.plan || 'Other'; byPlan[k] = (byPlan[k] || 0) + 1 }
+  const rows = all
+    .filter((x: any) => f === 'all' || (f === 'done' && done(x)) || (f === 'progress' && !done(x)) || (f === 'paid' && isPaid(x)) || (f === 'noemail' && !x.email))
+    .filter((x: any) => !q.trim() || `${x.boat || ''} ${x.email || ''} ${x.plan || ''}`.toLowerCase().includes(q.trim().toLowerCase()))
+  const Tab = ({ id, label }: any) => (
+    <button onClick={() => setF(id)} style={{ padding: '8px 14px', fontSize: 12.5, fontWeight: 700, borderRadius: 7, cursor: 'pointer',
+      border: `1px solid ${f === id ? NAVY : MIST}`, background: f === id ? NAVY : '#fff', color: f === id ? '#fff' : SLATE }}>{label}</button>
+  )
+  return (
+    <>
+      {err && <div style={{ background: '#fdecec', border: '1px solid #f5b5b5', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, color: '#b91c1c', marginBottom: 12 }}>{err}</div>}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+        <Stat label="Listings started" value={t.all ?? 0} />
+        <Stat label="New this week" value={t.new7 ?? 0} />
+        <Stat label="Finished (reached Your listings)" value={t.finished ?? 0} />
+        <Stat label="Payments" value={pays ? pays.length : '…'} tone="#0f6e56" />
+        <Stat label="Revenue (after refunds)" value={pays ? '$' + revenue.toFixed(2) : '…'} tone="#0f6e56" />
+      </div>
+      <div style={card}>
+        <div style={h3}>Where sellers are</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '6px 18px', fontSize: 12.5, color: SLATE, marginTop: 8 }}>
+          {LISTING_STEPS.map((s, i) => (
+            <div key={s}>{i + 1}. {s}: <b style={{ color: NAVY }}>{all.filter((x: any) => Math.min(x.step || 0, LISTING_STEPS.length - 1) === i).length}</b></div>
+          ))}
+          <div>No email yet: <b style={{ color: NAVY }}>{all.filter((x: any) => !x.email).length}</b></div>
+          {Object.keys(byPlan).length > 0 && <div>Paid by plan: <b style={{ color: NAVY }}>{Object.entries(byPlan).map(([k, v]) => `${k} ${v}`).join(' · ')}</b></div>}
+        </div>
+        {all.length >= 300 && <div style={{ fontSize: 11.5, color: SLATE, marginTop: 8 }}>Showing the newest 300 listings.</div>}
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+        <Tab id="all" label={`All (${all.length})`} />
+        <Tab id="progress" label="In progress" />
+        <Tab id="done" label="Finished" />
+        <Tab id="paid" label="Paid" />
+        <Tab id="noemail" label="No email" />
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search boat, email, plan" style={{ padding: '8px 12px', fontSize: 12.5, borderRadius: 7, border: `1px solid ${MIST}`, minWidth: 180 }} />
+        <button onClick={load} style={{ ...ctlBtn, marginLeft: 'auto' }} disabled={busy}>{busy ? 'Loading…' : 'Reload'}</button>
+      </div>
+      {d && rows.length === 0 && <div style={{ background: '#fff', border: `1px solid ${MIST}`, borderRadius: 10, padding: '2rem', textAlign: 'center', color: SLATE, fontSize: 13.5 }}>Nothing here.</div>}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {rows.map((x: any) => {
+          const st = Math.min(x.step || 0, LISTING_STEPS.length - 1)
+          const paid = isPaid(x)
+          const [label, tone] = paid ? ['Paid', '#0f6e56'] : done(x) ? ['Finished', '#1d4ed8'] : ['In progress', '#64748b']
+          return (
+            <div key={x.id} style={{ background: '#fff', border: `1px solid ${MIST}`, borderLeft: `4px solid ${tone}`, borderRadius: 8, overflow: 'hidden' }}>
+              <div onClick={() => setOpen(open === x.id ? null : x.id)} style={{ padding: '12px 15px', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{x.boat || 'Boat not entered yet'}{x.plan ? <span style={{ fontWeight: 400, color: SLATE }}> · {x.plan} plan</span> : null}</div>
+                  <div style={{ fontSize: 12, color: SLATE, marginTop: 2 }}>{x.email || 'no email yet'} · step {st + 1} of {LISTING_STEPS.length}: {LISTING_STEPS[st]}</div>
+                </div>
+                <div style={{ background: '#f8fafc', color: tone, borderRadius: 20, padding: '5px 12px', fontSize: 11.5, fontWeight: 800, whiteSpace: 'nowrap' }}>{label}</div>
+                <div style={{ fontSize: 11.5, color: SLATE, minWidth: 110, textAlign: 'right' }}>started {ago(x.createdAt)}<div>last saved {ago(x.updatedAt)}</div></div>
+              </div>
+              {open === x.id && (
+                <div style={{ borderTop: `1px solid ${MIST}`, background: '#f8fafc', padding: '13px 15px', fontSize: 12.5, lineHeight: 1.8, color: SLATE }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '2px 20px' }}>
+                    <div><b>Boat:</b> {x.boat || '—'}</div>
+                    <div><b>Plan:</b> {x.plan || '—'}</div>
+                    <div><b>Step:</b> {st + 1} of {LISTING_STEPS.length} ({LISTING_STEPS[st]})</div>
+                    <div><b>Email:</b> {x.email || '—'}</div>
+                    <div><b>Started:</b> {x.createdAt ? new Date(x.createdAt).toLocaleString() : '—'}</div>
+                    <div><b>Last saved:</b> {x.updatedAt ? new Date(x.updatedAt).toLocaleString() : '—'}</div>
+                  </div>
+                  <div style={{ marginTop: 9, fontSize: 11.5 }}><b>ID:</b> <code style={{ background: '#fff', padding: '2px 6px', borderRadius: 4 }}>{x.id}</code></div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      <div style={{ fontSize: 11.5, color: SLATE, marginTop: 12 }}>Read-only view. Payments and revenue come from Stripe (live charges for My Boat Listing). A listing shows as Paid when its email matches a payment. Refunds are in the Payments &amp; refunds tab. Listings are only saved here once the seller&apos;s browser reaches the database, so a few may exist only on the seller&apos;s device.</div>
+    </>
+  )
+}
 
 // Payments & refunds: every product pays into one Stripe account, so one list
 // covers them all. A refund always asks for the amount and a confirmation.
