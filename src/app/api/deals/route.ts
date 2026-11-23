@@ -919,7 +919,15 @@ function guestAccess(row: any, userId: string) {
 
 export async function GET(req: Request) {
   const userId = await getUserId(req)
-  if (!userId) return NextResponse.json({ deal: null })
+  if (!userId) {
+    // A sign-in token was sent but it is expired or invalid. Say so with a 401,
+    // so the app can refresh the session or ask them to sign in again. Answering
+    // "no deal" here made a returning invited buyer look like a brand-new user:
+    // the app showed a blank new deal and My Deals said "No deals yet".
+    const hasToken = (req.headers.get('authorization') || '').startsWith('Bearer ')
+    if (hasToken) return NextResponse.json({ deal: null, sessionExpired: true }, { status: 401 })
+    return NextResponse.json({ deal: null })
+  }
   try {
     // If a specific dealId is requested (invited guest arriving from the join
     // flow), load THAT deal directly and make sure this user is attached to it.

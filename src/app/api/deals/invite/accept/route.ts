@@ -26,7 +26,7 @@ export async function POST(req) {
 
   const { data: deal, error: fetchError } = await supabaseAdmin
     .from('deals')
-    .select('id, invite_status, invite_role, party_a_user_id, party_b_user_id')
+    .select('id, invite_status, invite_role, initiator_id, other_party_id, party_a_user_id, party_b_user_id')
     .eq('invite_token', token)
     .single();
 
@@ -34,17 +34,21 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Invalid or expired invite link' }, { status: 404 });
   }
 
-  if (deal.invite_status === 'accepted' && deal.party_b_user_id && deal.party_b_user_id !== userId) {
+  // other_party_id is the column every other part of the app reads for the
+  // invited party; party_a/party_b are the old names, kept only as a fallback.
+  const claimedBy = deal.other_party_id || deal.party_b_user_id;
+  if (claimedBy && claimedBy !== userId) {
     return NextResponse.json({ error: 'This invite has already been claimed' }, { status: 409 });
   }
 
-  if (deal.party_a_user_id === userId) {
+  if ((deal.initiator_id || deal.party_a_user_id) === userId) {
     return NextResponse.json({ error: 'You cannot accept your own invite' }, { status: 400 });
   }
 
   const { error: updateError } = await supabaseAdmin
     .from('deals')
     .update({
+      other_party_id: userId,
       party_b_user_id: userId,
       invite_status: 'accepted',
       invite_accepted_at: new Date().toISOString(),

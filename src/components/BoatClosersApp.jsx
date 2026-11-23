@@ -6565,14 +6565,34 @@ export default function BoatClosers() {
           // Prefer a dealId from the URL (email link) over the session's.
           const effectiveDealId = urlDealId || session.dealId;
           if (effectiveDealId) setDealId(effectiveDealId);
-          fetch("/api/deals" + (effectiveDealId ? ("?dealId=" + encodeURIComponent(effectiveDealId)) : ""), {
-            method: "GET",
-            headers: { "Authorization": "Bearer " + session.token }
-          })
-            .then(r => r.json())
-            .then(data => {
-              tokenRef.current = { token: session.token, refreshToken: session.refreshToken || null };
-            setUser({ name: session.name, email: session.email, role: session.role, userId: session.userId, token: session.token, refreshToken: session.refreshToken || null });
+          const bootUrl = "/api/deals" + (effectiveDealId ? ("?dealId=" + encodeURIComponent(effectiveDealId)) : "");
+          tokenRef.current = { token: session.token, refreshToken: session.refreshToken || null };
+          (async () => {
+            // A saved sign-in expires after about an hour. Trade the refresh
+            // token for a new one first; if that is dead too, send them to sign
+            // in with their deal remembered. Before this, an expired sign-in
+            // loaded as "no deal" and showed a blank new deal (BC-59947).
+            let tok = session.token;
+            let res = await fetch(bootUrl, { headers: { "Authorization": "Bearer " + tok } });
+            if (res.status === 401) {
+              const fresh = await doRefresh();
+              if (fresh) { tok = fresh; res = await fetch(bootUrl, { headers: { "Authorization": "Bearer " + tok } }); }
+            }
+            if (res.status === 401) {
+              try { localStorage.removeItem("bc_session"); } catch (e) {}
+              tokenRef.current = { token: null, refreshToken: null };
+              setDeepLink({ dealId: effectiveDealId || null, step: urlStep, email: session.email || "", expired: true });
+              setScreen("auth");
+              setBooting(false);
+              return;
+            }
+            return res.json();
+          })()
+            .then(async data => {
+              if (data === undefined) return; // sent to sign in above
+              const tok = tokenRef.current.token || session.token;
+              const rt = tokenRef.current.refreshToken || session.refreshToken || null;
+            setUser({ name: session.name, email: session.email, role: session.role, userId: session.userId, token: tok, refreshToken: rt });
               // The server has closed this deal to them — cancelled, or their
               // 60-day window after finalizing has passed. Clear the stored id so
               // a stale tab or bookmark cannot keep pulling them back in.
@@ -6609,6 +6629,9 @@ export default function BoatClosers() {
                 }
                 setShowWelcome(false);
               } else {
+                // No active deal. If they have older or closed deals, show the list
+                // rather than an empty new-deal form.
+                if (await showDealListIfAny(tokenRef.current.token || session.token)) { setBooting(false); return; }
                 // Signed in with no deal yet: show the introduction only if they never saw it.
                 let seen = false;
                 try { seen = localStorage.getItem("bc_intro_seen_" + session.userId) === "1"; } catch (e) {}
@@ -6974,9 +6997,7 @@ export default function BoatClosers() {
     const poll = async () => {
       if (document.hidden) return;
       try {
-        const res = await fetch("/api/deals?dealId=" + encodeURIComponent(dealId), {
-          headers: { "Authorization": "Bearer " + user.token }
-        });
+        const res = await authedFetch("/api/deals?dealId=" + encodeURIComponent(dealId));
         const data = await res.json();
         mergeFromServer(data?.deal);
       } catch (e) {}
@@ -7072,6 +7093,25 @@ export default function BoatClosers() {
     } catch (e) {
       setToast({ k: Date.now(), text: "Could not open that deal. Please try again." });
     }
+  };
+
+  // Shown when a signed-in person has no ACTIVE deal: if they have any deal at
+  // all (closed, or one they were invited into), open My Deals. Returns true if
+  // it did, so the caller does not start a blank new deal.
+  const showDealListIfAny = async (tok) => {
+    if (!tok) return false;
+    try {
+      const r = await fetch("/api/deals?list=1", { headers: { "Authorization": "Bearer " + tok } });
+      if (!r.ok) return false;
+      const j = await r.json();
+      if (Array.isArray(j?.deals) && j.deals.length) {
+        setMyDeals(j.deals);
+        setMyDealsLoading(false);
+        setScreen("mydeals");
+        return true;
+      }
+    } catch (e) {}
+    return false;
   };
 
   const openMyDeals = async () => {
@@ -7198,7 +7238,14 @@ export default function BoatClosers() {
       headers: { "Authorization": "Bearer " + authData.token }
     })
       .then(r => r.json())
-      .then(data => {
+      .then(async data => {
+        if (!data?.deal && !claimedRole && await showDealListIfAny(authData.token)) {
+          // They already have deals (none active right now): show the list
+          // instead of starting a blank new deal on top of them.
+          setDeepLink(null);
+          setBooting(false);
+          return;
+        }
         if (data?.deal) {
           // Returning user — restore everything from the database.
           setDealId(data.deal.id);
@@ -7295,7 +7342,7 @@ export default function BoatClosers() {
   );
   if (screen==="terms") return withFooter(<LegalScreen page="terms" onBack={()=>setScreen("landing")} />);
   if (screen==="privacy") return withFooter(<LegalScreen page="privacy" onBack={()=>setScreen("landing")} />);
-  if (screen==="auth") return withFooter(<AuthScreen onAuth={handleAuth} onHome={()=>setScreen("landing")} prefillEmail={deepLink?.email} notice={deepLink ? `Sign in as ${deepLink.email} to review this deal.` : null} defaultMode={deepLink ? "login" : "signup"} defaultRole={authRole} />);
+  if (screen==="auth") return withFooter(<AuthScreen onAuth={handleAuth} onHome={()=>setScreen("landing")} prefillEmail={deepLink?.email} notice={deepLink ? (deepLink.expired ? `Your sign-in expired. Sign in as ${deepLink.email} to get back to your deal.` : `Sign in as ${deepLink.email} to review this deal.`) : null} defaultMode={deepLink ? "login" : "signup"} defaultRole={authRole} />);
   if (screen==="deal" && showWelcome) return withFooter(<Welcome name={user?.name} role={myDealRole || user?.role} onStart={()=>{ try { if (user?.userId) localStorage.setItem("bc_intro_seen_" + user.userId, "1"); } catch (e) {} setShowWelcome(false); try { window.scrollTo({ top:0 }); } catch (e) {} }} onSignOut={handleSignOut} />);
 
   return (
@@ -7350,7 +7397,7 @@ export default function BoatClosers() {
                 <div style={{ fontSize:12.5, color:C.slate, lineHeight:1.7, marginBottom:16 }}>
                   For your security, you&rsquo;ve been signed out after a long period. Your deal is safe and saved &mdash; just sign in again to pick up exactly where you left off.
                 </div>
-                <button onClick={handleSignOut} style={{ ...S.btnBrass, width:"100%", fontSize:14, padding:"12px" }}>Sign in again</button>
+                <button onClick={()=>{ const back = { dealId, email: user?.email || "", expired: true }; handleSignOut(); setDeepLink(back); setScreen("auth"); }} style={{ ...S.btnBrass, width:"100%", fontSize:14, padding:"12px" }}>Sign in again</button>
               </div>
             </div>
           )}

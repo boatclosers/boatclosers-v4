@@ -155,7 +155,7 @@ export default function AdminPage() {
     if (filter === 'stale' && ((d.idleDays ?? 0) < 7 || DONE.includes(d.state))) return false
     if (filter === 'closed' && d.state !== 'Closed') return false
     if (!q.trim()) return true
-    const hay = `${d.id} ${d.boat} ${d.hin} ${d.buyer.email} ${d.seller.email} ${d.buyer.name} ${d.seller.name} ${d.inviteEmail}`.toLowerCase()
+    const hay = `${d.id} ${d.ref || ''} ${d.boat} ${d.hin} ${d.buyer.email} ${d.seller.email} ${d.buyer.name} ${d.seller.name} ${d.inviteEmail}`.toLowerCase()
     return hay.includes(q.trim().toLowerCase())
   })
 
@@ -281,8 +281,13 @@ export default function AdminPage() {
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ fontSize: 14, fontWeight: 700 }}>{d.boat}{d.price ? ` · ${money(d.price)}` : ''}{d.test && <span style={testBadge}>TEST</span>}</div>
                   <div style={{ fontSize: 12, color: SLATE, marginTop: 2 }}>
-                    {d.buyer.email || d.inviteEmail || '—'} ↔ {d.seller.email || '—'}
+                    {d.ref ? `${d.ref} · ` : ''}{d.buyer.email || d.inviteEmail || '—'} ↔ {d.seller.email || '—'}
                   </div>
+                  {Array.isArray(d.flags) && d.flags.length > 0 && (
+                    <ul style={{ margin: '7px 0 0', padding: '7px 10px 7px 26px', background: '#fdecec', border: '1px solid #f5b5b5', borderRadius: 6, color: '#991b1b', fontSize: 12, lineHeight: 1.55 }}>
+                      {d.flags.map((f: string, i: number) => <li key={i}>{f}</li>)}
+                    </ul>
+                  )}
                 </div>
                 <div style={{ background: urgencyTint(d.urgency), color: urgencyColor(d.urgency), borderRadius: 20, padding: '5px 12px', fontSize: 11.5, fontWeight: 800, whiteSpace: 'nowrap' }}>
                   {d.state}
