@@ -794,6 +794,29 @@ function MblPanel({ pw, Stat }: any) {
 // ---------- My Boat Listing (separate app) ----------
 // Listings are saved in the My Boat Logs database; listing_overview() returns a summary.
 // Revenue comes from Stripe (charges tagged product "My Boat Listing").
+// One listing's answers, shown as plain label/value lines (empty answers left out).
+function ListingAnswers({ data }: { data: Record<string, any> }) {
+  const label = (k: string) => k.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase())
+  const show = (v: any): string => {
+    if (v === true) return 'Yes'
+    if (v === false || v == null) return ''
+    if (Array.isArray(v)) return v.map(show).filter(Boolean).join(' · ')
+    if (typeof v === 'object') return Object.entries(v).map(([k, x]) => { const s = show(x); return s ? `${label(k)}: ${s}` : '' }).filter(Boolean).join(' · ')
+    return String(v).trim()
+  }
+  const rows = Object.entries(data).map(([k, v]) => [label(k), show(v)] as const).filter(([, v]) => v)
+  return (
+    <div style={{ marginTop: 10, background: '#fff', border: `1px solid ${MIST}`, borderRadius: 8, padding: '10px 12px' }}>
+      <div style={{ fontWeight: 700, color: NAVY, marginBottom: 4 }}>Their answers</div>
+      {rows.length === 0 ? <div>Nothing filled in yet.</div> : rows.map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', gap: 10, borderTop: `1px solid ${MIST}`, padding: '4px 0' }}>
+          <div style={{ minWidth: 150, fontWeight: 600 }}>{k}</div>
+          <div style={{ flex: 1, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: NAVY }}>{v}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
 const LISTING_STEPS = ['HIN', 'The boat', 'Your story', 'Records', 'Direct it', 'Your listings']
 function ListingPanel({ pw, Stat }: any) {
   const [d, setD] = useState<any>(null)
@@ -803,6 +826,33 @@ function ListingPanel({ pw, Stat }: any) {
   const [f, setF] = useState('all')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
+  const [detail, setDetail] = useState<Record<string, any>>({})
+  const [help, setHelp] = useState<Record<string, string>>({})
+  const [act, setAct] = useState('')
+  const [msg, setMsg] = useState('')
+  const view = async (id: string) => {
+    if (detail[id]) { setDetail(({ [id]: _, ...rest }) => rest); return }
+    setAct('view:' + id); setMsg('')
+    const j = await adminCall(pw, 'listingGet', { listingId: id })
+    if (j.ok) setDetail(v => ({ ...v, [id]: j.listing })); else setMsg(j.error || 'Could not open that listing.')
+    setAct('')
+  }
+  const makeHelp = async (id: string) => {
+    if (help[id] && !window.confirm('Make a NEW help link? The old help link will stop working. The seller\'s own link keeps working.')) return
+    setAct('help:' + id); setMsg('')
+    const j = await adminCall(pw, 'listingHelp', { listingId: id })
+    if (j.ok) setHelp(v => ({ ...v, [id]: j.link })); else setMsg(j.error || 'Could not make a help link.')
+    setAct('')
+  }
+  const del = async (x: any) => {
+    if (!window.confirm(`Permanently DELETE this listing${x.boat ? ` (${x.boat})` : ''}${x.email ? ` for ${x.email}` : ''}? The seller's edit link will stop working. This cannot be undone.`)) return
+    setAct('del:' + x.id); setMsg('')
+    const j = await adminCall(pw, 'listingDelete', { listingId: x.id })
+    if (j.ok) { setD((v: any) => v ? { ...v, listings: (v.listings || []).filter((y: any) => y.id !== x.id) } : v); setOpen(null); setMsg(j.done || 'Deleted.') }
+    else setMsg(j.error || 'Could not delete.')
+    setAct('')
+  }
+  const copy = async (text: string) => { try { await navigator.clipboard.writeText(text); setMsg('Link copied.') } catch { setMsg('Copy did not work. Select the link and copy it.') } }
   const load = async () => {
     setBusy(true); setErr('')
     const [j, p] = await Promise.all([adminCall(pw, 'listingOverview'), adminCall(pw, 'payments')])
@@ -829,6 +879,7 @@ function ListingPanel({ pw, Stat }: any) {
   return (
     <>
       {err && <div style={{ background: '#fdecec', border: '1px solid #f5b5b5', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, color: '#b91c1c', marginBottom: 12 }}>{err}</div>}
+      {msg && <div style={{ background: '#eef6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, color: NAVY, marginBottom: 12 }}>{msg}</div>}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
         <Stat label="Listings started" value={t.all ?? 0} />
         <Stat label="New this week" value={t.new7 ?? 0} />
@@ -883,13 +934,31 @@ function ListingPanel({ pw, Stat }: any) {
                     <div><b>Last saved:</b> {x.updatedAt ? new Date(x.updatedAt).toLocaleString() : '—'}</div>
                   </div>
                   <div style={{ marginTop: 9, fontSize: 11.5 }}><b>ID:</b> <code style={{ background: '#fff', padding: '2px 6px', borderRadius: 4 }}>{x.id}</code></div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                    <button style={ctlBtn} disabled={!!act} onClick={() => view(x.id)}>{act === 'view:' + x.id ? 'Opening…' : detail[x.id] ? 'Hide answers' : 'See their answers'}</button>
+                    <button style={ctlBtn} disabled={!!act} onClick={() => makeHelp(x.id)}>{act === 'help:' + x.id ? 'Making link…' : help[x.id] ? 'New help link' : 'Make a help link'}</button>
+                    <button style={{ ...ctlBtn, color: '#b91c1c', borderColor: '#f5b5b5' }} disabled={!!act} onClick={() => del(x)}>{act === 'del:' + x.id ? 'Deleting…' : 'Delete'}</button>
+                  </div>
+                  {help[x.id] && (
+                    <div style={{ marginTop: 10, background: '#fff', border: `1px solid ${MIST}`, borderRadius: 8, padding: '10px 12px' }}>
+                      <div style={{ fontWeight: 700, color: NAVY }}>Help link</div>
+                      <div style={{ fontSize: 12, marginTop: 2 }}>Opens this listing so you can fix it, or send it to the seller if they lost their link. Their own link keeps working. Open it in a private window so it doesn&apos;t replace a listing you&apos;re building in this browser.</div>
+                      <code style={{ display: 'block', wordBreak: 'break-all', background: '#f8fafc', padding: '6px 8px', borderRadius: 6, marginTop: 6, fontSize: 11.5 }}>{help[x.id]}</code>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                        <button style={ctlBtn} onClick={() => copy(help[x.id])}>Copy link</button>
+                        <a style={{ ...ctlBtn, textDecoration: 'none' }} href={help[x.id]} target="_blank" rel="noopener noreferrer">Open listing</a>
+                        {x.email && <a style={{ ...ctlBtn, textDecoration: 'none' }} href={`mailto:${encodeURIComponent(x.email)}?subject=${encodeURIComponent('Your boat listing link')}&body=${encodeURIComponent(`Here's a link back to your listing${x.boat ? ` for the ${x.boat}` : ''}: ${help[x.id]}`)}`}>Write the seller an email</a>}
+                      </div>
+                    </div>
+                  )}
+                  {detail[x.id] && <ListingAnswers data={detail[x.id].data || {}} />}
                 </div>
               )}
             </div>
           )
         })}
       </div>
-      <div style={{ fontSize: 11.5, color: SLATE, marginTop: 12 }}>Read-only view. Payments and revenue come from Stripe (live charges for My Boat Listing). A listing shows as Paid when its email matches a payment. Refunds are in the Payments &amp; refunds tab. Listings are only saved here once the seller&apos;s browser reaches the database, so a few may exist only on the seller&apos;s device.</div>
+      <div style={{ fontSize: 11.5, color: SLATE, marginTop: 12 }}>See answers, make a help link or delete from inside each listing. Payments and revenue come from Stripe (live charges for My Boat Listing). A listing shows as Paid when its email matches a payment. Refunds are in the Payments &amp; refunds tab. Listings are only saved here once the seller&apos;s browser reaches the database, so a few may exist only on the seller&apos;s device.</div>
     </>
   )
 }
