@@ -12,6 +12,7 @@ import MarketingShell, {
   pStyle,
 } from '@/components/marketing/MarketingShell'
 import { CLOSING, INSPECTOR } from '@/lib/suite'
+import { DealPitch, InlineCta, StickyCta, TrustStrip, startHref } from '@/components/marketing/DealPitch'
 
 // Landing page for the buyer's moment: "I found the boat. Now what?"
 // Ads can test two headlines: /found-the-boat (helpful) and /found-the-boat?v=b (urgent).
@@ -135,9 +136,23 @@ export default async function Page({
       <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 6vw, 46px)', lineHeight: 1.15, margin: '0 0 16px' }}>
         {h.title}
       </h1>
-      <p style={{ fontSize: 20, opacity: 0.85, lineHeight: 1.7, marginBottom: 36 }}>{h.sub}</p>
+      <p style={{ fontSize: 20, opacity: 0.85, lineHeight: 1.7, marginBottom: 28 }}>{h.sub}</p>
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+        <Link href={startHref('buyer')} style={{ ...buttonStyle, fontSize: 17, padding: '16px 34px' }}>
+          Start a BoatClosers Deal
+        </Link>
+        <a href="#hin" style={ghostButtonStyle}>
+          Run the free HIN check first
+        </a>
+      </div>
+      <TrustStrip />
 
+      <DealPitch role="buyer" title="Make the offer the way a broker would, without the broker." />
+
+      <h2 id="hin" style={h2Style}>Free HIN check</h2>
       <HinChecker />
+
+      <InlineCta role="buyer" text="HIN checks out? Put your offer in writing." />
 
       <h2 style={h2Style}>The 7 checks</h2>
       {CHECKS.map((c, i) => (
@@ -149,7 +164,9 @@ export default async function Page({
         </div>
       ))}
 
-      <p style={pStyle}>
+      <InlineCta role="buyer" text="BoatClosers walks you through all 7, step by step." />
+
+      <p style={{ ...pStyle, marginTop: 24 }}>
         Want it on paper?{' '}
         <Link href="/boat-deal-checklist" style={linkStyle}>
           Print the free buyer and seller checklist
@@ -174,7 +191,7 @@ export default async function Page({
           document filled in and signed. Flat $249, paid only when you&apos;re ready to sign.
         </p>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          <Link href="/?start=buyer" style={buttonStyle}>
+          <Link href={startHref('buyer')} style={buttonStyle}>
             Start a BoatClosers Deal
           </Link>
           <a href={CLOSING.url} style={ghostButtonStyle}>
@@ -182,6 +199,7 @@ export default async function Page({
           </a>
         </div>
       </div>
+      <StickyCta role="buyer" />
     </MarketingShell>
   )
 }

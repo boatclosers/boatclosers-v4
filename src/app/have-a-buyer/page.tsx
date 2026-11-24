@@ -4,6 +4,7 @@ import MarketingShell, {
   buttonStyle,
   cardStyle,
   ctaBoxStyle,
+  ghostButtonStyle,
   gold,
   h2Style,
   linkStyle,
@@ -11,6 +12,7 @@ import MarketingShell, {
 } from '@/components/marketing/MarketingShell'
 import CommissionCalculator from '@/components/marketing/CommissionCalculator'
 import { LISTING } from '@/lib/suite'
+import { DealPitch, InlineCta, StickyCta, TrustStrip, startHref } from '@/components/marketing/DealPitch'
 
 // Landing page for the seller's moment: "I have a buyer. How do I close this safely?"
 // Ads can test two headlines: /have-a-buyer (choice) and /have-a-buyer?v=b (head-on).
@@ -87,14 +89,22 @@ export default async function Page({
         {h.title}
       </h1>
       <p style={{ fontSize: 20, opacity: 0.85, lineHeight: 1.7, marginBottom: 28 }}>{h.sub}</p>
-      <div style={{ marginBottom: 48 }}>
-        <Link href="/?start=seller" style={buttonStyle}>
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+        <Link href={startHref('seller')} style={{ ...buttonStyle, fontSize: 17, padding: '16px 34px' }}>
           Start Your Private Sale
         </Link>
+        <a href="#calculator" style={ghostButtonStyle}>
+          See what you could keep
+        </a>
       </div>
+      <TrustStrip />
 
-      <h2 style={{ ...h2Style, marginTop: 0 }}>See what your sale could cost each way</h2>
+      <DealPitch role="seller" title="Everything it takes to close the deal, for one flat fee." />
+
+      <h2 id="calculator" style={h2Style}>See what your sale could cost each way</h2>
       <CommissionCalculator />
+
+      <InlineCta role="seller" text="Like that number? Send your buyer a deal link today." />
 
       <h2 style={h2Style}>How it works</h2>
       {STEPS.map((s, i) => (
@@ -106,7 +116,9 @@ export default async function Page({
         </div>
       ))}
 
-      <p style={pStyle}>
+      <InlineCta role="seller" text="Five steps, one deal room, flat $249." />
+
+      <p style={{ ...pStyle, marginTop: 24 }}>
         Want it on paper?{' '}
         <Link href="/boat-deal-checklist" style={linkStyle}>
           Print the free seller and buyer checklist
@@ -151,10 +163,11 @@ export default async function Page({
           Open your deal room in a few minutes and send the link to your buyer. Flat $249, paid only when you&apos;re ready
           to sign.
         </p>
-        <Link href="/?start=seller" style={buttonStyle}>
+        <Link href={startHref('seller')} style={buttonStyle}>
           Start Your Private Sale
         </Link>
       </div>
+      <StickyCta role="seller" />
     </MarketingShell>
   )
 }
