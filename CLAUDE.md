@@ -34,7 +34,9 @@ Apps hand a boat to each other with `?fromInspector=` links (see lib/handoff.ts 
 
 ## Hard rules
 
-- Never push to `main` and never merge. Work on a branch and open a pull request; Garry merges.
+- Never push straight to `main` and never force-push. Always work on a branch and open a pull request.
+- Claude may merge its own pull request into `main` only when Garry has asked in that session for the change to go live (for example "you do it", "merge it", "put it live"), and only after the type-check and build pass. Otherwise leave the pull request for Garry to merge.
+- After merging, check that the Vercel production deploy finished without errors, and tell Garry in plain words what went live and how to undo it (the "Revert" button on the merged pull request).
 - One problem per pull request. Small, focused changes. Don't refactor or restyle things you weren't asked to touch.
 - Don't change prices, payments/Stripe, refunds, legal/terms text, or emails that go to customers unless the task is exactly that. If a fix seems to need it, stop and explain instead.
 - Don't redesign landing pages. Small additions (a link, a section) only when asked.
