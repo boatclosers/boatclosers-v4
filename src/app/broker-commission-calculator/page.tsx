@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import MarketingShell, { buttonStyle, ctaBoxStyle, gold, h2Style, linkStyle, pStyle } from '@/components/marketing/MarketingShell'
 import CommissionCalculator from '@/components/marketing/CommissionCalculator'
+import { DealPitch, StickyCta } from '@/components/marketing/DealPitch'
 
 const URL = 'https://www.boatclosers.com/broker-commission-calculator'
 const TITLE = 'Boat Broker Commission Calculator'
@@ -64,6 +65,8 @@ export default function Page() {
 
       <CommissionCalculator />
 
+      <DealPitch role="seller" title="Keep the difference. BoatClosers runs the deal." />
+
       <h2 style={h2Style}>What the commission pays for</h2>
       <p style={pStyle}>
         Most of a broker&apos;s fee pays for finding the buyer: listings, showings, calls and qualifying people. The rest is
@@ -99,6 +102,7 @@ export default function Page() {
           Start Your Private Sale
         </Link>
       </div>
+      <StickyCta role="seller" text="Already have a buyer?" />
     </MarketingShell>
   )
 }
