@@ -3360,7 +3360,7 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
                       )}
                     </div>
                     <div style={{ fontSize:11, fontFamily:FONT.sans, color:C.slate, marginTop:4, lineHeight:1.5 }}>
-                      Deposit: {fmt(o.deposit)} ({pctLabel(o.escrowPct)}%) · {escLabel(o.escrowPath)}
+                      {Number(o.deposit) > 0 ? <>Deposit: {fmt(o.deposit)} ({pctLabel(o.escrowPct)}%) · {escLabel(o.escrowPath)}</> : "No deposit"}
                       {o.inclContingencies && o.contingencies?.length ? ` · Contingent on ${contingencyNames(o.contingencies)}` : " · no contingencies"}
                       {o.inclDates ? ` · Due Diligence ${o.ddDays} days · Close ${o.closingDate||"TBD"}` : " · dates open"}
                     </div>
