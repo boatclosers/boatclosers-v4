@@ -2073,6 +2073,9 @@ function StepNegotiateTerms({ vessel, parties, data, setData, myRole, amInitiato
     // the rest. Both lines have to go, and the dates with them.
     const reverted = offers.map(of => of.id===ag.id ? {...of,
       status:"countered",
+      // Marks this as a deliberate revision, so the server can tell it apart from
+      // the other party's older copy that still says "agreed".
+      revisedAt: Date.now(),
       paBuyerSig:null, paBuyerDisc:null, paBuyerDate:null,
       paSellerSig:null, paSellerDisc:null, paSellerDate:null,
     } : of);
