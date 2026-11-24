@@ -1355,6 +1355,21 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
     setTimeout(() => setOfferLinkCopied(""), 2000);
   };
 
+  // A ready-to-send message with the link, for Messenger, a Marketplace reply or a
+  // text. The link is for ONE person (the first to open it joins the deal), so the
+  // screen says to send it privately, not post it in a public ad.
+  const [inviteMsgCopied, setInviteMsgCopied] = useState(false);
+  const boatLabel = [vessel?.year, vessel?.make, vessel?.model].filter(Boolean).join(" ") || "boat";
+  const inviteMessage = userRole === "seller"
+    ? `Thanks for your interest in my ${boatLabel}! If you're serious, you can make your offer here. It's free for you to join, the deposit is held by a neutral escrow company (not me), and all the paperwork is handled: ${inviteLink}`
+    : `Hi, I'm interested in your ${boatLabel} and ready to make a written offer. I set it up on BoatClosers so the deposit is held by a neutral escrow company and the paperwork is handled. It's free for you to join: ${inviteLink}`;
+  const copyInviteMessage = () => {
+    if (!inviteLink) return;
+    navigator.clipboard?.writeText(inviteMessage);
+    setInviteMsgCopied(true);
+    setTimeout(() => setInviteMsgCopied(false), 2000);
+  };
+
   const set = (side,k,v) => setData(d => ({...d,[side]:{...d[side],[k]:v}}));
   const canContinue = userRole==="seller"
     ? (data.seller.name && isValidEmail(data.seller.email))
@@ -1530,6 +1545,22 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
                   <button onClick={copyInviteLink} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"5px 12px", fontSize:11, fontFamily:FONT.sans, fontWeight:700, cursor:"pointer", flexShrink:0 }}>
                     {inviteCopied ? "Copied!" : "Copy Link"}
                   </button>
+                </div>
+              )}
+              {inviteLink && (
+                <div style={{ marginTop:10 }}>
+                  <div style={{ fontSize:12, fontFamily:FONT.sans, color:"#fff", fontWeight:600, marginBottom:6 }}>
+                    Or copy a ready-to-send message
+                  </div>
+                  <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:6, padding:"9px 12px", fontSize:11.5, fontFamily:FONT.sans, color:"rgba(255,255,255,0.85)", lineHeight:1.55, wordBreak:"break-word" }}>
+                    {inviteMessage}
+                  </div>
+                  <button onClick={copyInviteMessage} style={{ marginTop:8, background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:FONT.sans, fontWeight:700, cursor:"pointer" }}>
+                    {inviteMsgCopied ? "Copied!" : "Copy message"}
+                  </button>
+                  <div style={{ fontSize:11, fontFamily:FONT.sans, color:"rgba(255,255,255,0.65)", marginTop:8, lineHeight:1.55 }}>
+                    Send this to <b style={{ color:"#fff" }}>one person</b> in a private message or text. The first person to open the link joins as the {otherSide}, so don&rsquo;t post it in a public ad.
+                  </div>
                 </div>
               )}
             </div>
