@@ -66,7 +66,10 @@ export async function GET(req: Request) {
       const paidInitiator = who === 'initiator' ? true : !!neg.paidInitiator
       const paidOther = who === 'other' ? true : !!neg.paidOther
       const complete = plan === 'split' ? (paidInitiator && paidOther) : plan === 'other' ? paidOther : paidInitiator
-      const today = new Date().toISOString().split('T')[0]
+      // The lock date is a calendar day in US Eastern time (where most customers
+      // are). The server runs on London time, so after 7 pm Eastern this used to
+      // stamp the next day's date on a just-locked deal.
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
 
       dbg += ` offers=${offers.length} agreed=${agreed ? 'yes' : 'NONE'} plan=${plan} complete=${complete} wasLocked=${!!neg.dealLocked}`
 
