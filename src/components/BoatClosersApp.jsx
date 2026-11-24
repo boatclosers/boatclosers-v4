@@ -1318,6 +1318,43 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
     setTimeout(() => setInviteCopied(false), 2000);
   };
 
+  // Public "make an offer" link for a seller's ad. Unlike the invite link above
+  // (one person), every buyer who uses this gets their own new deal with the seller.
+  const [offerLink, setOfferLink] = useState("");
+  const [offerLinkLoading, setOfferLinkLoading] = useState(false);
+  const [offerLinkError, setOfferLinkError] = useState("");
+  const [offerLinkCopied, setOfferLinkCopied] = useState("");
+  const getOfferLink = async () => {
+    setOfferLinkLoading(true);
+    setOfferLinkError("");
+    let id = dealId;
+    if (!id) id = await (ensureSaved ? ensureSaved() : Promise.resolve(null));
+    if (!id) {
+      setOfferLinkLoading(false);
+      setOfferLinkError("Couldn't save the deal. Add the boat's year, make and model, then try again.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/deals/offer-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(authToken ? { Authorization: "Bearer " + authToken } : authHeaders()) },
+        body: JSON.stringify({ dealId: id }),
+      });
+      const result = await res.json();
+      if (!res.ok) setOfferLinkError(result?.error || "Could not create the offer link.");
+      else setOfferLink(result.url);
+    } catch (e) {
+      setOfferLinkError("Network error, please try again.");
+    }
+    setOfferLinkLoading(false);
+  };
+  const offerAdLine = `Serious buyers: make your offer here (deposit held in escrow, paperwork handled): ${offerLink}`;
+  const copyOffer = (what) => {
+    navigator.clipboard?.writeText(what === "line" ? offerAdLine : offerLink);
+    setOfferLinkCopied(what);
+    setTimeout(() => setOfferLinkCopied(""), 2000);
+  };
+
   // A ready-to-send message with the link, for Messenger, a Marketplace reply or a
   // text. The link is for ONE person (the first to open it joins the deal), so the
   // screen says to send it privately, not post it in a public ad.
@@ -1531,6 +1568,39 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
 
           {inviteError && (
             <div style={{ fontSize:11, fontFamily:FONT.sans, color:"#fca5a5", marginTop:8 }}>{inviteError}</div>
+          )}
+
+          {userRole === "seller" && (
+            <div style={{ marginTop:16, paddingTop:14, borderTop:"1px solid rgba(255,255,255,0.15)" }}>
+              <div style={{ fontSize:12, fontFamily:FONT.sans, color:"#fff", fontWeight:600, marginBottom:4 }}>
+                Advertising the boat? Get a public offer link
+              </div>
+              <div style={{ fontSize:11.5, fontFamily:FONT.sans, color:"rgba(255,255,255,0.75)", lineHeight:1.55, marginBottom:8 }}>
+                Paste it in your Marketplace, Craigslist or Boat Trader ad. Every buyer who uses it gets their own private deal with you, with your boat details already filled in, and we email you each time one starts.
+              </div>
+              {!offerLink ? (
+                <button onClick={getOfferLink} disabled={offerLinkLoading} style={{ background:"rgba(255,255,255,0.12)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)", borderRadius:5, padding:"7px 16px", fontSize:12, fontFamily:FONT.sans, fontWeight:700, cursor:"pointer" }}>
+                  {offerLinkLoading ? "Creating..." : "Get my offer link"}
+                </button>
+              ) : (
+                <div>
+                  <div style={{ background:"rgba(255,255,255,0.08)", borderRadius:6, padding:"9px 12px", fontSize:11.5, fontFamily:FONT.sans, color:"rgba(255,255,255,0.85)", lineHeight:1.55, wordBreak:"break-word" }}>
+                    {offerAdLine}
+                  </div>
+                  <div style={{ display:"flex", gap:8, marginTop:8, flexWrap:"wrap" }}>
+                    <button onClick={()=>copyOffer("line")} style={{ background:C.brass, color:C.navy, border:"none", borderRadius:5, padding:"7px 14px", fontSize:12, fontFamily:FONT.sans, fontWeight:700, cursor:"pointer" }}>
+                      {offerLinkCopied === "line" ? "Copied!" : "Copy line for my ad"}
+                    </button>
+                    <button onClick={()=>copyOffer("link")} style={{ background:"transparent", color:"#fff", border:"1px solid rgba(255,255,255,0.3)", borderRadius:5, padding:"7px 14px", fontSize:12, fontFamily:FONT.sans, fontWeight:600, cursor:"pointer" }}>
+                      {offerLinkCopied === "link" ? "Copied!" : "Copy link only"}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {offerLinkError && (
+                <div style={{ fontSize:11, fontFamily:FONT.sans, color:"#fca5a5", marginTop:8 }}>{offerLinkError}</div>
+              )}
+            </div>
           )}
         </div>
       </div>
