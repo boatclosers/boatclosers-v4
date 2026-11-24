@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import MarketingShell, { buttonStyle, ctaBoxStyle, gold, h2Style, linkStyle, pStyle } from '@/components/marketing/MarketingShell'
 import PrintButton from '@/components/marketing/PrintButton'
+import ChecklistSignup from '@/components/marketing/ChecklistSignup'
 
 // Free printable checklists for a private boat deal, buyer side and seller side.
 // No signup. "Print or save as PDF" uses the browser's own print dialog.
@@ -65,7 +66,7 @@ export default function Page() {
     <MarketingShell>
       <style>{'@media print{body,div{background:#fff !important;color:#000 !important}header,footer,.no-print{display:none !important}a{color:#000 !important}}'}</style>
       <div className="no-print" style={{ color: gold, fontWeight: 700, fontSize: 15, marginBottom: 14 }}>
-        Free · Printable · No signup
+        Free · Printable · No signup needed
       </div>
       <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 6vw, 44px)', lineHeight: 1.15, margin: '0 0 16px' }}>
         Private Boat Sale Checklist
@@ -75,6 +76,7 @@ export default function Page() {
         your phone.
       </p>
       <PrintButton />
+      <ChecklistSignup />
 
       <h2 style={h2Style}>Buying a boat</h2>
       <List items={BUYER} />
