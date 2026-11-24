@@ -23,7 +23,11 @@ const C = {
   redLight:"#fdecea", green:"#1a5c35", greenLight:"#e4f0ea", text:"#1a2840",
 };
 const fmt = (n) => n ? new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n)) : "";
-const today = () => new Date().toISOString().split("T")[0];
+// Dates are the person's own calendar day. toISOString() gives the date in
+// London (UTC), so after 7 pm in Florida "today" came out as tomorrow, on signed
+// documents too.
+const ymd = (dt) => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+const today = () => ymd(new Date());
 
 // Dates arrive from HTML date inputs as YYYY-MM-DD, which is unreadable on a
 // contract. Documents get longhand — "August 10, 2026" — which cannot be misread
@@ -53,7 +57,14 @@ const sigMatchesName = (signature, partyName) => {
   const first = exp[0], last = exp[exp.length - 1];
   return exp.length === 1 ? got.includes(first) : (got.includes(first) && got.includes(last));
 };
-const addDays = (d,n) => { const dt=new Date(d); dt.setDate(dt.getDate()+n); return dt.toISOString().split("T")[0]; };
+// Counts calendar days from a YYYY-MM-DD date without time-zone or daylight-saving
+// slips (the old way came out a day short for dates around the March clock change).
+const addDays = (d,n) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || ""));
+  const dt = m ? new Date(Number(m[1]), Number(m[2])-1, Number(m[3])) : new Date(d);
+  dt.setDate(dt.getDate()+Number(n||0));
+  return ymd(dt);
+};
 
 const S = {
   page:{ maxWidth:820, margin:"0 auto", padding:"2rem 1.5rem" },

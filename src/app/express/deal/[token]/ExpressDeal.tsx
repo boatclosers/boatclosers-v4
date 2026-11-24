@@ -65,6 +65,10 @@ import ExpressGuided, { type Question } from './ExpressGuided'
 import { WalkAround, TitleCheckCard, DepositCard, PrintHelp } from './ExtraCards'
 import { STATE_NAMES, stateInfo, STATES_CHECKED } from '@/lib/express/states'
 
+// Today's date on the buyer's own calendar (toISOString() is London time, so after
+// 7 pm in Florida it gave tomorrow's date, including on the bill of sale).
+const localYmd = (dt: Date = new Date()) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+
 const STEPS = [
   { title: 'Vessel', note: 'What you’re buying' },
   { title: 'Parties', note: 'You and the seller' },
@@ -233,7 +237,7 @@ export default function ExpressDeal({ token }: { token: string }) {
         })
         setIds(Object.fromEntries(Object.entries(dl.items || {}).map(([k, v]: any) => [k, v[ID_FIELD[k as ItemKey][0]] || ''])))
         const hand: Handoff = dl.progress?.handoff || {}
-        setH({ saleDate: hand.saleDate || new Date().toISOString().slice(0, 10), ...hand })
+        setH({ saleDate: hand.saleDate || localYmd(), ...hand })
         setStep((s) => {
           if (s !== null) return s
           if (dl.status === 'paid') return back ? 4 : handoffProblems(hand, hasOf(dl), dl.state || 'FL').length ? 4 : 5
@@ -416,7 +420,7 @@ export default function ExpressDeal({ token }: { token: string }) {
     const dOn = sh.deposit === 'given' || sh.deposit === 'planned'
     const walkItemsDone = Object.values(deal.progress?.walk?.items || {}).filter((x: any) => x?.s)
     const flagged = walkItemsDone.filter((x: any) => x.s === 'flag').length
-    const today = new Date().toISOString().slice(0, 10)
+    const today = localYmd()
     const flaggedTip = flagged
       ? { text: `You flagged ${flagged} thing${flagged > 1 ? 's' : ''} on the walk-around. Want to dive deeper before you pay?`, href: MBI_URL, label: 'Use My Boat Inspector' }
       : undefined
