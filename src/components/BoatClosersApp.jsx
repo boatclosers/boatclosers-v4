@@ -4210,28 +4210,30 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
     setEscCreating(false);
   }, [dealId, setNegotiate, refreshEscrow]);
 
-  // Survey upload state
+  // Survey upload state. The typed details (who did the survey, dates, results,
+  // notes, title and sea trial findings, insurance) are saved with the deal as they
+  // are typed; before, they lived only on screen and were gone after a reload.
   const [surveyFile, setSurveyFile] = useState(null);
-  const [surveyCompany, setSurveyCompany] = useState("");
-  const [surveyorName, setSurveyorName] = useState("");
-  const [surveyDate, setSurveyDate] = useState("");
-  const [surveyNotes, setSurveyNotes] = useState("");
+  const surveyCompany = data.surveyCompany ?? ""; const setSurveyCompany = (v) => set("surveyCompany", v);
+  const surveyorName = data.surveyorName ?? ""; const setSurveyorName = (v) => set("surveyorName", v);
+  const surveyDate = data.surveyDate ?? ""; const setSurveyDate = (v) => set("surveyDate", v);
+  const surveyNotes = data.surveyNotes ?? ""; const setSurveyNotes = (v) => set("surveyNotes", v);
   const [surveySendEmail, setSurveySendEmail] = useState("");
   const [surveySentLog, setSurveySentLog] = useState([]);
   const [surveyOpen, setSurveyOpen] = useState(false);
 
   // Title search state
   const [titleFile, setTitleFile] = useState(null);
-  const [titleSearchCo, setTitleSearchCo] = useState("");
-  const [titleClear, setTitleClear] = useState(null);
-  const [titleNotes, setTitleNotes] = useState("");
+  const titleSearchCo = data.titleSearchCo ?? ""; const setTitleSearchCo = (v) => set("titleSearchCo", v);
+  const titleClear = data.titleClear ?? null; const setTitleClear = (v) => set("titleClear", v);
+  const titleNotes = data.titleNotes ?? ""; const setTitleNotes = (v) => set("titleNotes", v);
   const [titleOpen, setTitleOpen] = useState(false);
 
   // Sea trial state
   const [seaTrialOpen, setSeaTrialOpen] = useState(false);
-  const [seaTrialDate, setSeaTrialDate] = useState("");
-  const [seaTrialNotes, setSeaTrialNotes] = useState("");
-  const [seaTrialPass, setSeaTrialPass] = useState(null);
+  const seaTrialDate = data.seaTrialDate ?? ""; const setSeaTrialDate = (v) => set("seaTrialDate", v);
+  const seaTrialNotes = data.seaTrialNotes ?? ""; const setSeaTrialNotes = (v) => set("seaTrialNotes", v);
+  const seaTrialPass = data.seaTrialPass ?? null; const setSeaTrialPass = (v) => set("seaTrialPass", v);
 
   // Engine tests (buyer): oil analysis + compression test
   const [engineTestsOpen, setEngineTestsOpen] = useState(false);
@@ -4256,8 +4258,8 @@ function StepDueDiligence({ data, setData, setNegotiate, vessel, parties, terms,
 
   // Insurance state
   const [insuranceOpen, setInsuranceOpen] = useState(false);
-  const [insuranceCompany, setInsuranceCompany] = useState("");
-  const [insurancePolicyNum, setInsurancePolicyNum] = useState("");
+  const insuranceCompany = data.insuranceCompany ?? ""; const setInsuranceCompany = (v) => set("insuranceCompany", v);
+  const insurancePolicyNum = data.insurancePolicyNum ?? ""; const setInsurancePolicyNum = (v) => set("insurancePolicyNum", v);
   const [insuranceFile, setInsuranceFile] = useState(null);
   const [insuranceSendEmail, setInsuranceSendEmail] = useState("");
   const [insuranceSentLog, setInsuranceSentLog] = useState([]);
