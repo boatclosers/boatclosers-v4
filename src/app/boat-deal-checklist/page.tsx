@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import MarketingShell, { buttonStyle, ctaBoxStyle, gold, h2Style, linkStyle, pStyle } from '@/components/marketing/MarketingShell'
+import MarketingShell, { buttonStyle, cream, ctaBoxStyle, gold, h2Style, linkStyle, navy, pStyle } from '@/components/marketing/MarketingShell'
+import { StickyCta, startHref } from '@/components/marketing/DealPitch'
 import PrintButton from '@/components/marketing/PrintButton'
 
 // Free printable checklists for a private boat deal, buyer side and seller side.
@@ -76,6 +77,28 @@ export default function Page() {
       </p>
       <PrintButton />
 
+      <div
+        className="no-print"
+        style={{ marginTop: 32, padding: '22px 24px', borderRadius: 8, background: cream, color: navy }}
+      >
+        <div style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
+          Rather not run all 21 steps yourself?
+        </div>
+        <p style={{ fontSize: 16, lineHeight: 1.6, margin: '0 0 16px' }}>
+          A BoatClosers deal room walks buyer and seller through every one: written offers, the deposit in escrow, the
+          survey window, and every document filled in and signed. Flat $249, paid only when you&apos;re ready to sign. The
+          other party joins free.
+        </p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Link href={startHref('buyer')} style={{ ...buttonStyle, background: navy, color: cream }}>
+            I&apos;m buying
+          </Link>
+          <Link href={startHref('seller')} style={{ ...buttonStyle, background: navy, color: cream }}>
+            I&apos;m selling
+          </Link>
+        </div>
+      </div>
+
       <h2 style={h2Style}>Buying a boat</h2>
       <List items={BUYER} />
 
@@ -104,6 +127,7 @@ export default function Page() {
           See How BoatClosers Works
         </Link>
       </div>
+      <StickyCta role="both" />
     </MarketingShell>
   )
 }
