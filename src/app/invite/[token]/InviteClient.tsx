@@ -64,8 +64,10 @@ export default function InviteClient() {
         dealId: data.dealId
       }));
     } catch (e) {}
-    // Full page load so the app boots fresh and opens this deal.
-    window.location.href = '/';
+    // Full page load so the app boots fresh and opens this deal. The deal id
+    // rides in the address too, so if the browser blocked saving the sign-in
+    // (some private-browsing modes do) they still reach the deal, not the home page.
+    window.location.href = data.dealId ? '/?dealId=' + encodeURIComponent(String(data.dealId)) : '/';
   };
 
   // One tap: no password. Only runs on a button click, never on page load, so
