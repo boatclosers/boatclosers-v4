@@ -57,22 +57,86 @@ const STEP_TITLES = { vessel: "describing the boat", parties: "setting up the bu
 const ESCROW_NAMES = { escrow_com: "Escrow.com", sea_yachts: "Sea Yachts (a licensed Florida yacht brokerage)", attorney: "an attorney or title company", brokerage: "a licensed broker", direct: "straight to the seller", custom: "a custom arrangement", none: "no deposit" };
 const CONT_NAMES = { survey: "survey", seaTrial: "sea trial", financing: "financing", insurance: "insurance", title: "clear title", personalInspection: "personal inspection" };
 
+// What a good broker would cover at each step, for the buyer and for the seller.
+// Keeps the outside AI focused on this stage instead of the whole deal.
+const STEP_FOCUS = {
+  vessel: {
+    buyer: "Focus on: what details about the boat to get from the seller now (engine hours, service records, title status), and red flags in how it's described.",
+    seller: "Focus on: describing the boat honestly and completely, and what records and paperwork to gather now (title, registration, service records, loan payoff letter if any).",
+  },
+  parties: {
+    buyer: "Focus on: getting both parties into the app correctly, confirming the seller's name matches the title, and what to settle before making an offer.",
+    seller: "Focus on: getting both parties into the app correctly, and what the buyer will ask to see from me.",
+  },
+  negotiate: {
+    buyer: "Focus on: how to set the offer price (sold comps, engine age and hours, condition), the deposit and who holds it, which conditions to include (survey, engine survey, sea trial, clear title, financing, insurance), sensible deadlines, and what is included in the sale.",
+    seller: "Focus on: how to read and answer the buyer's offer, whether the deposit and conditions protect me, sensible deadlines, and what to have ready for the buyer's survey.",
+  },
+  diligence: {
+    buyer: "Focus on: hiring my own surveyor, the hull survey, engine survey and sea trial, checking the title and liens, and my choices after the survey: accept, ask for a lower price or repairs, or walk away before the deadline.",
+    seller: "Focus on: preparing the boat for survey and sea trial, what the buyer can and can't do with the findings, and how to answer a request for a lower price.",
+  },
+  documents: {
+    buyer: "Focus on: checking every document before signing: names, HIN, price, what's included, liens, and the bill of sale and title paperwork for the state.",
+    seller: "Focus on: checking every document before signing, signing the title correctly, the loan payoff if any, and reporting the sale to the state.",
+  },
+  closing: {
+    buyer: "Focus on: safely releasing the money through escrow, what to receive at handoff (signed title, bill of sale, keys, manuals), registering and titling the boat, sales tax, and insurance from the moment I own it.",
+    seller: "Focus on: confirming the money has arrived before handing over the boat and title, what to hand over, canceling registration and insurance, and reporting the sale to the state.",
+  },
+};
+
 export function ownAIPrompt(d, step, guide, question) {
   if (!d) return "";
   const role = d.role === "seller" ? "seller" : "buyer";
+  const other = role === "buyer" ? "seller" : "buyer";
   const v = d.vessel || {}, n = d.negotiate || {};
   const boat = [v.year, v.make, v.model].filter(Boolean).join(" ") || "a boat";
   const offers = (Array.isArray(n.offers) ? n.offers : []).filter(Boolean).slice(-4);
   const nx = nextStepFor(step, d);
+  const state = String(v.regState || "").trim();
+
+  // Boat facts that change the advice. No names, emails, addresses, HIN or serial numbers.
+  const engines = digits(v.engineCount) && String(v.engineMake || "").trim()
+    ? `${digits(v.engineCount) > 1 ? digits(v.engineCount) + "x " : ""}${[v.engineMake, v.engineModel].filter(Boolean).join(" ")}${v.fuelType ? ` (${String(v.fuelType).toLowerCase()})` : ""}`
+    : "";
+  const facts = [
+    digits(v.loa) ? `${digits(v.loa)} ft` : "",
+    v.hullType ? `${v.hullType} hull` : "",
+    engines ? `engines: ${engines}` : "engines: not entered yet",
+    digits(v.engineHours) ? `${digits(v.engineHours)} engine hours` : "engine hours: not entered yet",
+    v.trailerIncluded === "yes" ? "trailer included" : "",
+  ].filter(Boolean).join(", ");
+
+  const title = v.isDocumented === "yes" ? "The boat is Coast Guard documented."
+    : v.isDocumented === "no" ? `The boat has a ${state ? state + " " : ""}state title.`
+    : state ? `The boat is registered in ${state}.` : "";
+
+  const dates = [
+    digits(n.dueDiligenceDays) ? `${digits(n.dueDiligenceDays)}-day inspection period` : "",
+    n.ddStartDate ? `inspection period starts ${n.ddStartDate}` : "",
+    (n.closingDate || offers[offers.length - 1]?.closingDate) ? `target closing ${n.closingDate || offers[offers.length - 1].closingDate}` : "",
+  ].filter(Boolean).join(", ");
+
+  const focus = (STEP_FOCUS[step] || STEP_FOCUS.negotiate)[role];
+
   const lines = [
     `I'm the ${role} in a private boat sale of a ${boat}${digits(v.askingPrice) ? `, asking ${usd(v.askingPrice)}` : ""}. We're using the BoatClosers app, which walks both of us through the deal: offers, deposit and escrow, due diligence, documents, signing and closing. I'd like a second opinion.`,
-    `Where we are: ${STEP_TITLES[step] || step}.${nx ? " The app says next: " + nx.text : ""}`,
-    v.isDocumented === "yes" ? "The boat is Coast Guard documented." : v.isDocumented === "no" ? "The boat has a state title (Florida)." : "",
+    `Boat details: ${facts}.`,
+    title,
     v.brokerListed === "yes" ? "The boat is listed with a broker; I'm representing myself." : "",
+    `Where we are: ${STEP_TITLES[step] || step}.${nx ? " The app says next: " + nx.text : ""}`,
     offers.length ? "Offers so far (oldest first):\n" + offers.map((o) => `- ${o.from || o.by} offered ${usd(o.amount)}${Number(o.escrowPct) ? `, ${o.escrowPct}% deposit held by ${ESCROW_NAMES[o.escrowPath] || "not chosen"}` : ", no deposit"}${o.cashWaived ? ", as-is" : (o.contingencies || []).length ? ", contingent on " + o.contingencies.map((c) => CONT_NAMES[c] || c).join(", ") : ""}${o.ddDays ? `, ${o.ddDays}-day inspection` : ""} (${o.status || "pending"})`).join("\n") : "",
+    digits(n.agreedPrice) ? `Agreed price: ${usd(n.agreedPrice)}.` : "",
+    dates ? `Dates: ${dates}.` : "",
     n.sellerHasLien === "yes" ? "The seller still has a loan on the boat that gets paid off at closing." : "",
-    question ? `My question: ${question}` : "Explain where this deal stands, what I should do next and why, what risks to watch for, and what to ask the other side.",
-    "Answer like an experienced yacht broker would, in plain words and short steps. Remind me that this is general guidance, not legal or tax advice, and to confirm any wiring instructions by phone.",
+    question ? `My question: ${question}` : `Explain where this deal stands, what I should do next and why, what risks to watch for, and what to ask the ${other}.`,
+    focus,
+    "If an important detail is missing above (for example engine year or hours), tell me to get it rather than guessing.",
+    "Answer like an experienced yacht broker would, in plain words and short steps. Keep it short enough to read on a phone: about 300 words, no more than 6 steps.",
+    "Don't state the boat's value, tax rates, tax caps or fees as fact; tell me how to check them and who to ask.",
+    "When the next move happens inside the app (sending the offer, holding the deposit in escrow, signing), say so, and never suggest paying the deposit or purchase price straight to the other party instead of through escrow.",
+    "Remind me that this is general guidance, not legal or tax advice, and to confirm any wiring instructions by phone using a number I already know is real.",
     "At the end, remind me to go back to the BoatClosers app to act on it, since that's where offers are sent, documents are signed and the deal is recorded.",
   ];
   return lines.filter(Boolean).join("\n");
