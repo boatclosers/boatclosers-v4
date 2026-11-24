@@ -45,7 +45,11 @@ const C = {
 };
 
 const fmt = (n) => n ? new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n)) : "";
-const today = () => new Date().toISOString().split("T")[0];
+// Dates are the person's own calendar day. toISOString() gives the date in
+// London (UTC), so after 7 pm in Florida "today" came out as tomorrow, on signed
+// documents too.
+const ymd = (dt) => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+const today = () => ymd(new Date());
 
 // The signed-in session token, for API calls that must prove who is calling.
 const authHeaders = () => {
@@ -107,7 +111,14 @@ const hoursLeft = (expiresAt) => {
   const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 };
-const addDays = (d,n) => { const dt=new Date(d); dt.setDate(dt.getDate()+n); return dt.toISOString().split("T")[0]; };
+// Counts calendar days from a YYYY-MM-DD date without time-zone or daylight-saving
+// slips (the old way came out a day short for dates around the March clock change).
+const addDays = (d,n) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || ""));
+  const dt = m ? new Date(Number(m[1]), Number(m[2])-1, Number(m[3])) : new Date(d);
+  dt.setDate(dt.getDate()+Number(n||0));
+  return ymd(dt);
+};
 // Deposits can be a preset percentage or a custom dollar figure. A custom figure is
 // stored as the exact percentage it represents (full precision, so the dollars come
 // back out exactly), and only rounded when shown to a human.
