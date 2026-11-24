@@ -37,6 +37,14 @@ export async function POST(req: Request) {
     const vesselName = v?.name || [v?.year, v?.make, v?.model].filter(Boolean).join(' ') || 'the vessel';
     const base = process.env.NEXT_PUBLIC_APP_URL || '';
     const link = `${base}/?dealId=${deal.id}&step=4&to=${encodeURIComponent(to)}`;
+    // Documents often go to people outside the deal (a surveyor, lender, insurer,
+    // attorney). They can't open the deal, so a "sign in to the deal" button only
+    // led them to a sign-in screen they could never get past. Only the buyer and
+    // seller get the button; everyone else gets the attached copy.
+    const p: any = deal?.parties || {};
+    const lc = (x: any) => String(x || '').trim().toLowerCase();
+    const isParty = [p?.buyer?.email, p?.seller?.email].map(lc).includes(lc(to));
+    const hasFile = !!(attachment && attachment.content);
     const safeNote = String(note || '').replace(/</g, '&lt;');
     const safeDoc = String(docName || 'Document').replace(/</g, '&lt;');
 
@@ -54,10 +62,12 @@ export async function POST(req: Request) {
         <p style="background:#fffaf0;border:1.5px solid #b8863a;border-radius:6px;padding:13px 15px;margin:16px 0;color:#8a5a12;font-size:13px;line-height:1.6;">
           <strong>Do not act on these details from this email alone.</strong> Telephone the other party on a number you already had and have them read the account details back to you before sending anything. BoatClosers never sends payment instructions of its own and will never ask you to redirect funds. If you receive any message changing these details, it is fraud until proven otherwise by a phone call.
         </p>` : ''}
+        ${isParty ? `
         <p style="color:#475569; font-size:14px; line-height:1.5;">Open the deal to review, fill in, and sign the document right in the app.</p>
         <p style="text-align:center; margin: 24px 0;">
           <a href="${link}" style="background:#b8863a; color:#08152e; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">Open the Documents</a>
-        </p>
+        </p>` : `
+        <p style="color:#475569; font-size:14px; line-height:1.5;">${hasFile ? 'Open the attached file to view or print it.' : 'If you need a copy, contact the person who sent this.'} You don&rsquo;t need a BoatClosers account.</p>`}
       `)
     });
 
