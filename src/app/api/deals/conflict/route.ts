@@ -65,6 +65,7 @@ export async function POST(req: Request) {
           ${(message || '').replace(/</g, '&lt;')}
         </p>
         <p>Open your deal in BoatClosers to review and update your offer terms.</p>
+        <p style="margin:18px 0;"><a href="${(process.env.NEXT_PUBLIC_APP_URL || 'https://boatclosers.com').replace(/\/$/, '')}/?dealId=${encodeURIComponent(String(dealId))}&step=2&to=${encodeURIComponent(String(toEmail))}" style="background:#08152e;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block;">Open the deal</a></p>
         <p style="color:#64748b;font-size:13px;">${fromName ? 'Sent by ' + fromName + ' (' + fromRole + ')' : 'Sent by the ' + fromRole}</p>
       `)
     });

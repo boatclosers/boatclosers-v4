@@ -193,6 +193,8 @@ export function validTwilioSignature(url: string, params: Record<string, string>
 // A short text version of an email: the subject plus the first action link.
 export function smsFromEmail(subject: string, html: string) {
   const links = Array.from(html.matchAll(/href="(https?:\/\/[^"]+)"/g)).map((m) => m[1].replace(/&amp;/g, '&'))
-  const link = links.find((l) => !l.includes('/unsubscribe'))
+  // Prefer the link to the deal itself, so a text never lands on the home page.
+  const usable = links.filter((l) => !l.includes('/unsubscribe'))
+  const link = usable.find((l) => l.includes('dealId=')) || usable[0]
   return `BoatClosers: ${subject}${link ? `\n${link}` : ''}`
 }
