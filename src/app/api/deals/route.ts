@@ -314,7 +314,7 @@ async function notifyOnDealChange(previous: any, updated: any) {
               <p style="color:#475569;font-size:14px;line-height:1.6;">The ${fromRole} has written to you about <strong>${boat}</strong>:</p>
               <div style="background:#f7f5f0;border-left:3px solid #b8863a;padding:12px 14px;margin:14px 0;color:#3d5166;font-size:14px;line-height:1.6;font-style:italic;">${escHtml(preview)}${noteText.length > 180 ? '&hellip;' : ''}</div>
               <p style="color:#475569;font-size:14px;line-height:1.6;">Open the deal to read it in full and reply. Everything you both write stays on the deal.</p>
-              <p style="margin:18px 0;"><a href="${base}/?dealId=${encodeURIComponent(String(updated.id))}" style="background:#08152e;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block;">Open the deal</a></p>
+              <p style="margin:18px 0;"><a href="${dealLink(typeof updated?.step === 'number' ? updated.step : 2, toEmail)}" style="background:#08152e;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block;">Open the deal</a></p>
             `),
           }).catch(() => {})
           await admin().from('deals').update({

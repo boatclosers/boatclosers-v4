@@ -6741,11 +6741,27 @@ export default function BoatClosers() {
               setScreen("deal");
               setBooting(false);
             })
-            .catch(() => setBooting(false));
+            .catch(() => {
+              // A dropped connection used to leave them on the landing page.
+              // With a deal link, send them to sign in and keep the deal remembered.
+              if (effectiveDealId) {
+                setDeepLink({ dealId: effectiveDealId, step: urlStep, email: urlTo || session.email || "" });
+                setScreen("auth");
+              }
+              setBooting(false);
+            });
           return;
         }
       }
     } catch (e) {}
+    // Not signed in on this device (phone, another browser, cleared history)
+    // but they clicked a deal link: send them to sign in, then straight to that
+    // deal. Before this, links without the recipient's email in them (reminders,
+    // "Open the deal") dropped people on the landing page.
+    if (urlDealId) {
+      setDeepLink({ dealId: urlDealId, step: urlStep, email: urlTo || "" });
+      setScreen("auth");
+    }
     setBooting(false);
   }, []);
 
@@ -7443,7 +7459,7 @@ export default function BoatClosers() {
   );
   if (screen==="terms") return withFooter(<LegalScreen page="terms" onBack={()=>setScreen("landing")} />);
   if (screen==="privacy") return withFooter(<LegalScreen page="privacy" onBack={()=>setScreen("landing")} />);
-  if (screen==="auth") return withFooter(<AuthScreen onAuth={handleAuth} onHome={()=>setScreen("landing")} prefillEmail={deepLink?.email} notice={deepLink ? (deepLink.expired ? `Your sign-in expired. Sign in as ${deepLink.email} to get back to your deal.` : `Sign in as ${deepLink.email} to review this deal.`) : null} defaultMode={deepLink ? "login" : "signup"} defaultRole={authRole} />);
+  if (screen==="auth") return withFooter(<AuthScreen onAuth={handleAuth} onHome={()=>setScreen("landing")} prefillEmail={deepLink?.email} notice={deepLink ? (deepLink.expired ? (deepLink.email ? `Your sign-in expired. Sign in as ${deepLink.email} to get back to your deal.` : "Your sign-in expired. Sign in to get back to your deal.") : (deepLink.email ? `Sign in as ${deepLink.email} to review this deal.` : "Sign in to open your deal.")) : null} defaultMode={deepLink ? "login" : "signup"} defaultRole={authRole} />);
   if (screen==="deal" && showWelcome) return withFooter(<Welcome name={user?.name} role={myDealRole || user?.role} onStart={()=>{ try { if (user?.userId) localStorage.setItem("bc_intro_seen_" + user.userId, "1"); } catch (e) {} setShowWelcome(false); try { window.scrollTo({ top:0 }); } catch (e) {} }} onSignOut={handleSignOut} />);
 
   return (
