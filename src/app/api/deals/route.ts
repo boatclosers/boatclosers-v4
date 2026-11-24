@@ -1262,6 +1262,17 @@ export async function POST(req: Request) {
           const nobodySigned = !ex.paBuyerSig && !ex.paSellerSig
           const isRevision = ex.status === 'agreed' && merged.status === 'countered' && !dealPaidAlready && nobodySigned
           if (!isRevision && (rank[ex.status] || 0) > (rank[merged.status] || 0)) merged.status = ex.status
+          // The other side of a revision: once an agreed offer has been reopened,
+          // an older copy from the other party's browser (which still says
+          // "agreed" and has no revision mark) must not put the agreement back.
+          // Before this, the revise button worked for a moment and then the deal
+          // flipped back to "Price agreed — awaiting lock".
+          if (ex.status === 'countered' && ex.revisedAt && merged.status === 'agreed'
+              && Number(o.revisedAt || 0) < Number(ex.revisedAt)) {
+            merged.status = 'countered'
+            merged.revisedAt = ex.revisedAt
+            for (const k of ['paBuyerSig','paBuyerDisc','paBuyerDate','paSellerSig','paSellerDisc','paSellerDate']) merged[k] = null
+          }
           // An expiry that only lives in the browser is not an expiry. The seller is
           // released when an offer lapses, so a stale client must not be able to
           // accept one afterwards.
@@ -1290,6 +1301,12 @@ export async function POST(req: Request) {
         ...incomingNeg,
         offers: mergedOffers,
         messages: mergedMsgs
+      }
+      // An older save can still say "price agreed" after the offer was reopened.
+      // Follow the offers themselves: no agreed or accepted offer means no agreement.
+      if (!mergedOffers.some((o: any) => o && (o.status === 'agreed' || o.status === 'accepted'))) {
+        mergedPayload.negotiate.priceAgreed = false
+        mergedPayload.negotiate.agreedOfferId = null
       }
       // Deposit proof and the "ended" flag are sticky once set, and the deadline
       // only ever moves later (a seller extension), so one party's stale save
