@@ -1295,7 +1295,18 @@ export async function POST(req: Request) {
       // Same protection for the message thread.
       const existingMsgs = Array.isArray(existingNeg.messages) ? existingNeg.messages : []
       const incomingMsgs = Array.isArray(incomingNeg.messages) ? incomingNeg.messages : []
-      const mergedMsgs = incomingMsgs.length >= existingMsgs.length ? incomingMsgs : existingMsgs
+      // Keep every message from both sides. Before, whichever list was longer won,
+      // so when the buyer and seller each wrote at about the same time, one of
+      // the two messages silently disappeared.
+      const msgKey = (m: any) => m ? `${m.from || ''}|${m.time || ''}|${m.text || ''}` : ''
+      const seenMsgs = new Set(existingMsgs.map(msgKey))
+      const mergedMsgs = [...existingMsgs]
+      for (const m of incomingMsgs) {
+        const k = msgKey(m)
+        if (!m || seenMsgs.has(k)) continue
+        seenMsgs.add(k)
+        mergedMsgs.push(m)
+      }
       mergedPayload.negotiate = {
         ...existingNeg,
         ...incomingNeg,
