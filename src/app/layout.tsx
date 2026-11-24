@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
+import MetaPixel from '@/components/MetaPixel'
 
 const GA_ID = 'G-TSE5VMCK7N'
 
@@ -97,6 +98,8 @@ export default function RootLayout({
       </head>
       <body>
         {children}
+        {/* Meta Pixel: loads only when NEXT_PUBLIC_META_PIXEL_ID is set in Vercel. */}
+        <MetaPixel />
         {/* Google Analytics 4. Loaded with afterInteractive so it never blocks
             first paint — the deal flow renders before analytics touches the page. */}
         <Script
