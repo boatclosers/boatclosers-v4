@@ -5205,6 +5205,9 @@ function StepClosing({ vessel, parties, terms, negotiate, setNegotiate, ddData, 
   const isBuyer = myRole !== "seller";
   const [cleared, setCleared] = useState(false);
   const [dealFinalized, setDealFinalized] = useState(!!negotiate.dealFinalized);
+  // When the other party finalizes, show it as soon as the live update arrives,
+  // not only after a reload (it used to keep saying "Waiting on the other party").
+  useEffect(() => { if (negotiate?.dealFinalized && !dealFinalized) setDealFinalized(true); }, [negotiate?.dealFinalized]); // eslint-disable-line
   const [confirmFinalize, setConfirmFinalize] = useState(false);
   // The four "Final Actions" were hardcoded as never done, so the pre-finalize
   // warning listed steps nobody could ever tick off. They are now real and saved
