@@ -6691,6 +6691,15 @@ export default function BoatClosers() {
           })()
             .then(async data => {
               if (data === undefined) return; // sent to sign in above
+              // Signed in as someone who isn't on this deal (for example, testing
+              // both sides in one browser). Ask them to sign in as the right
+              // account instead of showing a blank deal or someone else's.
+              if (urlDealId && data?.notAMember) {
+                setDeepLink({ dealId: urlDealId, step: urlStep, email: urlTo || "", wrongAccount: true });
+                setScreen("auth");
+                setBooting(false);
+                return;
+              }
               const tok = tokenRef.current.token || session.token;
               const rt = tokenRef.current.refreshToken || session.refreshToken || null;
             setUser({ name: session.name, email: session.email, role: session.role, userId: session.userId, token: tok, refreshToken: rt });
@@ -7356,6 +7365,9 @@ export default function BoatClosers() {
     })
       .then(r => r.json())
       .then(async data => {
+        if (deepLink?.dealId && data?.notAMember) {
+          setToast({ k: Date.now(), text: "That deal isn't on this account. Sign out and sign in with the email address the link was sent to." });
+        }
         if (!data?.deal && !claimedRole && await showDealListIfAny(authData.token)) {
           // They already have deals (none active right now): show the list
           // instead of starting a blank new deal on top of them.
@@ -7459,7 +7471,7 @@ export default function BoatClosers() {
   );
   if (screen==="terms") return withFooter(<LegalScreen page="terms" onBack={()=>setScreen("landing")} />);
   if (screen==="privacy") return withFooter(<LegalScreen page="privacy" onBack={()=>setScreen("landing")} />);
-  if (screen==="auth") return withFooter(<AuthScreen onAuth={handleAuth} onHome={()=>setScreen("landing")} prefillEmail={deepLink?.email} notice={deepLink ? (deepLink.expired ? (deepLink.email ? `Your sign-in expired. Sign in as ${deepLink.email} to get back to your deal.` : "Your sign-in expired. Sign in to get back to your deal.") : (deepLink.email ? `Sign in as ${deepLink.email} to review this deal.` : "Sign in to open your deal.")) : null} defaultMode={deepLink ? "login" : "signup"} defaultRole={authRole} />);
+  if (screen==="auth") return withFooter(<AuthScreen onAuth={handleAuth} onHome={()=>setScreen("landing")} prefillEmail={deepLink?.email} notice={deepLink ? (deepLink.wrongAccount ? "That deal belongs to a different account. Sign in with the email address the link was sent to." : deepLink.expired ? (deepLink.email ? `Your sign-in expired. Sign in as ${deepLink.email} to get back to your deal.` : "Your sign-in expired. Sign in to get back to your deal.") : (deepLink.email ? `Sign in as ${deepLink.email} to review this deal.` : "Sign in to open your deal.")) : null} defaultMode={deepLink ? "login" : "signup"} defaultRole={authRole} />);
   if (screen==="deal" && showWelcome) return withFooter(<Welcome name={user?.name} role={myDealRole || user?.role} onStart={()=>{ try { if (user?.userId) localStorage.setItem("bc_intro_seen_" + user.userId, "1"); } catch (e) {} setShowWelcome(false); try { window.scrollTo({ top:0 }); } catch (e) {} }} onSignOut={handleSignOut} />);
 
   return (
