@@ -7537,9 +7537,7 @@ export default function BoatClosers() {
               </div>
             </div>
           )}
-          {saveError ? (
-            <button onClick={()=>{ setSaveError(false); scheduleSave(); }} title="Your last change didn't save. Click to try again — keep this tab open." style={{ fontSize:10.5, color:"#fff", background:C.red, border:"none", borderRadius:16, padding:"5px 12px", cursor:"pointer", fontFamily:FONT.sans, fontWeight:700 }}>{emo("⚠️")} Couldn't save — Retry</button>
-          ) : saving ? (
+          {saving ? (
             <span style={{ fontSize:10, color:"rgba(255,255,255,0.45)", fontFamily:FONT.sans }}>Saving…</span>
           ) : savedOk ? (
             <span style={{ fontSize:10, color:"#8fd6a6", fontFamily:FONT.sans }}>✓ Saved</span>
