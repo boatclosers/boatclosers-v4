@@ -6557,6 +6557,7 @@ export default function BoatClosers() {
   };
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const saveGenRef = useRef(0);
   const [sessionExpired, setSessionExpired] = useState(false);
   // Holds the live tokens so authedFetch can refresh without a stale closure.
   const tokenRef = useRef({ token: null, refreshToken: null });
@@ -6800,37 +6801,72 @@ export default function BoatClosers() {
     }
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaving(true);
+    const gen = ++saveGenRef.current;
     saveTimer.current = setTimeout(async () => {
-      const s = latestState.current;
-      try {
-        const res = await authedFetch("/api/deals", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            dealId, role: myDealRole || user?.role,
-            vessel: s.vessel, parties: s.parties, negotiate: s.negotiate,
-            dd_data: s.ddData, docs_data: s.docsData, step: s.step, max_step: s.maxStep
-          })
-        });
-        // The server can now refuse: a finalized deal cannot spawn another, a
-        // lapsed credit cannot, and an offer cannot be accepted before the fee is
-        // paid. Say what happened instead of retrying into a silent failure.
-        if (res.status === 403 || res.status === 402) {
-          let msg = "";
-          try { msg = (await res.json())?.error || ""; } catch (e) { msg = ""; }
-          setToast({ k: Date.now(), text: msg || "That isn't allowed on this deal. Email support@boatclosers.com." });
-          setSaveError(false);
-          return;
+      // A weak signal (marina, boat ramp) used to show the red banner after ONE
+      // failed try. Now we quietly retry a few times first, always sending the
+      // newest version of the deal; a newer change cancels this round.
+      const waits = [2000, 5000, 12000];
+      for (let attempt = 0; attempt <= waits.length; attempt++) {
+        if (gen !== saveGenRef.current) return; // a newer save took over
+        const s = latestState.current;
+        let res = null;
+        try {
+          res = await authedFetch("/api/deals", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              dealId, role: myDealRole || user?.role,
+              vessel: s.vessel, parties: s.parties, negotiate: s.negotiate,
+              dd_data: s.ddData, docs_data: s.docsData, step: s.step, max_step: s.maxStep
+            })
+          });
+        } catch (e) { res = null; } // network down: retry below
+        if (gen !== saveGenRef.current) return;
+        if (res) {
+          // The server can refuse: a finalized deal cannot spawn another, a
+          // lapsed credit cannot, and an offer cannot be accepted before the fee is
+          // paid. Say what happened instead of retrying into a silent failure.
+          if (res.status === 403 || res.status === 402) {
+            let msg = "";
+            try { msg = (await res.json())?.error || ""; } catch (e) { msg = ""; }
+            setToast({ k: Date.now(), text: msg || "That isn't allowed on this deal. Email support@boatclosers.com." });
+            setSaveError(false); setSaving(false);
+            return;
+          }
+          // 423 = the deal was finalized (often by the other party a moment ago).
+          // It's a permanent record now: lock the screen instead of a red error.
+          if (res.status === 423) {
+            finalizedRef.current = true;
+            setNegotiate(prev => ({ ...(prev || {}), dealFinalized: true }));
+            setToast({ k: Date.now(), text: "🔒 This deal was just finalized, so it can't be changed anymore." });
+            setSaveError(false); setSaving(false);
+            return;
+          }
+          // 401 = signed out and the token couldn't be refreshed. The "please sign in
+          // again" prompt is already showing; don't stack a red banner on top.
+          if (res.status === 401) { setSaveError(false); setSaving(false); return; }
+          if (res.status === 404) {
+            setToast({ k: Date.now(), text: "This deal no longer exists. Open My deals to see your other deals." });
+            setSaveError(false); setSaving(false);
+            return;
+          }
+          if (res.ok) {
+            try {
+              const data = await res.json();
+              if (data?.deal?.id && !dealId) setDealId(data.deal.id);
+            } catch (e) {}
+            setSaveError(false);
+            setSavedOk(true);
+            setTimeout(() => setSavedOk(false), 2000);
+            setSaving(false);
+            return;
+          }
         }
-        if (!res.ok) throw new Error("save failed (" + res.status + ")");
-        const data = await res.json();
-        if (data?.deal?.id && !dealId) setDealId(data.deal.id);
-        setSaveError(false);
-        setSavedOk(true);
-        setTimeout(() => setSavedOk(false), 2000);
-      } catch (e) {
-        setSaveError(true);
+        if (attempt < waits.length) await new Promise(r => setTimeout(r, waits[attempt]));
       }
+      if (gen !== saveGenRef.current) return;
+      setSaveError(true);
       setSaving(false);
     }, 1200);
   };
@@ -7018,6 +7054,9 @@ export default function BoatClosers() {
         }
         seenRef.current = { offers: sOffers.length, msgs: sMsgs.length, rejected: !!sNeg.vesselRejection, init: true };
       } catch (e) {}
+      // The other party finalized: stop autosaving now. Before, the next autosave hit
+      // the server's 'finalized' refusal and showed a red "Couldn't save" banner.
+      if (sNeg.dealFinalized) finalizedRef.current = true;
       setNegotiate(prev => {
         const STATUS_RANK = { pending:0, sent:0, expired:1, countered:1, rejected:2, agreed:3, accepted:4 };
         const _rank = s => STATUS_RANK[s] ?? 0;
