@@ -606,6 +606,7 @@ function TodayPanel({ pw, data, Stat, go }: any) {
                 <AppTag app={f.app} />
                 <div style={{ flex: 1, minWidth: 200, color: NAVY }}><b>{f.who}</b> <span style={{ color: SLATE }}>· {f.what}</span></div>
                 <div style={{ color: SLATE, fontSize: 11.5 }}>{f.days === 0 ? 'today' : f.days === 1 ? 'yesterday' : `${f.days} days ago`}</div>
+                {APP_TAB[f.app] && <button style={ctlBtn} onClick={() => go(APP_TAB[f.app])}>Open</button>}
               </div>
             ))}
           </div>

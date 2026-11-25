@@ -56,7 +56,12 @@ async function findUserByEmail(sb: any, email: string) {
 export async function POST(req: Request) {
   const sb = admin()
   try {
-    const { action, email, password, fullName, role, code, newPassword } = await req.json()
+    const body = await req.json()
+    const { action, password, fullName, role, code, newPassword } = body
+    // Autofill and phone keyboards often add a trailing space or a capital
+    // first letter. Supabase stores emails lower-case, so clean it up here or
+    // the person gets "Sign in failed" with the right password.
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : body.email
 
     // ── FORGOT PASSWORD: send a code ──
     if (action === 'reset_request') {
