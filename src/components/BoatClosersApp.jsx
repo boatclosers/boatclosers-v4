@@ -1359,7 +1359,7 @@ function StepParties({ data, setData, userRole, partyBJoined, vessel, offers, on
     }
     setOfferLinkLoading(false);
   };
-  const offerAdLine = `Serious buyers: make your offer here (deposit held in escrow, paperwork handled): ${offerLink}`;
+  const offerAdLine = `Ready to make an offer? I only accept written offers, through BoatClosers.com, the closing service I'm using. It's free for buyers, there's nothing to pay to make an offer, and the deposit is held in escrow: ${offerLink}`;
   const copyOffer = (what) => {
     navigator.clipboard?.writeText(what === "line" ? offerAdLine : offerLink);
     setOfferLinkCopied(what);
