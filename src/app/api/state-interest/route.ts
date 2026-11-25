@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isSpamTrap } from '@/lib/spamTrap'
 
 // Homepage "more states coming" signup: saves the email + the state someone
 // wants BoatClosers in, so the owner can see which states to add next.
@@ -11,7 +12,7 @@ const STATES = new Set('AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA
 export async function POST(request: Request) {
   let body: { email?: string; state?: string; website?: string }
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid request' }, { status: 400 }) }
-  if (body.website) return NextResponse.json({ ok: true })
+  if (isSpamTrap(body.website)) return NextResponse.json({ ok: true })
 
   const email = (body.email || '').trim().toLowerCase()
   const state = (body.state || '').trim().toUpperCase()

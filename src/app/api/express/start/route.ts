@@ -3,6 +3,7 @@ import { STATE_NAMES } from '@/lib/express/states'
 import crypto from 'crypto'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendEmail, emailLayout } from '@/lib/sendEmail'
+import { isSpamTrap } from '@/lib/spamTrap'
 
 // Always read live data: never let Next.js cache database or upstream fetches here.
 export const dynamic = 'force-dynamic'
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
   }
 
   // Spam trap: real people never fill the hidden "website" field.
-  if (body?.website) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
+  if (isSpamTrap(body?.website)) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
 
   const buyerName = clean(body?.buyerName, 80)
   const buyerEmail = clean(body?.buyerEmail, 254).toLowerCase()

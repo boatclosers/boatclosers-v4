@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail } from '@/lib/sendEmail'
+import { isSpamTrap } from '@/lib/spamTrap'
 
 // Email signup on /boat-deal-checklist.
 // Saves the address to the existing mailing list table (express_waitlist,
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
   }
 
   // Spam trap: real people never fill the hidden "website" field.
-  if (body.website) {
+  if (isSpamTrap(body.website)) {
     return NextResponse.json({ ok: true })
   }
 
