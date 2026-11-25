@@ -1078,7 +1078,10 @@ function ListingAnswers({ data }: { data: Record<string, any> }) {
     </div>
   )
 }
-const LISTING_STEPS = ['HIN', 'The boat', 'Your story', 'Records', 'Direct it', 'Your listings']
+// Builder steps since the November 2026 rebuild (older listings used 6 steps: HIN, boat, story, records, direct, listings).
+const LISTING_STEPS = ['HIN', 'The boat', 'Power', 'Photos', 'Equipment', 'Your story', 'Records & disclosures', 'Write it', 'Publish & share']
+const OLD_STEP = [0, 1, 5, 6, 7, 8]
+const stepOf = (x: any) => Math.min(x.v === '2' ? (x.step || 0) : OLD_STEP[Math.min(x.step || 0, 5)], LISTING_STEPS.length - 1)
 function ListingPanel({ pw, Stat }: any) {
   const [d, setD] = useState<any>(null)
   const [pays, setPays] = useState<any[] | null>(null)
@@ -1124,7 +1127,7 @@ function ListingPanel({ pw, Stat }: any) {
   useEffect(() => { load() }, [])
   const t = d?.totals || {}
   const all: any[] = d?.listings || []
-  const done = (x: any) => (x.step || 0) >= LISTING_STEPS.length - 1
+  const done = (x: any) => !!x.published || (x.v !== '2' && (x.step || 0) >= 5)
   const paidEmails = new Set((pays || []).map((x: any) => String(x.email || '').toLowerCase()).filter(Boolean))
   const isPaid = (x: any) => x.paid || (x.email && paidEmails.has(String(x.email).toLowerCase()))
   const revenue = (pays || []).reduce((s: number, x: any) => s + (x.amount - (x.refunded || 0)), 0) / 100
@@ -1144,7 +1147,8 @@ function ListingPanel({ pw, Stat }: any) {
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
         <Stat label="Listings started" value={t.all ?? 0} />
         <Stat label="New this week" value={t.new7 ?? 0} />
-        <Stat label="Finished (reached Your listings)" value={t.finished ?? 0} />
+        <Stat label="Published pages" value={t.published ?? t.finished ?? 0} />
+        <Stat label="Page views" value={t.views ?? 0} />
         <Stat label="Payments" value={pays ? pays.length : '…'} tone="#0f6e56" />
         <Stat label="Revenue (after refunds)" value={pays ? '$' + revenue.toFixed(2) : '…'} tone="#0f6e56" />
       </div>
@@ -1152,7 +1156,7 @@ function ListingPanel({ pw, Stat }: any) {
         <div style={h3}>Where sellers are</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '6px 18px', fontSize: 12.5, color: SLATE, marginTop: 8 }}>
           {LISTING_STEPS.map((s, i) => (
-            <div key={s}>{i + 1}. {s}: <b style={{ color: NAVY }}>{all.filter((x: any) => Math.min(x.step || 0, LISTING_STEPS.length - 1) === i).length}</b></div>
+            <div key={s}>{i + 1}. {s}: <b style={{ color: NAVY }}>{all.filter((x: any) => stepOf(x) === i).length}</b></div>
           ))}
           <div>No email yet: <b style={{ color: NAVY }}>{all.filter((x: any) => !x.email).length}</b></div>
           {Object.keys(byPlan).length > 0 && <div>Paid by plan: <b style={{ color: NAVY }}>{Object.entries(byPlan).map(([k, v]) => `${k} ${v}`).join(' · ')}</b></div>}
@@ -1162,7 +1166,7 @@ function ListingPanel({ pw, Stat }: any) {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
         <Tab id="all" label={`All (${all.length})`} />
         <Tab id="progress" label="In progress" />
-        <Tab id="done" label="Finished" />
+        <Tab id="done" label="Published" />
         <Tab id="paid" label="Paid" />
         <Tab id="noemail" label="No email" />
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search boat, email, plan" style={{ padding: '8px 12px', fontSize: 12.5, borderRadius: 7, border: `1px solid ${MIST}`, minWidth: 180 }} />
@@ -1171,9 +1175,9 @@ function ListingPanel({ pw, Stat }: any) {
       {d && rows.length === 0 && <div style={{ background: '#fff', border: `1px solid ${MIST}`, borderRadius: 10, padding: '2rem', textAlign: 'center', color: SLATE, fontSize: 13.5 }}>Nothing here.</div>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {rows.map((x: any) => {
-          const st = Math.min(x.step || 0, LISTING_STEPS.length - 1)
+          const st = stepOf(x)
           const paid = isPaid(x)
-          const [label, tone] = paid ? ['Paid', '#0f6e56'] : done(x) ? ['Finished', '#1d4ed8'] : ['In progress', '#64748b']
+          const [label, tone] = paid ? ['Paid', '#0f6e56'] : x.published ? ['Published', '#1d4ed8'] : done(x) ? ['Finished', '#1d4ed8'] : ['In progress', '#64748b']
           return (
             <div key={x.id} style={{ background: '#fff', border: `1px solid ${MIST}`, borderLeft: `4px solid ${tone}`, borderRadius: 8, overflow: 'hidden' }}>
               <div onClick={() => setOpen(open === x.id ? null : x.id)} style={{ padding: '12px 15px', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1189,6 +1193,8 @@ function ListingPanel({ pw, Stat }: any) {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '2px 20px' }}>
                     <div><b>Boat:</b> {x.boat || '—'}</div>
                     <div><b>Plan:</b> {x.plan || '—'}</div>
+                    <div><b>Photos:</b> {x.photos ?? 0}</div>
+                    <div><b>Page:</b> {x.published && x.slug ? <a href={`https://www.myboatlisting.com/b/${x.slug}`} target="_blank" rel="noopener noreferrer" style={{ color: NAVY, fontWeight: 700 }}>open listing page</a> : 'not published'}{x.views ? ` · ${x.views} views` : ''}</div>
                     <div><b>Step:</b> {st + 1} of {LISTING_STEPS.length} ({LISTING_STEPS[st]})</div>
                     <div><b>Email:</b> {x.email || '—'}</div>
                     <div><b>Started:</b> {x.createdAt ? new Date(x.createdAt).toLocaleString() : '—'}</div>
