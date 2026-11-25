@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendEmail, emailLayout } from '@/lib/sendEmail'
+import { isSpamTrap } from '@/lib/spamTrap'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -60,7 +61,7 @@ async function emailBuyer(email: string, boat: string, token: string) {
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
-  if (body.website) return NextResponse.json({ error: 'Please try again.' }, { status: 400 }) // spam trap
+  if (isSpamTrap(body.website)) return NextResponse.json({ error: 'Please try again.' }, { status: 400 }) // spam trap
 
   const code = String(body.code || '').trim().toUpperCase()
   const name = String(body.name || '').trim().slice(0, 120)

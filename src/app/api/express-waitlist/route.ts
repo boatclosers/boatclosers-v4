@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isSpamTrap } from '@/lib/spamTrap'
 
 // Always read live data: never let Next.js cache database or upstream fetches here.
 export const dynamic = 'force-dynamic'
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
   }
 
   // Spam trap: real people never fill the hidden "website" field.
-  if (body.website) {
+  if (isSpamTrap(body.website)) {
     return NextResponse.json({ ok: true })
   }
 
