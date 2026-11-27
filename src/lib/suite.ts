@@ -109,8 +109,8 @@ export const LOGS: SuiteApp = {
 export const LISTING: SuiteApp = {
   name: 'My Boat Listing',
   url: 'https://www.myboatlisting.com',
-  price: 'From $19.99',
-  priceNote: 'Quick $19.99, Standard $39.99, Premium $79.99, set by your boat',
+  price: '$19.99',
+  priceNote: 'per listing, the same for every boat; build and preview free',
   hook: 'A listing that sounds like an owner wrote it, because you did.',
   pitch: 'Start with the HIN and the year and builder fill in. Then pick the headline, opening, condition and close that sound like you. About ten minutes, start to finish.',
   points: [
