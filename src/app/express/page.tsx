@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import InstallApp from '@/components/InstallApp'
 import { organization, myBoatClosingApp, faqPage, jsonLd } from '@/lib/structured-data'
+import WatchVideo from '@/components/WatchVideo'
 
 // My Boat Closing landing page (myboatclosing.com, also /express).
 // The hook is the free HIN check: does the boat match its paperwork? The story
@@ -400,7 +401,7 @@ export default function Page() {
           <div className="hero-cta">
             <div className="cta-row">
               <a href={START} className="btn">Start your purchase free</a>
-              <a href="#how" className="btn ghost">See how it works</a>
+              <WatchVideo video="myBoatClosing" className="btn ghost" label="Watch how it works" />
             </div>
             <p className="reassure">Made for everyday private sales: skiffs, bay boats, pontoons and center consoles. Free to check, $29.99 for the paperwork, all 50 states.</p>
           </div>

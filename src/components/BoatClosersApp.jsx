@@ -16,6 +16,7 @@ import GuidedStep from "./GuidedMode"; // GUIDED MODE
 import { DealCtx, useDealCtx, AssistantBar, AssistantDock } from "./DealAssistantAI"; // DEAL ASSISTANT
 import { FAQS } from "../lib/faqs";
 import HomeLanding from "./HomeLanding";
+import WatchVideo from "./WatchVideo";
 import { FONT } from "../lib/theme";
 // ─────────────────────────────────────────────────────────────────────────────
 // BOATCLOSERS v4
@@ -5706,6 +5707,9 @@ function Welcome({ name, role, onStart, onSignOut }) {
           <p style={{ fontFamily:FONT.sans, fontSize:15.5, color:C.slate, lineHeight:1.65, margin:0 }}>
             BoatClosers exists to make a private boat sale as safe and organized as a broker-run deal, without the commission. You and the {r === "buyer" ? "seller" : "buyer"} work in one shared deal room, from the first offer to the signed title, for one flat $249.
           </p>
+          <div style={{ marginTop:14, color:C.navy }}>
+            <WatchVideo video="boatclosers" label="Watch how it works (5 min)" style={{ minHeight:44, fontSize:15 }} />
+          </div>
 
           <h2 style={{ fontFamily:FONT.sans, fontSize:12, letterSpacing:1.2, textTransform:"uppercase", color:C.navy, fontWeight:700, margin:"26px 0 12px" }}>How it helps you</h2>
           <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
