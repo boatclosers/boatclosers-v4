@@ -149,6 +149,7 @@ const VIDEO_FOR: Record<string, keyof typeof VIDEOS | undefined> = {
   BoatClosers: 'boatclosers',
   'My Boat Closing': 'myBoatClosing',
   'My Boat Inspector': 'myBoatInspector',
+  'My Boat Listing': 'myBoatListing',
 }
 
 export default function HubPage() {
