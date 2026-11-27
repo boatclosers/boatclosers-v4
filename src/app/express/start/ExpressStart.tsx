@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { decodeHandoff, handoffAppName, handoffBoatLine } from '@/lib/handoff'
 import { ALL_STATE_CODES, STATE_NAMES } from '@/lib/express/states'
+import WatchVideo from '@/components/WatchVideo'
 
 // Light theme, matching the landing page.
 const navy = '#13233a'
@@ -185,6 +186,9 @@ export default function ExpressStart() {
         <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: muted }}>
           Pick everything in this sale. The seller never has to create an account.
         </p>
+        <div>
+          <WatchVideo video="myBoatClosing" label="Watch how it works (5 min)" style={{ minHeight: 44, fontSize: 15 }} />
+        </div>
         {fromInspector && (
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.5, color: goldText, fontWeight: 600 }}>
             We brought the boat over from {fromInspector}. Check the details below.

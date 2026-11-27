@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import WatchVideo, { VIDEOS } from '@/components/WatchVideo'
 import { INSPECTOR, CHECKS, BOATCLOSERS, CLOSING, LOGS, LISTING, type SuiteApp } from '@/lib/suite'
 
 // boatclosers.com/hub — every BoatClosers app on one page, laid out along a
@@ -134,8 +135,20 @@ function AppCard({ app, dark }: { app: SuiteApp; dark?: boolean }) {
       >
         {app.cta} →
       </a>
+      {VIDEO_FOR[app.name] && (
+        <div style={{ marginTop: 10 }}>
+          <WatchVideo video={VIDEO_FOR[app.name]} label="Watch how it works" style={{ minHeight: 44, fontSize: 15 }} />
+        </div>
+      )}
     </div>
   )
+}
+
+// Walkthrough videos for the apps that have one (see components/WatchVideo).
+const VIDEO_FOR: Record<string, keyof typeof VIDEOS | undefined> = {
+  BoatClosers: 'boatclosers',
+  'My Boat Closing': 'myBoatClosing',
+  'My Boat Inspector': 'myBoatInspector',
 }
 
 export default function HubPage() {

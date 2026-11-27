@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import WatchVideo from '@/components/WatchVideo'
 
 // Shared layout for the Buyer's Guide and Seller's Guide pages.
 // Light, easy-to-read page with a sticky bar that always offers a way back
@@ -107,7 +108,10 @@ export default function RoleGuide({
         <h1 style={{ fontFamily: serif, fontWeight: 500, fontSize: 38, lineHeight: 1.18, margin: '12px 0 16px' }}>
           {title}
         </h1>
-        <p style={{ fontFamily: sans, fontSize: 17, lineHeight: 1.75, color: slate, margin: '0 0 28px' }}>{intro}</p>
+        <p style={{ fontFamily: sans, fontSize: 17, lineHeight: 1.75, color: slate, margin: '0 0 18px' }}>{intro}</p>
+        <div style={{ margin: '0 0 28px' }}>
+          <WatchVideo video="boatclosers" label="Watch how BoatClosers works (5 min)" />
+        </div>
 
         {/* Table of contents */}
         <nav

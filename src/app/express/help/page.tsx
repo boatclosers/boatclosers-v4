@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import WatchVideo from '@/components/WatchVideo'
 
 // How-to-use guide for My Boat Closing (served at myboatclosing.com/help and /express/help).
 // Facts must match the My Boat Closing landing page (price, what's included, limits).
@@ -104,6 +105,9 @@ export default function Page() {
         <p style={{ fontSize: 18, lineHeight: 1.6, color: '#3b4a5e', marginTop: 16 }}>
           Check the boat for free, then close the purchase with the right papers, signed the right way, and finish the titling without a second trip.
         </p>
+        <div style={{ marginTop: 18 }}>
+          <WatchVideo video="myBoatClosing" label="Watch the walkthrough video (5 min)" />
+        </div>
         {SECTIONS.map((s) => (
           <section key={s.h} style={{ marginTop: 34 }}>
             <h2 style={{ fontSize: 24, margin: 0 }}>{s.h}</h2>

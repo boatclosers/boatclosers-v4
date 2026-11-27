@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
+import WatchVideo from '@/components/WatchVideo'
 
 // BoatClosers home page. The hero's deal room is the signature moment: visitors
 // step a sample private sale from first offer to closed, the way buyer and
@@ -211,6 +212,9 @@ export default function HomeLanding({ onStart, onDocFinder, docCount, faqs, stat
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 34 }}>
               <button style={brassBtn} onClick={() => onStart('buyer')}>Start as buyer</button>
               <button style={ghostBtn} onClick={() => onStart('seller')}>Start as seller</button>
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <WatchVideo video="boatclosers" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.35)' }} />
             </div>
             <p style={{ fontSize: 14, color: N.sounding, marginTop: 22 }}>Free to start. Pay only when you’re ready to sign. The other party joins free.</p>
           </div>
