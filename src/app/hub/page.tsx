@@ -82,7 +82,7 @@ const FAQ: [string, string][] = [
   ['Do they work together?', 'Yes, where it helps. Finish an inspection in My Boat Inspector and you can open a BoatClosers deal or a My Boat Closing with the boat’s details already filled in. A listing from My Boat Listing can do the same when you find your buyer.'],
   ['Is any of this a marine survey?', 'No. My Boat Inspector helps you look at a boat yourself and decide whether it deserves a survey. It doesn’t grade or certify a boat, and a professional survey is still suggested before you buy.'],
   ['Who is behind it?', 'BoatClosers was built by a licensed Florida yacht broker and captain, from how real boat sales close. None of the apps act as your broker or take a commission.'],
-  ['What does it cost?', `${BOATCLOSERS.name} is ${BOATCLOSERS.price} per deal. ${CLOSING.name} is ${CLOSING.price}. ${INSPECTOR.name} is ${INSPECTOR.price} and ${INSPECTOR.priceNote}. ${LOGS.name} is ${LOGS.price} ${LOGS.priceNote}. ${LISTING.name}: ${LISTING.priceNote}. The HIN and lien checks are free.`],
+  ['What does it cost?', `${BOATCLOSERS.name} is ${BOATCLOSERS.price} per deal. ${CLOSING.name} is ${CLOSING.price}. ${INSPECTOR.name} is ${INSPECTOR.price} and ${INSPECTOR.priceNote}. ${LOGS.name} is ${LOGS.price} ${LOGS.priceNote}. ${LISTING.name} is ${LISTING.price} ${LISTING.priceNote}. The HIN and lien checks are free.`],
 ]
 
 const ld = {
