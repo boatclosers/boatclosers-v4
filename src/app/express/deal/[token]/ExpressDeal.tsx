@@ -7,6 +7,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import LienCheck from '@/components/LienCheck'
+import { trackPurchase } from '@/lib/track'
 import {
   SELLER_QUESTIONS,
   PAYMENT_TIPS,
@@ -228,6 +229,8 @@ export default function ExpressDeal({ token }: { token: string }) {
         if (!res.ok) throw new Error(d.error || 'Link not valid.')
         const dl = d.deal
         setDeal(dl)
+        // Back from checkout and paid: count the sale once (Google Analytics / Google Ads).
+        if (back && dl.status === 'paid') trackPurchase({ product: 'mbc', value: 29.99, id: token })
         setContact(d.contact || null)
         setBasics({
           buyerName: dl.buyer_name || '',

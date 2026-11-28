@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import MetaPixel from '@/components/MetaPixel'
 
+import { GOOGLE_ADS_ID } from '@/lib/track'
+
 const GA_ID = 'G-TSE5VMCK7N'
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#0f1b2d' }
@@ -112,6 +114,7 @@ export default function RootLayout({
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
             gtag('config', '${GA_ID}');
+            ${GOOGLE_ADS_ID ? `gtag('config', '${GOOGLE_ADS_ID}');` : ''}
           `}
         </Script>
       </body>
