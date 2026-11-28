@@ -16,6 +16,7 @@ import GuidedStep from "./GuidedMode"; // GUIDED MODE
 import { DealCtx, useDealCtx, AssistantBar, AssistantDock } from "./DealAssistantAI"; // DEAL ASSISTANT
 import { FAQS } from "../lib/faqs";
 import HomeLanding from "./HomeLanding";
+import { trackPurchase } from "../lib/track";
 import WatchVideo from "./WatchVideo";
 import { FONT } from "../lib/theme";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -6491,11 +6492,14 @@ export default function BoatClosers() {
             console.warn('[PAY VERIFY] deal did not lock:', v.dbg);
           }
           if (v?.paid) {
-            if (v.dealId) {
-              window.location.replace(`/?dealId=${encodeURIComponent(v.dealId)}&step=3`);
-            } else {
-              setStripeReturn({ paid: true, who: v.who || "initiator", dealId: null }); setStep(2);
-            }
+            // Count the sale (Google Analytics / Google Ads), then carry on as before.
+            trackPurchase({ product: "boatclosers", value: 249, id: sid }, () => {
+              if (v.dealId) {
+                window.location.replace(`/?dealId=${encodeURIComponent(v.dealId)}&step=3`);
+              } else {
+                setStripeReturn({ paid: true, who: v.who || "initiator", dealId: null }); setStep(2);
+              }
+            });
           }
         })
         .catch(() => {});
