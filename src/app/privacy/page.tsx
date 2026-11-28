@@ -11,11 +11,11 @@ export const metadata: Metadata = {
 // BoatClosersApp.jsx), as a public page so it has a link. The "Text messages and
 // phone numbers" section is new (Oct 2026) and needs counsel review; keep the two
 // copies in sync when either changes. The analytics and advertising paragraphs
-// (Google Analytics, Meta Pixel) and the checklist-email line are new (Nov 2026)
+// (Google Analytics, Google Ads, Meta Pixel) and the checklist-email line are new (Nov 2026)
 // and also need counsel review.
 export default function Page() {
   return (
-    <LegalPage title="Privacy Policy" updated="November 24, 2026">
+    <LegalPage title="Privacy Policy" updated="November 28, 2026">
       <h2>Overview</h2>
       <p>{"This policy explains what information BoatClosers collects, how we use it, and the choices you have."}</p>
       <h2>Information we collect</h2>
@@ -38,6 +38,7 @@ export default function Page() {
       <h2>Cookies, analytics and advertising</h2>
       <p>{"We use essential cookies and browser storage to keep you signed in and to run the app."}</p>
       <p>{"We also use Google Analytics to understand how people use our website, such as which pages they visit and which free tools they use. Google Analytics uses cookies and collects information such as your browser and device type, approximate location, and the pages you view. You can opt out with Google’s opt-out browser add-on at tools.google.com/dlpage/gaoptout."}</p>
+      <p>{"We use Google Ads to show our ads on Google Search and to measure which ads lead to a purchase. When you arrive from one of our Google ads, Google uses cookies to record the visit, and if you pay for BoatClosers or My Boat Closing we tell Google that a purchase happened and its amount. We never send Google your deal details, documents, or messages. You can manage Google ads personalization at adssettings.google.com."}</p>
       <p>{"When it is turned on, we use the Meta Pixel (from Meta, the company behind Facebook and Instagram) to measure how our ads perform and to show our ads to people who have visited our website. It uses cookies and similar technology to record things like the pages you visit and actions you take on our site, such as signing up for our checklist. We never send Meta your deal details, documents, or messages. You can manage the ads you see in your Facebook or Instagram ad preferences (facebook.com/adpreferences) and limit cookies in your browser settings."}</p>
       <h2>Changes to this policy</h2>
       <p>{"We may update this policy from time to time. The “last updated” date at the top shows the current version."}</p>
