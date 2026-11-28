@@ -153,6 +153,7 @@ export default function HomeLanding({ onStart, onDocFinder, docCount, faqs, stat
     ['My Boat Inspector', 'Inspect a used boat yourself before you pay for a survey, with a written report. $59.99.', 'https://myboatinspector.com'],
     ['My Boat Listing', 'Selling? Build a listing that sounds like you, with a buyer page that answers the questions.', 'https://www.myboatlisting.com'],
     ['My Boat Logs', 'Keep every service and record in one place, and hand the history to your buyer.', 'https://myboatlogs.com'],
+    ['Hurricane Plan', 'Free. A hurricane plan for your boat, a report for your insurer or lender, and a storm damage record.', 'https://hurricane-plan.vercel.app'],
   ]
 
   return (

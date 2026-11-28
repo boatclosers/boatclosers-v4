@@ -186,6 +186,15 @@ export default function TopicGuidePage({ g }: { g: TopicGuide }) {
           )}
         </div>
 
+        <div style={{ border: `1px solid ${gold}`, borderRadius: 10, padding: '16px 18px', margin: '0 0 36px', fontSize: 16, lineHeight: 1.6 }}>
+          <strong>Keeping a boat in hurricane country?</strong> Build a free hurricane plan for it in about 10 minutes:
+          timed storm checklists, a report for your insurer, lender or marina, and a damage record if the worst
+          happens.{' '}
+          <a href="https://hurricane-plan.vercel.app/?utm_source=boatclosers&utm_medium=guide" style={link}>
+            Make a free plan
+          </a>
+        </div>
+
         <h2 style={{ ...h2, fontSize: 22 }}>Related guides</h2>
         <ul style={{ fontSize: 16 }}>
           {g.related.map((r) => (

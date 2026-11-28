@@ -402,6 +402,29 @@ export async function POST(req: Request) {
       }
     }
 
+    // ── Hurricane Plan (free app; its plans live in the My Boat Logs database, hp_ tables) ──
+    // Calls hurricane_overview() (hurricane-plan repo, migration 0002) with the same
+    // private key as My Boat Logs (MBL_ADMIN_KEY). Read-only.
+    if (body.action === 'hurricaneOverview') {
+      const key = process.env.MBL_ADMIN_KEY || ''
+      const url = process.env.MBL_SUPABASE_URL || 'https://dnjdqndllwjyccrrraap.supabase.co'
+      const anon = process.env.MBL_SUPABASE_ANON_KEY || 'sb_publishable_eZgmQzMast5XlMink-hd4A_kBtdF-k6'
+      if (!key) return NextResponse.json({ error: 'MBL_ADMIN_KEY is not set on the BoatClosers server yet.' }, { status: 500 })
+      try {
+        const r = await fetch(`${url}/rest/v1/rpc/hurricane_overview`, {
+          method: 'POST', cache: 'no-store',
+          headers: { 'Content-Type': 'application/json', apikey: anon, Authorization: `Bearer ${anon}` },
+          body: JSON.stringify({ p_key: key }),
+        })
+        const j = await r.json().catch(() => null)
+        if (r.status === 404 || j?.code === 'PGRST202') return NextResponse.json({ error: 'The Hurricane Plan stats aren’t switched on yet (one database step is waiting: hurricane-plan migration 0002).' }, { status: 502 })
+        if (!r.ok || !j) return NextResponse.json({ error: `Hurricane Plan said: ${j?.message || r.status}` }, { status: 502 })
+        return NextResponse.json({ ok: true, ...j })
+      } catch (e: any) {
+        return NextResponse.json({ error: 'Could not reach the Hurricane Plan: ' + (e?.message || 'unknown') }, { status: 502 })
+      }
+    }
+
     // ── My Boat Listing owner tools: view one listing, make a help link, delete ──
     // Uses listing_admin_get / listing_admin_help / listing_admin_delete in the My Boat Logs
     // database (migration 0010 there), with the same private key (MBL_ADMIN_KEY).

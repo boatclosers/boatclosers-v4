@@ -26,7 +26,8 @@ All of them on one page, in the order of a boat's life (buy, close, own, sell): 
 - [My Boat Closing](https://myboatclosing.com): simple paperwork tool for small private purchases, usually under $50,000. Free HIN check, $29.99 for the paperwork.
 - [My Boat Inspector](https://myboatinspector.com): guided used-boat inspection and sea trial walkthrough with a written report. $59.99 covers up to 3 boats for 90 days. A guide, not a marine survey.
 - [My Boat Logs](https://myboatlogs.com): maintenance log, document vault and shareable vessel history for boat owners. $39.99 per boat per year, 14-day free trial.
-- [My Boat Listing](https://www.myboatlisting.com): builds a for-sale-by-owner boat listing from the seller's own answers, starting with the HIN. Gives a short ad for Facebook Marketplace, Craigslist and Boat Trader plus a full buyer page with records and disclosures. $19.99 per listing, the same for every boat; building and previewing are free.`
+- [My Boat Listing](https://www.myboatlisting.com): builds a for-sale-by-owner boat listing from the seller's own answers, starting with the HIN. Gives a short ad for Facebook Marketplace, Craigslist and Boat Trader plus a full buyer page with records and disclosures. $19.99 per listing, the same for every boat; building and previewing are free.
+- [BoatClosers Hurricane Plan](https://hurricane-plan.vercel.app): free. A guided questionnaire builds a hurricane plan for the owner's boat, a preparedness report for insurers, lenders and marinas, and a time-stamped storm damage and claim record. Free account to save the plan.`
 
 const BOATCLOSERS = `# BoatClosers
 
