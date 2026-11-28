@@ -6,6 +6,7 @@
 //   My Boat Logs       src/lib/stripe.ts (PRICE_CENTS), trial in src/app/api/billing/checkout/route.ts
 //   My Boat Listing    lib/paywall.ts (PLAN_CENTS)
 //   My Boat Closing    src/lib/express (this repo)
+//   Hurricane Plan     free (boatclosers/hurricane-plan)
 //   BoatClosers        $249 (this repo)
 // Only list features that are built and live.
 
@@ -120,4 +121,19 @@ export const LISTING: SuiteApp = {
     'Built only from your answers, so it never says anything untrue about your boat',
   ],
   cta: 'Build a listing',
+}
+
+export const HURRICANE: SuiteApp = {
+  name: 'BoatClosers Hurricane Plan',
+  url: 'https://hurricane-plan.vercel.app',
+  price: 'Free',
+  priceNote: 'free account to save your plan',
+  hook: 'Have a plan for the boat before the storm has a name.',
+  pitch: 'Answer guided questions about your boat and where it stays, and get a hurricane plan written for it: what to do before the season, at 72, 48 and 24 hours, and after the storm.',
+  points: [
+    'A preparedness report you can hand your insurer, lender or marina, with a check for the questions their named-storm forms ask',
+    'A caretaker version with keys and access, and a share version that hides them',
+    'A storm damage record: before and after photos and notes, time-stamped, with a PDF for your claim',
+  ],
+  cta: 'Make my free plan',
 }

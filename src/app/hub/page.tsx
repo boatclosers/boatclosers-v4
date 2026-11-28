@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import WatchVideo, { VIDEOS } from '@/components/WatchVideo'
-import { INSPECTOR, CHECKS, BOATCLOSERS, CLOSING, LOGS, LISTING, type SuiteApp } from '@/lib/suite'
+import { INSPECTOR, CHECKS, BOATCLOSERS, CLOSING, LOGS, LISTING, HURRICANE, type SuiteApp } from '@/lib/suite'
 
 // boatclosers.com/hub — every BoatClosers app on one page, laid out along a
 // boat's life: check it, close it, keep it, sell it. Prices and features come
@@ -57,7 +57,7 @@ const STOPS: { id: string; step: string; title: string; text: string; apps: Suit
     step: 'Owning it',
     title: 'Keep the records that keep the value.',
     text: 'A boat with a clean service history sells faster and for more. Log it as you go, not the week you decide to sell.',
-    apps: [LOGS],
+    apps: [LOGS, HURRICANE],
   },
   {
     id: 'selling',
@@ -74,6 +74,7 @@ const PITFALLS: [string, string, string][] = [
   ['A hidden loan or a bad title', 'Liens and title problems follow the boat, not the seller.', 'Free HIN and lien checks'],
   ['A deposit that disappears', 'Cash to a stranger with nothing signed is how scams work.', 'Escrow in BoatClosers'],
   ['No service records', 'Buyers pay less for a boat they can’t verify.', 'My Boat Logs'],
+  ['No storm plan', 'Insurers and lenders often ask for a hurricane plan, and the time to make one isn’t when the cone is on top of you.', 'Hurricane Plan'],
   ['An ad that draws lowballs', 'Thin listings get thin offers and endless questions.', 'My Boat Listing'],
 ]
 
@@ -82,7 +83,7 @@ const FAQ: [string, string][] = [
   ['Do they work together?', 'Yes, where it helps. Finish an inspection in My Boat Inspector and you can open a BoatClosers deal or a My Boat Closing with the boat’s details already filled in. A listing from My Boat Listing can do the same when you find your buyer.'],
   ['Is any of this a marine survey?', 'No. My Boat Inspector helps you look at a boat yourself and decide whether it deserves a survey. It doesn’t grade or certify a boat, and a professional survey is still suggested before you buy.'],
   ['Who is behind it?', 'BoatClosers was built by a licensed Florida yacht broker and captain, from how real boat sales close. None of the apps act as your broker or take a commission.'],
-  ['What does it cost?', `${BOATCLOSERS.name} is ${BOATCLOSERS.price} per deal. ${CLOSING.name} is ${CLOSING.price}. ${INSPECTOR.name} is ${INSPECTOR.price} and ${INSPECTOR.priceNote}. ${LOGS.name} is ${LOGS.price} ${LOGS.priceNote}. ${LISTING.name} is ${LISTING.price} ${LISTING.priceNote}. The HIN and lien checks are free.`],
+  ['What does it cost?', `${BOATCLOSERS.name} is ${BOATCLOSERS.price} per deal. ${CLOSING.name} is ${CLOSING.price}. ${INSPECTOR.name} is ${INSPECTOR.price} and ${INSPECTOR.priceNote}. ${LOGS.name} is ${LOGS.price} ${LOGS.priceNote}. ${LISTING.name} is ${LISTING.price} ${LISTING.priceNote}. The HIN and lien checks and the ${HURRICANE.name} are free.`],
 ]
 
 const ld = {
@@ -91,7 +92,7 @@ const ld = {
     {
       '@type': 'ItemList',
       name: 'The BoatClosers apps',
-      itemListElement: [INSPECTOR, BOATCLOSERS, CLOSING, LOGS, LISTING].map((a, i) => ({
+      itemListElement: [INSPECTOR, BOATCLOSERS, CLOSING, LOGS, LISTING, HURRICANE].map((a, i) => ({
         '@type': 'ListItem',
         position: i + 1,
         item: { '@type': 'SoftwareApplication', name: a.name, url: a.url.startsWith('/') ? `https://www.boatclosers.com${a.url}` : a.url, applicationCategory: 'BusinessApplication', description: a.pitch },
@@ -168,7 +169,7 @@ export default function HubPage() {
         .hb-wrap{max-width:1200px;margin:0 auto;padding-left:20px;padding-right:20px}
         .hb-two{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:64px}
         .hb-apps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px}
-        .hb-five{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px}
+        .hb-five{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}
         .hb-stop{scroll-margin-top:24px}
         .hb-nav a{color:rgba(255,255,255,0.82);text-decoration:none;font-size:15px}
         .hb-nav a:hover{color:#fff}

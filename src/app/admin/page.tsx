@@ -42,7 +42,7 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   const [data, setData] = useState<any>(null)
   const [filter, setFilter] = useState('live')
-  const [view, setView] = useState<'today' | 'full' | 'express' | 'mbi' | 'stats' | 'mbl' | 'mls' | 'pay' | 'tools'>('today')
+  const [view, setView] = useState<'today' | 'full' | 'express' | 'mbi' | 'stats' | 'mbl' | 'mls' | 'hp' | 'pay' | 'tools'>('today')
   const [exFilter, setExFilter] = useState('paid')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
@@ -197,7 +197,7 @@ export default function AdminPage() {
 
       <div style={{ padding: '1.25rem 1.5rem', maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-          {([['today', 'Today'], ['full', `BoatClosers · $249${t.needsAttention ? ` (${t.needsAttention} need you)` : ''}`], ['stats', 'Funnel & AI use'], ['express', `My Boat Closing · $29.99 (${t.expressAll ?? 0})`], ['mbi', 'My Boat Inspector'], ['mbl', 'My Boat Logs'], ['mls', 'My Boat Listing'], ['pay', 'Payments & refunds'], ['tools', 'Tools & links']] as const).map(([k, l]) => (
+          {([['today', 'Today'], ['full', `BoatClosers · $249${t.needsAttention ? ` (${t.needsAttention} need you)` : ''}`], ['stats', 'Funnel & AI use'], ['express', `My Boat Closing · $29.99 (${t.expressAll ?? 0})`], ['mbi', 'My Boat Inspector'], ['mbl', 'My Boat Logs'], ['mls', 'My Boat Listing'], ['hp', 'Hurricane Plan · free'], ['pay', 'Payments & refunds'], ['tools', 'Tools & links']] as const).map(([k, l]) => (
             <button key={k} onClick={() => { setView(k); setOpen(null) }}
               style={{ padding: '10px 16px', fontSize: 13.5, fontWeight: 800, borderRadius: 8, cursor: 'pointer',
                 border: `2px solid ${view === k ? BRASS : MIST}`, background: view === k ? '#fff' : '#f8fafc', color: NAVY }}>
@@ -244,6 +244,7 @@ export default function AdminPage() {
         {view === 'stats' && <StatsPanel pw={pw} Stat={Stat} />}
         {view === 'mbl' && <MblPanel pw={pw} Stat={Stat} />}
         {view === 'mls' && <ListingPanel pw={pw} Stat={Stat} />}
+        {view === 'hp' && <HurricanePanel pw={pw} Stat={Stat} />}
         {view === 'pay' && <PaymentsPanel pw={pw} Stat={Stat} />}
 
         {view === 'express' && <ExpressPanel data={data} exFilter={exFilter} setExFilter={setExFilter} open={open} setOpen={setOpen} runAction={runAction} actionBusy={actionBusy} actionMsg={actionMsg} q={q} setQ={setQ} Stat={Stat} />}
@@ -468,17 +469,19 @@ function TodayPanel({ pw, data, Stat, go }: any) {
   const [mbl, setMbl] = useState<any>(null)
   const [lst, setLst] = useState<any>(null)
   const [pays, setPays] = useState<any[] | null>(null)
+  const [hp, setHp] = useState<any>(null)
   const [errs, setErrs] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [q, setQ] = useState('')
   const load = async () => {
     setBusy(true)
-    const [a, b, c, d] = await Promise.all([adminCall(pw, 'mbiList'), adminCall(pw, 'mblOverview'), adminCall(pw, 'listingOverview'), adminCall(pw, 'payments')])
+    const [a, b, c, d, h] = await Promise.all([adminCall(pw, 'mbiList'), adminCall(pw, 'mblOverview'), adminCall(pw, 'listingOverview'), adminCall(pw, 'payments'), adminCall(pw, 'hurricaneOverview')])
     const e: string[] = []
     if (a.ok) setMbi(a); else e.push('My Boat Inspector: ' + (a.error || 'could not load'))
     if (b.ok) setMbl(b); else e.push('My Boat Logs: ' + (b.error || 'could not load'))
     if (c.ok) setLst(c); else e.push('My Boat Listing: ' + (c.error || 'could not load'))
     if (d.ok) setPays((d.payments || []).filter((x: any) => x.livemode)); else e.push('Stripe: ' + (d.error || 'could not load'))
+    if (h.ok) setHp(h); else e.push('Hurricane Plan: ' + (h.error || 'could not load'))
     setErrs(e); setBusy(false)
   }
   useEffect(() => { load() }, [])
@@ -488,6 +491,7 @@ function TodayPanel({ pw, data, Stat, go }: any) {
   const insp: any[] = mbi?.inspections || []
   const boats: any[] = mbl?.boats || []
   const listings: any[] = lst?.listings || []
+  const plans: any[] = hp?.plans || []
   const daysSince = (iso?: string | null) => iso ? Math.floor((Date.now() - Date.parse(iso)) / 86400000) : null
 
   // 1. Needs you
@@ -522,6 +526,7 @@ function TodayPanel({ pw, data, Stat, go }: any) {
   for (const r of insp) if (!r.test && (r.createdDays ?? 99) <= 7) fresh.push({ app: 'My Boat Inspector', who: r.email || 'guest', what: `${r.role === 'Seller' ? 'Seller' : 'Buyer'} inspection: ${r.boat}`, days: r.createdDays })
   for (const b of boats) { const n = daysSince(b.createdAt); if (n !== null && n <= 7) fresh.push({ app: 'My Boat Logs', who: b.email || 'no email', what: `Added a boat: ${b.name || [b.year, b.make, b.model].filter(Boolean).join(' ')}`, days: n }) }
   for (const x of listings) { const n = daysSince(x.createdAt); if (n !== null && n <= 7) fresh.push({ app: 'My Boat Listing', who: x.email || 'no email yet', what: `Started a listing${x.boat ? `: ${x.boat}` : ''}`, days: n }) }
+  for (const x of plans) { const n = daysSince(x.createdAt); if (n !== null && n <= 7) fresh.push({ app: 'Hurricane Plan (free)', who: x.email || 'no email', what: `Made a hurricane plan: ${x.boat}`, days: n }) }
   fresh.sort((a, b) => a.days - b.days)
   const newToday = fresh.filter(f => f.days === 0).length
 
@@ -543,6 +548,7 @@ function TodayPanel({ pw, data, Stat, go }: any) {
     for (const r of insp) if (has(r.id, r.email, r.boat, r.hin)) hits.push({ app: 'My Boat Inspector', title: r.boat, sub: `${r.stage} · ${r.email || 'guest'}` })
     for (const b of boats) if (has(b.id, b.email, b.name, b.hin, b.make, b.model)) hits.push({ app: 'My Boat Logs', title: b.name || [b.year, b.make, b.model].filter(Boolean).join(' '), sub: `${b.plan} · ${b.email || ''}` })
     for (const x of listings) if (has(x.id, x.email, x.boat)) hits.push({ app: 'My Boat Listing', title: x.boat || 'Listing', sub: `step ${(x.step || 0) + 1} · ${x.email || 'no email'}` })
+    for (const x of plans) if (has(x.id, x.reportId, x.email, x.boat, x.hin)) hits.push({ app: 'Hurricane Plan', title: x.boat, sub: `${x.reportId} · ${x.email || 'no email'}` })
     for (const p of pays || []) if (has(p.id, p.email, p.name)) hits.push({ app: 'Stripe', title: `${p.product} · $${(p.amount / 100).toFixed(2)}${p.refunded ? ` (refunded $${(p.refunded / 100).toFixed(2)})` : ''}`, sub: `${p.email} · ${new Date(p.created).toLocaleDateString()}` })
   }
 
@@ -1082,6 +1088,68 @@ function ListingAnswers({ data }: { data: Record<string, any> }) {
 const LISTING_STEPS = ['HIN', 'The boat', 'Power', 'Photos', 'Equipment', 'Your story', 'Records & disclosures', 'Write it', 'Publish & share']
 const OLD_STEP = [0, 1, 5, 6, 7, 8]
 const stepOf = (x: any) => Math.min(x.v === '2' ? (x.step || 0) : OLD_STEP[Math.min(x.step || 0, 5)], LISTING_STEPS.length - 1)
+function HurricanePanel({ pw, Stat }: any) {
+  const [d, setD] = useState<any>(null)
+  const [others, setOthers] = useState<Set<string>>(new Set())
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [q, setQ] = useState('')
+  const load = async () => {
+    setBusy(true); setErr('')
+    const [j, b, p] = await Promise.all([adminCall(pw, 'hurricaneOverview'), adminCall(pw, 'mblOverview'), adminCall(pw, 'payments')])
+    if (j.ok) setD(j); else setErr(j.error || 'Could not load the Hurricane Plan.')
+    // Emails that also use a paid app, so you can see the funnel working.
+    const em = new Set<string>()
+    for (const x of b?.boats || []) if (x.email) em.add(String(x.email).toLowerCase())
+    for (const x of p?.payments || []) if (x.email && x.livemode) em.add(String(x.email).toLowerCase())
+    setOthers(em)
+    setBusy(false)
+  }
+  useEffect(() => { load() }, [])
+  const t = d?.totals || {}
+  const all: any[] = d?.plans || []
+  const alsoPaid = (x: any) => x.email && others.has(String(x.email).toLowerCase())
+  const rows = all.filter((x: any) => !q.trim() || `${x.boat || ''} ${x.email || ''} ${x.hin || ''} ${x.reportId || ''}`.toLowerCase().includes(q.trim().toLowerCase()))
+  const when = (iso?: string) => iso ? new Date(iso).toLocaleDateString() : ''
+  return (
+    <>
+      {err && <div style={{ background: '#fdecec', border: '1px solid #f5b5b5', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, color: '#b91c1c', marginBottom: 12 }}>{err}</div>}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+        <Stat label="Plans made" value={t.plans ?? 0} />
+        <Stat label="New this week" value={t.new7 ?? 0} />
+        <Stat label="Owners (leads)" value={t.owners ?? 0} />
+        <Stat label="Signed / certified" value={t.certified ?? 0} />
+        <Stat label="Shared with insurer etc." value={t.shares ?? 0} />
+        <Stat label="Damage records" value={t.damageRecords ?? 0} />
+        <Stat label="Also in a paid app" value={all.filter(alsoPaid).length} tone="#0f6e56" />
+      </div>
+      <div style={{ fontSize: 12, color: SLATE, marginBottom: 12, lineHeight: 1.6 }}>The Hurricane Plan is free: it&apos;s the front door. &ldquo;Also in a paid app&rdquo; counts plan owners whose email also shows up in My Boat Logs or a live Stripe payment. {t.fromLogs ? `${t.fromLogs} plan${t.fromLogs === 1 ? ' was' : 's were'} imported from My Boat Logs.` : ''}</div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search boat, email, HIN, report ID" style={{ padding: '8px 12px', fontSize: 12.5, borderRadius: 7, border: `1px solid ${MIST}`, minWidth: 220 }} />
+        <a href="https://hurricane-plan.vercel.app" target="_blank" rel="noopener" style={{ fontSize: 12.5, color: NAVY }}>Open the app</a>
+        <button onClick={load} style={{ ...ctlBtn, marginLeft: 'auto' }} disabled={busy}>{busy ? 'Loading…' : 'Reload'}</button>
+      </div>
+      {d && rows.length === 0 && <div style={{ background: '#fff', border: `1px solid ${MIST}`, borderRadius: 10, padding: '2rem', textAlign: 'center', color: SLATE, fontSize: 13.5 }}>No plans yet.</div>}
+      <div style={{ display: 'grid', gap: 8 }}>
+        {rows.map((x: any) => (
+          <div key={x.id} style={{ background: '#fff', border: `1px solid ${MIST}`, borderRadius: 8, padding: '10px 13px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', fontSize: 12.5 }}>
+            <b style={{ color: NAVY, fontSize: 13.5 }}>{x.boat}</b>
+            <span style={{ color: SLATE }}>{x.email || 'no email'}</span>
+            <span style={{ color: SLATE }}>{x.reportId} · v{x.version}</span>
+            {x.certified && <span style={{ color: '#0f6e56', fontWeight: 700 }}>Signed</span>}
+            {x.shares > 0 && <span style={{ color: SLATE }}>{x.shares} share link{x.shares === 1 ? '' : 's'}</span>}
+            {x.damageRecords > 0 && <span style={{ color: '#b45309', fontWeight: 700 }}>{x.damageRecords} damage record{x.damageRecords === 1 ? '' : 's'}</span>}
+            {x.fromLogs && <span style={{ color: SLATE }}>from My Boat Logs</span>}
+            {alsoPaid(x) && <span style={{ color: '#0f6e56', fontWeight: 700 }}>Paid-app customer</span>}
+            <span style={{ marginLeft: 'auto', color: SLATE }}>started {when(x.createdAt)}</span>
+          </div>
+        ))}
+      </div>
+      {all.length >= 300 && <div style={{ fontSize: 11.5, color: SLATE, marginTop: 8 }}>Showing the newest 300 plans.</div>}
+    </>
+  )
+}
+
 function ListingPanel({ pw, Stat }: any) {
   const [d, setD] = useState<any>(null)
   const [pays, setPays] = useState<any[] | null>(null)

@@ -546,6 +546,13 @@ export default function Page() {
             <a href="https://myboatlogs.com">Look at My Boat Logs</a>
           </li>
           <li>
+            <span className="j-when">Hurricane season</span>
+            <h3>Hurricane Plan</h3>
+            <div className="p">Free</div>
+            <p className="d">A storm plan for your boat, a report for your insurer or lender, and a damage record if the worst happens.</p>
+            <a href="https://hurricane-plan.vercel.app">Make a free plan</a>
+          </li>
+          <li>
             <span className="j-when">When it’s time to sell</span>
             <h3>My Boat Listing</h3>
             <div className="p">From $19.99, set by your boat</div>

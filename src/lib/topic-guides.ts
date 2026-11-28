@@ -630,6 +630,77 @@ export const TOPIC_GUIDES: TopicGuide[] = [
       { slug: 'documents-needed-private-boat-sale', title: 'What documents you need to close a private boat sale' },
     ],
   },
+  {
+    slug: 'buying-a-used-boat-after-a-hurricane',
+    title: 'Buying a Used Boat After Hurricane Season: How to Avoid a Storm-Damaged Boat',
+    h1: 'Buying a Used Boat',
+    h1Accent: 'After Hurricane Season',
+    description:
+      'Storm-damaged boats get cleaned up and resold. How to check the HIN and title history, spot signs of flood or storm damage, and keep your deposit safe until the survey is done.',
+    dateModified: '2026-11-27',
+    intro:
+      'Every hurricane season leaves boats behind that were flooded, sunk or banged up, and some of them come back on the market looking fine. Most are sold honestly. The risk is buying one without knowing. Here is how to find out before your money moves.',
+    sections: [
+      {
+        h: 'The short answer',
+        paras: [
+          'Run the HIN, check the title and a history report for salvage or total-loss records, ask the seller in writing whether the boat has been in a storm, look for the signs below, get a professional survey, and keep your deposit with a neutral party until the survey is done.',
+        ],
+      },
+      {
+        h: 'Check the paperwork before you drive out',
+        list: [
+          'Run the HIN and make sure it matches the title and the boat.',
+          'Look for a salvage, rebuilt or total-loss history. A boat history report can show insurance total losses and storm damage.',
+          'Ask the seller directly whether the boat has been in a hurricane, sunk or submerged, and get the answer in writing.',
+          'Ask for service records. A gap right after a storm, or a recently replaced engine with no clear reason, deserves a question.',
+        ],
+      },
+      {
+        h: 'Signs a boat may have been in a storm',
+        list: [
+          'Water lines, staining or a musty smell inside, and brand-new carpet or upholstery on an older boat.',
+          'Corrosion on wiring, connectors and electronics, or new electronics sitting on old wiring.',
+          'Patches of fresh gelcoat or paint, especially along the hull sides and rub rail.',
+          'Mud or silt in bilges, lockers and other hard-to-reach places.',
+          'A trailer with rusted-through bearings, lights or frame on a boat that is supposedly lightly used.',
+        ],
+      },
+      {
+        h: 'Protect your deposit',
+        paras: [
+          'Put the deal in writing with a survey contingency, so you can walk away or renegotiate if the survey finds storm damage. Have a neutral party such as an escrow company hold the deposit instead of handing cash to the seller.',
+        ],
+      },
+      {
+        h: 'Already own a boat in hurricane country?',
+        paras: [
+          'Make a plan before the next storm has a name. The free BoatClosers Hurricane Plan builds one for your boat, with a report your insurer, lender or marina can use and a damage record if the worst happens.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'How can I tell if a used boat was in a hurricane?',
+        a: 'Check the title and a history report for salvage or total-loss records, ask the seller in writing, and look for water lines, corrosion, patchy new gelcoat and silt in bilges and lockers. Then get a professional survey.',
+      },
+      {
+        q: 'Should I buy a boat that was damaged in a hurricane?',
+        a: 'It can be a fair deal if the damage was properly repaired and documented and the price reflects it. Get the repair records and a survey, and keep your deposit protected until both check out.',
+      },
+    ],
+    cta: 'both',
+    related: [
+      { slug: 'marine-survey-what-it-covers', title: 'What a marine survey covers' },
+      { slug: 'boat-deposit-and-escrow', title: 'Why every private boat deal needs a deposit and escrow' },
+      { slug: 'avoid-boat-buying-scams-facebook-marketplace-craigslist', title: 'Avoiding scams on Marketplace and Craigslist' },
+    ],
+    links: [
+      { name: 'BoatClosers Hurricane Plan', url: 'https://hurricane-plan.vercel.app', note: 'free hurricane plan for the boat you own' },
+      { name: 'Buying a used boat after hurricane season (Hurricane Plan guide)', url: 'https://hurricane-plan.vercel.app/guides/buying-a-used-boat-after-a-hurricane' },
+      { name: 'My Boat Inspector', url: 'https://myboatinspector.com', note: 'walk the boat system by system before you pay for a survey' },
+    ],
+  },
 ]
 
 export function getTopicGuide(slug: string) {

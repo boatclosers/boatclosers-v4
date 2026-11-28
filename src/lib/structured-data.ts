@@ -22,7 +22,7 @@ export const organization = {
   url: BC_URL,
   logo: `${BC_URL}/og-image.png`,
   description:
-    'BoatClosers makes online tools for private boat sales in the United States: a flat-fee closing platform (BoatClosers), a simple paperwork tool for small deals (My Boat Closing), a guided boat inspection app (My Boat Inspector), a boat maintenance log (My Boat Logs) and a for-sale-by-owner listing builder (My Boat Listing).',
+    'BoatClosers makes online tools for private boat sales in the United States: a flat-fee closing platform (BoatClosers), a simple paperwork tool for small deals (My Boat Closing), a guided boat inspection app (My Boat Inspector), a boat maintenance log (My Boat Logs), a for-sale-by-owner listing builder (My Boat Listing) and a free boat hurricane plan (BoatClosers Hurricane Plan).',
   areaServed: 'US',
   email: 'support@boatclosers.com',
   sameAs: [] as string[],
