@@ -336,6 +336,7 @@ export default function AdminPage() {
                     <button style={ctlBtn} disabled={!!actionBusy} onClick={() => runAction('adminResetDeposit', d.id)}>Reset deposit</button>
                     <button style={ctlBtn} disabled={!!actionBusy} onClick={() => runAction('adminResetRole', d.id, { role: 'buyer' })}>Initiator = buyer</button>
                     <button style={ctlBtn} disabled={!!actionBusy} onClick={() => runAction('adminResetRole', d.id, { role: 'seller' })}>Initiator = seller</button>
+                    {!DONE.includes(d.state) && <button style={{ ...ctlBtn, color: '#0f6e56', borderColor: '#9fd8c4' }} disabled={!!actionBusy} onClick={() => runAction('adminMarkClosed', d.id)}>Mark closed</button>}
                     {DONE.includes(d.state) && <button style={ctlBtn} disabled={!!actionBusy} onClick={() => runAction('adminReopenDeal', d.id)}>Reopen deal</button>}
                     <button style={{ ...ctlBtn, color: '#b91c1c', borderColor: '#f5b5b5' }} disabled={!!actionBusy} onClick={() => runAction('adminDeleteDeal', d.id)}>Delete</button>
                   </div>

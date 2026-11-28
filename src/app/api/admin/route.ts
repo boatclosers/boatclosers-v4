@@ -697,6 +697,15 @@ export async function POST(req: Request) {
         patch.finalized_at = null
         done = 'Deal reopened'
       }
+      else if (body.action === 'adminMarkClosed') {
+        // The owner confirms a deal closed (e.g. finished by phone or offline).
+        // Same end state as a finalized deal; undo with Reopen deal.
+        const now = new Date().toISOString()
+        negPatch = { ...neg, dealFinalized: true, closedByOwner: now }
+        patch.status = 'finalized'
+        patch.finalized_at = row.finalized_at || now
+        done = 'Marked closed by owner'
+      }
       else if (body.action === 'adminClearJoin') {
         // Undo a bad auto-join (the party_b bug). Frees the invite slot.
         patch.other_party_id = null
