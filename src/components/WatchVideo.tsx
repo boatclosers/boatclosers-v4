@@ -12,6 +12,7 @@ export const VIDEOS = {
   myBoatClosing: { id: 'V1MD6aj_QZY', title: 'How My Boat Closing works', length: '5 min' },
   myBoatInspector: { id: '0gyNXWDfNeo', title: 'How My Boat Inspector works', length: '4 min' },
   myBoatListing: { id: '-G0SDxIkMkk', title: 'How My Boat Listing works', length: '3 min' },
+  myBoatLogs: { id: 'YSX2fJs-RQc', title: 'How My Boat Logs works', length: '3 min' },
 } as const
 
 export const PLAYLIST_URL = 'https://www.youtube.com/playlist?list=PLakBAlm07cqc'
