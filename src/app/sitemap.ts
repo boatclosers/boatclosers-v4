@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { headers } from 'next/headers'
 import { STATE_GUIDES } from '@/lib/state-guides'
 import { TOPIC_GUIDES } from '@/lib/topic-guides'
 
@@ -20,8 +21,18 @@ const guides = [
   ...STATE_GUIDES.map((g) => g.slug),
 ]
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
+
+  // myboatclosing.com is served by this same app: give it its own sitemap with
+  // its own addresses (the /express pages say myboatclosing.com is their home).
+  const host = ((await headers()).get('host') || '').toLowerCase()
+  if (host.includes('myboatclosing.com')) {
+    return [
+      { url: 'https://myboatclosing.com', lastModified: now, changeFrequency: 'weekly', priority: 1 },
+      { url: 'https://myboatclosing.com/help', lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    ]
+  }
 
   return [
     {
@@ -97,10 +108,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
-      url: `${BASE}/express`,
+      url: `${BASE}/privacy`,
       lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.8,
+      changeFrequency: 'yearly',
+      priority: 0.2,
     },
     ...guides.map((slug) => ({
       url: `${BASE}/guides/${slug}`,
